@@ -1,6 +1,6 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import FSpec
+from .models import Species
 
-admin.site.register (FSpec)
+admin.site.register (Species)

@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import FSpec
+from .models import Species
 
 #fspecs = [
 #    {'id': 1, 'name': "Heros liberifer"},
@@ -11,12 +11,12 @@ from .models import FSpec
 def home(request):
     #return HttpResponse('Fish Species Network')
     #return render(request, 'home.html')
-    fspecs = FSpec.objects.all()
-    context = {'fspecs': fspecs}
-    return render(request, 'fspec/home.html', context)
+    speciesset = Species.objects.all()
+    context = {'speciesset': speciesset}
+    return render(request, 'species/home.html', context)
 
-def fspec(request, pk):
+def species(request, pk):
     #return HttpResponse('Fish Species')
-    fspec = FSpec.objects.get(id=pk)
-    context = {'fspec': fspec}
-    return render (request, 'fspec/fspec.html', context)
+    species = Species.objects.get(id=pk)
+    context = {'species': species}
+    return render (request, 'species/species.html', context)

@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 
-class FSpec (models.Model):
+class Species (models.Model):
     name = models.CharField (max_length=200)
     description = models.TextField(null=True, blank=True)  # allows empty text or form
     lastUpdated = models.DateTimeField(auto_now=True)      # updated every DB FSpec save

@@ -3,5 +3,5 @@ from . import views
 
 urlpatterns = [
     path('', views.home, name="home"),
-    path('fspec/<str:pk>', views.fspec, name="fspec"), 
+    path('species/<str:pk>', views.species, name="species"), 
 ]
