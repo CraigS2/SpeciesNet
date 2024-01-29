@@ -1,7 +1,28 @@
 {% extends 'main.html' %}
 
+<!-- context = {'species': species, 'speciesInstances': speciesInstances} -->
 {% block content %}
 
-<h1>My favorite fish is {{species.name}}</h1>
+<h1>{{species.name}}</h1>
+<h2><b>Description</b></h2>
+<p>{{species.description}}</p>
+<p><b>Global Region:</b> {{species.global_region}}</p>
 
+<h3><a href="{% url 'updateSpecies' species.id %}">Edit Species Profile</a></h3>
+<p>----------------------------------</p>
+
+<h2>Aquarists keeping this Species</h2>
+{% if species.species_instances.all.count > 0  %}
+<div>
+    {% for speciesInstance in speciesInstances %}
+    <div>
+        <p><b>{{speciesInstance.user.username}} ({{speciesInstance.user.first_name}}  {{speciesInstance.user.last_name}})</b> : {{speciesInstance.name}}</p>
+    </div>
+    {% endfor %}    
+</div>
+{% else %}
+    <h5>None</h5>
+{% endif %}
+
+<h3><a href="{% url 'createSpeciesInstance' species.id %}">Create New Kept Species Instance</a> <i>(I keep this species!)</i></h3>
 {% endblock content %}
