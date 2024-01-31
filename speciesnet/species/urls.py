@@ -3,7 +3,9 @@ from . import views
 
 urlpatterns = [
     path('', views.home, name="home"),
+    path('aquarist/<str:pk>/', views.aquarist, name="aquarist"), 
     path('species/<str:pk>/', views.species, name="species"), 
+    path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('updateSpecies/<str:pk>/', views.updateSpecies, name="updateSpecies"),
     path('createSpeciesInstance/', views.createSpeciesInstance, name="createSpeciesInstance"),

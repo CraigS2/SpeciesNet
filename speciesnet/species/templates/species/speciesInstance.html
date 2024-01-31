@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+<!--  context = {'speciesInstances': speciesInstances} -->
+{% block content %}
+
+<h1>{{speciesInstance.name}}</h1>
+<h2>Aquarist: {{speciesInstance.user.username}}   ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
+<h3>Species: {{speciesInstance.species.name}}</h3>
+<h3>Description:</h3>
+<p>{{speciesInstance.species.description}}</p>
+<p><b>Global Region:</b> {{speciesInstance.species.global_region}}</p>
+
+<h3><a href="{% url 'updateSpecies' speciesInstance.species.id %}">Edit Species Profile</a></h3>
+<hr>
+<h2>Aquarist Notes</h2>
+<p><large>TODO</large></p>
+
+{% endblock content %}

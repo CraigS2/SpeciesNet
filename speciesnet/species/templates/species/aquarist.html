@@ -1,0 +1,24 @@
+{% extends 'main.html' %}
+<!-- context = {'aquarist': aquarist, 'speciesKept': speciesKept} -->
+{% block content %}
+
+<h1>{{aquarist.username}}</h1>
+<p><large><B>Name: </B>{{aquarist.first_name}} {{aquarist.last_name}}</large></p>
+<p><large><B>Email: </B>{{aquarist.email}}</large></p>
+<p><large><B>Home State: </B>TODO</large></p>
+<hr>
+
+<h2>Aquarist keeps the following species:</h2>
+{% if speciesKept.all.count > 0  %}
+<div>
+    {% for speciesInstance in speciesKept %}
+    <div>
+        <h3><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.species.name}}</a></h3>
+    </div>
+    {% endfor %}    
+</div>
+{% else %}
+    <p><large><B>None</B></large></p>
+{% endif %}
+
+{% endblock content %}

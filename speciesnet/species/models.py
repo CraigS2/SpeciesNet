@@ -34,7 +34,7 @@ class Species (models.Model):
 class SpeciesInstance (models.Model):
 
     name = models.CharField (max_length=240) #TODO can we instantiate object passing Species? Set name from Species name?
-    user = models.ForeignKey(User, on_delete=models.CASCADE) # all Species Instances for a user deleted if user deleted
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='species_instances') # all Species Instances for a user deleted if user deleted
 
     # TODO finalize delete pattern - leaving orphaned table entries isn't a great feature
     species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves SpeciesInstance in DB TODO improve

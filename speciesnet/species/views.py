@@ -5,6 +5,7 @@ from .models import Species, SpeciesInstance
 from .forms import SpeciesForm, SpeciesInstanceForm
 
 # Create your views here.
+
 def home(request):
     speciesKeepers = User.objects.all()
     speciesSet = Species.objects.all()
@@ -14,11 +15,22 @@ def home(request):
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
     return render(request, 'species/home.html', context)
 
+def aquarist(request, pk):
+    aquarist = User.objects.get(id=pk)
+    speciesKept = SpeciesInstance.objects.filter(user=aquarist)
+    context = {'aquarist': aquarist, 'speciesKept': speciesKept}
+    return render (request, 'species/aquarist.html', context)
+
 def species(request, pk):
     species = Species.objects.get(id=pk)
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     context = {'species': species, 'speciesInstances': speciesInstances}
     return render (request, 'species/species.html', context)
+
+def speciesInstance(request, pk):
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    context = {'speciesInstance': speciesInstance}
+    return render (request, 'species/speciesInstance.html', context)
 
 def createSpecies (request):
     form = SpeciesForm()
