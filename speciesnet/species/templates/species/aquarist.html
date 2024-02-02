@@ -13,7 +13,7 @@
 <div>
     {% for speciesInstance in speciesKept %}
     <div>
-        <h3><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.species.name}}</a></h3>
+        <h3><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h3>
     </div>
     {% endfor %}    
 </div>

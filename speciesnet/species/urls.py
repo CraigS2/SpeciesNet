@@ -8,8 +8,10 @@ urlpatterns = [
     path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('updateSpecies/<str:pk>/', views.updateSpecies, name="updateSpecies"),
+    path('deleteSpecies/<str:pk>/', views.updateSpecies, name="updateSpecies"),
+    #TODO refine SpeciesInstance creation - preselection of species required or editable in creation
     path('createSpeciesInstance/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('createSpeciesInstance//<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('updateSpeciesInstance/<str:pk>/', views.updateSpeciesInstance, name="updateSpeciesInstance"),
-    path('deleteSpeciesObj/<str:pk>/', views.deleteSpeciesObj, name="deleteSpeciesObj"),
+    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"),
 ]

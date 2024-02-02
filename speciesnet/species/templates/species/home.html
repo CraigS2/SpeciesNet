@@ -34,10 +34,10 @@
         <h2>Show All Kept Species</h2>
         {% for speciesInstance in speciesInstances %}
         <div>
-            <h5>  {{speciesInstance.name}}</a> - {{speciesInstance.user.username}} 
-                <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a> 
-                <a href="{% url 'deleteSpeciesObj' speciesInstance.id %}">Delete</a>
-
+            <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  
+                <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a>   
+                <a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete</a>
+            </h5>
         </div>
         {% endfor %} 
 

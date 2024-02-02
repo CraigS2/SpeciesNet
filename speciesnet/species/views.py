@@ -15,6 +15,8 @@ def home(request):
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
     return render(request, 'species/home.html', context)
 
+### View the basic elements of ASN: Aquarist, Species, and SpeciesInstance
+
 def aquarist(request, pk):
     aquarist = User.objects.get(id=pk)
     speciesKept = SpeciesInstance.objects.filter(user=aquarist)
@@ -31,6 +33,8 @@ def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/speciesInstance.html', context)
+
+### CRUD Support for Species & SpeciesInstance - Users are Admin managed
 
 def createSpecies (request):
     form = SpeciesForm()
@@ -54,6 +58,9 @@ def updateSpecies (request, pk):
             return redirect('home')
     context = {'form': form}
     return render (request, 'species/createSpecies.html', context)
+
+#TODO manage species deletion TBD Admin level only? Allow author to delete? Allow only if no SpeciesInstances?
+#TODO manage species updates only to creator and Admins? TBD
 
 def createSpeciesInstance (request):
     form = SpeciesInstanceForm()
@@ -90,12 +97,11 @@ def updateSpeciesInstance (request, pk):
     context = {'form': form}
     return render (request, 'species/createSpeciesInstance.html', context)
 
-def deleteSpeciesObj (request, pk):
+def deleteSpeciesInstance (request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     if (request.method == 'POST'):
         print (request.POST) #TODO remove print statement
-        print ("Object.id == ", pk)
         speciesInstance.delete()
         return redirect('home')
-    context = {'obj': speciesInstance}
-    return render (request, 'species/deleteSpeciesObj.html', context)
+    context = {'speciesInstance': speciesInstance}
+    return render (request, 'species/deleteSpeciesInstance.html', context)

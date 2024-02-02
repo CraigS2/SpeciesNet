@@ -2,6 +2,7 @@ from django.db import models
 #from enum import Enum
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
+import datetime
 
 
 # Create your models here.
@@ -49,6 +50,16 @@ class SpeciesInstance (models.Model):
         OTHER           = 'OT', _('Other')
 
     genetic_traits = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
+    num_adults = models.PositiveSmallIntegerField(default=6)
+    approx_date_acquired = models.DateField(_("Date"), default = datetime.date.today)
+    aquarist_notes = models.TextField(null=True, blank=True)
+
+    # TODO make have_spawned visible by default and other properties visible if have_spawned true
+    have_spawned = models.BooleanField(default=False)
+    spawning_notes = models.TextField(null=True, blank=True)
+    have_reared_fry = models.BooleanField(default=False)
+    fry_rearing_notes = models.TextField(null=True, blank=True)
+    young_available = models.BooleanField(default=False)
 
     created = models.DateTimeField(auto_now_add=True)      # updated only at 1st save
     lastUpdated = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
