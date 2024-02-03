@@ -3,7 +3,10 @@
     <h1>
         <a href="/"><img style="vertical-align:middle" src={% static 'SpeciesNet1s.jpg'%}></a>
         &nbsp;
-        <a href="/">Aquarist Species Network</a>
+        <a href="/">Aquarist Species</a>
     </h1>
+    <form method="GET" action="{% url 'home' %}">
+        <input type="text" name="q" placeholder="Search Species ..."/>
+    </form>
     <hr>
 </div>

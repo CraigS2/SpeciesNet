@@ -1,0 +1,45 @@
+{% extends 'main.html' %}
+<!-- context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers} -->
+{% block content %}
+
+<div>
+    <h2>Aquarists</h2>
+    {% for aquarist in speciesKeepers %}
+        <div>
+            {% if aquarist.species_instances.all.count > 0 %}
+            <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  ({{aquarist.first_name}} {{aquarist.last_name}})</a> ({{aquarist.species_instances.all.count}})</h5>
+            {% else %}
+            <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  ({{aquarist.first_name}} {{aquarist.last_name}})</a></h5>
+            {% endif %}
+            </div>
+    {% endfor %} 
+</div>
+<hr>
+<div>
+    <h2>Species List</h2>
+    <h3><a href="{% url 'createSpecies'%}">** Add New Species **</a></h3> 
+    {% for species in speciesSet %}
+        <div>
+            {% if species.species_instances.all.count > 0 %}
+            <h5>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h5>
+            {% else %}
+            <h5>  <a href="{% url 'species' species.id %}">{{species.name}}</a></h5>
+            {% endif %}
+        </div>
+    {% endfor %} 
+</div>
+<hr>
+<div>
+    <h2>Show All Kept Species</h2>
+    {% for speciesInstance in speciesInstances %}
+    <div>
+        <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  
+            <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a>   
+            <a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete</a>
+        </h5 >
+    </div>
+    {% endfor %} 
+
+</div>
+
+{% endblock content %}

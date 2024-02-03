@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.db.models import Count
+from django.db.models import Q
 from .models import Species, SpeciesInstance
 from .forms import SpeciesForm, SpeciesInstanceForm
 
@@ -10,10 +11,25 @@ def home(request):
     speciesKeepers = User.objects.all()
     speciesSet = Species.objects.all()
     speciesInstances = SpeciesInstance.objects.all()
-    #TODO populate species details and list of aquarists keeping the species
-    # countQuerySet = SpeciesInstance.objects.annotate(speciesCount=Count('species'))
+    # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
+    # icontains vs contains case sensitivity, also can use starts with, ends with see search docs
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+    # speciesFilter = Species.objects.filter(name__icontains=q) 
+    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(description__icontains=q))
+
+    context = {'speciesFilter': speciesFilter, 'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
+    return render(request, 'species/home.html',context)
+
+# temporary working page to try out view scenarios and keep useful nuggets of code
+def working(request):
+    speciesKeepers = User.objects.all()
+    speciesSet = Species.objects.all()
+    speciesInstances = SpeciesInstance.objects.all()
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
-    return render(request, 'species/home.html', context)
+    return render(request, 'species/working.html',context)
+
+
+
 
 ### View the basic elements of ASN: Aquarist, Species, and SpeciesInstance
 

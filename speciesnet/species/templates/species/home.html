@@ -2,24 +2,21 @@
 <!-- context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers} -->
 {% block content %}
 
-<div>
-    <div>
-        <h2>Aquarists</h2>
-        {% for aquarist in speciesKeepers %}
-            <div>
-                {% if aquarist.species_instances.all.count > 0 %}
-                <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  ({{aquarist.first_name}} {{aquarist.last_name}})</a> ({{aquarist.species_instances.all.count}})</h5>
-                {% else %}
-                <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  ({{aquarist.first_name}} {{aquarist.last_name}})</a></h5>
-                {% endif %}
-             </div>
-        {% endfor %} 
-    </div>
-    <hr>
-    <div>
-        <h2>Species List</h2>
-        <h3><a href="{% url 'createSpecies'%}">** Add New Species **</a></h3> 
-        {% for species in speciesSet %}
+<!-- Temporary CSS code embedded here for now ... to be removed -->
+<style>
+    .home-container 
+    {
+        display: grid;
+        grid-template-columns: 1fr 2fr
+    }
+</style> 
+<div class="home-container">
+    <div class="sidebar-container">
+        <h2>Species</h2>
+        <div>
+            <a href="{% url 'home' %}">All</a>
+        </div>
+        {% for species in speciesFilter %}
             <div>
                 {% if species.species_instances.all.count > 0 %}
                 <h5>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h5>
@@ -29,18 +26,8 @@
             </div>
         {% endfor %} 
     </div>
-    <hr>
     <div>
-        <h2>Show All Kept Species</h2>
-        {% for speciesInstance in speciesInstances %}
-        <div>
-            <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  
-                <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a>   
-                <a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete</a>
-            </h5>
-        </div>
-        {% endfor %} 
-
+        <h3 align="right"><a href="{% url 'working' %}">** Working Page **</a></h3>
     </div>
 </div>
 
