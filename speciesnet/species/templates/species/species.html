@@ -7,6 +7,7 @@
 <h2><b>Description</b></h2>
 <p>{{species.description}}</p>
 <p><b>Global Region:</b> {{species.global_region}}</p>
+<p><b>Distribution:</b> {{species.local_distribution}}</p>
 
 <h3><a href="{% url 'updateSpecies' species.id %}">Edit Species Profile</a></h3>
 <p>----------------------------------</p>
@@ -16,7 +17,8 @@
 <div>
     {% for speciesInstance in speciesInstances %}
     <div>
-        <p><b>{{speciesInstance.user.username}} ({{speciesInstance.user.first_name}}  {{speciesInstance.user.last_name}})</b> : {{speciesInstance.name}}</p>
+        <p><b>{{speciesInstance.user.username}} ({{speciesInstance.user.first_name}}  {{speciesInstance.user.last_name}})</b> : 
+            <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
     </div>
     {% endfor %}    
 </div>

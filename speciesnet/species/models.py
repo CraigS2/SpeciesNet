@@ -24,7 +24,10 @@ class Species (models.Model):
         OTHER           = 'OTH', _('Other Region')
         
     global_region = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
+    local_distribution = models.CharField (max_length=200, null=True, blank=True)
+
     created = models.DateTimeField(auto_now_add=True)      # updated only at 1st save
+    lastUpdated = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
 
     class Meta:
         ordering = ['-created'] # sorts in descending order - newest first
@@ -38,7 +41,7 @@ class SpeciesInstance (models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='species_instances') # all Species Instances for a user deleted if user deleted
 
     # TODO finalize delete pattern - leaving orphaned table entries isn't a great feature
-    species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves SpeciesInstance in DB TODO improve
+    species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB TODO improve
     unique_traits = models.CharField (max_length=200, null=True) # e.g. long-finned, color, etc. May be empty
 
     class GeneticLine (models.TextChoices):
@@ -49,6 +52,7 @@ class SpeciesInstance (models.Model):
         FX              = 'FX', _('FX 3rd or more Generation')
         OTHER           = 'OT', _('Other')
 
+    collection_point = models.CharField (max_length=200, null=True, blank=True)
     genetic_traits = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     num_adults = models.PositiveSmallIntegerField(default=6)
     approx_date_acquired = models.DateField(_("Date"), default = datetime.date.today)
