@@ -30,12 +30,14 @@
 </div>
 <hr>
 <div>
-    <h2>Show All Kept Species</h2>
+    <h2>Species Instances</h2>
     {% for speciesInstance in speciesInstances %}
     <div>
         <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  
-            <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a>   
-            <a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete</a>
+            {% if request.user == speciesInstance.user %}
+                <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a>   
+                <a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete</a>
+            {% endif %}
         </h5 >
     </div>
     {% endfor %} 

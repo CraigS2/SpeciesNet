@@ -1,12 +1,22 @@
 {% load static %}
 <div>
     <h1>
-        <a href="/"><img style="vertical-align:middle" src={% static 'SpeciesNet1s.jpg'%}></a>
+        <a href="/"><img style="vertical-align:middle" src={% static 'images\SpeciesNet1s.jpg' %}></a>
         &nbsp;
         <a href="/">Aquarist Species</a>
     </h1>
-    <form method="GET" action="{% url 'home' %}">
-        <input type="text" name="q" placeholder="Search Species ..."/>
-    </form>
+</div>
+<div> 
+    {% if request.user.is_authenticated %}
+        <h3 style = "display: flex; justify-content: space-between;">
+            <span><a href="{% url 'working' %}">Working Page</a></span>
+            <a href="{% url 'logout' %}">Logout {{request.user}}</a></h3>
+        <h3>
+    {% else %}
+        <h3 style = "display: flex; justify-content: space-between;">
+            <span><a href="{% url 'working' %}">Working Page</a></span>
+            <a href="{% url 'login' %}">Login</a></a>
+        </h3>
+    {% endif %}
     <hr>
 </div>

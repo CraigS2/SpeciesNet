@@ -30,7 +30,7 @@ class Species (models.Model):
     lastUpdated = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
 
     class Meta:
-        ordering = ['-created'] # sorts in descending order - newest first
+        ordering = ['name'] # sorts in alphabetical order
 
     def __str__(self):
         return self.name
@@ -38,11 +38,11 @@ class Species (models.Model):
 class SpeciesInstance (models.Model):
 
     name = models.CharField (max_length=240) #TODO can we instantiate object passing Species? Set name from Species name?
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='species_instances') # all Species Instances for a user deleted if user deleted
+    user = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instances') # all Species Instances for a user deleted if user deleted
 
     # TODO finalize delete pattern - leaving orphaned table entries isn't a great feature
     species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB TODO improve
-    unique_traits = models.CharField (max_length=200, null=True) # e.g. long-finned, color, etc. May be empty
+    unique_traits = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
@@ -55,7 +55,7 @@ class SpeciesInstance (models.Model):
     collection_point = models.CharField (max_length=200, null=True, blank=True)
     genetic_traits = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     num_adults = models.PositiveSmallIntegerField(default=6)
-    approx_date_acquired = models.DateField(_("Date"), default = datetime.date.today)
+    approx_date_acquired = models.DateField(_("Date Acquired"), default = datetime.date.today)
     aquarist_notes = models.TextField(null=True, blank=True)
 
     # TODO make have_spawned visible by default and other properties visible if have_spawned true

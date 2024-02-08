@@ -1,18 +1,14 @@
 {% extends 'main.html' %}
-<!-- context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers} -->
+
 {% block content %}
 
-<!-- Temporary CSS code embedded here for now ... to be removed -->
-<style>
-    .home-container 
-    {
-        display: grid;
-        grid-template-columns: 1fr 2fr
-    }
-</style> 
 <div class="home-container">
     <div class="sidebar-container">
         <h2>Species</h2>
+        <form method="GET" action="{% url 'home' %}">
+            <input type="text" name="q" placeholder="Search Species ..."/>
+        </form>
+        <p>
         <div>
             <a href="{% url 'home' %}">All</a>
         </div>
@@ -26,8 +22,24 @@
             </div>
         {% endfor %} 
     </div>
-    <div>
-        <h3 align="right"><a href="{% url 'working' %}">** Working Page **</a></h3>
+    <div class="activity-container">
+        <h2>Recent Updates</h2>
+        <p>Species Instances Count: {{speciesInstances.count}}</p>
+        {% if speciesInstances.count > 0  %}
+        <div>
+            {% for speciesInstance in speciesInstances %}
+            <div>
+                <p>
+                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
+                 ({{speciesInstance.lastUpdated | timesince}}) by
+                <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <h5>No recent updates</h5>
+        {% endif %}
     </div>
 </div>
 

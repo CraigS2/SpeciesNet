@@ -10,3 +10,4 @@ class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
+        exclude = ['user', 'species']
