@@ -5,25 +5,44 @@
 <h1>{{speciesInstance.name}}</h1>
 <h2>Aquarist: {{speciesInstance.user.username}}   ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
 <hr>
+
 <h3>Species: {{speciesInstance.species.name}}</h3>
 <h3>Description:</h3>
 <p>{{speciesInstance.species.description}}</p>
-<p><b>Global Region:</b> {{speciesInstance.species.global_region}}</p>
+<!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->
+<p><b>Global Region:</b> {{speciesInstance.species.get_global_region_display}}</p>
 <p><b>Distribution:</b> {{speciesInstance.species.local_distribution}}</p>
-<p><b>Collection Point:</b> {{speciesInstance.collection_point}}</p>
-<h3><a href="{% url 'updateSpecies' speciesInstance.species.id %}">Edit Species Profile</a></h3>
+
+{% if request.user.is_authenticated %}
+    <h3><a href="{% url 'updateSpecies' speciesInstance.species.id %}">Edit Species Profile</a></h3>
+{% endif %}
 <hr>
+
 <h2>Aquarist Notes</h2>
+{% if speciesInstance.collection_point %}
+    <p><b>Collection Point:</b> {{speciesInstance.collection_point}}</p>
+{% endif %}   
+<p><b>Genetic Line:</b> {{speciesInstance.get_genetic_traits_display}}</p>
+{% if speciesInstance.unique_traits %}
+    <p><b>Line Traits:</b> {{speciesInstance.unique_traits}}</p>
+{% endif %}  
 <p><b>Number of Adults: </b>{{speciesInstance.num_adults}}</p>
 <p><b>Date Acquired: </b>{{speciesInstance.approx_date_acquired|date:'F Y'}}</p>
 <p>{{speciesInstance.aquarist_notes}}</p>
-<p><b>Species Spawned: </b>{{speciesInstance.have_spawned}}</p>
 
 {% if speciesInstance.have_spawned %}
+    <p><b>Species Spawned: </b>Yes</p>
     <p>{{speciesInstance.spawning_notes}}</p>
-    <p><b>Have Reared Fry?</b> {{speciesInstance.have_reared_fry}}</p>
-    <p>{{speciesInstance.fry_rearing_notes}}</p>
-    <p><b>Young fish available?</b> {{speciesInstance.young_available}}</p>
+    {% if speciesInstance.have_reared_fry %}
+        <p><b>Have Reared Fry? </b>Yes</p>
+        <p>{{speciesInstance.fry_rearing_notes}}</p>
+        {% if speciesInstance.young_available %}
+            <p><b>Young fish available? </b>Yes</p>
+        {% endif %}
+    {% endif %}
 {% endif %}
-<h3><a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h3>
+
+{% if request.user.is_authenticated %}
+    <h3><a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h3>
+{% endif %}
 {% endblock content %}

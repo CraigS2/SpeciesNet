@@ -8,15 +8,14 @@
 </div>
 <div> 
     {% if request.user.is_authenticated %}
-        <h3 style = "display: flex; justify-content: space-between;">
-            <span><a href="{% url 'working' %}">Working Page</a></span>
-            <a href="{% url 'logout' %}">Logout {{request.user}}</a></h3>
-        <h3>
+    <h3 style = "display: flex; justify-content: space-between;">
+        <span><a href="{% url 'aquarists' %}">Aquarists</a></span>
+        <a href="{% url 'createSpecies'%}">Add Species</a>
+        <a href="{% url 'working' %}">Working Page</a>
+        <a href="{% url 'logout' %}">Logout {{request.user}}</a>
+    </h3>
     {% else %}
-        <h3 style = "display: flex; justify-content: space-between;">
-            <span><a href="{% url 'working' %}">Working Page</a></span>
-            <a href="{% url 'login' %}">Login</a></a>
-        </h3>
+        <h3><a href="{% url 'login' %}">Login</a></h3>
     {% endif %}
-    <hr>
+    <hr/>
 </div>

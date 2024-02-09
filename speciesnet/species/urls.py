@@ -6,6 +6,7 @@ urlpatterns = [
     path('logout/', views.logoutUser, name="logout"), 
     path('register/', views.registerUser, name="register"), 
     path('', views.home, name="home"),
+    path('aquarists/', views.aquarists, name="aquarists"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
     path('species/<str:pk>/', views.species, name="species"), 
     path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 

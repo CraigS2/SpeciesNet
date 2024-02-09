@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="home-container">
-    <div class="sidebar-container">
+    <div>
         <h2>Species</h2>
         <form method="GET" action="{% url 'home' %}">
             <input type="text" name="q" placeholder="Search Species ..."/>
@@ -22,9 +22,8 @@
             </div>
         {% endfor %} 
     </div>
-    <div class="activity-container">
+    <div>
         <h2>Recent Updates</h2>
-        <p>Species Instances Count: {{speciesInstances.count}}</p>
         {% if speciesInstances.count > 0  %}
         <div>
             {% for speciesInstance in speciesInstances %}

@@ -9,8 +9,10 @@
 <p><b>Global Region:</b> {{species.global_region}}</p>
 <p><b>Distribution:</b> {{species.local_distribution}}</p>
 
+{% if request.user.is_authenticated %}
 <h3><a href="{% url 'updateSpecies' species.id %}">Edit Species Profile</a></h3>
-<p>&nbsp;</p>
+{% endif %}
+<small>&nbsp;</small>
 <hr>
 
 <h2>Aquarists keeping this Species</h2>
@@ -27,5 +29,8 @@
     <h5>None</h5>
 {% endif %}
 
+{% if request.user.is_authenticated %}
 <h3><a href="{% url 'createSpeciesInstance' species.id %}">Add Species Instance</a> <i>(I keep this fish!)</i></h3>
+{% endif %}
+
 {% endblock content %}

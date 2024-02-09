@@ -4,6 +4,7 @@
 
 <div>
     <h2>Aquarists</h2>
+    <p>Aquarist Count: {{speciesKeepers.count}}</p>
     {% for aquarist in speciesKeepers %}
         <div>
             {% if aquarist.species_instances.all.count > 0 %}
@@ -17,7 +18,7 @@
 <hr>
 <div>
     <h2>Species List</h2>
-    <h3><a href="{% url 'createSpecies'%}">** Add New Species **</a></h3> 
+    <p>Species Count: {{speciesSet.count}}</p>
     {% for species in speciesSet %}
         <div>
             {% if species.species_instances.all.count > 0 %}
@@ -31,6 +32,7 @@
 <hr>
 <div>
     <h2>Species Instances</h2>
+    <p>Species Instances Count: {{speciesInstances.count}}</p>
     {% for speciesInstance in speciesInstances %}
     <div>
         <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  

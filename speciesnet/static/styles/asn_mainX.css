@@ -2,16 +2,17 @@ body {background-color: rgb(152, 199, 231);}
 
 a:visited {color:rgb(55, 25, 224)}
 
+.justify {
+    text-align: justify;
+    &::after {
+      content: '';
+      width: 100%;
+      display: inline-block;
+    }
+}
+
 .home-container 
 {
     display: grid;
     grid-template-columns: 1fr 2fr
 }
-
-hr 
-{
-    color:darkslategray;
-    border-color: rgb(152, 199, 231);
-    border-width: 2px;
-}
-

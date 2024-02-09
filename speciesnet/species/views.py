@@ -70,7 +70,7 @@ def working(request):
     speciesSet = Species.objects.all()
     speciesInstances = SpeciesInstance.objects.all()
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
-    return render(request, 'species/working.html',context)
+    return render(request, 'species/working.html', context)
 
 ### View the basic elements of ASN: Aquarist, Species, and SpeciesInstance
 
@@ -117,6 +117,12 @@ def updateSpecies (request, pk):
             return redirect('home')
     context = {'form': form}
     return render (request, 'species/createSpecies.html', context)
+
+# Aquarists page
+def aquarists (request):
+    aquarists = User.objects.all()
+    context = {'aquarists': aquarists}
+    return render(request, 'species/aquarists.html', context)
 
 #TODO manage species deletion TBD Admin level only? Allow author to delete? Allow only if no SpeciesInstances?
 #TODO manage species updates only to creator and Admins? TBD

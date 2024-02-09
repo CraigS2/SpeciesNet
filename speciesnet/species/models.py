@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 import datetime
 
-
 # Create your models here.
 
 class Species (models.Model):
@@ -12,8 +11,6 @@ class Species (models.Model):
     name = models.CharField (max_length=240)
     description = models.TextField(null=True, blank=True)  # allows empty text or form
 
-    #TODO manage extensible Subregion (e.g. Lake Tanganyika)
-    #TODO fix problem with models.TextChoices not rendering text .label returns empty string
     class GlobalRegion (models.TextChoices):
         SOUTH_AMERICA   = 'SAM', _('South America')
         CENTRAL_AMERICA = 'CAM', _('Central America')
@@ -57,8 +54,6 @@ class SpeciesInstance (models.Model):
     num_adults = models.PositiveSmallIntegerField(default=6)
     approx_date_acquired = models.DateField(_("Date Acquired"), default = datetime.date.today)
     aquarist_notes = models.TextField(null=True, blank=True)
-
-    # TODO make have_spawned visible by default and other properties visible if have_spawned true
     have_spawned = models.BooleanField(default=False)
     spawning_notes = models.TextField(null=True, blank=True)
     have_reared_fry = models.BooleanField(default=False)
