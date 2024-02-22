@@ -10,4 +10,7 @@ db.sqlite3
 SpeciesNet.code-workspace
 ### venv
 venv/
+devnotes/
 bak/
+speciesnet/media/
+

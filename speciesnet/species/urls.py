@@ -1,4 +1,6 @@
 from django.urls import path
+from django.conf.urls.static import static
+from django.conf import settings
 from . import views
 
 urlpatterns = [
@@ -9,14 +11,17 @@ urlpatterns = [
     path('aquarists/', views.aquarists, name="aquarists"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
     path('species/<str:pk>/', views.species, name="species"), 
-    path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
-    path('updateSpecies/<str:pk>/', views.updateSpecies, name="updateSpecies"),
-    path('deleteSpecies/<str:pk>/', views.updateSpecies, name="updateSpecies"),
-    #TODO refine SpeciesInstance creation - preselection of species required or editable in creation
+    path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
+    path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
+    path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
     path('createSpeciesInstance/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('createSpeciesInstance//<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('updateSpeciesInstance/<str:pk>/', views.updateSpeciesInstance, name="updateSpeciesInstance"),
-    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"),
+    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"),     
     path('working/', views.working, name="working"),
 ]
+
+# extend urlpatterns to support Media images uploaded by user - development DEBUG environment
+urlpatterns = urlpatterns + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
+

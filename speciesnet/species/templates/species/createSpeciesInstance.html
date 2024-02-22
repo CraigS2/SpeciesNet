@@ -5,7 +5,7 @@
 <h1>Add/Edit Fish Species Instance</h1>
 
     <div>
-        <form method="POST" action="">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             {{form.as_p}}
             <input type="Submit" value="Submit">

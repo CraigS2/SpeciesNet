@@ -6,10 +6,18 @@ import datetime
 
 # Create your models here.
 
+class Image (models.Model):
+    title = models.CharField(max_length=200)
+    #TODO create 26 max folders for alphabetical single char folders: a,b,c... for image stoarge 
+    image = models.ImageField(upload_to='images')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
 class Species (models.Model):
 
     name = models.CharField (max_length=240)
     description = models.TextField(null=True, blank=True)  # allows empty text or form
+    species_image = models.ImageField (upload_to="images", null=True, blank=True)
 
     class GlobalRegion (models.TextChoices):
         SOUTH_AMERICA   = 'SAM', _('South America')
@@ -41,6 +49,9 @@ class SpeciesInstance (models.Model):
     species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB TODO improve
     unique_traits = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
 
+    #instance_image1 = models.Image
+    instance_image = models.ImageField (upload_to="images", null=True, blank=True)
+
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
         WILD_CAUGHT     = 'WC', _('Wild Caught')
@@ -68,3 +79,4 @@ class SpeciesInstance (models.Model):
 
     def __str__(self):
         return self.name
+    

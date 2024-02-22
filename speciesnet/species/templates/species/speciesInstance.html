@@ -14,7 +14,7 @@
 <p><b>Distribution:</b> {{speciesInstance.species.local_distribution}}</p>
 
 {% if request.user.is_authenticated %}
-    <h3><a href="{% url 'updateSpecies' speciesInstance.species.id %}">Edit Species Profile</a></h3>
+    <h3><a href="{% url 'editSpecies' speciesInstance.species.id %}">Edit Species Profile</a></h3>
 {% endif %}
 <hr>
 

@@ -1,16 +1,21 @@
 {% extends 'main.html' %}
+{% load static %}
 
 <!-- context = {'species': species, 'speciesInstances': speciesInstances} -->
 {% block content %}
 
 <h1>{{species.name}}</h1>
+{% if species.species_image %}
+    <p><img src={{species.species_image.url}}></p>
+{% endif %}
+
 <h2><b>Description</b></h2>
 <p>{{species.description}}</p>
-<p><b>Global Region:</b> {{species.global_region}}</p>
+<p><b>Global Region:</b> {{species.get_global_region_display}}</p>
 <p><b>Distribution:</b> {{species.local_distribution}}</p>
 
 {% if request.user.is_authenticated %}
-<h3><a href="{% url 'updateSpecies' species.id %}">Edit Species Profile</a></h3>
+    <h3><a href="{% url 'editSpecies' species.id %}">Edit Species Profile</a></h3>
 {% endif %}
 <small>&nbsp;</small>
 <hr>

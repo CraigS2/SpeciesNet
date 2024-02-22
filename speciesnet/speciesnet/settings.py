@@ -74,7 +74,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'speciesnet.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -104,27 +103,36 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
+# original working STATIC configuration
+# STATIC_URL = 'static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# STATICFILES_DIRS = [ BASE_DIR / 'static' ]
+
+# revised STATIC configuration moved css + logo jpg to species/static
+STATIC_ROOT = ''
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-#STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-STATICFILES_DIRS = [ BASE_DIR / 'static' ]
-# must run python manage.py collectstatic?
+STATICFILES_DIRS = ('static','species/static')
+
+
+# image file PILLOW support - hassle configuration see urls.py
+#MEDIA_URL = "/media/"
+MEDIA_URL = 'media/'
+#MEDIA_ROOT = ''
+#MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+#MEDIA_ROOT = [ BASE_DIR / 'media' ]
+#MEDIA_ROOT = [ BASE_DIR / 'media' ]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
