@@ -17,7 +17,7 @@ urlpatterns = [
     path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
     path('createSpeciesInstance/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('createSpeciesInstance//<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
-    path('updateSpeciesInstance/<str:pk>/', views.updateSpeciesInstance, name="updateSpeciesInstance"),
+    path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"),     
     path('working/', views.working, name="working"),
 ]

@@ -2,20 +2,23 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.db import models
-from django.db.models import Count
+#from django.db import models
+#from django.db.models import Count
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
-from django.core.files import File
-from pathlib import Path
-from django.conf import settings
-from django.utils.text import slugify
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+#from django.core.files import File
+#from pathlib import Path
+#from django.conf import settings
+#from django.utils.text import slugify
 from PIL import Image as PIL_Image
 from .models import Species, SpeciesInstance
-from .forms import SpeciesForm, SpeciesInstanceForm, ImageForm
-import os, urllib
+from .forms import SpeciesForm, SpeciesInstanceForm
+import os
+# import urllib
 
 def home(request):
     speciesSet = Species.objects.all()
@@ -92,29 +95,16 @@ def editSpecies (request, pk):
             # resize image for consistency
             img = PIL_Image.open(species.species_image.path)
             print ("Image being processed: ", species.species_image.path)
-            print ("Image resolution: ", species.species_image.path, "x", species.species_image.height)
+            print ("Image resolution: ", species.species_image.width, "x", species.species_image.height)
             img.thumbnail((320, 240))
             img.save(species.species_image.path)
             print ("Image resized to: ", species.species_image.width, "x", species.species_image.height)
             print ("Image path: ", species.species_image.path)
             print ("Image name: ", species.species_image.name)
             img.close()
-            return redirect('home')
-            #return HttpResponseRedirect(next)
+            return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/editSpecies.html', context)
-
-# @login_required(login_url='login')
-# def editSpecies (request, pk): 
-#     species = Species.objects.get(id=pk)
-#     form = SpeciesForm(instance=species)
-#     if (request.method == 'POST'):
-#         form2 = SpeciesForm(request.POST, instance=species)
-#         if form2.is_valid():
-#             form2.save()
-#             return redirect('home')
-#     context = {'form': form}
-#     return render (request, 'species/editSpecies.html', context)
 
 @login_required(login_url='login')
 def deleteSpecies (request, pk):
@@ -155,16 +145,18 @@ def createSpeciesInstance (request, pk):
     return render (request, 'species/createSpeciesInstance.html', context)
 
 @login_required(login_url='login')
-def updateSpeciesInstance (request, pk): 
+def editSpeciesInstance (request, pk): 
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     form = SpeciesInstanceForm(instance=speciesInstance)
     if (request.method == 'POST'):
         form2 = SpeciesInstanceForm(request.POST, instance=speciesInstance)
         if form2.is_valid():
             form2.save()
-            return redirect('home')
+            #return redirect('home')
+            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
     context = {'form': form}
-    return render (request, 'species/createSpeciesInstance.html', context)
+    return render (request, 'species/editSpeciesInstance.html', context)
+    #return redirect(request.META.get('HTTP_REFERER')) # returns to previous pg
 
 @login_required(login_url='login')
 def deleteSpeciesInstance (request, pk):
@@ -174,29 +166,6 @@ def deleteSpeciesInstance (request, pk):
         return redirect('home')
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/deleteSpeciesInstance.html', context)
-
-#image support
-
-def image_upload (request):
-    if request.method == 'POST':
-        form = ImageForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            image_instance = form.instance
-            Print ("Image Form Saved")
-            image_instance
-            # Resizing the uploaded image with fixed aspect ratio
-            img = PIL_Image.open(image_instance.image.path)
-            Print ("Image being processed: ", image_instance.image.path)
-            Print ("Image resolution is: ", image_instance.image.imageSize)
-            img.thumbnail((320, 240))
-            img.save(image_instance.image.path)
-            Print ("Image resized to: ", img.imageSize)
-            return redirect('image_view', pk=image_instance.pk)
-    else:
-        form = ImageForm()
-    return render(request, 'species/image_upload.html', {'form': form})
-    #return redirect(request.META.get('HTTP_REFERER')) # returns to previous pg
 
 # login and user registration
 

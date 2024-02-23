@@ -3,10 +3,15 @@
 {% block content %}
 
 <h1>{{speciesInstance.name}}</h1>
-<h2>Aquarist: {{speciesInstance.user.username}}   ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
+<h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
 <hr>
 
-<h3>Species: {{speciesInstance.species.name}}</h3>
+<h3>Species: <a href="{% url 'species' speciesInstance.species.id %}">{{speciesInstance.species.name}}</a></h3>
+
+{% if speciesInstance.species.species_image %}
+    <p><img src={{speciesInstance.species.species_image.url}}></p>
+{% endif %}
+
 <h3>Description:</h3>
 <p>{{speciesInstance.species.description}}</p>
 <!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->
@@ -27,7 +32,7 @@
     <p><b>Line Traits:</b> {{speciesInstance.unique_traits}}</p>
 {% endif %}  
 <p><b>Number of Adults: </b>{{speciesInstance.num_adults}}</p>
-<p><b>Date Acquired: </b>{{speciesInstance.approx_date_acquired|date:'F Y'}}</p>
+<p><b>Year Acquired: </b>{{speciesInstance.approx_date_acquired|date:'Y'}}</p>
 <p>{{speciesInstance.aquarist_notes}}</p>
 
 {% if speciesInstance.have_spawned %}
@@ -43,6 +48,6 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
-    <h3><a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h3>
+    <h3><a href="{% url 'editSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h3>
 {% endif %}
 {% endblock content %}

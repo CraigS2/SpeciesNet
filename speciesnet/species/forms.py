@@ -1,11 +1,6 @@
 from django.forms import ModelForm
-from .models import Species, SpeciesInstance, Image
+from .models import Species, SpeciesInstance
 
-class ImageForm (ModelForm):
-    class Meta:
-        model = Image
-        fields = ['image']
-        
 class SpeciesForm (ModelForm):
     class Meta:
         model = Species
