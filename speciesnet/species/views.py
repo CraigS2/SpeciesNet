@@ -74,10 +74,24 @@ def createSpecies (request):
     form = SpeciesForm()
     if (request.method == 'POST'):
         #print (request.POST)
-        form2 = SpeciesForm(request.POST)
+        form2 = SpeciesForm(request.POST, request.FILES)
         if form2.is_valid():
-            form2.save()
-            return redirect('home')
+            print ("Form is valid - saving Species Update")
+            # image file uploaded with form save
+            species = form2.save()
+            print ("Image Uploaded: ", species.species_image.path)
+            # resize image for consistency
+            img = PIL_Image.open(species.species_image.path)
+            print ("Image being processed: ", species.species_image.path)
+            print ("Image resolution: ", species.species_image.width, "x", species.species_image.height)
+            img.thumbnail((320, 240))
+            img.save(species.species_image.path)
+            print ("Image resized to: ", species.species_image.width, "x", species.species_image.height)
+            print ("Image path: ", species.species_image.path)
+            print ("Image name: ", species.species_image.name)
+            img.close()
+            return HttpResponseRedirect(reverse("species", args=[species.id]))
+            #return redirect('home')
     context = {'form': form}
     return render (request, 'species/createSpecies.html', context)
 
