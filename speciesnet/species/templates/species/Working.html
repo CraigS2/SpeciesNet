@@ -37,7 +37,7 @@
     <div>
         <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  
             {% if request.user == speciesInstance.user %}
-                <a href="{% url 'updateSpeciesInstance' speciesInstance.id %}">Edit</a>   
+                <a href="{% url 'editSpeciesInstance' speciesInstance.id %}">Edit</a>   
                 <a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete</a>
             {% endif %}
         </h5 >

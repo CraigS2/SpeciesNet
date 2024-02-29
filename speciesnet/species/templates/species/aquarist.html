@@ -12,13 +12,29 @@
 {% if speciesKept.all.count > 0  %}
 <div>
     {% for speciesInstance in speciesKept %}
-    <div>
-        <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
-    </div>
+        {% if speciesInstance.currently_keeping_species %}
+        <div>
+            <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
+        </div>
+        {% endif %}
     {% endfor %}    
 </div>
 {% else %}
     <p><large><B>None</B></large></p>
+{% endif %}
+
+{% if speciesPreviouslyKept.all.count > 0  %}
+<hr>
+<h2>Previously kept the following species:</h2>
+<div>
+    {% for speciesInstance in speciesPreviouslyKept %}
+        {% if not speciesInstance.currently_keeping_species %}
+        <div>
+            <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
+        </div>
+        {% endif %}
+    {% endfor %}    
+</div>
 {% endif %}
 
 {% endblock content %}

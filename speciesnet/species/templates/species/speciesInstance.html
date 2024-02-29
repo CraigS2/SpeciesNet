@@ -24,6 +24,10 @@
 <hr>
 
 <h2>Aquarist Notes</h2>
+<h3>{{speciesInstance.name}}</h3>
+{% if speciesInstance.instance_image %}
+    <p><img src={{speciesInstance.instance_image.url}}></p>
+{% endif %}
 {% if speciesInstance.collection_point %}
     <p><b>Collection Point:</b> {{speciesInstance.collection_point}}</p>
 {% endif %}   

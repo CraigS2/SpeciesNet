@@ -42,15 +42,16 @@ def working(request):
 
 def aquarist(request, pk):
     aquarist = User.objects.get(id=pk)
-    speciesKept = SpeciesInstance.objects.filter(user=aquarist).order_by('name')
-    context = {'aquarist': aquarist, 'speciesKept': speciesKept}
+    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keeping_species=True).order_by('name')
+    speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keeping_species=False).order_by('name')
+    context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept}
     return render (request, 'species/aquarist.html', context)
 
 def species(request, pk):
     species = Species.objects.get(id=pk)
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     context = {'species': species, 'speciesInstances': speciesInstances}
-    print (os.environ)
+    #print (os.environ)
     return render (request, 'species/species.html', context)
 
 def speciesInstance(request, pk):
@@ -76,24 +77,23 @@ def createSpecies (request):
         #print (request.POST)
         form2 = SpeciesForm(request.POST, request.FILES)
         if form2.is_valid():
-            print ("Form is valid - saving Species Update")
+            print ("Form is valid - saving Species")
             # image file uploaded with form save
             species = form2.save()
-            print ("Image Uploaded: ", species.species_image.path)
-            # resize image for consistency
-            img = PIL_Image.open(species.species_image.path)
-            print ("Image being processed: ", species.species_image.path)
-            print ("Image resolution: ", species.species_image.width, "x", species.species_image.height)
-            img.thumbnail((320, 240))
-            img.save(species.species_image.path)
-            print ("Image resized to: ", species.species_image.width, "x", species.species_image.height)
-            print ("Image path: ", species.species_image.path)
-            print ("Image name: ", species.species_image.name)
-            img.close()
+            if (species.species_image != None) and (species.species_image.storage.exists):
+                print ("Image uploaded and verified: ", species.species_image.path)
+                img = PIL_Image.open(species.species_image.path)
+                print ("Image being processed: ", species.species_image.path)
+                print ("Image resolution: ", species.species_image.width, "x", species.species_image.height)
+                img.thumbnail((320, 240))
+                img.save(species.species_image.path)
+                print ("Image resized to: 320 x 240")
+                print ("Image path: ", species.species_image.path)
+                print ("Image name: ", species.species_image.name)
+                img.close()
             return HttpResponseRedirect(reverse("species", args=[species.id]))
-            #return redirect('home')
     context = {'form': form}
-    return render (request, 'species/createSpecies.html', context)
+    return render (request, 'species/createSpecies.html', context)   
 
 @login_required(login_url='login')
 def editSpecies (request, pk): 
@@ -105,17 +105,17 @@ def editSpecies (request, pk):
             print ("Form is valid - saving Species Update")
             # image file uploaded with form save
             form2.save()
-            print ("Image Uploaded: ", species.species_image.path)
-            # resize image for consistency
-            img = PIL_Image.open(species.species_image.path)
-            print ("Image being processed: ", species.species_image.path)
-            print ("Image resolution: ", species.species_image.width, "x", species.species_image.height)
-            img.thumbnail((320, 240))
-            img.save(species.species_image.path)
-            print ("Image resized to: ", species.species_image.width, "x", species.species_image.height)
-            print ("Image path: ", species.species_image.path)
-            print ("Image name: ", species.species_image.name)
-            img.close()
+            if (species.species_image != None) and (species.species_image.storage.exists):
+                print ("Image uploaded and verified: ", species.species_image.path)
+                img = PIL_Image.open(species.species_image.path)
+                print ("Image being processed: ", species.species_image.path)
+                print ("Image resolution: ", species.species_image.width, "x", species.species_image.height)
+                img.thumbnail((320, 240))
+                img.save(species.species_image.path)
+                print ("Image resized to: 320 x 240")
+                print ("Image path: ", species.species_image.path)
+                print ("Image name: ", species.species_image.name)
+                img.close()
             return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/editSpecies.html', context)
@@ -137,8 +137,20 @@ def createSpeciesInstance (request):
         print (request.POST) #TODO remove print statement
         form2 = SpeciesInstanceForm(request.POST)
         if form2.is_valid():
-            form2.save()
-            return redirect('home')
+            species_instance = form2.save()
+            if (species_instance.instance_image != None) and (species_instance.instance_image.storage.exists):
+                print ("Image uploaded and verified: ", species_instance.instance_image.path)
+                img = PIL_Image.open(species_instance.instance_image.path)
+                print ("Image being processed: ", species_instance.instance_image.path)
+                print ("Image resolution: ", species_instance.instance_image.width, "x", species_instance.instance_image.height)
+                img.thumbnail((320, 240))
+                img.save(species.species_image.path)
+                print ("Image resized to: 320 x 240")
+                print ("Image path: ", species_instance.instance_image.path)
+                print ("Image name: ", species_instance.instance_image.name)
+                img.close()
+            return HttpResponseRedirect(reverse("speciesInstance", args=[species_instance.id]))            
+            #return redirect('home')
     context = {'form': form}
     return render (request, 'species/createSpeciesInstance.html', context)
 
@@ -153,8 +165,20 @@ def createSpeciesInstance (request, pk):
         if form2.is_valid():
             form2.instance.user = request.user
             form2.instance.species = species
-            form2.save()
-            return redirect('home')
+            speciesInstance = form2.save()
+            if (species_instance.instance_image != None) and (species_instance.instance_image.storage.exists):
+                print ("Image uploaded and verified: ", species_instance.instance_image.path)
+                img = PIL_Image.open(speciesInstance.instance_image.path)
+                print ("Image being processed: ", speciesInstance.instance_image.path)
+                print ("Image resolution: ", speciesInstance.instance_image.width, "x", speciesInstance.instance_image.height)
+                img.thumbnail((320, 240))
+                img.save(speciesInstance.instance_image.path)
+                print ("Image resized to: 320 x 240")
+                print ("Image path: ", speciesInstance.instance_image.path)
+                print ("Image name: ", speciesInstance.instance_image.name)
+                img.close()
+            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
+            #return redirect('home')
     context = {'form': form}
     return render (request, 'species/createSpeciesInstance.html', context)
 
@@ -163,11 +187,21 @@ def editSpeciesInstance (request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     form = SpeciesInstanceForm(instance=speciesInstance)
     if (request.method == 'POST'):
-        form2 = SpeciesInstanceForm(request.POST, instance=speciesInstance)
+        form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
         if form2.is_valid():
             form2.save()
-            #return redirect('home')
-            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
+            if (speciesInstance.instance_image != None) and (speciesInstance.instance_image.storage.exists):
+                print ("Image uploaded and verified: ", speciesInstance.instance_image.path)
+                img = PIL_Image.open(speciesInstance.instance_image.path)
+                print ("Image being processed: ", speciesInstance.instance_image.path)
+                print ("Image resolution: ", speciesInstance.instance_image.width, "x", speciesInstance.instance_image.height)
+                img.thumbnail((320, 240))
+                img.save(speciesInstance.instance_image.path)
+                print ("Image resized to: 320 x 240")
+                print ("Image path: ", speciesInstance.instance_image.path)
+                print ("Image name: ", speciesInstance.instance_image.name)
+                img.close()
+            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
     context = {'form': form}
     return render (request, 'species/editSpeciesInstance.html', context)
     #return redirect(request.META.get('HTTP_REFERER')) # returns to previous pg
@@ -226,3 +260,5 @@ def registerUser(request):
 
     context = {'form': form}
     return render (request, 'species/login_register.html', context)
+
+

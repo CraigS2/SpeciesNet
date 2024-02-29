@@ -24,10 +24,12 @@
 {% if species.species_instances.all.count > 0  %}
 <div>
     {% for speciesInstance in speciesInstances %}
-    <div>
-        <p><b>{{speciesInstance.user.username}} ({{speciesInstance.user.first_name}}  {{speciesInstance.user.last_name}})</b> : 
-            <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-    </div>
+        {% if speciesInstance.currently_keeping_species %}
+        <div>
+            <p><b>{{speciesInstance.user.username}} ({{speciesInstance.user.first_name}}  {{speciesInstance.user.last_name}})</b> : 
+                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+        </div>
+        {% endif %}
     {% endfor %}    
 </div>
 {% else %}
