@@ -6,13 +6,6 @@ import datetime
 
 # Create your models here.
 
-class Image (models.Model):
-    title = models.CharField(max_length=200)
-    #TODO create 26 max folders for alphabetical single char folders: a,b,c... for image stoarge 
-    image = models.ImageField(upload_to='images')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-
 class Species (models.Model):
 
     name = models.CharField (max_length=240)
@@ -44,12 +37,9 @@ class SpeciesInstance (models.Model):
 
     name = models.CharField (max_length=240) #TODO can we instantiate object passing Species? Set name from Species name?
     user = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instances') # all Species Instances for a user deleted if user deleted
-
     # TODO finalize delete pattern - leaving orphaned table entries isn't a great feature
     species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB TODO improve
     unique_traits = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
-
-    #instance_image1 = models.Image
     instance_image = models.ImageField (upload_to="images", null=True, blank=True)
 
     class GeneticLine (models.TextChoices):

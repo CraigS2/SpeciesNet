@@ -80,7 +80,8 @@ def createSpecies (request):
             print ("Form is valid - saving Species")
             # image file uploaded with form save
             species = form2.save()
-            if (species.species_image != None) and (species.species_image.storage.exists):
+            #if (species.species_image != None) and (species.species_image.storage.exists):
+            if (species.species_image):
                 print ("Image uploaded and verified: ", species.species_image.path)
                 img = PIL_Image.open(species.species_image.path)
                 print ("Image being processed: ", species.species_image.path)
@@ -105,7 +106,8 @@ def editSpecies (request, pk):
             print ("Form is valid - saving Species Update")
             # image file uploaded with form save
             form2.save()
-            if (species.species_image != None) and (species.species_image.storage.exists):
+            #if (species.species_image != None) and (species.species_image.storage.exists):
+            if (species.species_image):
                 print ("Image uploaded and verified: ", species.species_image.path)
                 img = PIL_Image.open(species.species_image.path)
                 print ("Image being processed: ", species.species_image.path)
@@ -138,7 +140,8 @@ def createSpeciesInstance (request):
         form2 = SpeciesInstanceForm(request.POST)
         if form2.is_valid():
             species_instance = form2.save()
-            if (species_instance.instance_image != None) and (species_instance.instance_image.storage.exists):
+            #if (species_instance.instance_image != None) and (species_instance.instance_image.storage.exists):
+            if (species_instance.instance_image):
                 print ("Image uploaded and verified: ", species_instance.instance_image.path)
                 img = PIL_Image.open(species_instance.instance_image.path)
                 print ("Image being processed: ", species_instance.instance_image.path)
@@ -166,8 +169,9 @@ def createSpeciesInstance (request, pk):
             form2.instance.user = request.user
             form2.instance.species = species
             speciesInstance = form2.save()
-            if (species_instance.instance_image != None) and (species_instance.instance_image.storage.exists):
-                print ("Image uploaded and verified: ", species_instance.instance_image.path)
+            #if (speciesInstance.instance_image != None) and (speciesInstance.instance_image.storage.exists):
+            if (speciesInstance.instance_image):
+                print ("Image uploaded and verified: ", speciesInstance.instance_image.path)
                 img = PIL_Image.open(speciesInstance.instance_image.path)
                 print ("Image being processed: ", speciesInstance.instance_image.path)
                 print ("Image resolution: ", speciesInstance.instance_image.width, "x", speciesInstance.instance_image.height)
@@ -177,8 +181,8 @@ def createSpeciesInstance (request, pk):
                 print ("Image path: ", speciesInstance.instance_image.path)
                 print ("Image name: ", speciesInstance.instance_image.name)
                 img.close()
-            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
-            #return redirect('home')
+        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
+        #return redirect('home')
     context = {'form': form}
     return render (request, 'species/createSpeciesInstance.html', context)
 
@@ -187,10 +191,12 @@ def editSpeciesInstance (request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     form = SpeciesInstanceForm(instance=speciesInstance)
     if (request.method == 'POST'):
+        print ("Saving Species Instance Form")
         form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
         if form2.is_valid():
             form2.save()
-            if (speciesInstance.instance_image != None) and (speciesInstance.instance_image.storage.exists):
+            #if (speciesInstance.instance_image != None) and (speciesInstance.instance_image.storage.exists):
+            if (speciesInstance.instance_image):
                 print ("Image uploaded and verified: ", speciesInstance.instance_image.path)
                 img = PIL_Image.open(speciesInstance.instance_image.path)
                 print ("Image being processed: ", speciesInstance.instance_image.path)
@@ -223,7 +229,8 @@ def loginUser(request):
         return redirect('home')
     
     if (request.method == 'POST'):
-        username = request.POST.get('username').lower()
+        #username = request.POST.get('username').lower()
+        username = request.POST.get('username')
         password = request.POST.get('password')
         try:
             user = User.objects.get(username=username)

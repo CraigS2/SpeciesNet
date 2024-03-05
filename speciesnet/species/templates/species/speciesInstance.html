@@ -3,8 +3,12 @@
 {% block content %}
 
 <h1>{{speciesInstance.name}}</h1>
-<h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
-<hr>
+{% if speciesInstance.user.last_name %}
+    <h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
+{% else %}  
+    <h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> (Private)</h2>
+{% endif %} 
+    <hr>
 
 <h3>Species: <a href="{% url 'species' speciesInstance.species.id %}">{{speciesInstance.species.name}}</a></h3>
 
