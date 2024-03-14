@@ -12,6 +12,20 @@ class Species (models.Model):
     description = models.TextField(null=True, blank=True)  # allows empty text or form
     species_image = models.ImageField (upload_to="images", null=True, blank=True)
 
+    class Category (models.TextChoices):
+        CICHLIDS        = 'CIC', _('Cichlids')
+        RAINBOWFISH     = 'RBF', _('Rainbowfish')
+        KILLIFISH       = 'KLF', _('Killifish')
+        CHARACINS       = 'CHA', _('Characins (Tetras)')
+        CATFISH         = 'CAT', _('Catfish')
+        LIVEBEARERS     = 'LVB', _('Livebearers')
+        CYPRINIDS       = 'CYP', _('Cyprinids (Carps, Barbs, Danios, Minnows)')
+        ANABATIDS       = 'ANA', _('Anabatids (Gouramis, Bettas)')
+        LOACHES         = 'LCH', _('Loaches')
+        OTHER           = 'OTH', _('All Others')
+
+    category = models.CharField (max_length=3, choices=Category.choices, default=Category.CICHLIDS)
+
     class GlobalRegion (models.TextChoices):
         SOUTH_AMERICA   = 'SAM', _('South America')
         CENTRAL_AMERICA = 'CAM', _('Central America')
