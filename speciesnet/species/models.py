@@ -10,7 +10,7 @@ class Species (models.Model):
 
     name = models.CharField (max_length=240)
     description = models.TextField(null=True, blank=True)  # allows empty text or form
-    species_image = models.ImageField (upload_to="images", null=True, blank=True)
+    species_image = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
 
     class Category (models.TextChoices):
         CICHLIDS        = 'CIC', _('Cichlids')
@@ -49,12 +49,12 @@ class Species (models.Model):
     
 class SpeciesInstance (models.Model):
 
-    name = models.CharField (max_length=240) #TODO can we instantiate object passing Species? Set name from Species name?
+    name = models.CharField (max_length=240)
     user = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instances') # all Species Instances for a user deleted if user deleted
-    # TODO finalize delete pattern - leaving orphaned table entries isn't a great feature
-    species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB TODO improve
+    #species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB
+    species = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_instances') # deletes ALL instances referencing any deleted species
     unique_traits = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
-    instance_image = models.ImageField (upload_to="images", null=True, blank=True)
+    instance_image = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
@@ -84,4 +84,3 @@ class SpeciesInstance (models.Model):
 
     def __str__(self):
         return self.name
-    

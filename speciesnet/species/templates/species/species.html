@@ -42,7 +42,12 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
-<h3><a href="{% url 'createSpeciesInstance' species.id %}">Add Species Instance</a> <i>(I keep this fish!)</i></h3>
+    <h3><a href="{% url 'createSpeciesInstance' species.id %}">Add Species Instance</a> <i>(I keep this fish!)</i></h3>
+    <small>&nbsp;</small>
+    <hr>
+    <h2>Edit Species</h2>
+    <h3><a href="{% url 'editSpecies' species.id %}">Edit Species</a></h3>
+    <h3><a href="{% url 'deleteSpecies' species.id %}">Delete Species</a></h3>
 {% endif %}
 
 {% endblock content %}

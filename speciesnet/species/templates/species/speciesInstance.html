@@ -57,6 +57,11 @@
 {% endif %}
 
 {% if request.user.is_authenticated %}
+    <small>&nbsp;</small>
+    <hr>
+    <h2>Edit Species Instance</h2>
     <h3><a href="{% url 'editSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h3>
+    <h3><a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete Species Instance</a></h3>
 {% endif %}
+
 {% endblock content %}
