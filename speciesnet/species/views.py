@@ -8,12 +8,16 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.db import models
-from .models import Species, SpeciesInstance
-from .forms import SpeciesForm, SpeciesInstanceForm
+#from django.db import models
+from species.models import Species, SpeciesInstance, ImportArchive
+from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
-import os
+from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
+from species.asn_tools.asn_csv_tools import import_csv_species
+#from io import TextIOWrapper
+from csv import DictReader
+#import os
 
 def home(request):
     speciesSet = Species.objects.all()
@@ -89,6 +93,44 @@ def editSpecies (request, pk):
     return render (request, 'species/editSpecies.html', context)
 
 @login_required(login_url='login')
+def exportSpecies (request): 
+    return export_csv_species()
+
+######################################
+
+@login_required(login_url='login')
+def importSpecies (request): 
+    #return import_csv_species()
+    current_user = request.user
+    form = ImportCsvForm()
+    print ("Begin Processing Species CSV Upload")
+    if (request.method == 'POST'):
+        form2 = ImportCsvForm(request.POST, request.FILES)
+        print ("Validating Import Form")
+        if form2.is_valid(): 
+            # import_archive = form2.save(commit=False) 
+            # import_archive.import_csv_file.name = current_user.username + "_species_import.csv"
+            # import_archive.save() #persists csv with revised name ImportArchive record
+            import_archive = form2.save() 
+            import_csv_species (import_archive, current_user)
+            return HttpResponseRedirect(reverse("importSpeciesResults", args=[import_archive.id]))
+    return render(request, "species/importSpecies.html", {"form": form})
+    #return HttpResponseRedirect(reverse("importSpeciesResults", args=[import_archive.id]))
+
+@login_required(login_url='login')
+def importSpeciesResults (request, pk): 
+    import_archive = ImportArchive.objects.get(id=pk)
+    with open(import_archive.import_results_file.path,'r', encoding="utf-8") as csv_file:
+        dict_reader = DictReader(csv_file)
+        #report_file =  import_archive.import_results_file.open
+        #import_report_as_txt = TextIOWrapper(report_file, encoding="utf-8", newline="")
+        report_row = "Status: "
+        context = {'import_archive': import_archive, 'report_row': report_row, 'dict_reader': dict_reader}
+        return render (request, 'species/importSpeciesResults.html', context)
+    
+####################################
+
+@login_required(login_url='login')
 def deleteSpecies (request, pk):
     species = Species.objects.get(id=pk)
     if (request.method == 'POST'):
@@ -96,20 +138,6 @@ def deleteSpecies (request, pk):
         return redirect('home')
     context = {'species': species}
     return render (request, 'species/deleteSpecies.html', context)
-
-# @login_required(login_url='login')
-# def createSpeciesInstance (request):
-#     register_heif_opener()
-#     form = SpeciesInstanceForm()
-#     if (request.method == 'POST'):
-#         form2 = SpeciesInstanceForm(request.POST, request.FILES)
-#         if form2.is_valid():
-#             species_instance = form2.save()
-#             if (species_instance.instance_image):
-#                 processUploadedImageFile (species_instance.instance_image)
-#         return HttpResponseRedirect(reverse("speciesInstance", args=[species_instance.id]))            
-#     context = {'form': form}
-#     return render (request, 'species/createSpeciesInstance.html', context)
 
 @login_required(login_url='login')
 def createSpeciesInstance (request, pk):
@@ -145,6 +173,23 @@ def editSpeciesInstance (request, pk):
         return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
     context = {'form': form}
     return render (request, 'species/editSpeciesInstance.html', context)
+
+@login_required(login_url='login')
+def exportSpeciesInstances (request): 
+    return export_csv_speciesInstances()
+
+################################################
+#@login_required(login_url='login')
+#def importSpeciesInstances (request): 
+    #return export_csv_speciesInstances()
+# class SpeciesListImportView(View):
+#     def get(self, request, *args, **kwargs):
+#         return render(request, "importSpeciesList.html", {"form": SpeciesListUploadForm()})
+#class SpeciesListImportView(View):
+################################################# 
+
+    def get(self, request, *args, **kwargs):
+        return render(request, "importSpeciesList.html", {"form": SpeciesListUploadForm()})
 
 @login_required(login_url='login')
 def deleteSpeciesInstance (request, pk):

@@ -14,7 +14,7 @@ def processUploadedImageFile (image_field: ImageField ):
     img = Image.open(image_field.path)
     print ("Image resolution: ", image_field.width, "x", image_field.height)
     if not img.mode == 'RGB':
-        print ("Converting image to RGB format")
+        print ("Converting ", image_field.name, " image to RGB format")
         img = img.convert('RGB')
     img.thumbnail((320, 240))
     print ("Image resized to: 320 x 240")
@@ -24,21 +24,16 @@ def processUploadedImageFile (image_field: ImageField ):
     print ("Current file extension:   ", curExt) 
 
     if curExt != ".jpg":
-        print ("Changing image file type to .jpg")
+        print ("Converting ", cur_image_name, " image file to .jpg")
         cur_image_name_noext, curExt = os.path.splitext(image_field.name)
         jpgExt = ".jpg"
-        cur_image_file = cur_image_file_noext + jpgExt
         cur_image_name = cur_image_name_noext + jpgExt
         print ("Revised image file name:  ", cur_image_name)
-
         memBlob = BytesIO()
         img.save(memBlob, 'JPEG', quality=85)
         memBlob.seek(0)
-        print ("memBlob enabled for ImageField save")
-        #img.save(cur_image_file, "JPEG")
         image_field.delete (save=False) # deletes old file and sets image_field empty
         print ("ImageField deleted wo file save.")
-        #image_field.save(cur_image_file, File(memBlob))
         base_filename = os.path.basename(cur_image_name)
         print ("ImageField save with base filename: ", base_filename)
         image_field.save(base_filename, File(memBlob))
@@ -46,3 +41,5 @@ def processUploadedImageFile (image_field: ImageField ):
     else:    
         img.save(image_field.path)
         img.close()
+
+    return
