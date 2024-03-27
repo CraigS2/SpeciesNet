@@ -14,7 +14,7 @@ from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
-from species.asn_tools.asn_csv_tools import import_csv_species
+from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
 #from io import TextIOWrapper
 from csv import DictReader
 #import os
@@ -100,7 +100,6 @@ def exportSpecies (request):
 
 @login_required(login_url='login')
 def importSpecies (request): 
-    #return import_csv_species()
     current_user = request.user
     form = ImportCsvForm()
     print ("Begin Processing Species CSV Upload")
@@ -108,25 +107,33 @@ def importSpecies (request):
         form2 = ImportCsvForm(request.POST, request.FILES)
         print ("Validating Import Form")
         if form2.is_valid(): 
-            # import_archive = form2.save(commit=False) 
-            # import_archive.import_csv_file.name = current_user.username + "_species_import.csv"
-            # import_archive.save() #persists csv with revised name ImportArchive record
             import_archive = form2.save() 
             import_csv_species (import_archive, current_user)
-            return HttpResponseRedirect(reverse("importSpeciesResults", args=[import_archive.id]))
+            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
     return render(request, "species/importSpecies.html", {"form": form})
-    #return HttpResponseRedirect(reverse("importSpeciesResults", args=[import_archive.id]))
 
 @login_required(login_url='login')
-def importSpeciesResults (request, pk): 
+def importSpeciesInstances (request): 
+    current_user = request.user
+    form = ImportCsvForm()
+    print ("Begin Processing SpeciesInstances CSV Upload")
+    if (request.method == 'POST'):
+        form2 = ImportCsvForm(request.POST, request.FILES)
+        print ("Validating Import Form")
+        if form2.is_valid(): 
+            import_archive = form2.save() 
+            import_csv_speciesInstances (import_archive, current_user)
+            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+    return render(request, "species/importSpecies.html", {"form": form})
+
+@login_required(login_url='login')
+def importArchiveResults (request, pk): 
     import_archive = ImportArchive.objects.get(id=pk)
     with open(import_archive.import_results_file.path,'r', encoding="utf-8") as csv_file:
         dict_reader = DictReader(csv_file)
-        #report_file =  import_archive.import_results_file.open
-        #import_report_as_txt = TextIOWrapper(report_file, encoding="utf-8", newline="")
         report_row = "Status: "
         context = {'import_archive': import_archive, 'report_row': report_row, 'dict_reader': dict_reader}
-        return render (request, 'species/importSpeciesResults.html', context)
+        return render (request, 'species/importArchiveResults.html', context)
     
 ####################################
 

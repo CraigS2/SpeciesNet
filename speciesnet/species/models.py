@@ -4,8 +4,6 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 import datetime
 
-# Create your models here.
-
 class Species (models.Model):
 
     name                      = models.CharField (max_length=240)
@@ -97,10 +95,10 @@ class ImportArchive (models.Model):
     import_results_file       = models.FileField(upload_to="uploads/%Y/%m/%d/", null=True, blank=True)
 
     class ImportStatus (models.TextChoices):
-        PENDING    = 'PEND', _('Pending')
-        INCOMPLETE = 'PART', _('Incomplete Species List Import')
-        FULL       = 'FULL', _('Complete Speces List Import')
-        FAIL       = 'FAIL', _('Import Failure')
+        PENDING  = 'PEND', _('Pending')
+        PARTIAL  = 'PART', _('Partial Import')
+        FULL     = 'FULL', _('Full Import')
+        FAIL     = 'FAIL', _('Import Failure')
     
     import_status             = models.CharField (max_length=4, choices=ImportStatus.choices, default=ImportStatus.PENDING)
     dateImported              = models.DateTimeField(auto_now_add=True)

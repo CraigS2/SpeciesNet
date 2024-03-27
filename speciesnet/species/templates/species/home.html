@@ -10,14 +10,14 @@
         </form>
         <p>
         <div>
-            <a href="{% url 'home' %}">All</a>
+            <h4><a href="{% url 'home' %}">All</a></h4>
         </div>
         {% for species in speciesFilter %}
             <div>
                 {% if species.species_instances.all.count > 0 %}
-                <h5>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h5>
+                <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h4>
                 {% else %}
-                <h5>  <a href="{% url 'species' species.id %}">{{species.name}}</a></h5>
+                <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a></h4>
                 {% endif %}
             </div>
         {% endfor %} 

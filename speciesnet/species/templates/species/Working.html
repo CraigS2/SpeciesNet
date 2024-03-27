@@ -35,6 +35,7 @@
 <div>
     <h2>Species Instances</h2>
     <h3><a href="{% url 'exportSpeciesInstances' %}">Export Species Instances to CSV</a></h3>
+    <h3><a href="{% url 'importSpeciesInstances' %}">Import Species Instances from CSV</a></h3>
     <p>Species Instances Count: {{speciesInstances.count}}</p>
     {% for speciesInstance in speciesInstances %}
     <div>
