@@ -20,11 +20,12 @@ def processUploadedImageFile (image_field: ImageField ):
     print ("Image resized to: 320 x 240")
 
     cur_image_file_noext, curExt = os.path.splitext(image_field.path)
+    curExt.lower()
     print ("Current image file noext: ", cur_image_file_noext) 
     print ("Current file extension:   ", curExt) 
 
     if curExt != ".jpg":
-        print ("Converting ", cur_image_name, " image file to .jpg")
+        print ("Converting ", image_field.name, " image file to .jpg")
         cur_image_name_noext, curExt = os.path.splitext(image_field.name)
         jpgExt = ".jpg"
         cur_image_name = cur_image_name_noext + jpgExt
