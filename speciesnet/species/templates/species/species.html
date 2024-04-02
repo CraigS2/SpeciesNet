@@ -1,7 +1,7 @@
 {% extends 'main.html' %}
 {% load static %}
 
-<!-- context = {'species': species, 'speciesInstances': speciesInstances} -->
+<!-- context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares:' renderCares} -->
 {% block content %}
 
 <h1>{{species.name}}</h1>
@@ -14,6 +14,10 @@
 <p><b>Category:</b> {{species.get_category_display}}</p>
 <p><b>Global Region:</b> {{species.get_global_region_display}}</p>
 <p><b>Distribution:</b> {{species.local_distribution}}</p>
+{% if renderCares %}
+    <p><b>CARES Status:</b> {{species.get_cares_status_display}}</p>
+{% endif %}
+
 
 {% if request.user.is_authenticated %}
     <h3><a href="{% url 'editSpecies' species.id %}">Edit Species Profile</a></h3>

@@ -19,7 +19,7 @@ class SpeciesInstanceForm (ModelForm):
                    'unique_traits':      forms.Textarea(attrs={'rows':1,'cols':49}),
                    'collection_point':   forms.Textarea(attrs={'rows':1,'cols':46}),
                    'num_adults':         forms.Textarea(attrs={'rows':1,'cols':6}),
-                   'aquarist_notes':     forms.Textarea(attrs={'rows':1,'cols':48}),
+                   'aquarist_notes':     forms.Textarea(attrs={'rows':6,'cols':48}),
                    'spawning_notes':     forms.Textarea(attrs={'rows':6,'cols':47}),
                    'fry_rearing_notes':  forms.Textarea(attrs={'rows':6,'cols':46}),}
         

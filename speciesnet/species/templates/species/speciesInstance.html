@@ -1,5 +1,5 @@
 {% extends 'main.html' %}
-<!--  context = {'speciesInstances': speciesInstances} -->
+<!-- context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares} -->
 {% block content %}
 
 <h1>{{speciesInstance.name}}</h1>
@@ -10,21 +10,24 @@
 {% endif %} 
     <hr>
 
-<h3>Species: <a href="{% url 'species' speciesInstance.species.id %}">{{speciesInstance.species.name}}</a></h3>
+<h3>Species: <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
 
-{% if speciesInstance.species.species_image %}
-    <p><img src={{speciesInstance.species.species_image.url}}></p>
+{% if species.species_image %}
+    <p><img src={{species.species_image.url}}></p>
 {% endif %}
 
 <h3>Description:</h3>
-<p>{{speciesInstance.species.description}}</p>
+<p>{{species.description}}</p>
 <!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->
-<p><b>Category:</b> {{speciesInstance.species.get_category_display}}</p>
-<p><b>Global Region:</b> {{speciesInstance.species.get_global_region_display}}</p>
-<p><b>Distribution:</b> {{speciesInstance.species.local_distribution}}</p>
+<p><b>Category:</b> {{species.get_category_display}}</p>
+<p><b>Global Region:</b> {{species.get_global_region_display}}</p>
+<p><b>Distribution:</b> {{species.local_distribution}}</p>
+{% if renderCares %}
+    <p><b>CARES Status:</b> {{species.get_cares_status_display}}</p>
+{% endif %}
 
 {% if request.user.is_authenticated %}
-    <h3><a href="{% url 'editSpecies' speciesInstance.species.id %}">Edit Species Profile</a></h3>
+    <h3><a href="{% url 'editSpecies' species.id %}">Edit Species Profile</a></h3>
 {% endif %}
 <hr>
 

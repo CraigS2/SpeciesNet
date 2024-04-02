@@ -39,13 +39,16 @@ def aquarist(request, pk):
 
 def species(request, pk):
     species = Species.objects.get(id=pk)
+    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
-    context = {'species': species, 'speciesInstances': speciesInstances}
+    context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares': renderCares}
     return render (request, 'species/species.html', context)
 
 def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
-    context = {'speciesInstance': speciesInstance}
+    species = speciesInstance.species
+    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+    context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares}
     return render (request, 'species/speciesInstance.html', context)
 
 ### View lists of the basic elements of ASN: Aquarists, SpeciesSet, and SpeciesInstances

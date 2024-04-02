@@ -36,8 +36,18 @@ class Species (models.Model):
     global_region             = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
     local_distribution        = models.CharField (max_length=200, null=True, blank=True)
 
-    created                   = models.DateTimeField(auto_now_add=True)      # updated only at 1st save
-    lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
+    class CaresStatus (models.TextChoices):
+        NOT_CARES_SPECIES = 'NOTC', _('Not a CARES Species')
+        NEAR_THREATENED   = 'NEAR', _('Near Threatened')
+        VULNERABLE        = 'VULN', _('Vulnerable')
+        ENDANGERED        = 'ENDA', _('Endangered')
+        CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')
+        EXTINCT_IN_WILD   = 'EXCT', _('Extict in the Wild')
+    
+    cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
+
+    created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
+    lastUpdated               = models.DateTimeField (auto_now=True)      # updated every DB FSpec save
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
@@ -52,7 +62,6 @@ class SpeciesInstance (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instances') # delestes species instances if user deleted
-    #species                  = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_instances') # leaves deleted SpeciesInstance in DB
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_instances') # deletes ALL instances referencing any deleted species
     unique_traits             = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
     instance_image            = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
