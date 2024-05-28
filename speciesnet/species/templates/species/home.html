@@ -15,9 +15,18 @@
         {% for species in speciesFilter %}
             <div>
                 {% if species.species_instances.all.count > 0 %}
-                <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h4>
+                    <!-- p>{{species.cares_status}} display as {{species.get_cares_status_display}}</p-->
+                    {% if species.render_cares %}
+                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font> ({{species.species_instances.all.count}})</h4>
+                    {% else %}
+                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h4>
+                    {% endif %}
                 {% else %}
-                <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a></h4>
+                    {% if species.render_cares %}
+                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font></h4>
+                    {% else %}
+                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a></h4>
+                    {% endif %}
                 {% endif %}
             </div>
         {% endfor %} 

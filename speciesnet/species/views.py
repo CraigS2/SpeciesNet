@@ -71,6 +71,8 @@ def createSpecies (request):
         if form2.is_valid():
             print ("Form is valid - saving Species")
             species = form2.save()
+            species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+            species.save()
             if (species.species_image):
                 print ("Form save w commit - image access available")
                 processUploadedImageFile (species.species_image)
@@ -89,6 +91,8 @@ def editSpecies (request, pk):
             print ("Form is valid - saving Species Update")
             # image file uploaded with form save
             form2.save()
+            species.render_cares = species.cares_status != CaresStatus.NOT_CARES_SPECIES
+            species.save()
             if (species.species_image):
                 processUploadedImageFile (species.species_image)
         return HttpResponseRedirect(reverse("species", args=[species.id]))

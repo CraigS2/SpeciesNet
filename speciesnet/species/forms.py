@@ -6,6 +6,7 @@ class SpeciesForm (ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
+        exclude = ['render_cares']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':54}),
                    'description':        forms.Textarea(attrs={'rows':6,'cols':49}),
                    'local_distribution': forms.Textarea(attrs={'rows':1,'cols':44}),}

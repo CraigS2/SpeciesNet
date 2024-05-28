@@ -45,6 +45,7 @@ class Species (models.Model):
         EXTINCT_IN_WILD   = 'EXCT', _('Extict in the Wild')
     
     cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
+    render_cares              = models.BooleanField (default=False)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     lastUpdated               = models.DateTimeField (auto_now=True)      # updated every DB FSpec save

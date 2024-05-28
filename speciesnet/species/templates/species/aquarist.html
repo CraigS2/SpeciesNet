@@ -24,7 +24,11 @@
     {% for speciesInstance in speciesKept %}
         {% if speciesInstance.currently_keeping_species %}
         <div>
-            <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
+            {% if speciesInstance.species.render_cares %}
+                <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </h5>
+            {% else %}
+                <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
+            {% endif%}
         </div>
         {% endif %}
     {% endfor %}    
