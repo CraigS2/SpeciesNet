@@ -47,6 +47,16 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
                     report_row = [species_name, "Validated: Species is unique and new, import successful"]
                     import_count = import_count + 1
                     species_form.save()
+
+                    # special case: re-importing previous species may have media images - try to restore them
+                    species_image = import_row['species_image']
+                    if species_image != '':
+                        print (species_name, "Special Case: species_image declared - try to restore existing media image to ImageField")
+                        if Species.objects.filter(name=species_name).exists():
+                            newly_added_species = Species.objects.get(name=species_name)
+                            # seems like the following very simple 2 lines of code should happen via the species_form but it does not
+                            newly_added_species.species_image = species_image
+                            newly_added_species.save()
                 else:
                     print (species_name, "ERROR: species exists - cannot add duplicate species")
                     report_row = [species_name, "ERROR: species exists - cannot add duplicate species"]
@@ -117,6 +127,16 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                         report_row = [speciesInstance_name, "Validated: species instance is unique and new, import successful"]
                         import_count = import_count + 1
                         speciesInstance_form.save() # commits to DB
+
+                        # special case: re-importing previous species may have media images - try to restore them
+                        instance_image = import_row['instance_image']
+                        if instance_image != '':
+                            print (speciesInstance_name, "Special Case: instance_image declared - try to restore existing media image to ImageField")
+                            if SpeciesInstance.objects.filter(name=speciesInstance_name).exists():
+                                newly_added_speciesInstance = SpeciesInstance.objects.get(name=speciesInstance_name)
+                                # seems like the following very simple 2 lines of code should happen via the species_form but it does not
+                                newly_added_speciesInstance.instance_image = instance_image
+                                newly_added_speciesInstance.save()
                     else:
                         print (species_name, "ERROR: species instance exists - cannot add duplicate")
                         report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
@@ -159,9 +179,9 @@ def export_csv_species():
         headers={"Content-Disposition": 'attachment; filename="species_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['name', 'category', 'global_region', 'local_distribution', 'species_image', 'description'])
+    writer.writerow(['name', 'category', 'global_region', 'local_distribution', 'species_image', 'cares_status', 'created', 'description'])
     for species in speciesSet:
-        writer.writerow([species.name, species.category, species.global_region, species.local_distribution, species.species_image.name, species.description])
+        writer.writerow([species.name, species.category, species.global_region, species.local_distribution, species.species_image.name, species.cares_status, species.created, species.description])
     return response
 
 def export_csv_speciesInstances():
@@ -172,10 +192,10 @@ def export_csv_speciesInstances():
     )
     writer = csv.writer(response)
     writer.writerow(['aquarist', 'name', 'species', 'unique_traits', 'instance_image', 'collection_point', 'genetic_traits', 'num_adults', 'currently_keeping_species', 
-                    'approx_date_acquired', 'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available'])
+                    'approx_date_acquired', 'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'created'])
     for speciesInstance in speciesInstances:
         writer.writerow([speciesInstance.user.username, speciesInstance.name, speciesInstance.species, speciesInstance.unique_traits, speciesInstance.instance_image.name, 
                          speciesInstance.collection_point, speciesInstance.genetic_traits, speciesInstance.num_adults, speciesInstance.currently_keeping_species, 
                          speciesInstance.approx_date_acquired, speciesInstance.aquarist_notes, speciesInstance.have_spawned, speciesInstance.spawning_notes, 
-                         speciesInstance.have_reared_fry, speciesInstance.fry_rearing_notes, speciesInstance.young_available])
+                         speciesInstance.have_reared_fry, speciesInstance.fry_rearing_notes, speciesInstance.young_available, speciesInstance.created])
     return response

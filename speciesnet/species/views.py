@@ -51,8 +51,6 @@ def speciesInstance(request, pk):
     context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares}
     return render (request, 'species/speciesInstance.html', context)
 
-### View lists of the basic elements of ASN: Aquarists, SpeciesSet, and SpeciesInstances
-
 # Aquarists page
 
 def aquarists (request):
@@ -60,7 +58,7 @@ def aquarists (request):
     context = {'aquarists': aquarists}
     return render(request, 'species/aquarists.html', context)
 
-# Species & SpeciesInstance pages
+# Create Edit Delete Species & SpeciesInstance pages
 
 @login_required(login_url='login')
 def createSpecies (request):
@@ -75,7 +73,7 @@ def createSpecies (request):
             species.save()
             if (species.species_image):
                 print ("Form save w commit - image access available")
-                processUploadedImageFile (species.species_image)
+                processUploadedImageFile (species.species_image, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/createSpecies.html', context)   
@@ -91,19 +89,73 @@ def editSpecies (request, pk):
             print ("Form is valid - saving Species Update")
             # image file uploaded with form save
             form2.save()
-            species.render_cares = species.cares_status != CaresStatus.NOT_CARES_SPECIES
+            species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
             species.save()
             if (species.species_image):
-                processUploadedImageFile (species.species_image)
+                processUploadedImageFile (species.species_image, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/editSpecies.html', context)
 
 @login_required(login_url='login')
+def deleteSpecies (request, pk):
+    species = Species.objects.get(id=pk)
+    if (request.method == 'POST'):
+        species.delete()
+        return redirect('home')
+    context = {'species': species}
+    return render (request, 'species/deleteSpecies.html', context)
+
+@login_required(login_url='login')
+def createSpeciesInstance (request, pk):
+    register_heif_opener()
+    species = Species.objects.get(id=pk)
+    form = SpeciesInstanceForm(initial={"name":species.name, "species":species.id })
+    if (request.method == 'POST'):
+        form2 = SpeciesInstanceForm(request.POST, request.FILES)
+        if form2.is_valid():
+            form2.instance.user = request.user
+            form2.instance.species = species
+            speciesInstance = form2.save()
+            if (speciesInstance.instance_image):
+                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name)
+        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
+    context = {'form': form}
+    return render (request, 'species/createSpeciesInstance.html', context)
+
+@login_required(login_url='login')
+def editSpeciesInstance (request, pk): 
+    register_heif_opener() # must be done before form use or rejects heic files
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    form = SpeciesInstanceForm(instance=speciesInstance)
+    if (request.method == 'POST'):
+        print ("Saving Species Instance Form")
+        form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
+        if form2.is_valid():
+            form2.save()
+            print ("Form save w commit")
+            print ("Species instance image: ", speciesInstance.instance_image)
+            if (speciesInstance.instance_image):
+                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name)
+        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
+    context = {'form': form}
+    return render (request, 'species/editSpeciesInstance.html', context)
+
+@login_required(login_url='login')
+def deleteSpeciesInstance (request, pk):
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    if (request.method == 'POST'):
+        speciesInstance.delete()
+        return redirect('home')
+    context = {'speciesInstance': speciesInstance}
+    return render (request, 'species/deleteSpeciesInstance.html', context)
+
+
+### Import and Export of Species & SpeciesInstances
+
+@login_required(login_url='login')
 def exportSpecies (request): 
     return export_csv_species()
-
-######################################
 
 @login_required(login_url='login')
 def importSpecies (request): 
@@ -118,6 +170,10 @@ def importSpecies (request):
             import_csv_species (import_archive, current_user)
             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
     return render(request, "species/importSpecies.html", {"form": form})
+
+@login_required(login_url='login')
+def exportSpeciesInstances (request): 
+    return export_csv_speciesInstances()
 
 @login_required(login_url='login')
 def importSpeciesInstances (request): 
@@ -142,55 +198,6 @@ def importArchiveResults (request, pk):
         context = {'import_archive': import_archive, 'report_row': report_row, 'dict_reader': dict_reader}
         return render (request, 'species/importArchiveResults.html', context)
     
-####################################
-
-@login_required(login_url='login')
-def deleteSpecies (request, pk):
-    species = Species.objects.get(id=pk)
-    if (request.method == 'POST'):
-        species.delete()
-        return redirect('home')
-    context = {'species': species}
-    return render (request, 'species/deleteSpecies.html', context)
-
-@login_required(login_url='login')
-def createSpeciesInstance (request, pk):
-    register_heif_opener()
-    species = Species.objects.get(id=pk)
-    form = SpeciesInstanceForm(initial={"name":species.name, "species":species.id })
-    if (request.method == 'POST'):
-        form2 = SpeciesInstanceForm(request.POST, request.FILES)
-        if form2.is_valid():
-            form2.instance.user = request.user
-            form2.instance.species = species
-            speciesInstance = form2.save()
-            if (speciesInstance.instance_image):
-                processUploadedImageFile (speciesInstance.instance_image)
-        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
-    context = {'form': form}
-    return render (request, 'species/createSpeciesInstance.html', context)
-
-@login_required(login_url='login')
-def editSpeciesInstance (request, pk): 
-    register_heif_opener() # must be done before form use or rejects heic files
-    speciesInstance = SpeciesInstance.objects.get(id=pk)
-    form = SpeciesInstanceForm(instance=speciesInstance)
-    if (request.method == 'POST'):
-        print ("Saving Species Instance Form")
-        form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
-        if form2.is_valid():
-            form2.save()
-            print ("Form save w commit")
-            print ("Species instance image: ", speciesInstance.instance_image)
-            if (speciesInstance.instance_image):
-                processUploadedImageFile (speciesInstance.instance_image)
-        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
-    context = {'form': form}
-    return render (request, 'species/editSpeciesInstance.html', context)
-
-@login_required(login_url='login')
-def exportSpeciesInstances (request): 
-    return export_csv_speciesInstances()
 
 ################################################
 #@login_required(login_url='login')
@@ -202,19 +209,11 @@ def exportSpeciesInstances (request):
 #class SpeciesListImportView(View):
 ################################################# 
 
-    def get(self, request, *args, **kwargs):
-        return render(request, "importSpeciesList.html", {"form": SpeciesListUploadForm()})
+#    def get(self, request, *args, **kwargs):
+#        return render(request, "importSpeciesList.html", {"form": SpeciesListUploadForm()})
 
-@login_required(login_url='login')
-def deleteSpeciesInstance (request, pk):
-    speciesInstance = SpeciesInstance.objects.get(id=pk)
-    if (request.method == 'POST'):
-        speciesInstance.delete()
-        return redirect('home')
-    context = {'speciesInstance': speciesInstance}
-    return render (request, 'species/deleteSpeciesInstance.html', context)
 
-# temporary working page to try out view scenarios and keep useful nuggets of code
+# Working Page - temporary page to try out view scenarios and keep useful nuggets of code
 
 def working(request):
     speciesKeepers = User.objects.all()
