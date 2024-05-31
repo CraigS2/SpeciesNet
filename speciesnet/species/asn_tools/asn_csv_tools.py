@@ -12,7 +12,8 @@ from csv import DictReader
 from io import StringIO, TextIOWrapper
 from django.core.files.base import ContentFile
 
-# Import Species List, SpeciesInstances
+# Import Species List
+# iterate through csv rows add only valid and non-duplicate species to DB
 
 def import_csv_species (import_archive: ImportArchive, current_user: User):
     print ("Current User: ", current_user)
@@ -84,6 +85,10 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         import_archive.save()
     return
 
+# Import SpeciesInstance List
+# iterate through csv rows verifying unique speciesInstances matching current user
+# NOTE: users can have multiple instances of the same species assuming they vary in collection point or genetic traits
+
 def import_csv_speciesInstances (import_archive: ImportArchive, current_user: User):
     print ("Current User: ", current_user)
     print ("Processing Species CSV file ", import_archive.import_csv_file.name)
@@ -101,52 +106,59 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         print ("Begin iterating rows")
         for import_row in DictReader(import_file):
             row_count = row_count + 1
-            speciesInstance_name = import_row['name']
+            speciesInstance_user = import_row['aquarist']
+            if (current_user != speciesInstance_user):
 
-            # validate Species exists - required to instantiate SpeciesInstance
-            species_name = import_row['species']
-            print ("Species name is ", species_name)
-            if Species.objects.filter(name=species_name).exists():
-                print (species_name, "Species exists - required for SpeciesInstance")
-                species = Species.objects.get(name=species_name)
-                print ('Fetched species: ', species.name)
+                # validate Species exists - required to instantiate SpeciesInstance
+                speciesInstance_name = import_row['name']
+                species_name = import_row['species']
+                print ("Species name is ", species_name)
+                if Species.objects.filter(name=species_name).exists():
+                    print (species_name, "Species exists - required for SpeciesInstance")
+                    species = Species.objects.get(name=species_name)
+                    print ('Fetched species: ', species.name)
 
-                # validate pending SpeciesInstance object - will foreign key species resolve by name? TBD
-                speciesInstance_form = SpeciesInstanceForm (import_row) # reads expected fields by header name
-                print ('Row ', row_count, 'speciesInstance validation: ', speciesInstance_form.is_valid())
-                if speciesInstance_form.is_valid:
-                    species_instance = speciesInstance_form.save(commit=False)
-                    print ("SpeciesInstance instantiated referencing species: ", species_instance.species)
-                    species_instance.species = species
-                    print ("SpeciesInstance instantiated referencing species: ", species_instance.species)
-                    species_instance.user = current_user
+                    # validate pending SpeciesInstance object 
+                    # will foreign key species resolve by name? TBD
+                    
+                    speciesInstance_form = SpeciesInstanceForm (import_row) # reads expected fields by header name
+                    print ('Row ', row_count, 'speciesInstance validation: ', speciesInstance_form.is_valid())
+                    if speciesInstance_form.is_valid:
+                        species_instance = speciesInstance_form.save(commit=False)
+                        print ("SpeciesInstance instantiated referencing species: ", species_instance.species)
+                        species_instance.species = species
+                        print ("SpeciesInstance instantiated referencing species: ", species_instance.species)
+                        species_instance.user = current_user
 
-                    # validate instance is unique - not a duplicate
-                    if not SpeciesInstance.objects.filter(name=speciesInstance_name).exists():
-                        print (speciesInstance_name, "Validated: species instance is unique and new, import successful")
-                        report_row = [speciesInstance_name, "Validated: species instance is unique and new, import successful"]
-                        import_count = import_count + 1
-                        speciesInstance_form.save() # commits to DB
+                        # validate instance is unique - not a duplicate - cannot rely on simply name: must use name, species name, and user
+                        if not SpeciesInstance.objects.filter(name=speciesInstance_name, user=current_user).exists():
+                            print (speciesInstance_name, "Validated: species instance is unique and new for this user, import successful")
+                            report_row = [speciesInstance_name, "Validated: species instance is unique and new for this user, import successful"]
+                            import_count = import_count + 1
+                            speciesInstance_form.save() # commits to DB
 
-                        # special case: re-importing previous species may have media images - try to restore them
-                        instance_image = import_row['instance_image']
-                        if instance_image != '':
-                            print (speciesInstance_name, "Special Case: instance_image declared - try to restore existing media image to ImageField")
-                            if SpeciesInstance.objects.filter(name=speciesInstance_name).exists():
-                                newly_added_speciesInstance = SpeciesInstance.objects.get(name=speciesInstance_name)
-                                # seems like the following very simple 2 lines of code should happen via the species_form but it does not
-                                newly_added_speciesInstance.instance_image = instance_image
-                                newly_added_speciesInstance.save()
+                            # special case: re-importing previous species may have media images - try to restore them
+                            instance_image = import_row['instance_image']
+                            if instance_image != '':
+                                print (speciesInstance_name, "Special Case: instance_image declared - try to restore existing media image to ImageField")
+                                if SpeciesInstance.objects.filter(name=speciesInstance_name).exists():
+                                    newly_added_speciesInstance = SpeciesInstance.objects.get(name=speciesInstance_name, user=current_user)
+                                    # seems like the following very simple 2 lines of code should happen via the species_form but it does not
+                                    newly_added_speciesInstance.instance_image = instance_image
+                                    newly_added_speciesInstance.save()
+                        else:
+                            print (species_name, "ERROR: species instance exists - cannot add duplicate")
+                            report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
                     else:
-                        print (species_name, "ERROR: species instance exists - cannot add duplicate")
-                        report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
+                        print (speciesInstance_name, "ERROR: validation failed - unable to create species instance")
+                        report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]
+                            
                 else:
-                    print (speciesInstance_name, "ERROR: validation failed - unable to create species instance")
-                    report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]
-                        
+                    print (speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance")
+                    report_row = [speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance"]
             else:
-                print (speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance")
-                report_row = [speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance"]
+                print (speciesInstance_name, "IGNORE: aquarist ", speciesInstance_user, " is not the active user: ", current_user)
+                report_row = [speciesInstance_name, "IGNORE: aquarist ", speciesInstance_user, " is not the active user: ", current_user]
             csv_report_writer.writerow(report_row)
 
         print ("Processed ", row_count, " csv records")
