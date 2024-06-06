@@ -16,7 +16,7 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name 
     print ("Image resolution: ", image_field.width, "x", image_field.height)
     if not img.mode == 'RGB':
         print ("Converting ", image_field.name, " image to RGB format")
-        img = img.convert('RGB')
+        img.convert('RGB')
 
     print ("Resize image to 320 x 240")
     img.thumbnail((320, 240))
