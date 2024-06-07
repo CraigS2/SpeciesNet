@@ -1,16 +1,15 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 #from django.db import models
-from species.models import Species, SpeciesInstance, ImportArchive
-from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm
+from species.models import Species, SpeciesInstance, ImportArchive, User
+from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm, RegistrationForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
@@ -231,19 +230,21 @@ def loginUser(request):
     
     if (request.method == 'POST'):
         #username = request.POST.get('username').lower()
-        username = request.POST.get('username')
+        #username = request.POST.get('username')
+        email = request.POST.get('email')
         password = request.POST.get('password')
         try:
-            user = User.objects.get(username=username)
+            user = User.objects.get(email=email)
         except:
             messages.error(request, 'Login failed - user not found')
 
-        user = authenticate(request, username=username, password=password)
+        #user = authenticate(request, username=username, password=password)
+        user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
             return redirect('home')
         else:
-            messages.error(request, 'Username or Password does not exist')
+            messages.error(request, 'User Email or Password does not exist')
 
     context = {'page': page}
     return render (request, 'species/login_register.html', context)
@@ -253,10 +254,11 @@ def logoutUser(request):
     return redirect('home')
 
 def registerUser(request):
-    form = UserCreationForm()
-
+    # form = UserCreationForm()
+    form = RegistrationForm()
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        # form = UserCreationForm(request.POST)
+        form = RegistrationForm (request.POST)
         if form.is_valid():
             user = form.save(commit=False)           #allows access to user prior to DB commit
             #user.username = user.username.lower()   # force all lower case

@@ -1,6 +1,7 @@
 from django.forms import ModelForm
 from django import forms
-from .models import Species, SpeciesInstance, ImportArchive
+from django.contrib.auth.forms import UserCreationForm
+from .models import Species, SpeciesInstance, ImportArchive, User
 
 class SpeciesForm (ModelForm):
     class Meta:
@@ -29,3 +30,10 @@ class ImportCsvForm (ModelForm):
         model = ImportArchive
         fields = '__all__'
         exclude = ['name', 'aquarist', 'import_results_file', 'import_status']
+
+class RegistrationForm (UserCreationForm):
+    email = forms.EmailField(max_length=200, help_text='Required')
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')

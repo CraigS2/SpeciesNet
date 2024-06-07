@@ -1,8 +1,81 @@
 from django.db import models
 #from enum import Enum
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
 import datetime
+
+
+class UserManager (BaseUserManager):
+    
+    def create_user (self, email, username, password=None, **extra_fields):
+        if not email:
+            raise ValueError ('Email is required.')
+        if not username:
+            raise ValueError ('Username is required.')
+        if not password:
+            raise ValueError ('Password is required.')
+        email = self.normalize_email (email)
+        user = self.model(email=email, username=username, **extra_fields)
+        #user.set_username (username)
+        user.set_password (password)
+        user.save()
+        return user
+    
+    def create_superuser (self, email, username, password=None, **extra_fields):
+        if not email:
+            raise ValueError ('Email is required.')
+        if not username:
+            raise ValueError ('Username is required.')
+        if not password:
+            raise ValueError ('Password is required.')
+        email = self.normalize_email (email)
+        user = self.create_user(email, username, password)
+        user.is_superuser = True
+        user.is_staff = True
+        user.save()
+        return user
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+      
+    id         = models.AutoField (primary_key=True)
+    email      = models.EmailField (max_length=50, unique=True)
+    first_name = models.CharField (max_length=100, blank=True)
+    last_name  = models.CharField (max_length=100, blank=True)
+    username   = models.CharField (max_length=100, unique=True)
+    state      = models.CharField (max_length=100, blank=True)
+    country    = models.CharField (max_length=100, blank=True)
+
+    date_joined = models.DateTimeField (auto_now_add=True) 
+
+    is_private = models.BooleanField (default=False)
+    is_staff   = models.BooleanField (default=False)
+    is_active  = models.BooleanField (default=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
+    # username_validator = UnicodeUsernameValidator()
+
+    objects = UserManager()
+    
+    def clean(self):
+        super().clean()
+        self.email = self.__class__.objects.normalize_email(self.email)
+    def get_full_name(self):
+        full_name = "%s %s" % (self.first_name, self.last_name)
+        return full_name.strip()
+
+    def get_short_name(self):
+        return self.first_name
+
+    def email_user(self, subject, message, from_email=None, **kwargs):
+        send_mail(subject, message, from_email, [self.email], **kwargs)
+
+    def __str__(self):
+        return self.username
 
 class Species (models.Model):
 
@@ -48,14 +121,14 @@ class Species (models.Model):
     render_cares              = models.BooleanField (default=False)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
-    lastUpdated               = models.DateTimeField (auto_now=True)      # updated every DB FSpec save
+    lastUpdated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
 
     def __str__(self):
         return self.name
-    
+
 
 class SpeciesInstance (models.Model):
     #TODO change 'user' to 'aquarist' and evaluate custom user model benefits - email login may be one!
@@ -77,9 +150,8 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, null=True, blank=True)
-    num_adults                = models.PositiveSmallIntegerField(default=6)
     currently_keeping_species = models.BooleanField(default=True)
-    approx_date_acquired      = models.DateField(_("Year Acquired"), default = datetime.date.today)
+    year_acquired             = models.IntegerField(null=True, blank=True, default=2024)
     aquarist_notes            = models.TextField(null=True, blank=True)
     have_spawned              = models.BooleanField(default=False)
     spawning_notes            = models.TextField(null=True, blank=True)

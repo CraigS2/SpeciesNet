@@ -1,7 +1,7 @@
-from species.models import Species, SpeciesInstance, ImportArchive
+from species.models import Species, SpeciesInstance, ImportArchive, User
 from species.forms import SpeciesForm, SpeciesInstanceForm
 from django.db.models import FileField
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.views.generic.base import View
 from django.http import HttpResponse
@@ -107,10 +107,14 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             speciesInstance_user = import_row['aquarist']
-            if (current_user != speciesInstance_user):
+            speciesInstance_name = import_row['name']
+            print ("Import Instance User: ", speciesInstance_user, " -- Instance Name: ", speciesInstance_name)
+
+            # Note: current_user is of type django.utils.functional.SimpleLazyObject need a str type to compare with speciesInstance_user
+            current_user_str = str(current_user)
+            if (current_user_str == speciesInstance_user):
 
                 # validate Species exists - required to instantiate SpeciesInstance
-                speciesInstance_name = import_row['name']
                 species_name = import_row['species']
                 print ("Species name is ", species_name)
                 if Species.objects.filter(name=species_name).exists():
@@ -157,6 +161,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                     print (speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance")
                     report_row = [speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance"]
             else:
+                print ("Current User Import User compare: ", current_user, " to ", speciesInstance_user)
                 print (speciesInstance_name, "IGNORE: aquarist ", speciesInstance_user, " is not the active user: ", current_user)
                 report_row = [speciesInstance_name, "IGNORE: aquarist ", speciesInstance_user, " is not the active user: ", current_user]
             csv_report_writer.writerow(report_row)
@@ -207,7 +212,7 @@ def export_csv_speciesInstances():
                     'approx_date_acquired', 'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'created'])
     for speciesInstance in speciesInstances:
         writer.writerow([speciesInstance.user.username, speciesInstance.name, speciesInstance.species, speciesInstance.unique_traits, speciesInstance.instance_image.name, 
-                         speciesInstance.collection_point, speciesInstance.genetic_traits, speciesInstance.num_adults, speciesInstance.currently_keeping_species, 
-                         speciesInstance.approx_date_acquired, speciesInstance.aquarist_notes, speciesInstance.have_spawned, speciesInstance.spawning_notes, 
-                         speciesInstance.have_reared_fry, speciesInstance.fry_rearing_notes, speciesInstance.young_available, speciesInstance.created])
+                         speciesInstance.collection_point, speciesInstance.genetic_traits, speciesInstance.currently_keeping_species, speciesInstance.year_acquired,
+                         speciesInstance.aquarist_notes, speciesInstance.have_spawned, speciesInstance.spawning_notes, speciesInstance.have_reared_fry, 
+                         speciesInstance.fry_rearing_notes, speciesInstance.young_available, speciesInstance.created])
     return response
