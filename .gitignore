@@ -5,11 +5,12 @@
 __pycache__/
 local_settings.py
 db.sqlite3
+.env
 
 #vscode
 SpeciesNet.code-workspace
 ### venv
-venv/
+asn_venv/
 devnotes/
 bak/
 speciesnet/media/

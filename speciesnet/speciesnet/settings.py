@@ -21,12 +21,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-p#dj!5yfdi(it5&3%y2m+7q*cve$=k70+xv4wdp0atr)vla#wc'
+SECRET_KEY = os.getenv('SECRET_KEY')
+#SECRET_KEY = 'django-insecure-p#dj!5yfdi(it5&3%y2m+7q*cve$=k70+xv4wdp0atr)vla#wc'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG')
+#DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -80,7 +82,8 @@ WSGI_APPLICATION = 'speciesnet.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        #'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
@@ -133,8 +136,10 @@ USE_TZ = True
 # STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 
 # revised STATIC configuration moved css + logo jpg to species/static
-STATIC_ROOT = ''
-STATIC_URL = 'static/'
+STATIC_ROOT = '/static/'
+STATIC_URL = '/static/'
+#STATIC_ROOT = ''
+#STATIC_URL = 'static/'
 STATICFILES_DIRS = ('static','species/static')
 
 
