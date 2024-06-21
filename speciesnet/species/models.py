@@ -80,7 +80,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Species (models.Model):
 
     name                      = models.CharField (max_length=240)
+    alt_name                  = models.CharField (max_length=240, null=True, blank=True)
+    common_name               = models.CharField (max_length=240, null=True, blank=True)
     description               = models.TextField(null=True, blank=True)  # allows empty text or form
+
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
 
     class Category (models.TextChoices):

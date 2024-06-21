@@ -23,7 +23,8 @@ def home(request):
     speciesInstances = SpeciesInstance.objects.all()[:16] # limit recent update list to 16 items
     # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
     q = request.GET.get('q') if request.GET.get('q') != None else '' 
-    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(local_distribution__icontains=q) | Q(description__icontains=q))
+    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
+                                           Q(local_distribution__icontains=q) | Q(description__icontains=q))
     context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances}
     return render(request, 'species/home.html', context)
 

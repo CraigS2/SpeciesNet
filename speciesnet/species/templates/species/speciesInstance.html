@@ -3,6 +3,12 @@
 {% block content %}
 
 <h1>{{speciesInstance.name}}</h1>
+{% if species.alt_name %}
+    <p><b>Alternate Name: </b>{{species.alt_name}}</p>
+{% endif %}
+{% if species.common_name %}
+    <p><b>Common Name: </b>{{species.common_name}}</p>
+{% endif %}
 {% if speciesInstance.user.last_name %}
     <h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
 {% else %}  
@@ -43,7 +49,6 @@
 {% if speciesInstance.unique_traits %}
     <p><b>Line Traits:</b> {{speciesInstance.unique_traits}}</p>
 {% endif %}  
-<p><b>Number of Adults: </b>{{speciesInstance.num_adults}}</p>
 <p><b>Year Acquired: </b>{{speciesInstance.year_acquired}}</p>
 <p>{{speciesInstance.aquarist_notes}}</p>
 

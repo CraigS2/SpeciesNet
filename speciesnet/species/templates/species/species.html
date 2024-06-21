@@ -5,6 +5,12 @@
 {% block content %}
 
 <h1>{{species.name}}</h1>
+{% if species.alt_name %}
+    <p><b>Alternate Name: </b>{{species.alt_name}}</p>
+{% endif %}
+{% if species.common_name %}
+    <p><b>Common Name: </b>{{species.common_name}}</p>
+{% endif %}
 {% if species.species_image %}
     <p><img src={{species.species_image.url}}></p>
 {% endif %}

@@ -25,8 +25,14 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 #SECRET_KEY = 'django-insecure-p#dj!5yfdi(it5&3%y2m+7q*cve$=k70+xv4wdp0atr)vla#wc'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG')
 #DEBUG = True
+#DEBUG = os.getenv('DEBUG')                 # does not throw exception if variable not found
+#DEBUG = os.environ['DEBUG'] == 'True'      # compares the two strings - not a bool variable
+if (os.environ['DEBUG'] == 'True'):
+    DEBUG = True
+else:
+    DEBUG = False
+
 
 ALLOWED_HOSTS = ['*']
 
@@ -144,13 +150,9 @@ STATICFILES_DIRS = ('static','species/static')
 
 
 # image file PILLOW support - hassle configuration see urls.py
-#MEDIA_URL = "/media/"
-MEDIA_URL = 'media/'
-#MEDIA_ROOT = ''
+MEDIA_URL = '/media/'
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-#MEDIA_ROOT = [ BASE_DIR / 'media' ]
-#MEDIA_ROOT = [ BASE_DIR / 'media' ]
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = '/media/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
