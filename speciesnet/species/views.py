@@ -32,8 +32,8 @@ def home(request):
 
 def aquarist(request, pk):
     aquarist = User.objects.get(id=pk)
-    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keeping_species=True).order_by('name')
-    speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keeping_species=False).order_by('name')
+    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).order_by('name')
+    speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).order_by('name')
     context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept}
     return render (request, 'species/aquarist.html', context)
 

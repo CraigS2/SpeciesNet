@@ -8,14 +8,18 @@
     <div>
         <form method="POST" action="">
             {% csrf_token %}
-            {{form.as_p}}
-            <label>Email:</label>
-            <input type="text" name="email", placeholder="Enter email ...">
-
-            <label>Password:</label>
-            <input type="password" name="password", placeholder="Enter Password ...">
-
-            <input type="submit" value="Login">
+            {{form.as_table}}
+            <table>
+                <tr>
+                    <td><label>Email:</label></td>
+                    <td><input type="text" name="email", placeholder="Enter email ..."></td>
+                </tr>
+                <tr>
+                    <td><label>Password:</label></td>
+                    <td><input type="password" name="password", placeholder="Enter Password ..."></td>
+                </tr>
+            </table>
+            <p style="margin-left: 15px;"><input type="Submit" value="Login"></p>
         </form>
 
         <p>Not a registered user?</p>
@@ -26,13 +30,7 @@
         <form method="POST" action="">
             {% csrf_token %}
             {{form.as_p}}
-            <label>Email:</label>
-            <input type="text" name="email", placeholder="Enter email ...">
-
-            <label>Password:</label>
-            <input type="password" name="password", placeholder="Enter Password ...">
-
-            <input type="submit" value="Register">
+            <p style="margin-left: 15px;"><input type="Submit" value="Register"></p>
         </form>
 
         <hr>

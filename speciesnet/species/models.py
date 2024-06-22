@@ -153,7 +153,6 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, null=True, blank=True)
-    currently_keeping_species = models.BooleanField(default=True)
     year_acquired             = models.IntegerField(null=True, blank=True, default=2024)
     aquarist_notes            = models.TextField(null=True, blank=True)
     have_spawned              = models.BooleanField(default=False)
@@ -161,6 +160,7 @@ class SpeciesInstance (models.Model):
     have_reared_fry           = models.BooleanField(default=False)
     fry_rearing_notes         = models.TextField(null=True, blank=True)
     young_available           = models.BooleanField(default=False)
+    currently_keep            = models.BooleanField(default=True)
 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save

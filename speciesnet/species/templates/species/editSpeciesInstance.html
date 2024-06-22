@@ -5,11 +5,13 @@
 <h1>Edit Species Instance:</h1>
 
     <div>
-        <form method="POST" enctype="multipart/form-data" action="">
-            {% csrf_token %}
-            {{form.as_p}}
-            <input type="Submit" value="Submit">
-        </form>
+        <table>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{form.as_table}}
+            </form>
+        </table>
+        <p style="margin-left: 50px;"><input type="Submit" value="Submit"></p>
     </div>
 
 {% endblock content %}

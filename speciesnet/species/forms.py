@@ -8,22 +8,23 @@ class SpeciesForm (ModelForm):
         model = Species
         fields = '__all__'
         exclude = ['render_cares']
-        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':54}),
-                   'description':        forms.Textarea(attrs={'rows':6,'cols':49}),
-                   'local_distribution': forms.Textarea(attrs={'rows':1,'cols':44}),}
+        widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
+                    'description':        forms.Textarea(attrs={'rows':6,'cols':50}),
+                    'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
 class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
         exclude = ['user', 'species']
-        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':55}),
-                   'unique_traits':      forms.Textarea(attrs={'rows':1,'cols':49}),
-                   'collection_point':   forms.Textarea(attrs={'rows':1,'cols':46}),
-                   'num_adults':         forms.Textarea(attrs={'rows':1,'cols':6}),
-                   'aquarist_notes':     forms.Textarea(attrs={'rows':6,'cols':48}),
-                   'spawning_notes':     forms.Textarea(attrs={'rows':6,'cols':47}),
-                   'fry_rearing_notes':  forms.Textarea(attrs={'rows':6,'cols':46}),}
+        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'unique_traits':      forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'collection_point':   forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'aquarist_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
+                   'spawning_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
+                   'fry_rearing_notes':  forms.Textarea(attrs={'rows':6,'cols':50}),}
         
 class ImportCsvForm (ModelForm):
     class Meta:

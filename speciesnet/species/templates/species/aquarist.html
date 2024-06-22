@@ -22,7 +22,7 @@
 {% if speciesKept.all.count > 0  %}
 <div>
     {% for speciesInstance in speciesKept %}
-        {% if speciesInstance.currently_keeping_species %}
+        {% if speciesInstance.currently_keep %}
         <div>
             {% if speciesInstance.species.render_cares %}
                 <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </h5>
@@ -42,7 +42,7 @@
 <h2>Previously kept the following species:</h2>
 <div>
     {% for speciesInstance in speciesPreviouslyKept %}
-        {% if not speciesInstance.currently_keeping_species %}
+        {% if not speciesInstance.currently_keep %}
         <div>
             <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
         </div>

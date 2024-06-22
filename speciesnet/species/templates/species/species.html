@@ -24,10 +24,6 @@
     <p><b>CARES Status:</b> {{species.get_cares_status_display}}</p>
 {% endif %}
 
-
-{% if request.user.is_authenticated %}
-    <h3><a href="{% url 'editSpecies' species.id %}">Edit Species Profile</a></h3>
-{% endif %}
 <small>&nbsp;</small>
 <hr>
 
@@ -35,7 +31,7 @@
 {% if species.species_instances.all.count > 0  %}
 <div>
     {% for speciesInstance in speciesInstances %}
-        {% if speciesInstance.currently_keeping_species %}
+        {% if speciesInstance.currently_keep %}
         <div>
             {% if speciesInstance.user.last_name %}
                 <p><b>{{speciesInstance.user.username}} ({{speciesInstance.user.first_name}}  {{speciesInstance.user.last_name}})</b> : 

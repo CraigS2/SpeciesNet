@@ -32,9 +32,6 @@
     <p><b>CARES Status:</b> {{species.get_cares_status_display}}</p>
 {% endif %}
 
-{% if request.user.is_authenticated %}
-    <h3><a href="{% url 'editSpecies' species.id %}">Edit Species Profile</a></h3>
-{% endif %}
 <hr>
 
 <h2>Aquarist Notes</h2>
