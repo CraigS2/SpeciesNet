@@ -141,12 +141,13 @@ USE_TZ = True
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 
-# revised STATIC configuration moved css + logo jpg to species/static
-STATIC_ROOT = '/static/'
+# STATIC_ROOT defines the absolute path where 'collectstatic' will be populated
+STATIC_ROOT = os.path.join(BASE_DIR,'static')
+# STATIC_URL defines the url used by the nginx webserver to serve up static files
 STATIC_URL = '/static/'
-#STATIC_ROOT = ''
-#STATIC_URL = 'static/'
-STATICFILES_DIRS = ('static','species/static')
+
+#STATIC_FILES defines 
+STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
 
 
 # image file PILLOW support - hassle configuration see urls.py

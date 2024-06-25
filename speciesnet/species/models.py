@@ -85,6 +85,7 @@ class Species (models.Model):
     description               = models.TextField(null=True, blank=True)  # allows empty text or form
 
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
+    photo_credit              = models.CharField (max_length=200, null=True, blank=True)
 
     class Category (models.TextChoices):
         CICHLIDS        = 'CIC', _('Cichlids')

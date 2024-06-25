@@ -14,4 +14,6 @@ asn_venv/
 devnotes/
 bak/
 speciesnet/media/
+speciesnet/static/images
+speciesnet/static/styles
 

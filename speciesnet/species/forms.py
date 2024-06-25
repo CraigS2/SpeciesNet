@@ -12,6 +12,7 @@ class SpeciesForm (ModelForm):
                     'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
                     'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
                     'description':        forms.Textarea(attrs={'rows':6,'cols':50}),
+                    'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
 class SpeciesInstanceForm (ModelForm):
