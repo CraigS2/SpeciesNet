@@ -14,28 +14,26 @@ from pathlib import Path
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
+ALLOWED_HOSTS = ['*']
+#ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(' ') --> Fails because of Django header mismatch 
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
-#SECRET_KEY = 'django-insecure-p#dj!5yfdi(it5&3%y2m+7q*cve$=k70+xv4wdp0atr)vla#wc'
+CSRF_TRUSTED_ORIGINS = ['http://localhost']
+#CSRF_TRUSTED_ORIGINS = ['http://93.127.215.129','https://aquaristspecies.net','http://localhost']
+#CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS').split(' ') --> Fails because of Django header mismatch 
 
-# SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
-#DEBUG = os.getenv('DEBUG')                 # does not throw exception if variable not found
-#DEBUG = os.environ['DEBUG'] == 'True'      # compares the two strings - not a bool variable
+# DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
+
 if (os.environ['DEBUG'] == 'True'):
+    DEBUG = True
+elif (os.environ['DEBUG'] == '1'):
     DEBUG = True
 else:
     DEBUG = False
-
-
-ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -142,13 +140,15 @@ USE_TZ = True
 # STATICFILES_DIRS = [ BASE_DIR / 'static' ]
 
 # STATIC_ROOT defines the absolute path where 'collectstatic' will be populated
-STATIC_ROOT = os.path.join(BASE_DIR,'static')
+#STATIC_ROOT = '/static/'
+STATIC_ROOT = '/static/'
 # STATIC_URL defines the url used by the nginx webserver to serve up static files
 STATIC_URL = '/static/'
 
-#STATIC_FILES defines 
-STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
-
+# STATIC_FILES_DIRs defines additional project folders for static files
+# Default is to include the project app folder: ./speciesnet/species/static
+#STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
 
 # image file PILLOW support - hassle configuration see urls.py
 MEDIA_URL = '/media/'

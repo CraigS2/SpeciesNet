@@ -1,27 +1,38 @@
-#version: '3.7'
+#version: '3'
 
 services:
   django_gunicorn:
+    container_name: ASN_DJANGO
     volumes:
       - static:/static
       - media:/media
-    env_file:
-      - .env
+    env_file: 
+      - ./.env
     build:
       context: .
-    ports:
-      - "8000:8000"
+    ports: 
+      - 8000:8000
   nginx:
+    container_name: NGINX_CBOT
+    image: jonasal/nginx-certbot:5.2.1-nginx1.27.0
     build: ./nginx
+    depends_on: 
+      - django_gunicorn
+    restart: unless-stopped
+    environment: 
+      - CERTBOT_EMAIL
+    env_file: 
+      - ./.env
+    ports:
+      - 80:80
+      - 443:443
     volumes:
       - static:/static
       - media:/media
-    ports:
-      - "80:80"
-    depends_on:
-      - django_gunicorn
+      - nginx_secrets:/etc/letsencrypt
+      - ./user_conf.d:/etc/nginx/user_conf.d
 
 volumes:
   static:
   media:
-
+  nginx_secrets:
