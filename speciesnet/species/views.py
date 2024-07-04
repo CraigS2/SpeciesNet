@@ -212,12 +212,28 @@ def importArchiveResults (request, pk):
 #    def get(self, request, *args, **kwargs):
 #        return render(request, "importSpeciesList.html", {"form": SpeciesListUploadForm()})
 
+def betaProgram(request):
+    # aquarists = User.objects.all()[16].order_by('-date_joined') # index out of range error if < 16 users
+    aquarists = User.objects.all();
+    context = {'aquarists': aquarists}
+    return render(request, 'species/betaProgram.html', context)
 
 # Working Page - temporary page to try out view scenarios and keep useful nuggets of code
+
+def aquarists (request):
+    aquarists = User.objects.all()
+    context = {'aquarists': aquarists}
+    return render(request, 'species/aquarists.html', context)
 
 def working(request):
     speciesKeepers = User.objects.all()
     speciesSet = Species.objects.all()
+    #TODO fix CARES species import remove code below temporary workaround to fix up CARES bool values missed on import. 
+    for species in speciesSet:
+        if species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES:
+            species.render_cares = True
+            species.save()
+            print ("Updating ", species.name, " render_cares value True")
     speciesInstances = SpeciesInstance.objects.all()
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
     return render(request, 'species/working.html', context)

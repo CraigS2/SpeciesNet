@@ -3,6 +3,7 @@
 {% block content %}
 
 <div>
+    <a href="{% url 'betaProgram'%}">Beta Program</a>
     <h2>Aquarists</h2>
     <p>Aquarist Count: {{speciesKeepers.count}}</p>
     {% for aquarist in speciesKeepers %}

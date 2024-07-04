@@ -1,0 +1,33 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div>
+    <h2>Beta Program</h2>
+    <p>
+        <b>AquaristSpecies.net</b> is a new website focused on one key benefit: <i>connecting <b>Aquarists</b> according to the <b>Species</b> they keep.</i>
+    </p>
+    <p>
+        <i>Try it it's easy!</i> 
+    </p>
+    <p>      
+        Simply create an account with a <i>username, email, and password</i> and select the species you keep. Click on the 'I keep this fish!' option 
+        and fill in a few fields describing your fish. It's meant to be quick and easy. Provide as little or as much detail as you like.  
+    </p>
+    <p>
+        <b>Please consider joining our Beta Program.</b>
+    </p>
+    <p>
+        Recently signed up users include:
+    </p>
+    </large>
+    {% for aquarist in aquarists %}
+        <div>
+            {% if aquarist.species_instances.all.count > 0 %}
+                <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a> ({{aquarist.species_instances.all.count}})</h5>     
+            {% else %}
+                <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a></h5> 
+            {% endif %}
+            </div>
+    {% endfor %} 
+</div>
+{% endblock content %}

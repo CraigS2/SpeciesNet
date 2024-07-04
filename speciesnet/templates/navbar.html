@@ -9,12 +9,13 @@
 <div> 
     {% if request.user.is_authenticated %}
     <h3 style = "display: flex; justify-content: space-between;">
-        <span><a href="{% url 'aquarists' %}">Aquarists</a></span>
+        <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
         <a href="{% url 'createSpecies'%}">Add Species</a>
-        <a href="{% url 'working' %}">Working Page</a>
+        <a href="{% url 'aquarists' %}">Aquarists</a>
         <a href="{% url 'logout' %}">Logout {{request.user}}</a>
     </h3>
     {% else %}
+        <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
         <h3><a href="{% url 'login' %}">Login</a></h3>
     {% endif %}
     <hr/>

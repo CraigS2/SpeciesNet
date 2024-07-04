@@ -9,24 +9,31 @@ urlpatterns = [
     path('login/', views.loginUser, name="login"),
     path('logout/', views.logoutUser, name="logout"), 
     path('register/', views.registerUser, name="register"), 
+
     path('', views.home, name="home"),
+
     path('aquarists/', views.aquarists, name="aquarists"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
+
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
+    path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),
-    path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
-    path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
+
     path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
-    path('createSpeciesInstance/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('createSpeciesInstance/<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
+    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
     path('exportSpeciesInstances/', views.exportSpeciesInstances, name="exportSpeciesInstances"),
     path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
-    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"),     
+    
+    path('betaProgram/', views.betaProgram, name="betaProgram"),
     path('working/', views.working, name="working"),
+
+    path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
+
     # re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
 ]
