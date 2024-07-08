@@ -33,6 +33,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             species_name = import_row['name']
+            species_cares_status = import_row['cares_status']
             print ("Species name is ", species_name)
 
             # validate Species data using Form validation
@@ -47,17 +48,19 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
                     print (species_name, "Validated: Species is unique and new, import successful")
                     report_row = [species_name, "Validated: Species is unique and new, import successful"]
                     import_count = import_count + 1
-                    species_form.save()
+                    newly_added_species = species_form.save()
 
                     # special case: re-importing previous species may have media images - try to restore them
                     species_image = import_row['species_image']
                     if species_image != '':
-                        print (species_name, "Special Case: species_image declared - try to restore existing media image to ImageField")
-                        if Species.objects.filter(name=species_name).exists():
-                            newly_added_species = Species.objects.get(name=species_name)
-                            # seems like the following very simple 2 lines of code should happen via the species_form but it does not
-                            newly_added_species.species_image = species_image
-                            newly_added_species.save()
+                        # seems like the following very simple 2 lines of code should happen via the species_form but it does not
+                        newly_added_species.species_image = species_image
+                        newly_added_species.save()
+
+                    #special case: update bool 'render_cares' value if species is 'Not a CARES Species' ('NOTC')
+                    if species_cares_status != "NOTC":
+                        species.render_cares = True
+                        newly_added_species.save()
                 else:
                     print (species_name, "ERROR: species exists - cannot add duplicate species")
                     report_row = [species_name, "ERROR: species exists - cannot add duplicate species"]

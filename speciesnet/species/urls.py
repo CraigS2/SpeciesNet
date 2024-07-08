@@ -30,6 +30,7 @@ urlpatterns = [
     path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
     
     path('betaProgram/', views.betaProgram, name="betaProgram"),
+    path('tools/', views.tools, name="tools"),
     path('working/', views.working, name="working"),
 
     path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),

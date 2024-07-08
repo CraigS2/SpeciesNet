@@ -22,7 +22,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 ALLOWED_HOSTS = ['*']
 #ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(' ') --> Fails because of Django header mismatch 
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost']
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
 #CSRF_TRUSTED_ORIGINS = ['http://93.127.215.129','https://aquaristspecies.net','http://localhost']
 #CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS').split(' ') --> Fails because of Django header mismatch 
 

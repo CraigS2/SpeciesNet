@@ -15,8 +15,10 @@
         <a href="{% url 'logout' %}">Logout {{request.user}}</a>
     </h3>
     {% else %}
-        <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
-        <h3><a href="{% url 'login' %}">Login</a></h3>
+    <h3 style = "display: flex; justify-content: space-between;">
+        <span><a href="{% url 'login' %}">Login</a></span>
+        <a href="{% url 'betaProgram'%}">Beta Program</a>
+    </h3>
     {% endif %}
     <hr/>
 </div>

@@ -225,15 +225,16 @@ def aquarists (request):
     context = {'aquarists': aquarists}
     return render(request, 'species/aquarists.html', context)
 
+def tools(request):
+    # fix to update missed render_cares update in early import:
+    #     if species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES:
+    #         species.render_cares = True
+    #         species.save()
+    return render(request, 'species/tools.html')
+
 def working(request):
     speciesKeepers = User.objects.all()
     speciesSet = Species.objects.all()
-    #TODO fix CARES species import remove code below temporary workaround to fix up CARES bool values missed on import. 
-    for species in speciesSet:
-        if species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES:
-            species.render_cares = True
-            species.save()
-            print ("Updating ", species.name, " render_cares value True")
     speciesInstances = SpeciesInstance.objects.all()
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
     return render(request, 'species/working.html', context)
