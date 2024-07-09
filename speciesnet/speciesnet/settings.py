@@ -23,7 +23,6 @@ ALLOWED_HOSTS = ['*']
 #ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(' ') --> Fails because of Django header mismatch 
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
-#CSRF_TRUSTED_ORIGINS = ['http://93.127.215.129','https://aquaristspecies.net','http://localhost']
 #CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS').split(' ') --> Fails because of Django header mismatch 
 
 # DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
@@ -83,24 +82,24 @@ WSGI_APPLICATION = 'speciesnet.wsgi.application'
 #Database
 #https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        #'NAME': BASE_DIR / 'db.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'aquarist_species',
-#         'USER': 'devopman',
-#         'PASSWORD': 'Sandisfield1!',
-#         'HOST': 'localhost',
-#         'PORT': '',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         #'NAME': BASE_DIR / 'db.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
 #     }
 # }
+
+DATABASES = {
+    "default": {
+        'ENGINE': "django.db.backends.postgresql",
+        'NAME':     os.environ.get('POSTGRES_DB'),
+        'USER':     os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': "postgres_db",  # matches service in docker-compose.yml
+        'PORT': 5432,           # default postgres port
+    }
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'species.User'
@@ -132,15 +131,7 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
-# original working STATIC configuration
-# STATIC_URL = 'static/'
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# STATICFILES_DIRS = [ BASE_DIR / 'static' ]
-
 # STATIC_ROOT defines the absolute path where 'collectstatic' will be populated
-#STATIC_ROOT = '/static/'
 STATIC_ROOT = '/static/'
 # STATIC_URL defines the url used by the nginx webserver to serve up static files
 STATIC_URL = '/static/'

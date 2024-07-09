@@ -6,11 +6,13 @@ __pycache__/
 local_settings.py
 db.sqlite3
 .env
-
+*.bak
 #vscode
 SpeciesNet.code-workspace
 ### venv
 asn_venv/
+postgres-data/
+data/
 devnotes/
 bak/
 speciesnet/media/

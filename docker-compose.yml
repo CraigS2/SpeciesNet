@@ -1,38 +1,59 @@
-#version: '3'
-
+#version: '3.7'
 services:
-  django_gunicorn:
-    container_name: ASN_DJANGO
-    volumes:
-      - static:/static
-      - media:/media
-    env_file: 
-      - ./.env
-    build:
-      context: .
-    ports: 
-      - 8000:8000
-  nginx:
-    container_name: NGINX_CBOT
-    image: jonasal/nginx-certbot:5.2.1-nginx1.27.0
-    build: ./nginx
-    depends_on: 
-      - django_gunicorn
-    restart: unless-stopped
-    environment: 
-      - CERTBOT_EMAIL
-    env_file: 
-      - ./.env
-    ports:
-      - 80:80
-      - 443:443
-    volumes:
-      - static:/static
-      - media:/media
-      - nginx_secrets:/etc/letsencrypt
-      - ./user_conf.d:/etc/nginx/user_conf.d
+    postgres_db:
+        container_name: POSTGRES_DB
+        image: postgres:15
+        restart: unless-stopped
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_DB=speciesnet
+        logging:
+          options:
+            max-size: 10m
+            max-file: "3"
+        ports:
+          - '5438:5432'
+        volumes: 
+          - postgres_data:/var/lib/postgresql/data
+          # copy the sql script to create tables
+          #- ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+    django_gunicorn:
+      container_name: ASN_DJANGO
+      restart: unless-stopped
+      depends_on: 
+        - postgres_db
+      volumes:
+        - static:/static
+        - media:/media
+      env_file: 
+        - ./.env
+      build:
+        context: .
+      ports: 
+        - 8000:8000
+
+    nginx:
+      container_name: NGINX_CBOT
+      image: jonasal/nginx-certbot:5.2.1-nginx1.27.0
+      build: ./nginx
+      depends_on: 
+        - django_gunicorn
+      restart: unless-stopped
+      env_file: 
+        - ./.env
+      ports:
+        - 80:80
+        - 443:443
+      volumes:
+        - static:/static
+        - media:/media
+        - nginx_secrets:/etc/letsencrypt
+        - ./user_conf.d:/etc/nginx/user_conf.d
 
 volumes:
   static:
   media:
   nginx_secrets:
+  postgres_data:
