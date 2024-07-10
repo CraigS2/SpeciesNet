@@ -3,3 +3,4 @@ gunicorn==20.0.4
 pillow==10.3.0
 pillow_heif==0.16.0
 psycopg2==2.9.9
+mysqlclient==2.2.4

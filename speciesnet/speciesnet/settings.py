@@ -90,14 +90,26 @@ WSGI_APPLICATION = 'speciesnet.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     "default": {
+#         'ENGINE': "django.db.backends.postgresql",
+#         'NAME':     os.environ.get('POSTGRES_DB'),
+#         'USER':     os.environ.get('POSTGRES_USER'),
+#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+#         'HOST': "postgres_db",  # matches service in docker-compose.yml
+#         'PORT': 5432,           # default postgres port
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        'ENGINE': "django.db.backends.postgresql",
-        'NAME':     os.environ.get('POSTGRES_DB'),
-        'USER':     os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': "postgres_db",  # matches service in docker-compose.yml
-        'PORT': 5432,           # default postgres port
+    'default': {
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
+        'NAME': os.environ.get('DATABASE_NAME', 'speciesnet'),
+        'USER': os.environ.get('DATABASE_USER', 'mysqluser'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'unsecure'),
+        'HOST': os.environ.get('DATABASE_HOST', 'db'),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
+        'OPTIONS': {'charset': 'utf8mb4'},
     }
 }
 
