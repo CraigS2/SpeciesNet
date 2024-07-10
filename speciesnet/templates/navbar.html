@@ -1,24 +1,50 @@
 {% load static %}
-<div>
-    <h1>
-        <a href="/"><img style="vertical-align:middle" src={% static 'images\SpeciesNet2s.jpg' %}></a>
-        &nbsp;
-        <a href="/">Aquarist Species</a>
-    </h1>
-</div>
-<div> 
-    {% if request.user.is_authenticated %}
-    <h3 style = "display: flex; justify-content: space-between;">
-        <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
-        <a href="{% url 'createSpecies'%}">Add Species</a>
-        <a href="{% url 'aquarists' %}">Aquarists</a>
-        <a href="{% url 'logout' %}">Logout {{request.user}}</a>
-    </h3>
-    {% else %}
-    <h3 style = "display: flex; justify-content: space-between;">
-        <span><a href="{% url 'login' %}">Login</a></span>
-        <a href="{% url 'betaProgram'%}">Beta Program</a>
-    </h3>
-    {% endif %}
-    <hr/>
-</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary navbar-static-top" role="navigation">
+    <a class="navbar-brand" href="/"><img style="vertical-align:middle" src="{% static 'images/SpeciesNet2s.jpg' %}"></a>  
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#site_navbar" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="site_navbar">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'betaProgram' %}">Beta Program</a>
+        </li>
+        {% if request.user.is_authenticated %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'createSpecies' %}">Add Species</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'aquarists' %}">Aquarists</a>
+        </li>
+        {% if request.user.is_superuser %}
+        <li class="nav-item">
+          <a class="nav-link" href="/admin/auth/user/?o=-5">Admin Site</a>
+        </li>
+        {% endif %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">{{ request.user.username }}</a>
+          <div class="dropdown-menu">
+            <h6 class="dropdown-header">Account</h6>
+            <a class="dropdown-item" href="/">Home</a>
+            <form method="post" action="{% url 'account_logout' %}">
+              {% csrf_token %}
+              {% if redirect_field_value %}
+              <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+              {% endif %}
+              <button class="dropdown-item" type="submit">Sign out</button>
+            </form>
+            <!--<a class="dropdown-item" href="/logout/">Sign out with confirmation page</a>-->
+          </div>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a href="{% url 'account_login' %}?next={% firstof request.path '/' %}" class="nav-link">Sign in</a>
+        </li>
+        {% endif %}
+        <form class="d-flex" method="GET" action="{% url 'home' %}">
+            <input class="form-control me-sm-2" name="q" type="search" placeholder="Search Species...">
+            <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
+        </form>
+      </ul>
+    </div>
+</nav>

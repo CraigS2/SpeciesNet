@@ -4,3 +4,7 @@ pillow==10.3.0
 pillow_heif==0.16.0
 psycopg2==2.9.9
 mysqlclient==2.2.4
+django-allauth[socialaccount]==0.63.3
+django-crispy-forms==2.2
+crispy-bootstrap5
+django-recaptcha==4.0.0

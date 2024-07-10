@@ -9,7 +9,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 #from django.db import models
 from species.models import Species, SpeciesInstance, ImportArchive, User
-from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm, RegistrationForm
+from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm#, RegistrationForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
@@ -239,54 +239,54 @@ def working(request):
     context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
     return render(request, 'species/working.html', context)
 
-# login and user registration
+# # login and user registration
 
-def loginUser(request):
-    page = 'login'
-    if request.user.is_authenticated:
-        return redirect('home')
+# def loginUser(request):
+#     page = 'login'
+#     if request.user.is_authenticated:
+#         return redirect('home')
     
-    if (request.method == 'POST'):
-        #username = request.POST.get('username').lower()
-        #username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        try:
-            user = User.objects.get(email=email)
-        except:
-            messages.error(request, 'Login failed - user not found')
+#     if (request.method == 'POST'):
+#         #username = request.POST.get('username').lower()
+#         #username = request.POST.get('username')
+#         email = request.POST.get('email')
+#         password = request.POST.get('password')
+#         try:
+#             user = User.objects.get(email=email)
+#         except:
+#             messages.error(request, 'Login failed - user not found')
 
-        #user = authenticate(request, username=username, password=password)
-        user = authenticate(request, email=email, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('home')
-        else:
-            messages.error(request, 'User Email or Password does not exist')
+#         #user = authenticate(request, username=username, password=password)
+#         user = authenticate(request, email=email, password=password)
+#         if user is not None:
+#             login(request, user)
+#             return redirect('home')
+#         else:
+#             messages.error(request, 'User Email or Password does not exist')
 
-    context = {'page': page}
-    return render (request, 'species/login_register.html', context)
+#     context = {'page': page}
+#     return render (request, 'species/login_register.html', context)
 
-def logoutUser(request):
-    logout(request)
-    return redirect('home')
+# def logoutUser(request):
+#     logout(request)
+#     return redirect('home')
 
-def registerUser(request):
-    # form = UserCreationForm()
-    form = RegistrationForm()
-    if request.method == 'POST':
-        # form = UserCreationForm(request.POST)
-        form = RegistrationForm (request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)           #allows access to user prior to DB commit
-            #user.username = user.username.lower()   # force all lower case
-            user.save()                              # commit user to DB
-            login (request, user) 
-            return redirect('home')
-        else:
-            messages.error(request, 'An error occurred during registration')
+# def registerUser(request):
+#     # form = UserCreationForm()
+#     form = RegistrationForm()
+#     if request.method == 'POST':
+#         # form = UserCreationForm(request.POST)
+#         form = RegistrationForm (request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)           #allows access to user prior to DB commit
+#             #user.username = user.username.lower()   # force all lower case
+#             user.save()                              # commit user to DB
+#             login (request, user) 
+#             return redirect('home')
+#         else:
+#             messages.error(request, 'An error occurred during registration')
 
-    context = {'form': form}
-    return render (request, 'species/login_register.html', context)
+#     context = {'form': form}
+#     return render (request, 'species/login_register.html', context)
 
 
