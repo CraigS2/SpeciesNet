@@ -39,7 +39,7 @@
             <div>
                 <p>
                 <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
-                 ({{speciesInstance.lastUpdated | timesince}}) by
+                 ({{speciesInstance.last_updated | timesince}}) by
                 <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
                 </p>
             </div>

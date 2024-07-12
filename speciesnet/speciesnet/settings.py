@@ -27,7 +27,7 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'http://127.0.0.
 
 # DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
 
-if (os.environ['DEBUG'] == 'True'):
+if os.environ.get('DEBUG', 'True') == "True":
     DEBUG = True
 elif (os.environ['DEBUG'] == '1'):
     DEBUG = True

@@ -22,7 +22,6 @@ while True:
         if time.time() - start > suggest_unrecoverable_after:
             sys.stderr.write("  This is taking longer than expected. The following exception may be indicative of an unrecoverable error: '{}'\n".format(error))
     time.sleep(1)
-{%- endif %}
 END
 
 python manage.py migrate --no-input
