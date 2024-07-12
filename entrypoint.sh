@@ -29,5 +29,10 @@ python manage.py collectstatic --no-input
 
 DJANGO_SUPERUSER_PASSWORD=$SUPER_USER_PASSWORD python manage.py createsuperuser --username $SUPER_USER_NAME --email $SUPER_USER_EMAIL --noinput
 
-gunicorn speciesnet.wsgi:application --bind 0.0.0.0:8000
-
+if [ "${DEBUG}" = "False" ]; then
+    echo Starting in production mode
+    gunicorn speciesnet.wsgi:application --bind 0.0.0.0:8000
+else
+    echo Running in development mode
+    gunicorn speciesnet.wsgi:application --bind 0.0.0.0:8000 --reload
+fi

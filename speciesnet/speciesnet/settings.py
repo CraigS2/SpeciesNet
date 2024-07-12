@@ -19,14 +19,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-ALLOWED_HOSTS = ['*']
-#ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(' ') --> Fails because of Django header mismatch 
-
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:81']
-#CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS').split(' ') --> Fails because of Django header mismatch 
-
-# DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
-
 if os.environ.get('DEBUG', 'True') == "True":
     DEBUG = True
 elif (os.environ['DEBUG'] == '1'):
@@ -34,11 +26,25 @@ elif (os.environ['DEBUG'] == '1'):
 else:
     DEBUG = False
 
+ALLOWED_HOSTS = ['localhost', 'django', '127.0.0.1', '0.0.0.0', os.environ.get('SITE_DOMAIN', '')]
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'https://' + os.environ.get('SITE_DOMAIN', ''), 'http://' + os.environ.get('SITE_DOMAIN', '')]
+
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
-    # https://docs.djangoproject.com/en/5.0/topics/email/#topic-email-backends
-    raise NotImplemented("add an email backend here")
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+# Email configuration
+if os.environ.get('EMAIL_USE_TLS', 'True') == "True":
+    EMAIL_USE_TLS = True
+else:
+    EMAIL_USE_TLS = False
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = os.environ.get('EMAIL_PORT', 587)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
+EMAIL_SUBJECT_PREFIX = ""
 
 # Application definition
 

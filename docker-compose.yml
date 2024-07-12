@@ -39,6 +39,7 @@ services:
         #- postgres_db
         - db
       volumes:
+        - ./speciesnet:/app
         - static:/static
         - media:/media
       env_file: 
