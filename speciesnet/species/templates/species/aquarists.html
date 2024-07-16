@@ -6,17 +6,9 @@
     {% for aquarist in aquarists %}
         <div>
             {% if aquarist.species_instances.all.count > 0 %}
-                {% if aquarist.last_name %}
-                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  ({{aquarist.first_name}} {{aquarist.last_name}})</a> ({{aquarist.species_instances.all.count}})</h5> 
-                {% else %}
-                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  (Private)</a> ({{aquarist.species_instances.all.count}})</h5>
-                {% endif %}        
+                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a> ({{aquarist.species_instances.all.count}})</h5>
             {% else %}
-                {% if aquarist.last_name %}
-                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  ({{aquarist.first_name}} {{aquarist.last_name}})</a></h5> 
-                {% else %}
-                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}  (Private)</a></h5>
-                {% endif %}   
+                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a></h5>
             {% endif %}
             </div>
     {% endfor %} 

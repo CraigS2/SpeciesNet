@@ -241,35 +241,35 @@ def working(request):
 
 # # login and user registration
 
-# def loginUser(request):
-#     page = 'login'
-#     if request.user.is_authenticated:
-#         return redirect('home')
+def loginUser(request):
+    page = 'login'
+    if request.user.is_authenticated:
+        return redirect('home')
     
-#     if (request.method == 'POST'):
-#         #username = request.POST.get('username').lower()
-#         #username = request.POST.get('username')
-#         email = request.POST.get('email')
-#         password = request.POST.get('password')
-#         try:
-#             user = User.objects.get(email=email)
-#         except:
-#             messages.error(request, 'Login failed - user not found')
+    if (request.method == 'POST'):
+        #username = request.POST.get('username').lower()
+        #username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        try:
+            user = User.objects.get(email=email)
+        except:
+            messages.error(request, 'Login failed - user not found')
 
-#         #user = authenticate(request, username=username, password=password)
-#         user = authenticate(request, email=email, password=password)
-#         if user is not None:
-#             login(request, user)
-#             return redirect('home')
-#         else:
-#             messages.error(request, 'User Email or Password does not exist')
+        #user = authenticate(request, username=username, password=password)
+        user = authenticate(request, email=email, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('home')
+        else:
+            messages.error(request, 'User Email or Password does not exist')
 
-#     context = {'page': page}
-#     return render (request, 'species/login_register.html', context)
+    context = {'page': page}
+    return render (request, 'species/login_register.html', context)
 
-# def logoutUser(request):
-#     logout(request)
-#     return redirect('home')
+def logoutUser(request):
+   logout(request)
+   return redirect('home')
 
 # def registerUser(request):
 #     # form = UserCreationForm()

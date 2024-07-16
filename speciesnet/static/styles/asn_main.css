@@ -1,6 +1,13 @@
-body {background-color: rgb(152, 199, 231);}
+body {
+    background-color: rgb(152, 199, 231) !important;
+    padding: 0.5em !important; 
+}
+    
 
-a:visited {color:rgb(55, 25, 224)}
+a:link {color:rgb(20, 20, 230) !important;}
+a:visited {color:rgb(60, 60, 230) !important;}
+a:hover {color:rgb(120, 120, 230) !important;}
+a:active {color:rgb(90, 90, 230) !important;}
 
 .home-container 
 {
@@ -11,7 +18,47 @@ a:visited {color:rgb(55, 25, 224)}
 hr 
 {
     color:darkslategray;
-    border-color: rgb(152, 199, 231);
+    border-color: rgb(120, 199, 230);
     border-width: 2px;
+}
+
+h1
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+}
+
+h2
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+}
+
+h3
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+}
+
+h4
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+}
+
+h5
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+}
+
+p
+{
+    color: black !important; 
+}
+
+li
+{
+    color: darkslategray !important; 
 }
 

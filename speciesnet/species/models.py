@@ -77,23 +77,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
-class StandardModel(models.Model):
-    """Base model with some helpful fields used for other models"""
+class Species (models.Model):
 
     name                      = models.CharField (max_length=240)
-    created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
-    last_updated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
-
-    class Meta:
-        ordering = ['name'] # sorts in alphabetical order
-        abstract = True # don't create a db table for this model
-
-    def __str__(self):
-        return self.name
-
-class Species (StandardModel):
-
-    #name                      = models.CharField (max_length=240)
     alt_name                  = models.CharField (max_length=240, null=True, blank=True)
     common_name               = models.CharField (max_length=240, null=True, blank=True)
     description               = models.TextField(null=True, blank=True)  # allows empty text or form
@@ -138,24 +124,19 @@ class Species (StandardModel):
     cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
     render_cares              = models.BooleanField (default=False)
 
-    #created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
-    #lastUpdated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
+    created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
+    lastUpdated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
 
-    # class Meta:
-    #     ordering = ['name'] # sorts in alphabetical order
+    class Meta:
+        ordering = ['name'] # sorts in alphabetical order
 
-    # def __str__(self):
-    #     return self.name
+    def __str__(self):
+        return self.name
 
 
-class SpeciesInstance (StandardModel):
-    #TODO change 'user' to 'aquarist' and evaluate custom user model benefits - email login may be one!
-    # Note: I would recommend against changing the name of the user field -- keep it as user, which it is
-    # It would make sense to move the User field to StandardModel and change it to on_delete=models.SET_NULL
-    # Nearly all model instances will have an owner, even if the owner is an admin -- it's always good to track that stuff
-    #TODO change year to integer TBD month and day are overkill?
+class SpeciesInstance (models.Model):
 
-    #name                      = models.CharField (max_length=240)
+    name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instances') # delestes species instances if user deleted
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_instances') # deletes ALL instances referencing any deleted species
     unique_traits             = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
@@ -180,19 +161,19 @@ class SpeciesInstance (StandardModel):
     young_available           = models.BooleanField(default=False)
     currently_keep            = models.BooleanField(default=True)
 
-    # created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
-    # lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
+    created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
+    lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
 
     class Meta:
-        ordering = ['-last_updated', '-created'] # sorts in descending order - newest first
+        ordering = ['-lastUpdated', '-created'] # sorts in descending order - newest first
 
-    # def __str__(self):
-    #     return self.name
+    def __str__(self):
+        return self.name
     
 
-class ImportArchive (StandardModel):
+class ImportArchive (models.Model):
 
-    #name                      = models.CharField (max_length=240)
+    name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name='aquarist_imports') # preserve import archives for deleted users
     import_csv_file           = models.FileField(upload_to="uploads/%Y/%m/%d/")
     import_results_file       = models.FileField(upload_to="uploads/%Y/%m/%d/", null=True, blank=True)
@@ -204,11 +185,10 @@ class ImportArchive (StandardModel):
         FAIL     = 'FAIL', _('Import Failure')
     
     import_status             = models.CharField (max_length=4, choices=ImportStatus.choices, default=ImportStatus.PENDING)
-    # dateImported              = models.DateTimeField(auto_now_add=True)
-    # Note: dateImported has been replaced with created inherited from the StandardModel
+    dateImported              = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-created'] # sorts in descending order - newest first
+        ordering = ['-dateImported'] # sorts in descending order - newest first
 
-    # def __str__(self):
-    #     return self.name
+    def __str__(self):
+        return self.name

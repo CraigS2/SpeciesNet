@@ -4,19 +4,26 @@
 <div>
     <h2>Beta Program</h2>
     <p>
-        <b>AquaristSpecies.net</b> is a new website focused on one key benefit: <i>connecting <b>Aquarists</b> according to the <b>Species</b> they keep.</i>
+        Welcome to our new site <i>connecting <b>Aquarists</b> according to the <b>Species</b> they keep.</i>
     </p>
+    <p>
+        <h4></b>AquaristSpecies.net ... it's <i>'Where Fish Rooms Meet!'</i></b></h4>
+    </p>
+
     <p>
         <i>Try it it's easy as 1, 2, 3!</i> 
     </p>
     <ol>  
         <li>Create an account with a <i>username, email, and password</i> </li>    
-        <li>Select the <b>Species</b> you keep. Click on the </b><i>'I keep this fish!'</i></b> option</li>
+        <li>Select the <b>Species</b> you keep. Click on the </b>'I keep this fish!'</b> option</li>
         <li>Fill in a few fields describing your fish. Provide as little or as much detail as you like. </li> 
     </ol>
     <p>
-        Please consider signing up for our Beta Program. It's </b><i>'Where Fish Rooms Meet!'</i></b>
+        Please consider signing up and participating in our Beta Program.
     </p>
+        {% if not request.user.is_authenticated %}
+        <h4><a href="{% url 'account_login' %}">Sign in or Create New Account</a></h4>
+        {% endif %}
     <p>
         Recently signed up users include:
     </p>

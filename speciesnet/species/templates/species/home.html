@@ -10,22 +10,22 @@
         </form>
         <p>
         <div>
-            <h4><a href="{% url 'home' %}">All</a></h4>
+            <h5><a href="{% url 'home' %}">All</a></h5>
         </div>
         {% for species in speciesFilter %}
             <div>
                 {% if species.species_instances.all.count > 0 %}
                     <!-- p>{{species.cares_status}} display as {{species.get_cares_status_display}}</p-->
                     {% if species.render_cares %}
-                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font> ({{species.species_instances.all.count}})</h4>
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font> ({{species.species_instances.all.count}})</p>
                     {% else %}
-                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</h4>
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</p>
                     {% endif %}
                 {% else %}
                     {% if species.render_cares %}
-                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font></h4>
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font></p>
                     {% else %}
-                        <h4>  <a href="{% url 'species' species.id %}">{{species.name}}</a></h4>
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a></p>
                     {% endif %}
                 {% endif %}
             </div>
@@ -39,7 +39,7 @@
             <div>
                 <p>
                 <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
-                 ({{speciesInstance.last_updated | timesince}}) by
+                 ({{speciesInstance.lastUpdated | timesince}}) by
                 <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
                 </p>
             </div>
