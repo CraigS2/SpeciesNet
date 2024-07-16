@@ -19,20 +19,32 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-ALLOWED_HOSTS = ['*']
-#ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(' ') --> Fails because of Django header mismatch 
-
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
-#CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS').split(' ') --> Fails because of Django header mismatch 
-
-# DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
-
-if (os.environ['DEBUG'] == 'True'):
+if os.environ.get('DEBUG', 'True') == "True":
     DEBUG = True
 elif (os.environ['DEBUG'] == '1'):
     DEBUG = True
 else:
     DEBUG = False
+
+ALLOWED_HOSTS = ['localhost', 'django', '127.0.0.1', '0.0.0.0', os.environ.get('SITE_DOMAIN', '')]
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'https://' + os.environ.get('SITE_DOMAIN', ''), 'http://' + os.environ.get('SITE_DOMAIN', '')]
+
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+# Email configuration
+if os.environ.get('EMAIL_USE_TLS', 'True') == "True":
+    EMAIL_USE_TLS = True
+else:
+    EMAIL_USE_TLS = False
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = os.environ.get('EMAIL_PORT', 587)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
+EMAIL_SUBJECT_PREFIX = ""
 
 # Application definition
 
@@ -43,8 +55,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-     #'crispy_forms',
+    'crispy_forms',
+    'crispy_bootstrap5',
     'species.apps.SpeciesConfig',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'django_recaptcha',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +73,72 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
 ]
+
+# needed to allow Google one click auth
+SECURE_REFERRER_POLICY= "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY="same-origin-allow-popups"
+
+GOOGLE_OAUTH_LINK = os.environ.get('GOOGLE_OAUTH_LINK', 'unsecure')
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+        'FETCH_USERINFO': True
+    }
+}
+SOCIALACCOUNT_EMAIL_AUTHENTICATION=True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT=True
+SOCIALACCOUNT_LOGIN_ON_GET=True
+ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
+LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/login/"
+ACCOUNT_FORMS = {
+    'signup': 'species.forms.CustomSignupForm',
+    'reset_password': 'species.forms.CustomResetPasswordForm',
+}
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
+ACCOUNT_DEFAULT_HTTP_PROTOCOL='https'
+ACCOUNT_CHANGE_EMAIL = True
+
+# Keeps users logged in for a long time
+SESSION_COOKIE_AGE = 120960000
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+RECAPTCHA_PUBLIC_KEY = os.environ.get('RECAPTCHA_PUBLIC_KEY', 'unsecure')
+RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY', 'unsecure')
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 ROOT_URLCONF = 'speciesnet.urls'
 
@@ -72,9 +155,19 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.request',
+                'species.context_processors.google_oauth',
             ],
         },
     },
+]
+
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by e-mail
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 WSGI_APPLICATION = 'speciesnet.wsgi.application'
@@ -90,19 +183,33 @@ WSGI_APPLICATION = 'speciesnet.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     "default": {
+#         'ENGINE': "django.db.backends.postgresql",
+#         'NAME':     os.environ.get('POSTGRES_DB'),
+#         'USER':     os.environ.get('POSTGRES_USER'),
+#         'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+#         'HOST': "postgres_db",  # matches service in docker-compose.yml
+#         'PORT': 5432,           # default postgres port
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        'ENGINE': "django.db.backends.postgresql",
-        'NAME':     os.environ.get('POSTGRES_DB'),
-        'USER':     os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': "postgres_db",  # matches service in docker-compose.yml
-        'PORT': 5432,           # default postgres port
+    'default': {
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
+        'NAME': os.environ.get('DATABASE_NAME', 'speciesnet'),
+        'USER': os.environ.get('DATABASE_USER', 'mysqluser'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'unsecure'),
+        'HOST': os.environ.get('DATABASE_HOST', 'db'),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
+        'OPTIONS': {'charset': 'utf8mb4'},
     }
 }
 
 # Custom User Model
 AUTH_USER_MODEL = 'species.User'
+# Allauth integration with custom user model
+ACCOUNT_USER_MODEL_USERNAME_FIELD='username'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

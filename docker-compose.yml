@@ -1,30 +1,45 @@
 #version: '3.7'
 services:
-    postgres_db:
-        container_name: POSTGRES_DB
-        image: postgres:15
-        restart: unless-stopped
-        environment:
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_DB=speciesnet
-        logging:
-          options:
-            max-size: 10m
-            max-file: "3"
-        ports:
-          - '5438:5432'
-        volumes: 
-          - postgres_data:/var/lib/postgresql/data
-          # copy the sql script to create tables
-          #- ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    # postgres_db:
+    #     container_name: POSTGRES_DB
+    #     image: postgres:15
+    #     restart: unless-stopped
+    #     environment:
+    #       - POSTGRES_USER=postgres
+    #       - POSTGRES_PASSWORD=postgres
+    #       - POSTGRES_DB=speciesnet
+    #     logging:
+    #       options:
+    #         max-size: 10m
+    #         max-file: "3"
+    #     ports:
+    #       - '5438:5432'
+    #     volumes: 
+    #       - postgres_data:/var/lib/postgresql/data
+    #       # copy the sql script to create tables
+    #       #- ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+    db:
+      image: mariadb:latest
+      restart: always
+      environment:
+        MYSQL_DATABASE: ${DATABASE_NAME-speciesnet}
+        MYSQL_USER: ${DATABASE_USER-mysqluser}
+        MYSQL_PASSWORD: ${DATABASE_PASSWORD-unsecure}
+        MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD-unsecure}
+      expose:
+        - ${DATABASE_PORT-3306}
+      volumes:
+        - mariadb_data:/var/lib/mysql
 
     django_gunicorn:
       container_name: ASN_DJANGO
       restart: unless-stopped
       depends_on: 
-        - postgres_db
+        #- postgres_db
+        - db
       volumes:
+        - ./speciesnet:/app
         - static:/static
         - media:/media
       env_file: 
@@ -44,8 +59,8 @@ services:
       env_file: 
         - ./.env
       ports:
-        - 80:80
-        - 443:443
+        - ${HTTP_PORT-80}:80
+        - ${HTTPS_PORT-443}:443
       volumes:
         - static:/static
         - media:/media
@@ -56,4 +71,5 @@ volumes:
   static:
   media:
   nginx_secrets:
-  postgres_data:
+  # postgres_data:
+  mariadb_data:
