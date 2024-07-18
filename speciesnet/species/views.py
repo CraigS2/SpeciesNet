@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.core.exceptions import PermissionDenied
 #from django.db import models
 from species.models import Species, SpeciesInstance, ImportArchive, User
 from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm#, RegistrationForm
@@ -15,6 +16,7 @@ from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
 from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
 #from io import TextIOWrapper
+from datetime import datetime
 from csv import DictReader
 #import os
 
@@ -41,14 +43,34 @@ def species(request, pk):
     species = Species.objects.get(id=pk)
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
-    context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares': renderCares}
+
+    #TODO better permissions for edit/delete of species
+    cur_user = request.user
+    userCanEdit = False
+    created_date = species.created.date()
+    today_date = datetime.today().date()
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif created_date == today_date:
+        userCanEdit = True       # Allow everyone to edit/delete newly created species on same day of creation
+
+    context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
     return render (request, 'species/species.html', context)
 
 def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     species = speciesInstance.species
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-    context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares}
+
+    #TODO better permissions for edit/delete of speciesInstances
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif cur_user == speciesInstance.user:
+        userCanEdit = True       # Allow owner to edit
+
+    context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstance.html', context)
 
 # Aquarists page
@@ -82,6 +104,19 @@ def createSpecies (request):
 def editSpecies (request, pk): 
     register_heif_opener()
     species = Species.objects.get(id=pk)
+
+    #TODO better permissions for edit/delete of species
+    cur_user = request.user
+    userCanEdit = False
+    created_date = species.created.date()
+    today_date = datetime.today().date()
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif created_date == today_date:
+        userCanEdit = True       # Allow everyone to edit/delete newly created species on same day of creation
+    if not userCanEdit:
+        raise PermissionDenied()
+    
     form = SpeciesForm(instance=species)
     if (request.method == 'POST'):
         form2 = SpeciesForm(request.POST, request.FILES, instance=species)
@@ -99,6 +134,20 @@ def editSpecies (request, pk):
 
 @login_required(login_url='login')
 def deleteSpecies (request, pk):
+    species = Species.objects.get(id=pk)
+
+    #TODO better permissions for edit/delete of species
+    cur_user = request.user
+    userCanEdit = False
+    created_date = species.created.date()
+    today_date = datetime.today().date()
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif created_date == today_date:
+        userCanEdit = True       # Allow everyone to edit/delete newly created species on same day of creation
+    if not userCanEdit:
+        raise PermissionDenied()
+
     species = Species.objects.get(id=pk)
     if (request.method == 'POST'):
         species.delete()
@@ -127,6 +176,17 @@ def createSpeciesInstance (request, pk):
 def editSpeciesInstance (request, pk): 
     register_heif_opener() # must be done before form use or rejects heic files
     speciesInstance = SpeciesInstance.objects.get(id=pk)
+
+    #TODO better permissions for edit/delete of species
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif cur_user == speciesInstance.user:
+        userCanEdit = True       # Allow owner to edit
+    if not userCanEdit:
+        raise PermissionDenied()
+
     form = SpeciesInstanceForm(instance=speciesInstance)
     if (request.method == 'POST'):
         print ("Saving Species Instance Form")
@@ -144,6 +204,17 @@ def editSpeciesInstance (request, pk):
 @login_required(login_url='login')
 def deleteSpeciesInstance (request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
+
+    #TODO better permissions for edit/delete of species
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif cur_user == speciesInstance.user:
+        userCanEdit = True       # Allow owner to edit
+    if not userCanEdit:
+        raise PermissionDenied()
+
     if (request.method == 'POST'):
         speciesInstance.delete()
         return redirect('home')
@@ -226,6 +297,12 @@ def aquarists (request):
     return render(request, 'species/aquarists.html', context)
 
 def tools(request):
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True
+    if not userCanEdit:
+        raise PermissionDenied()
     # fix to update missed render_cares update in early import:
     #     if species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES:
     #         species.render_cares = True
@@ -233,6 +310,12 @@ def tools(request):
     return render(request, 'species/tools.html')
 
 def working(request):
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True
+    if not userCanEdit:
+        raise PermissionDenied()
     speciesKeepers = User.objects.all()
     speciesSet = Species.objects.all()
     speciesInstances = SpeciesInstance.objects.all()
@@ -268,6 +351,7 @@ def loginUser(request):
     return render (request, 'species/login_register.html', context)
 
 def logoutUser(request):
+   page = 'logout'
    logout(request)
    return redirect('home')
 

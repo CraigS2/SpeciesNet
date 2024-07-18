@@ -2,16 +2,18 @@
 
 {% block content %}
 
-<div>
+<div class="div-line-below">
     <h2>Species Tools</h2>
     <h4><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></h4>
     <h4><a href="{% url 'importSpecies' %}">Import Species from CSV</a></h4>
+    <small>&nbsp;</small>
 </div>
-<hr>
-<div>
+<!--hr-->
+<div class="div-line-below">
     <h2>Species Instance Tools</h2>
     <h4><a href="{% url 'exportSpeciesInstances' %}">Export Species Instances to CSV</a></h4>
     <h4><a href="{% url 'importSpeciesInstances' %}">Import Species Instances from CSV</a></h4>
+    <small>&nbsp;</small>
 </div>
 
 {% endblock content %}

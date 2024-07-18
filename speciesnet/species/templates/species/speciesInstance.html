@@ -2,71 +2,68 @@
 <!-- context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares} -->
 {% block content %}
 
-<h1>{{speciesInstance.name}}</h1>
-{% if species.alt_name %}
-    <p><b>Alternate Name: </b>{{species.alt_name}}</p>
-{% endif %}
-{% if species.common_name %}
-    <p><b>Common Name: </b>{{species.common_name}}</p>
-{% endif %}
-{% if speciesInstance.user.last_name %}
-    <h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> ({{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}})</h2>
-{% else %}  
-    <h2>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a> (Private)</h2>
-{% endif %} 
-    <hr>
+<div class="div-line-below">
+    <h2><i>{{speciesInstance.name}}</i></h2>
+    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a></h3>
+    <h3>Species:  <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
+    {% if species.alt_name %}
+        <p><b>Alternate Name: &nbsp;&nbsp;</b>{{species.alt_name}}</p>
+    {% endif %}
+    {% if species.common_name %}
+        <p><b>Common Name: &nbsp;&nbsp;</b>{{species.common_name}}</p>
+    {% endif %}
+    {% if species.species_image %}
+        <p><img src={{species.species_image.url}}></p>
+    {% endif %}
+    <h3>Description</h3>
+    <p>{{species.description}}</p>
+    <!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->
+    <p><b>Category:</b>  &nbsp;&nbsp;{{species.get_category_display}}</p>
+    <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
+    <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
+    {% if renderCares %}
+        <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+    {% endif %}
+    <small>&nbsp;</small>
+    <!--hr-->
+</div>
 
-<h3>Species: <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
+<div>
+    <h3>Aquarist Notes</h3>
+    {% if speciesInstance.instance_image %}
+        <p><img src={{speciesInstance.instance_image.url}}></p>
+    {% endif %}
+    {% if speciesInstance.collection_point %}
+        <p><b>Collection Point:</b> &nbsp;&nbsp;{{speciesInstance.collection_point}}</p>
+    {% endif %}   
+    <p><b>Genetic Line:</b> &nbsp;&nbsp;{{speciesInstance.get_genetic_traits_display}}</p>
+    {% if speciesInstance.unique_traits %}
+        <p><b>Line Traits:</b> &nbsp;&nbsp;{{speciesInstance.unique_traits}}</p>
+    {% endif %}  
+    <p><b>Year Acquired:</b> &nbsp;&nbsp;{{speciesInstance.year_acquired}}</p>
+    <p>{{speciesInstance.aquarist_notes}}</p>
 
-{% if species.species_image %}
-    <p><img src={{species.species_image.url}}></p>
-{% endif %}
-
-<h3>Description:</h3>
-<p>{{species.description}}</p>
-<!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->
-<p><b>Category:</b> {{species.get_category_display}}</p>
-<p><b>Global Region:</b> {{species.get_global_region_display}}</p>
-<p><b>Distribution:</b> {{species.local_distribution}}</p>
-{% if renderCares %}
-    <p><b>CARES Status:</b> {{species.get_cares_status_display}}</p>
-{% endif %}
-
-<hr>
-
-<h2>Aquarist Notes</h2>
-<h3>{{speciesInstance.name}}</h3>
-{% if speciesInstance.instance_image %}
-    <p><img src={{speciesInstance.instance_image.url}}></p>
-{% endif %}
-{% if speciesInstance.collection_point %}
-    <p><b>Collection Point:</b> {{speciesInstance.collection_point}}</p>
-{% endif %}   
-<p><b>Genetic Line:</b> {{speciesInstance.get_genetic_traits_display}}</p>
-{% if speciesInstance.unique_traits %}
-    <p><b>Line Traits:</b> {{speciesInstance.unique_traits}}</p>
-{% endif %}  
-<p><b>Year Acquired: </b>{{speciesInstance.year_acquired}}</p>
-<p>{{speciesInstance.aquarist_notes}}</p>
-
-{% if speciesInstance.have_spawned %}
-    <p><b>Species Spawned: </b>Yes</p>
-    <p>{{speciesInstance.spawning_notes}}</p>
-    {% if speciesInstance.have_reared_fry %}
-        <p><b>Have Reared Fry? </b>Yes</p>
-        <p>{{speciesInstance.fry_rearing_notes}}</p>
-        {% if speciesInstance.young_available %}
-            <p><b>Young fish available? </b>Yes</p>
+    {% if speciesInstance.have_spawned %}
+        <p><b>Species Spawned:</b> &nbsp;&nbsp;Yes</p>
+        <p>{{speciesInstance.spawning_notes}}</p>
+        {% if speciesInstance.have_reared_fry %}
+            <p><b>Have Reared Fry?</b> &nbsp;&nbsp;Yes</p>
+            <p>{{speciesInstance.fry_rearing_notes}}</p>
+            {% if speciesInstance.young_available %}
+                <p><b>Young fish available?</b> &nbsp;&nbsp;Yes</p>
+            {% endif %}
         {% endif %}
     {% endif %}
-{% endif %}
-
-{% if request.user.is_authenticated %}
-    <small>&nbsp;</small>
-    <hr>
-    <h2>Edit Species Instance</h2>
-    <h3><a href="{% url 'editSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h3>
-    <h3><a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete Species Instance</a></h3>
-{% endif %}
+    {% if request.user.is_authenticated %}
+        {% if userCanEdit %}
+        <small>&nbsp;</small>
+        </div>
+        <div class="div-line-above">
+            <h3>Edit Species Instance</h3>
+            <h4><a href="{% url 'editSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h4>
+            <h4><a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete Species Instance</a></h4>
+        {% endif %}
+    {% endif %}
+</div>
 
 {% endblock content %}

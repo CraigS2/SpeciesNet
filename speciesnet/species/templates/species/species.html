@@ -1,58 +1,61 @@
 {% extends 'main.html' %}
 {% load static %}
 
-<!-- context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares:' renderCares} -->
+<!-- context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares:' renderCares, 'userCanEdit': userCanEdit} -->
 {% block content %}
 
-<h1>{{species.name}}</h1>
-{% if species.alt_name %}
-    <p><b>Alternate Name: </b>{{species.alt_name}}</p>
-{% endif %}
-{% if species.common_name %}
-    <p><b>Common Name: </b>{{species.common_name}}</p>
-{% endif %}
-{% if species.species_image %}
-    <p><img src={{species.species_image.url}}></p>
-{% endif %}
-{% if species.photo_credit %}
-    <p>Photo by: <i>{{species.photo_credit}}</i> </p>
-{% endif %}
-
-<h2><b>Description</b></h2>
-<p>{{species.description}}</p>
-<p><b>Category:</b> {{species.get_category_display}}</p>
-<p><b>Global Region:</b> {{species.get_global_region_display}}</p>
-<p><b>Distribution:</b> {{species.local_distribution}}</p>
-{% if renderCares %}
-    <p><b>CARES Status:</b> {{species.get_cares_status_display}}</p>
-{% endif %}
-
-<small>&nbsp;</small>
-<hr>
-
-<h2>Aquarists keeping this Species</h2>
-{% if species.species_instances.all.count > 0  %}
-<div>
-    {% for speciesInstance in speciesInstances %}
-        {% if speciesInstance.currently_keep %}
-        <div>
-            <p><b>{{speciesInstance.user.username}} </b> :       
-            <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-        </div>
-        {% endif %}
-    {% endfor %}    
-</div>
-{% else %}
-    <h5>None</h5>
-{% endif %}
-
-{% if request.user.is_authenticated %}
-    <h3><a href="{% url 'createSpeciesInstance' species.id %}">Add Species Instance</a> <i>(I keep this fish!)</i></h3>
+<div class="div-line-below">
+    <h2>{{species.name}}</h2>
+    {% if species.alt_name %}
+        <p><b>Alternate Name:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
+    {% endif %}
+    {% if species.common_name %}
+        <p><b>Common Name:</b>&nbsp;&nbsp;{{species.common_name}}</p>
+    {% endif %}
+    {% if species.species_image %}
+        <p><img src={{species.species_image.url}}></p>
+    {% endif %}
+    {% if species.photo_credit %}
+        <p>Photo by:<i> &nbsp;&nbsp;{{species.photo_credit}}</i> </p>
+    {% endif %}
+    <h3>Description</h3>
+    <p>{{species.description}}</p>
+    <p><b>Category:</b> &nbsp;&nbsp;{{species.get_category_display}}</p>
+    <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
+    <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
+    {% if renderCares %}
+        <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+    {% endif %}
     <small>&nbsp;</small>
-    <hr>
-    <h2>Edit Species</h2>
-    <h3><a href="{% url 'editSpecies' species.id %}">Edit Species</a></h3>
-    <!--h3><a href="{% url 'deleteSpecies' species.id %}">Delete Species</a></h3-->
-{% endif %}
+    <!--hr-->
+</div>
 
+<div>
+    <small>&nbsp;</small>
+    <h2>Aquarists keeping this Species</h2>
+    {% if species.species_instances.all.count > 0  %}
+        {% for speciesInstance in speciesInstances %}
+            {% if speciesInstance.currently_keep %}
+            <div>
+                <p><b>{{speciesInstance.user.username}}</b>:       
+                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+            </div>
+            {% endif %}
+        {% endfor %}    
+    {% else %}
+        <p><b>None</b></p>
+    {% endif %}
+    {% if request.user.is_authenticated %}
+        <h4><a href="{% url 'createSpeciesInstance' species.id %}">Add Species Instance</a> <i>(I keep this fish!)</i></h4>
+        <small>&nbsp;</small>
+        {% if userCanEdit %}
+        <small>&nbsp;</small>
+        </div>
+        <div class="div-line-above">
+            <h3>Edit Species</h3>
+            <h4><a href="{% url 'editSpecies' species.id %}">Edit Species</a></h4>
+            <h4><a href="{% url 'deleteSpecies' species.id %}">Delete Species</a></h4>
+        {% endif %}
+    {% endif %}
+</div>
 {% endblock content %}

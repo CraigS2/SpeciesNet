@@ -6,7 +6,7 @@
         <a href="/">Aquarist Species</a>
     </h1>
 </div>
-<div> 
+<div class="div-line-below">
     {% if request.user.is_authenticated %}
     <h5 style = "display: flex; justify-content: space-between;">
         <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
@@ -18,7 +18,6 @@
     <h5 style = "display: flex; justify-content: space-between;">
         <span><a href="{% url 'account_login' %}">Sign in</a></span>
         <a href="{% url 'betaProgram'%}">Beta Program</a>
-    </h5>
     {% endif %}
-    <hr/>
+    <!--hr/-->
 </div>

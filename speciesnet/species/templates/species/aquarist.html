@@ -2,48 +2,38 @@
 <!-- context = {'aquarist': aquarist, 'speciesKept': speciesKept} -->
 {% block content %}
 
-<h1>{{aquarist.username}}</h1>
-{% if aquarist.last_name %}
+<div class="div-line-below">
+    <h1>{{aquarist.username}}</h1>
     <p><large><B>Name: </B>Private</large></p>
-{% else %}  
-    <p><large><B>Name: </B>Private</large></p>
-{% endif %} 
-
-{% if aquarist.email %}
     <p><large><B>Email: </B>Private</large></p>
-{% else %}  
-    <p><large><B>Email: </B>Private</large></p>
-{% endif %} 
-
-<hr>
-
+    <!--hr-->
+</div>
+<div class="div-line-below">
 <h2>Keeps the following species:</h2>
 {% if speciesKept.all.count > 0  %}
-<div>
     {% for speciesInstance in speciesKept %}
         {% if speciesInstance.currently_keep %}
-        <div>
             {% if speciesInstance.species.render_cares %}
-                <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </h5>
+                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </p>
             {% else %}
-                <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
+                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
             {% endif%}
-        </div>
         {% endif %}
     {% endfor %}    
-</div>
 {% else %}
-    <p><large><B>None</B></large></p>
+    <p><B>None</B></p>
 {% endif %}
+<small>&nbsp;</small>
+</div>
 
 {% if speciesPreviouslyKept.all.count > 0  %}
-<hr>
+<!--hr-->
 <h2>Previously kept the following species:</h2>
 <div>
     {% for speciesInstance in speciesPreviouslyKept %}
         {% if not speciesInstance.currently_keep %}
         <div>
-            <h5><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h5>
+            <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
         </div>
         {% endif %}
     {% endfor %}    
