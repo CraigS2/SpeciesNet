@@ -95,7 +95,7 @@ def createSpecies (request):
             species.save()
             if (species.species_image):
                 print ("Form save w commit - image access available")
-                processUploadedImageFile (species.species_image, species.name)
+                processUploadedImageFile (species.species_image, species.name, request)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/createSpecies.html', context)   
@@ -127,7 +127,7 @@ def editSpecies (request, pk):
             species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
             species.save()
             if (species.species_image):
-                processUploadedImageFile (species.species_image, species.name)
+                processUploadedImageFile (species.species_image, species.name, request)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/editSpecies.html', context)
@@ -167,7 +167,7 @@ def createSpeciesInstance (request, pk):
             form2.instance.species = species
             speciesInstance = form2.save()
             if (speciesInstance.instance_image):
-                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name)
+                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name, request)
         return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
     context = {'form': form}
     return render (request, 'species/createSpeciesInstance.html', context)
@@ -196,7 +196,7 @@ def editSpeciesInstance (request, pk):
             print ("Form save w commit")
             print ("Species instance image: ", speciesInstance.instance_image)
             if (speciesInstance.instance_image):
-                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name)
+                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name, request)
         return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
     context = {'form': form}
     return render (request, 'species/editSpeciesInstance.html', context)
