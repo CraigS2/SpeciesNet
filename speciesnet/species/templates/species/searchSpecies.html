@@ -1,0 +1,54 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<div class="home-container">
+    <div>
+        <h2>Species</h2>
+        <form method="GET" action="{% url 'home' %}">
+            <input type="text" name="q" placeholder="Search Species ..."/>
+        </form>
+        <p>
+        <div>
+            <h5><a href="{% url 'home' %}">All</a></h5>
+        </div>
+        {% for species in speciesFilter %}
+            <div>
+                {% if species.species_instances.all.count > 0 %}
+                    <!-- p>{{species.cares_status}} display as {{species.get_cares_status_display}}</p-->
+                    {% if species.render_cares %}
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font> ({{species.species_instances.all.count}})</p>
+                    {% else %}
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a> ({{species.species_instances.all.count}})</p>
+                    {% endif %}
+                {% else %}
+                    {% if species.render_cares %}
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font></p>
+                    {% else %}
+                        <p>  <a href="{% url 'species' species.id %}">{{species.name}}</a></p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %} 
+    </div>
+    <div>
+        <h2>Recent Updates</h2>
+        {% if speciesInstances.count > 0  %}
+        <div>
+            {% for speciesInstance in speciesInstances %}
+            <div>
+                <p>
+                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
+                 ({{speciesInstance.lastUpdated | timesince}}) by
+                <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <h5>No recent updates</h5>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock content %}

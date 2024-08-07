@@ -1,0 +1,25 @@
+{% extends 'main.html' %}
+<!-- context = {'aquarist': aquarist} -->
+{% block content %}
+<!--hr-->
+
+    <div class="div-line-below">
+        <h1>{{aquarist.username}}</h1>
+
+        <p><large><B>Username:</B> {{aquarist.username}}</large></p>
+        <p><large><B>Name:</B> {{aquarist.first_name}} {{aquarist.last_name}}</large></p>
+        <p><large><B>Email:</B> {{aquarist.email}}</large></p>
+        <p><large><B>State:</B> {{aquarist.state}}</large></p>
+        <p><large><B>Country:</B> {{aquarist.country}}</large></p>
+        <p><large><B>Private: </B>{{aquarist.is_private}}</large></p>
+        <p><large><B>Email: </B>Private</large></p>
+        <p><large><B>Member since:</B> {{aquarist.date_joined|date:"M d, Y" }}</large></p>
+        <small><p>&nbsp;</p></small>
+    </div>  
+    <div>
+        <small><p>&nbsp;</p></small>
+        <a href="{% url 'account_logout' %}">Sign out {{request.user}}</a>
+        <!--hr-->
+    </div>
+
+{% endblock content %}

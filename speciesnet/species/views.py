@@ -20,15 +20,10 @@ from datetime import datetime
 from csv import DictReader
 #import os
 
+### Home page
+
 def home(request):
-    speciesSet = Species.objects.all()
-    speciesInstances = SpeciesInstance.objects.all()[:16] # limit recent update list to 16 items
-    # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
-    q = request.GET.get('q') if request.GET.get('q') != None else '' 
-    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
-                                           Q(local_distribution__icontains=q) | Q(description__icontains=q))
-    context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances}
-    return render(request, 'species/home.html', context)
+    return render(request, 'species/home.html')
 
 ### View the basic elements of ASN: Aquarist, Species, and SpeciesInstance
 
@@ -73,14 +68,34 @@ def speciesInstance(request, pk):
     context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstance.html', context)
 
-# Aquarists page
+### User profile
+
+@login_required(login_url='login')
+def userProfile(request):
+    aquarist = request.user
+    context = {'aquarist': aquarist}
+    return render (request, 'species/userProfile.html', context)
+
+### Search Species
+
+def searchSpecies(request):
+    speciesSet = Species.objects.all()
+    speciesInstances = SpeciesInstance.objects.all()[:32] # limit recent update list to 32 items
+    # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
+    q = request.GET.get('q') if request.GET.get('q') != None else '' 
+    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
+                                           Q(local_distribution__icontains=q) | Q(description__icontains=q))
+    context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances}
+    return render(request, 'species/searchSpecies.html', context)
+
+### Aquarists page
 
 def aquarists (request):
     aquarists = User.objects.all()
     context = {'aquarists': aquarists}
     return render(request, 'species/aquarists.html', context)
 
-# Create Edit Delete Species & SpeciesInstance pages
+### Create Edit Delete Species & SpeciesInstance pages
 
 @login_required(login_url='login')
 def createSpecies (request):
@@ -89,16 +104,25 @@ def createSpecies (request):
     if (request.method == 'POST'):
         form2 = SpeciesForm(request.POST, request.FILES)
         if form2.is_valid():
-            print ("Form is valid - saving Species")
-            species = form2.save()
-            species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-            species.save()
-            if (species.species_image):
-                print ("Form save w commit - image access available")
-                processUploadedImageFile (species.species_image, species.name, request)
-        return HttpResponseRedirect(reverse("species", args=[species.id]))
+            species = form2.save(commit=False)
+            species_name = species.name
+            # assure unique species names - prevent duplicates
+            if not Species.objects.filter(name=species_name).exists():
+                print ("Form is valid - saving Species")
+                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.save()
+                if (species.species_image):
+                    print ("Form save w commit - image access available")
+                    processUploadedImageFile (species.species_image, species.name, request)
+                return HttpResponseRedirect(reverse("species", args=[species.id]))
+            else:
+                dupe_msg = (species_name + " already exists. Please use this Species entry.")
+                print (dupe_msg)
+                messages.info (request, dupe_msg)
+                species = Species.objects.get(name=species_name)
+                return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
-    return render (request, 'species/createSpecies.html', context)   
+    return render (request, 'species/createSpecies.html', context)
 
 @login_required(login_url='login')
 def editSpecies (request, pk): 
