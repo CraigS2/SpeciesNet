@@ -1,6 +1,5 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-#from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
@@ -8,17 +7,17 @@ from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
-#from django.db import models
-from species.models import Species, SpeciesInstance, ImportArchive, User
-from species.forms import SpeciesForm, SpeciesInstanceForm, ImportCsvForm#, RegistrationForm
+#from django.core.mail import send_mail
+from django.core.mail import EmailMessage
+from smtplib import SMTPException
+from species.models import Species, SpeciesComment, SpeciesInstance, ImportArchive, User
+from species.forms import SpeciesForm, SpeciesCommentForm, SpeciesInstanceForm, UserProfileForm, ImportCsvForm, EmailAquaristForm #, RegistrationForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
 from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
-#from io import TextIOWrapper
 from datetime import datetime
 from csv import DictReader
-#import os
 
 ### Home page
 
@@ -31,13 +30,15 @@ def aquarist(request, pk):
     aquarist = User.objects.get(id=pk)
     speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).order_by('name')
     speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).order_by('name')
-    context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept}
+    speciesComments = SpeciesComment.objects.filter(user=aquarist)
+    context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept, 'speciesComments': speciesComments}
     return render (request, 'species/aquarist.html', context)
 
 def species(request, pk):
     species = Species.objects.get(id=pk)
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
+    speciesComments = SpeciesComment.objects.filter(species=species)
 
     #TODO better permissions for edit/delete of species
     cur_user = request.user
@@ -46,10 +47,22 @@ def species(request, pk):
     today_date = datetime.today().date()
     if cur_user.is_staff:
         userCanEdit = True       # Allow Species Admins to always edit/delete
-    elif created_date == today_date:
-        userCanEdit = True       # Allow everyone to edit/delete newly created species on same day of creation
+    elif (created_date == today_date) and (cur_user == species.created_by):
+        userCanEdit = True       # Allow author edit/delete of newly created species on same day of creation
 
-    context = {'species': species, 'speciesInstances': speciesInstances, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
+    # enable comments on species page
+    form = SpeciesCommentForm()
+    if (request.method == 'POST'):
+        form2 = SpeciesCommentForm(request.POST)
+        if form2.is_valid: 
+            speciesComment = form2.save(commit=False)
+            speciesComment.user = cur_user
+            speciesComment.species = species
+            speciesComment.name = cur_user.username + " - " + species.name
+            speciesComment.save()
+
+    context = {'species': species, 'speciesInstances': speciesInstances, 'speciesComments': speciesComments, 
+               'renderCares': renderCares, 'userCanEdit': userCanEdit, 'form': form }
     return render (request, 'species/species.html', context)
 
 def speciesInstance(request, pk):
@@ -76,6 +89,31 @@ def userProfile(request):
     context = {'aquarist': aquarist}
     return render (request, 'species/userProfile.html', context)
 
+@login_required(login_url='login')
+def editUserProfile(request):
+    cur_user = request.user
+    form = UserProfileForm(instance=cur_user)
+    if (request.method == 'POST'):
+        form2 = UserProfileForm(request.POST, instance=cur_user)
+        if form2.is_valid: 
+            form2.save(commit=False)
+            cur_user.first_name          = form2.instance.first_name
+            cur_user.last_name           = form2.instance.last_name
+            cur_user.state               = form2.instance.state
+            cur_user.country             = form2.instance.country
+            cur_user.is_private_name     = form2.instance.is_private_name
+            cur_user.is_private_email    = form2.instance.is_private_email
+            cur_user.is_private_location = form2.instance.is_private_location
+            cur_user.save()
+        else:
+            error_msg = ("Error saving User Profile changes")
+            messages.error (request, error_msg)
+        context = {'aquarist': request.user}
+        return render (request, 'species/userProfile.html', context)
+    context = {'form': form}
+    return render (request, 'species/editUserProfile.html', context)
+
+
 ### Search Species
 
 def searchSpecies(request):
@@ -95,6 +133,57 @@ def aquarists (request):
     context = {'aquarists': aquarists}
     return render(request, 'species/aquarists.html', context)
 
+def emailAquarist(request, pk):
+    aquarist = User.objects.get(id=pk)
+    cur_user = request.user
+    form = EmailAquaristForm()
+    context = {'form': form, 'aquarist': aquarist}
+    if (request.method == 'POST'):
+        form2 = EmailAquaristForm(request.POST)
+        mailed_msg = ("Your email to " + aquarist.username + " has been sent.")
+        mailed = False
+        if form2.is_valid():
+            email = form2.save(commit=False)
+            email.name = cur_user.username + " to " + aquarist.username
+            email.send_to = aquarist
+            email.send_from = cur_user
+            private_message = aquarist.is_private_email
+            email_message = EmailMessage()
+            email_confirm = EmailMessage()
+            if not email.email_subject:
+                email.email_subject = "AquaristSpecies.net: " + cur_user.username + " inquiry"
+            else:
+                email.email_subject = "AquaristSpecies.net: " + cur_user.username + " - " + email.email_subject
+            if not private_message: 
+                # both sender and receiver email addresses in cc list: reply-all enables reply by receiver or follow-up by sender
+                email.email_text = (email.email_text + "\n\nMessage sent from " + cur_user.username + " (with email cc) to " \
+                + aquarist.username + " via AquaristSpecies.net.")
+                # EmailMessage (subject, body_text, from, [to list], [bcc list], cc=[cc list])
+                email_message = EmailMessage (email.email_subject, email.email_text, email.send_from.email, [email.send_to.email], \
+                    bcc=['aquaristspecies@gmail.com'], cc=[email.send_from.email])               
+            else:
+                # receiver (to:) is configured as private - omit sender from cc list and include their email address in the body of message
+                email.email_text = (email.email_text + "\n\nMessage sent from " + cur_user.username + " to " + aquarist.username + " via AquaristSpecies.net.\n\n" \
+                + "IMPORTANT: Your AquaristSpecies.net profile is configured for private email. To reply to " + aquarist.username + " use " + aquarist.email) 
+                # EmailMessage (subject, body_text, from, [to list], [bcc list], cc=[cc list])
+                email_message = EmailMessage (email.email_subject, email.email_text, email.send_from.email, [email.send_to.email], bcc=['aquaristspecies@gmail.com']) 
+            email.save() #persists in ASN db   
+            try:
+                #send_mail (email.email_subject, email.email_text, email.send_from.email, [email.send_to.email], fail_silently=False,)
+                email_message.send(fail_silently=False)
+                mailed = True
+            except SMTPException as e:         
+                mailed_msg = ("An error occurred sending your email to " + aquarist.username + ". SMTP Exception: " + str(e))
+            except Exception as e:
+                mailed_msg = ("An error occurred sending your email to " + aquarist.username + ". Exception: " + str(e))
+        if not mailed:
+            messages.error (request, mailed_msg) 
+        else:
+            messages.info (request, mailed_msg)
+        return HttpResponseRedirect(reverse("aquarist", args=[aquarist.id]))
+    return render (request, 'species/emailAquarist.html', context)
+
+    
 ### Create Edit Delete Species & SpeciesInstance pages
 
 @login_required(login_url='login')
@@ -110,6 +199,7 @@ def createSpecies (request):
             if not Species.objects.filter(name=species_name).exists():
                 print ("Form is valid - saving Species")
                 species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.created_by = request.user
                 species.save()
                 if (species.species_image):
                     print ("Form save w commit - image access available")
@@ -117,7 +207,6 @@ def createSpecies (request):
                 return HttpResponseRedirect(reverse("species", args=[species.id]))
             else:
                 dupe_msg = (species_name + " already exists. Please use this Species entry.")
-                print (dupe_msg)
                 messages.info (request, dupe_msg)
                 species = Species.objects.get(name=species_name)
                 return HttpResponseRedirect(reverse("species", args=[species.id]))
@@ -140,15 +229,13 @@ def editSpecies (request, pk):
         userCanEdit = True       # Allow everyone to edit/delete newly created species on same day of creation
     if not userCanEdit:
         raise PermissionDenied()
-    
     form = SpeciesForm(instance=species)
     if (request.method == 'POST'):
         form2 = SpeciesForm(request.POST, request.FILES, instance=species)
         if form2.is_valid: 
-            print ("Form is valid - saving Species Update")
-            # image file uploaded with form save
             form2.save()
             species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+            species.last_edited_by = request.user
             species.save()
             if (species.species_image):
                 processUploadedImageFile (species.species_image, species.name, request)
@@ -175,7 +262,7 @@ def deleteSpecies (request, pk):
     species = Species.objects.get(id=pk)
     if (request.method == 'POST'):
         species.delete()
-        return redirect('home')
+        return redirect('searchSpecies')
     context = {'species': species}
     return render (request, 'species/deleteSpecies.html', context)
 
@@ -210,7 +297,6 @@ def editSpeciesInstance (request, pk):
         userCanEdit = True       # Allow owner to edit
     if not userCanEdit:
         raise PermissionDenied()
-
     form = SpeciesInstanceForm(instance=speciesInstance)
     if (request.method == 'POST'):
         print ("Saving Species Instance Form")
@@ -241,10 +327,37 @@ def deleteSpeciesInstance (request, pk):
 
     if (request.method == 'POST'):
         speciesInstance.delete()
-        return redirect('home')
+        return redirect('searchSpecies')
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/deleteSpeciesInstance.html', context)
 
+@login_required(login_url='login')
+def speciesComments (request):
+    speciesComments = SpeciesComment.objects.all()
+    cur_user = request.user
+    if not cur_user.is_staff:
+        raise PermissionDenied()
+    context = {'speciesComments': speciesComments}
+    return render (request, 'species/speciesComments.html', context)
+
+@login_required(login_url='login')
+def deleteSpeciesComment (request, pk):
+    speciesComment = SpeciesComment.objects.get(id=pk)
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif cur_user == speciesComment.user:
+        userCanEdit = True       # Allow owner to edit
+    if not userCanEdit:
+        raise PermissionDenied()
+    if (request.method == 'POST'):
+        species = speciesComment.species
+        speciesComment.delete()
+        #return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+        return redirect ('/species/' + str(species.id))
+    context = {'speciesComment': speciesComment}
+    return render (request, 'species/deleteSpeciesComment.html', context)
 
 ### Import and Export of Species & SpeciesInstances
 
@@ -287,12 +400,16 @@ def importSpeciesInstances (request):
 @login_required(login_url='login')
 def importArchiveResults (request, pk): 
     import_archive = ImportArchive.objects.get(id=pk)
-    with open(import_archive.import_results_file.path,'r', encoding="utf-8") as csv_file:
-        dict_reader = DictReader(csv_file)
-        report_row = "Status: "
-        context = {'import_archive': import_archive, 'report_row': report_row, 'dict_reader': dict_reader}
-        return render (request, 'species/importArchiveResults.html', context)
-    
+    try:
+        with open(import_archive.import_results_file.path,'r', encoding="utf-8") as csv_file:
+            dict_reader = DictReader(csv_file)
+            report_row = "Status: "
+            context = {'import_archive': import_archive, 'report_row': report_row, 'dict_reader': dict_reader}
+            return render (request, 'species/importArchiveResults.html', context)
+    except Exception as e:
+        error_msg = ("An error occurred reading Import Archive. \nException: " + str(e))
+        messages.error (request, error_msg)
+    return redirect('home') 
 
 ################################################
 #@login_required(login_url='login')
@@ -314,11 +431,6 @@ def betaProgram(request):
     return render(request, 'species/betaProgram.html', context)
 
 # Working Page - temporary page to try out view scenarios and keep useful nuggets of code
-
-def aquarists (request):
-    aquarists = User.objects.all()
-    context = {'aquarists': aquarists}
-    return render(request, 'species/aquarists.html', context)
 
 def tools(request):
     cur_user = request.user
@@ -378,23 +490,5 @@ def logoutUser(request):
    page = 'logout'
    logout(request)
    return redirect('home')
-
-# def registerUser(request):
-#     # form = UserCreationForm()
-#     form = RegistrationForm()
-#     if request.method == 'POST':
-#         # form = UserCreationForm(request.POST)
-#         form = RegistrationForm (request.POST)
-#         if form.is_valid():
-#             user = form.save(commit=False)           #allows access to user prior to DB commit
-#             #user.username = user.username.lower()   # force all lower case
-#             user.save()                              # commit user to DB
-#             login (request, user) 
-#             return redirect('home')
-#         else:
-#             messages.error(request, 'An error occurred during registration')
-
-#     context = {'form': form}
-#     return render (request, 'species/login_register.html', context)
 
 

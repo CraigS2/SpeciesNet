@@ -3,22 +3,36 @@
 {% block content %}
 <!--hr-->
 
-    <div class="div-line-below">
-        <h1>{{aquarist.username}}</h1>
-
-        <p><large><B>Username:</B> {{aquarist.username}}</large></p>
-        <p><large><B>Name:</B> {{aquarist.first_name}} {{aquarist.last_name}}</large></p>
-        <p><large><B>Email:</B> {{aquarist.email}}</large></p>
-        <p><large><B>State:</B> {{aquarist.state}}</large></p>
-        <p><large><B>Country:</B> {{aquarist.country}}</large></p>
-        <p><large><B>Private: </B>{{aquarist.is_private}}</large></p>
-        <p><large><B>Email: </B>Private</large></p>
-        <p><large><B>Member since:</B> {{aquarist.date_joined|date:"M d, Y" }}</large></p>
-        <small><p>&nbsp;</p></small>
-    </div>  
     <div>
-        <small><p>&nbsp;</p></small>
-        <a href="{% url 'account_logout' %}">Sign out {{request.user}}</a>
+        <h1>{{aquarist.username}}</h1>
+        <large>
+            <p><B>Username:</B> &nbsp;{{aquarist.username}}</p>
+            <p><B>Name:</B> &nbsp;{{aquarist.first_name}} {{aquarist.last_name}}</p>
+            <p><B>Email:</B> &nbsp;{{aquarist.email}}</p>
+            <p>The following settings are <i>'Private'</i> or <i>'Shared'</i>. <b>Private</b> settings remains hidden from all users.<br>
+                <b>Shared</b> settings are displayed on AquaristSpecies.net pages for signed-in users.</p>
+            {% if aquarist.is_private_name %}
+                <p><B>Name: </B>&nbsp;<i>Private</i></p>
+            {% else %}
+                <p><B>Name: </B>&nbsp;<i>Shared</i></p>
+            {% endif %}
+            {% if aquarist.is_private_email %}
+                <p><B>Email: </B>&nbsp;<i>Private</i></p>
+            {% else %}
+                <p><B>Email: </B>&nbsp;<i>Shared</i></p>
+            {% endif %}
+            {% if aquarist.is_private_location %}
+                <p><B>Location: </B>&nbsp;<i>Private</i></p>
+            {% else %}
+                <p><B>Location: </B>&nbsp;<i>Shared</i></i></p>
+            {% endif %}
+            <p><B>Member since:</B> &nbsp;{{aquarist.date_joined|date:"M d, Y" }}</p>
+        </large>
+        <!--p><h5><a href="{% url 'editUserProfile' %}">Edit {{request.user}} Profile</a></h5></p-->
+        <p><a class="btn btn-secondary" href="{% url 'editUserProfile' %}" role="button">&nbsp;Edit Profile&nbsp;</a></p>
+
+        <!--p><h5><a href="{% url 'account_logout' %}">Sign out {{request.user}}</a></h5></p-->
+        <p><a class="btn btn-secondary" href="{% url 'account_logout' %}" role="button">&nbsp;&nbsp;&nbsp;Sign out&nbsp;&nbsp;&nbsp;</a></p>
         <!--hr-->
     </div>
 

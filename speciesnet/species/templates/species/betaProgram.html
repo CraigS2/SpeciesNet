@@ -2,40 +2,47 @@
 
 {% block content %}
 <div>
-    <h2>Beta Program</h2>
+    <h2>About Us</h2>
+    <large>
     <p>
-        Welcome to our new site <i>connecting <b>Aquarists</b> according to the <b>Species</b> they keep.</i>
+        Welcome to a new site <i>connecting <b>Aquarists</b> according to the <b>Species</b> they keep.</i>
     </p>
-    <p>
-        <h4></b>AquaristSpecies.net is <i>'Where Fish Rooms Meet!'</i></b></h4>
-    </p>
-
-    <p>
-        <i>Try it it's easy as 1, 2, 3!</i> 
-    </p>
+    <p><h4>AquaristSpecies.net ... <i>'Where Fish Rooms Meet!'</i></h4></p>
+    <ul>
+        <li>Find aquarists keeping fish you want.</li>
+        <li>Easily contact them!</li>
+        <li>Share the fish you keep.</li>
+        <li>Let others know you have fry available.</li>
+        <li>Make it easy for aquarists to find you!</li>
+        <li>Share your contact info or keep it private - you choose.</li>
+    </ul>
+    <p><i>Try it it's easy as 1, 2, 3</i></p>
     <ol>  
-        <li>Create an account with a <i>username, email, and password</i> </li>    
-        <li>Select the <b>Species</b> you keep. Click on the </b>'I keep this fish!'</b> option</li>
+        <li>Create an account with <i>username, email, and password</i> </li>    
+        <li>Select the <b>Species</b> you keep. Click on the <i><b>'I keep this fish!'</b></i></b> option</li>
         <li>Fill in a few fields describing your fish. Provide as little or as much detail as you like. </li> 
     </ol>
-    <p>
-        Please consider signing up and participating in our Beta Program.
-    </p>
-        {% if not request.user.is_authenticated %}
-        <h4><a href="{% url 'account_login' %}">Sign in or Create New Account</a></h4>
-        {% endif %}
-    <p>
-        Recently signed up users include:
-    </p>
+
+    <p>Please join our community.</p>
+    <ul>
+        <li>Share the species you keep.</li>
+        <li>Share your whole fish room or just your favorites.</li>
+        <li>Species not found? Click 'Add Species'</li>
+        <li>It's an open-source solution <i>by Aquarists - for Aquarists.</i></li>
+        <li>Hobbyists only please! Not for business use.</li>
+    </ul>
+    <p>AquaristSpecies.net is a <i>croud-sourced</i> community. To succeed we need your help growing the community.</p>
+    <p>If you like the idea, please sign up and participate in our Beta Program.</p>
+
+    {% if not request.user.is_authenticated %}
+        <p><a class="btn btn-secondary" href="{% url 'account_login' %}" role="button">Sign in or Create New Account</a></p>
+    {% endif %}
+
+    <p>Questions or comments? Please contact us at <b><i>AquaristSpecies@gmail.com</i></b></p>
+
+    {% if request.user.is_authenticated %}
+        <p>Feedback is always welcome! &nbsp;&nbsp;<a class="btn btn-secondary" href="{% url 'emailAquarist' 1 %}" role="button">Feedback</a></p>
+    {% endif %}
     </large>
-    {% for aquarist in aquarists %}
-        <div>
-            {% if aquarist.species_instances.all.count > 0 %}
-                <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a> ({{aquarist.species_instances.all.count}})</h5>     
-            {% else %}
-                <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a></h5> 
-            {% endif %}
-            </div>
-    {% endfor %} 
 </div>
 {% endblock content %}

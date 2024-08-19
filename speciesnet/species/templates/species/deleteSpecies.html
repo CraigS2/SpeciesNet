@@ -8,7 +8,10 @@
         <form method="POST" action="">
             {% csrf_token %}
             <p>Are you sure you want to delete "{{species}}"?</p>
-            <p style="color:#8B0000;">THIS WILL ALSO DELETE <b>** ALL AQUARIST INSTANCES **</b> OF THIS SPECIES!</p>
+            {% if species.species_instances.all.count > 0 %}
+                <p><large style="color:#8B0000;">THIS WILL ALSO DELETE <b>** ALL AQUARIST INSTANCES **</b> OF THIS SPECIES!</large></p>
+                <p><large style="color:#8B0000;"><b>This Species has {{species.species_instances.all.count}} aquarist species instances!</b></large></p>
+            {% endif %}
             <p><a href="{{request.META.HTTP_REFERER}}">Cancel</a></p>
             <p><input type="Submit" value="Delete"></p>
         </form>

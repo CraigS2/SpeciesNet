@@ -50,7 +50,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     date_joined = models.DateTimeField (auto_now_add=True) 
 
-    is_private = models.BooleanField (default=True)
+    is_private_name      = models.BooleanField (default=False)
+    is_private_email     = models.BooleanField (default=True)
+    is_private_location  = models.BooleanField (default=False)
+
+    #allow_comments       = models.BooleanField (default=True)
+
     is_staff   = models.BooleanField (default=False)
     is_active  = models.BooleanField (default=True)
 
@@ -76,6 +81,23 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class UserEmail (models.Model):
+
+    name            = models.CharField (max_length=240)
+    send_to         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_email_to') 
+    send_from       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_email_from') 
+    email_subject   = models.TextField(null=False, blank=False) 
+    email_text      = models.TextField(null=False, blank=False) 
+    created         = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created'] # sorts in descending order - newest first
+
+    def __str__(self):
+        return self.name
+
 
 class Species (models.Model):
 
@@ -125,7 +147,9 @@ class Species (models.Model):
     render_cares              = models.BooleanField (default=False)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
+    created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_by') # delestes species instances if user deleted
     lastUpdated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
+    last_edited_by            = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_last_edited_by') # delestes species instances if user deleted
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
@@ -134,10 +158,25 @@ class Species (models.Model):
         return self.name
 
 
+class SpeciesComment (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_comment_user') 
+    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_comment_species') 
+    comment                   = models.TextField(null=False, blank=False) 
+    created                   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created'] # sorts in descending order - newest first
+
+    def __str__(self):
+        return self.name
+
+
 class SpeciesInstance (models.Model):
 
     name                      = models.CharField (max_length=240)
-    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instances') # delestes species instances if user deleted
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instance_users') # delestes species instances if user deleted
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_instances') # deletes ALL instances referencing any deleted species
     unique_traits             = models.CharField (max_length=200, null=True, blank=True) # e.g. long-finned, color, etc. May be empty
     instance_image            = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
@@ -170,6 +209,20 @@ class SpeciesInstance (models.Model):
     def __str__(self):
         return self.name
     
+
+class SpeciesInstanceComment (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='species_instance_comment_user') # delestes species instances if user deleted
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='species_instance_comment_instance')   # deletes ALL instances referencing any deleted species
+    comment                   = models.TextField(null=False, blank=False) 
+    created                   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created'] # sorts in descending order - newest first
+
+    def __str__(self):
+        return self.name
 
 class ImportArchive (models.Model):
 

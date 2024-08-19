@@ -14,12 +14,16 @@ urlpatterns = [
 
     path('aquarists/', views.aquarists, name="aquarists"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
+    path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
     path('userProfile/', views.userProfile, name="userProfile"),
+    path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
+    path('speciesComments/', views.speciesComments, name="speciesComments"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
+    path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"),    
     path('searchSpecies/', views.searchSpecies, name="searchSpecies"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),

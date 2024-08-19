@@ -4,10 +4,29 @@
 
 <div class="div-line-below">
     <h1>{{aquarist.username}}</h1>
-    <p><large><B>Name: </B>Private</large></p>
-    <p><large><B>Email: </B>Private</large></p>
-    <!--hr-->
+    {% if request.user.is_authenticated %}
+        {% if not aquarist.is_private_name  %}
+            <p><large><B>Name: </B>{{aquarist.first_name}} {{aquarist.last_name}}</large></p> 
+        {% else %}
+            <p><large><B>Name: </B>Private</large></p>
+        {% endif %}
+        {% if not aquarist.is_private_email  %}
+            <p><large><B>Email: </B>{{aquarist.email}} </large></p>    
+        {% else %}
+            <p><large><B>Email: </B>Private</large></p>
+        {% endif %}
+        {% if not aquarist.is_private_location  %}
+            {% if aquarist.state or aquarist.country  %}
+                <p><large><B>Location: </B>{{aquarist.state}}, {{aquarist.country}}</large></p> 
+            {% endif %} 
+        {% else %}
+            <p><large><B>Location: </B>Private</large></p>
+        {% endif %}
+        <p><a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">Email {{aquarist.username}}</a></p>
+        <p><small>&nbsp;</small></p>
+    {% endif %}  
 </div>
+
 <div class="div-line-below">
 <h2>Keeps the following species:</h2>
 {% if speciesKept.all.count > 0  %}

@@ -22,16 +22,17 @@
     <div class="div-line-below">
         {% if request.user.is_authenticated %}
         <h5 style = "display: flex; justify-content: space-between;">
-            <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
+            <span><a href="{% url 'betaProgram'%}">About Us</a></span>
             <a href="{% url 'searchSpecies'%}">Browse Species</a>
             <a href="{% url 'aquarists' %}">Aquarists</a>
             <a href="{% url 'userProfile' %}">{{request.user}}</a>
         </h5>
         {% else %}
-        <h5 style = "display: flex; justify-content: space-between;">
-            <span><a href="{% url 'account_login' %}">Sign In</a></span>         
+        <h5 style = "display: flex; justify-content: space-between;"> 
+            <span><a href="{% url 'betaProgram'%}">About Us</a></span>        
             <a href="{% url 'searchSpecies'%}">Browse Species</a>
-            <a href="{% url 'betaProgram'%}">Beta Program</a>
+            <a href="/signup">Create Account</a>
+            <a href="{% url 'account_login' %}">Sign In</a>
         {% endif %}
     </div>
 
@@ -51,7 +52,7 @@
             </div>
             {% endfor %}
         {% endif %}
-        <p style="text-align:center;"><a href="/"><img src={% static 'images\ASN_WhereAquaristMeet.jpg' %}></a></p>
+        <p style="text-align:center;"><a href="{% url 'searchSpecies'%}"><img src={% static 'images\ASN_WhereAquaristMeet.jpg' %}></a></p>
     </div>
 
 </body>

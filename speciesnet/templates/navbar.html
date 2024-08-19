@@ -1,15 +1,14 @@
 {% load static %}
 <div>
     <h1>
-        <a href="/"><img style="vertical-align:middle" src={% static 'images\SpeciesNet10s.jpg' %}></a>
-        &nbsp;
-        <a href="/searchSpecies">Aquarist Species</a>
+        <a href="/"><img style="vertical-align:middle" src={% static 'images\SpeciesNet1s.jpg' %}></a>&nbsp;
+        <a href="/">Aquarist Species</a>
     </h1>
 </div>
 <div class="div-line-below">
     {% if request.user.is_authenticated %}
     <h5 style = "display: flex; justify-content: space-between;">
-        <span><a href="{% url 'betaProgram'%}">Beta Program</a></span>
+        <span><a href="/searchSpecies">Browse Species</a></span>
         <a href="{% url 'createSpecies'%}">Add Species</a>
         <a href="{% url 'aquarists' %}">Aquarists</a>
         <a href="{% url 'userProfile' %}">{{request.user}}</a>
@@ -17,8 +16,10 @@
     </h5>
     {% else %}
     <h5 style = "display: flex; justify-content: space-between;">
-        <span><a href="{% url 'account_login' %}">Sign in</a></span>
-        <a href="{% url 'betaProgram'%}">Beta Program</a>
+        <span><a href="{% url 'betaProgram'%}">About Us</a></span>
+        <span><a href="/searchSpecies">Browse Species</a></span>
+        <a href="{% url 'aquarists' %}">Aquarists</a>
+        <a href="{% url 'account_login' %}">Sign in</a>
     {% endif %}
     <!--hr/-->
 </div>

@@ -1,7 +1,7 @@
 from django.forms import ModelForm
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Species, SpeciesInstance, ImportArchive, User
+from .models import Species, SpeciesComment, SpeciesInstance, ImportArchive, User, UserEmail
 from allauth.account.forms import SignupForm, ResetPasswordForm
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -29,6 +29,30 @@ class SpeciesInstanceForm (ModelForm):
                    'aquarist_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
                    'spawning_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
                    'fry_rearing_notes':  forms.Textarea(attrs={'rows':6,'cols':50}),}
+
+class SpeciesCommentForm (ModelForm):
+    class Meta:
+        model = SpeciesComment
+        fields = ['comment']
+        exclude = ['user', 'species']
+        widgets = {'comment':            forms.Textarea(attrs={'rows':1,'cols':80}),}
+
+class UserProfileForm (ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'state', 'country', 'is_private_name', 'is_private_email', 'is_private_location']
+        widgets = { 'first_name':         forms.Textarea(attrs={'rows':1,'cols':40}),
+                    'last_name':          forms.Textarea(attrs={'rows':1,'cols':40}),                   
+                    'state':              forms.Textarea(attrs={'rows':1,'cols':40}),
+                    'country':            forms.Textarea(attrs={'rows':1,'cols':40}),}
+        
+class EmailAquaristForm (ModelForm):
+    class Meta:
+        model = UserEmail
+        fields = '__all__'
+        exclude = ['name', 'send_to', 'send_from']     
+        widgets = { 'email_subject':      forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'email_text':         forms.Textarea(attrs={'rows':10,'cols':50}),}
         
 class ImportCsvForm (ModelForm):
     class Meta:

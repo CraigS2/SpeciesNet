@@ -1,0 +1,33 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h3>Email {{aquarist.username}}</h3>
+<div> 
+    {% if not aquarist.is_private_email %}
+    <p>
+        Use this form to send email to {{aquarist.username}}
+        {% if not aquarist.is_private_name %}
+            ({{aquarist.first_name}} {{aquarist.last_name}})
+        {% endif %} 
+        . <br>
+        You will be copied (cc'd) on the email message.
+    </p>
+    {% else %}
+    <p>
+        {{aquarist.username}} has configured their user profile to use <b><i>private email.</i></b> <br>
+        This means you can use this form to send email but you will not be copied (cc'd) on the email message. <br>
+        Your email address will be included in the message and <b>{{aquarist.username}}</b> can reply directly to you.
+    </p>
+    {% endif %}
+    <p></p>
+    <table>
+        <form method="POST" enctype="multipart/form-data" action="">
+            {% csrf_token %}
+            {{form.as_table}}
+            <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Send Email"></td>
+        </form>
+    </table>
+</div>
+
+{% endblock content %}

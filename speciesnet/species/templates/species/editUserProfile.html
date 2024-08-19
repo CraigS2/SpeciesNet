@@ -1,0 +1,22 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h1>Edit {{aquarist.username}} Profile: </h1>
+<small>&nbsp;</small>
+<p>Configure your Name, location (State, Country) and privacy settings below. </p>
+<p>Choosing <b>private name</b> hides your first and last name on all shared pages. Your username will be displayed.<br>
+   Choosing <b>private email</b> hides your email on your Aquarist page. Users will still be able to contact you using the <b>Contact</b> option.<br>
+   Choosing <b>private location</b> hides your State and Country location on your Aquarist page.</p>
+
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{form.as_table}}
+                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+            </form>
+        </table>
+    </div>
+
+{% endblock content %}
