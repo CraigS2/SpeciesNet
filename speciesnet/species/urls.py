@@ -35,7 +35,8 @@ urlpatterns = [
     path('exportSpeciesInstances/', views.exportSpeciesInstances, name="exportSpeciesInstances"),
     path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
     
-    path('betaProgram/', views.betaProgram, name="betaProgram"),
+    path('about_us/', views.about_us, name="about_us"),
+    path('howItWorks/', views.howItWorks, name="howItWorks"),
     path('tools/', views.tools, name="tools"),
     path('working/', views.working, name="working"),
 

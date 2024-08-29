@@ -1,18 +1,18 @@
 {% extends 'main.html' %}
-
+{% load static %}
 {% block content %}
 
 <div class="home-container">
     <div>
-        <h2>Species</h2>
-        <form method="GET" action="{% url 'home' %}">
+        <h3>Species</h3>
+        <form method="GET" action="{% url 'searchSpecies' %}">
             <input type="text" name="q" placeholder="Search Species ..."/>
         </form>
         <p>
         <div>
-            <h5><a href="{% url 'home' %}">All</a></h5>
+            <h5><a href="{% url 'searchSpecies' %}">All</a></h5>
         </div>
-        {% for species in speciesFilter %}
+            {% for species in speciesFilter %}
             <div>
                 {% if species.species_instances.all.count > 0 %}
                     <!-- p>{{species.cares_status}} display as {{species.get_cares_status_display}}</p-->
@@ -30,25 +30,59 @@
                 {% endif %}
             </div>
         {% endfor %} 
+        <div>
+            <p><a href="{% url 'createSpecies'%}">Add Species</a></p>
+        </div>
     </div>
     <div>
-        <h2>Recent Aquarist Updates</h2>
-        {% if speciesInstances.count > 0  %}
-        <div>
-            {% for speciesInstance in speciesInstances %}
+        {% if speciesFilter.count > 0  %}
+            <h3>Recent Aquarist Updates</h3>
+            {% if speciesInstances.count > 0  %}
             <div>
-                <p>
-                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
-                 ({{speciesInstance.lastUpdated | timesince}}) by
-                <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
-                </p>
+                {% for speciesInstance in speciesInstances %}
+                <div>
+                    <p>
+                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
+                    ({{speciesInstance.lastUpdated | timesince}}) by
+                    <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
+                    </p>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+            {% else %}
+                <h5>No recent updates</h5>
+            {% endif %}
+            </div>
         {% else %}
-            <h5>No recent updates</h5>
+        <h3>Species Not Found</h3>
+        <div>
+            <p>
+                <b>Your species search returned no results.</b> This can happen if the <i>Species</i> does not yet exist in the database. <br> 
+                It can also happen if you misspelled a <i>Species</i> name or entered search keywords not found. If you are searching for an
+                unique species, please be sure to search for the <i>Genus</i> and <i>species</i> with the correct spelling. 
+            </p>
+            <p>  
+                If the <i>Species</i> does exist you can add it to the AquaristSpecies.net database. 
+            </p>
+            <h5><a href="{% url 'createSpecies'%}">Add Species</a></h5>
+            <p><small>&nbsp;</small></p>
+            <p>
+                AquaristSpecies.net features a 'crowd-sourced' database of aquarists and the species they keep. Aquarists select the Species they keep
+                and click on the <i>'I keep this fish'</i> button to add their Aquarist Species which then shows up along with other Aquarists keeping
+                this fish on the Species page. 
+            </p>
+            <p>
+                In other words each 'Species' entry gets declared once and is shared by all Aquarists keeping this species. 
+            </p>
+            <p>                
+                <b>Here's a short tutorial on how it works: </b>
+            </p>
+            <p>
+                <img src={% static 'images\ASN_VisualTutorial_01.jpg' %}>
+            </p>
+        </div>
+
         {% endif %}
-    </div>
 </div>
 
 {% endblock content %}

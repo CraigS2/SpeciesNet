@@ -8,16 +8,15 @@
 <div class="div-line-below">
     {% if request.user.is_authenticated %}
     <h5 style = "display: flex; justify-content: space-between;">
-        <span><a href="/searchSpecies">Browse Species</a></span>
-        <a href="{% url 'createSpecies'%}">Add Species</a>
+        <span><a href="{% url 'about_us'%}">About Us</a></span>
+        <a href="/searchSpecies">Search Species</a>
         <a href="{% url 'aquarists' %}">Aquarists</a>
         <a href="{% url 'userProfile' %}">{{request.user}}</a>
-        <!--a href="{% url 'account_logout' %}">Logout {{request.user}}</a-->
     </h5>
     {% else %}
     <h5 style = "display: flex; justify-content: space-between;">
-        <span><a href="{% url 'betaProgram'%}">About Us</a></span>
-        <span><a href="/searchSpecies">Browse Species</a></span>
+        <span><a href="{% url 'about_us'%}">About Us</a></span>
+        <a href="/searchSpecies">Search Species</a>
         <a href="{% url 'aquarists' %}">Aquarists</a>
         <a href="{% url 'account_login' %}">Sign in</a>
     {% endif %}
