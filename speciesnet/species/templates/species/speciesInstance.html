@@ -15,6 +15,9 @@
     {% if species.species_image %}
         <p><img src={{species.species_image.url}}></p>
     {% endif %}
+    {% if species.photo_credit %}
+        <p>Photo by:<i> &nbsp;&nbsp;{{species.photo_credit}}</i> </p>
+    {% endif %}
     <h3>Description</h3>
     <p>{{species.description}}</p>
     <!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->

@@ -190,7 +190,41 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
     return
 
 
-#Export Species List, SpeciesInstances
+#Export Species List, SpeciesInstances, Aquarists
+
+    id         = models.AutoField (primary_key=True)
+    email      = models.EmailField (max_length=50, unique=True)
+    first_name = models.CharField (max_length=100, blank=True)
+    last_name  = models.CharField (max_length=100, blank=True)
+    username   = models.CharField (max_length=100, unique=True)
+    state      = models.CharField (max_length=100, blank=True)
+    country    = models.CharField (max_length=100, blank=True)
+
+    date_joined = models.DateTimeField (auto_now_add=True) 
+
+    is_private_name      = models.BooleanField (default=False)
+    is_private_email     = models.BooleanField (default=True)
+    is_private_location  = models.BooleanField (default=False)
+
+    #allow_comments       = models.BooleanField (default=True)
+
+    is_staff   = models.BooleanField (default=False)
+    is_active  = models.BooleanField (default=True)
+
+
+def export_csv_aquarists():
+    aquaristSet = User.objects.all()
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="aquarists_export.csv"'},
+    )
+    writer = csv.writer(response)
+    writer.writerow(['username', 'email', 'first_name', 'last_name', 'state', 'country', 'date_joined', 
+                     'is_private_name', 'is_private_email', 'is_private_location', 'is_staff', 'is_active'])
+    for aqst in aquaristSet:
+        writer.writerow([aqst.username, aqst.email, aqst.first_name, aqst.last_name, aqst.state, aqst.country, aqst.date_joined, 
+                         aqst.is_private_name, aqst.is_private_email, aqst.is_private_location, aqst.is_staff, aqst.is_active])
+    return response
 
 def export_csv_species():
     speciesSet = Species.objects.all()
@@ -211,7 +245,7 @@ def export_csv_speciesInstances():
         headers={"Content-Disposition": 'attachment; filename="species_instance_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['aquarist', 'name', 'species', 'unique_traits', 'instance_image', 'collection_point', 'genetic_traits', 'num_adults', 'currently_keep', 
+    writer.writerow(['aquarist', 'name', 'species', 'unique_traits', 'instance_image', 'collection_point', 'genetic_traits', 'currently_keep', 
                     'approx_date_acquired', 'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'created'])
     for speciesInstance in speciesInstances:
         writer.writerow([speciesInstance.user.username, speciesInstance.name, speciesInstance.species, speciesInstance.unique_traits, speciesInstance.instance_image.name, 

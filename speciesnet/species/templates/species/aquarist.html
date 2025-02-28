@@ -32,8 +32,12 @@
 {% if speciesKept.all.count > 0  %}
     {% for speciesInstance in speciesKept %}
         {% if speciesInstance.currently_keep %}
-            {% if speciesInstance.species.render_cares %}
+            {% if speciesInstance.species.render_cares and speciesInstance.young_available %}
+                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> (Young Available)</p>
+            {% elif speciesInstance.species.render_cares %}
                 <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </p>
+            {% elif speciesInstance.young_available %}
+                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> (Young Available)</p>
             {% else %}
                 <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
             {% endif%}

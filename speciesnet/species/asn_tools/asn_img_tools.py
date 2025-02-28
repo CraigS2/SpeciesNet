@@ -43,10 +43,10 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
             print ("Converting ", image_field.name, " to RGB mode")
             img.convert('RGB')    # fails without .png fix above throws OSError: cannot write mode RGBA as JPEG
 
-        # resize to 320x240
-        print ("Uploaded image resolution: ", image_field.width, "x", image_field.height)
-        print ("Resize image to 320 x 240")
-        img.thumbnail((320, 240))
+        # resize to 480x320
+        # print ("Uploaded image resolution: ", image_field.width, "x", image_field.height)
+        # img.thumbnail((320, 240))
+        img.thumbnail((480, 320))
 
         # save the new .jpg and delete the original uploaded file
         print ("Resize complete. Save as new .jpg file and delete the original uploaded file")

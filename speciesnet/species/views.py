@@ -14,7 +14,7 @@ from species.models import Species, SpeciesComment, SpeciesInstance, ImportArchi
 from species.forms import SpeciesForm, SpeciesCommentForm, SpeciesInstanceForm, UserProfileForm, ImportCsvForm, EmailAquaristForm #, RegistrationForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
-from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances
+from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances, export_csv_aquarists
 from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
 from datetime import datetime
 from csv import DictReader
@@ -164,7 +164,7 @@ def emailAquarist(request, pk):
             else:
                 # receiver (to:) is configured as private - omit sender from cc list and include their email address in the body of message
                 email.email_text = (email.email_text + "\n\nMessage sent from " + cur_user.username + " to " + aquarist.username + " via AquaristSpecies.net.\n\n" \
-                + "IMPORTANT: Your AquaristSpecies.net profile is configured for private email. To reply to " + aquarist.username + " use " + cur_user.email) 
+                + "IMPORTANT: Your AquaristSpecies.net profile is configured for private email. To reply to " + cur_user.username + " use " + cur_user.email) 
                 # EmailMessage (subject, body_text, from, [to list], [bcc list], cc=[cc list])
                 email_message = EmailMessage (email.email_subject, email.email_text, email.send_from.email, [email.send_to.email], bcc=['aquaristspecies@gmail.com']) 
             email.save() #persists in ASN db   
@@ -378,6 +378,10 @@ def importSpecies (request):
             import_csv_species (import_archive, current_user)
             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
     return render(request, "species/importSpecies.html", {"form": form})
+
+@login_required(login_url='login')
+def exportAquarists (request): 
+    return export_csv_aquarists()
 
 @login_required(login_url='login')
 def exportSpeciesInstances (request): 

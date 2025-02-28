@@ -17,6 +17,7 @@ urlpatterns = [
     path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
     path('userProfile/', views.userProfile, name="userProfile"),
     path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
+    path('exportAquarists/', views.exportAquarists, name="exportAquarists"),
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),

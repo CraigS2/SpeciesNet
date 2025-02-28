@@ -104,7 +104,7 @@ class Species (models.Model):
     name                      = models.CharField (max_length=240)
     alt_name                  = models.CharField (max_length=240, null=True, blank=True)
     common_name               = models.CharField (max_length=240, null=True, blank=True)
-    description               = models.TextField(null=True, blank=True)  # allows empty text or form
+    description               = models.TextField(null=True, blank=True)
 
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     photo_credit              = models.CharField (max_length=200, null=True, blank=True)
@@ -191,7 +191,7 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, null=True, blank=True)
-    year_acquired             = models.IntegerField(null=True, blank=True, default=2024)
+    year_acquired             = models.IntegerField(null=True, blank=True, default=2025)
     aquarist_notes            = models.TextField(null=True, blank=True)
     have_spawned              = models.BooleanField(default=False)
     spawning_notes            = models.TextField(null=True, blank=True)
