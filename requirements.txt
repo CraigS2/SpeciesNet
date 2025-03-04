@@ -1,9 +1,9 @@
-Django==5.0.6
-gunicorn==20.0.4
-pillow==10.3.0
-pillow_heif==0.16.0
-mysqlclient==2.2.4
+Django==5.1.6
+gunicorn==23.0.0
+pillow==11.1.0
+pillow_heif==0.21.0
+mysqlclient==2.2.7
 django-allauth[socialaccount]==0.63.3
-django-crispy-forms==2.2
-crispy-bootstrap5
+django-crispy-forms==2.3
+crispy-bootstrap5==2024.10
 django-recaptcha==4.0.0

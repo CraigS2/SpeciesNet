@@ -35,6 +35,9 @@ urlpatterns = [
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
     path('exportSpeciesInstances/', views.exportSpeciesInstances, name="exportSpeciesInstances"),
     path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
+
+    path('addSpeciesInstanceWizard1/', views.addSpeciesInstanceWizard1, name="addSpeciesInstanceWizard1"),
+    path('addSpeciesInstanceWizard2/', views.addSpeciesInstanceWizard2, name="addSpeciesInstanceWizard2"),
     
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),

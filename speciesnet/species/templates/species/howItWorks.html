@@ -4,38 +4,27 @@
 <div>
     <h2>AquaristSpecies.net Tutorial</h2>
     <div class="div-line-below">
-        <p><i>AquaristSpecies.net</i> features a 'crowd-sourced' database of <b>Aquarists</b> and the <b>Species</b> they keep.</p>
-        <p>
+        <h4><i>AquaristSpecies.net</i> features a 'crowd-sourced' database of <b>Aquarists</b> and the <b>Species</b> they keep.</h4>
+        <h4>
             Generally you'll begin with the <b>Search Species</b> option which is always available on the top of each page. <br>
             You can enter the <i>Genus</i> and <i>species</i> name in full or just part of the name. 
             You can also enter any keywords you think might show up in the description. For example 'Lake Tanganyika' or 'Amazon' returns many species 
             native to these bodies of water. If you are looking for a single species it's best to enter the species name.
-        </p>
-        <p>
-            Species searches return a list of results each of which links to the corresponding <b>Species</b> page. These pages provide general descriptions
+        </h4>
+        <h4>
+            Species searches return a list of results each of which links to a <b>Species</b> page. These pages provide general descriptions
             of the species along with links to <b>Aquarists</b> keeping this fish. If you keep the species you can click on the 'I keep this fish' button to 
-            add your own <b>Aquarist Species</b> entry, which then shows up along with other Aquarists keeping this fish on the Species page. 
-        </p>
-        <p>        
+            add your own <b>Aquarist Species</b> entry. 
+        </h4>
+        <h4>            
+            If a Species isn't found, you can easily add it to the database. An 'Add Species' link always appears if your search returns no results. 
+        </h4>
+        <h4>You can also use the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species</a> Wizard to help you quickly get your Aquarist's species added to the database.</h4>
+        <h4>        
             <b>Here's a visual guide to help you get started: </b>
-        </p>
-        <p style="text-align:center;"><img src={% static 'images\ASN_VisualTutorial_01.jpg' %}></p>
-        <p><small>&nbsp;</small></p>
-    </div>
-    <div>
-        <h3>Species not found?</h3>
-        <p>        
-            If your species is not found, you can add it. Please use care to get the spelling right and confirm it does 
-            not already exist in the database. Enter the full species name into the <a href="/searchSpecies">Search Species</a> text box and if no 
-            results are found you will see an <a href="{% url 'createSpecies'%}">Add Species</a> link next to the search results. The link will also 
-            be available at the end of each Species search list. 
-        </p>
-        <p>
-            Adding a new Species to the database requires basic knowledge of the species including its distribution in the wild. Please use care to 
-            spell the name correctly and verify basic info about the species. The 'Alt name' and 'Common name' fields are optional. A photo is nice 
-            but also optional. If you do use a photo please respect copyrights and provide a photo credit to acknowledge the photographer. 
-        </p>
-        <p style="text-align:center;"><img src={% static 'images\ASN_VisualTutorial_02.jpg' %}></p>
+        </h4>
+        <h4 style="text-align:center;"><img src={% static 'images\ASN_VisualTutorial_01.jpg' %}></h4>
+        <h4><small>&nbsp;</small></h4>
     </div>
 </div>
 {% endblock content %}

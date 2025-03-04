@@ -1,0 +1,23 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+
+
+<div>
+    <h2 style="text-align:center;"><i><b>Add Your Species</b></i> Wizard</h2>
+    <h3 style="text-align:center;">Use this 2-step Wizard to easily add the species you keep.</h3>
+    <small>&nbsp;</small>
+    <h4 style="text-align:center;">First you'll search to see if your Species exists in the database.</h4>
+    <h4 style="text-align:center;">If it's found you'll simply click on the link and choose <i>'I keep this fish!'</i></h4>
+    <h4 style="text-align:center;">If not, no problem! You can declare the species yourself.</h4>
+    <small>&nbsp;</small>
+    <h2 style="text-align:center;">Ready to begin?</h2>
+    <h3 style="text-align:center;"><a class="btn btn-secondary" href="{% url 'addSpeciesInstanceWizard2' %}" role="button">&nbsp;&nbsp;&nbsp;Yes&nbsp;&nbsp;&nbsp;</a>
+        &nbsp;&nbsp; <a class="btn btn-secondary" href="{% url 'home' %}" role="button">&nbsp;&nbsp;&nbsp;No&nbsp;&nbsp;&nbsp;</a></h3>
+    <small>&nbsp;</small>
+    <small>&nbsp;</small>
+    <p style="text-align:center;"><a href="{% url 'searchSpecies'%}"><img src={% static 'images\ASN_WhereAquaristMeet_06.jpg' %}></a></p>
+</div>
+ 
+
+{% endblock content %}

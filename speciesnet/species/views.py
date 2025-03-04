@@ -81,6 +81,7 @@ def speciesInstance(request, pk):
     context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstance.html', context)
 
+
 ### User profile
 
 @login_required(login_url='login')
@@ -125,6 +126,22 @@ def searchSpecies(request):
                                            Q(local_distribution__icontains=q) | Q(description__icontains=q))
     context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances}
     return render(request, 'species/searchSpecies.html', context)
+
+### Add speciesInstance Wizard 
+
+def addSpeciesInstanceWizard1 (request):
+    # wizard style workflow helping users search/find/add species to add their speciesInstance
+    return render(request, 'species/addSpeciesInstanceWizard1.html')
+
+def addSpeciesInstanceWizard2 (request):
+    speciesSet = Species.objects.all()
+    # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
+    q = request.GET.get('q') if request.GET.get('q') != None else '' 
+    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q))[:10]
+    searchActive = len(q) > 0
+    resultsCount = len(speciesFilter)
+    context = {'speciesFilter': speciesFilter, 'searchActive': searchActive, 'resultsCount': resultsCount}
+    return render(request, 'species/addSpeciesInstanceWizard2.html', context)
 
 ### Aquarists page
 

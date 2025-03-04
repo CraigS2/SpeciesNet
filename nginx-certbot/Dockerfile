@@ -1,4 +1,4 @@
-From nginx-certbot:5.2.1-nginx1.27.0
+FROM nginx-certbot:5.2.1-nginx1.27.0
 
 COPY ./default.conf /etc/nginx/conf.d/default.conf
 
