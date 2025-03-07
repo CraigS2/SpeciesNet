@@ -33,7 +33,6 @@ services:
     nginx:
       container_name: NGINX_CBOT
       image: jonasal/nginx-certbot:5.2.1-nginx1.27.0
-      build: ./nginx
       depends_on: 
         - django_gunicorn
       restart: unless-stopped
@@ -43,6 +42,8 @@ services:
         - ${HTTP_PORT-80}:80
         - ${HTTPS_PORT-443}:443
       volumes:
+        - ./nginx-certbot:/etc/nginx/conf.d/
+        - /etc/letsencrypt:/etc/letsencrypt       # change to host mount not Docker managed volume
         - static:/static
         - media:/media
 
