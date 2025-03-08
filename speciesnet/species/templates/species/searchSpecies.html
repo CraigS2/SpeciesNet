@@ -54,32 +54,17 @@
             {% endif %}
             </div>
         {% else %}
-        <h3>Species Not Found</h3>
+        <h3  style="text-align:center;">Species Not Found</h3>
         <div>
-            <p>
-                <b>Your species search returned no results.</b> This can happen if the <i>Species</i> does not yet exist in the database. <br> 
-                It can also happen if you misspelled a <i>Species</i> name or entered search keywords not found. If you are searching for an
-                unique species, please be sure to search for the <i>Genus</i> and <i>species</i> with the correct spelling. 
-            </p>
-            <p>  
-                If the <i>Species</i> does not exist you can add it to the AquaristSpecies.net database. 
-            </p>
-            <h5><a href="{% url 'createSpecies'%}">Add Species</a></h5>
-            <p><small>&nbsp;</small></p>
-            <p>
-                AquaristSpecies.net features a 'crowd-sourced' database of aquarists and the species they keep. Aquarists select the Species they keep
-                and click on the <i>'I keep this fish'</i> button to add their Aquarist Species which then shows up along with other Aquarists keeping
-                this fish on the Species page. 
-            </p>
-            <p>
-                In other words each 'Species' entry gets declared once and is shared by all Aquarists keeping this species. 
-            </p>
-            <p>                
-                <b>Here's a short tutorial on how it works: </b>
-            </p>
-            <p>
-                <img src={% static 'images\ASN_VisualTutorial_01.jpg' %}>
-            </p>
+            <p style="text-align:center;"><b>Your species search returned no results.</b> This can happen if the <i>Species</i> does not yet exist in the database.</p> 
+            <p style="text-align:center;">It can also happen if you misspelled the <i>Species</i> name or entered search keywords not found. 
+            <p style="text-align:center;">If you are searching for a particular species, please be sure to search for the <i>genus</i> and/or <i>species</i> with the correct spelling.</p>
+            <p style="text-align:center;">You can also enter partial text. For example 'apisto' brings up all Apistogramma species in the database.</p>
+            <p style="text-align:center;">If you'd like help adding your species you can use the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species Guided Tutorial</a></p>
+        </div>
+        <div>
+            <p>&nbsp;</p>
+            <p style="text-align:center;"><a href="{% url 'searchSpecies'%}"><img src={% static 'images\ASN_WhereAquaristMeet_06.jpg' %}></a></p>
         </div>
 
         {% endif %}

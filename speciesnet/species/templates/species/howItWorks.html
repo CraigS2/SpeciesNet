@@ -2,29 +2,34 @@
 {% load static %}
 {% block content %}
 <div>
-    <h2>AquaristSpecies.net Tutorial</h2>
+    <h2><i>AquaristSpecies.net</i> Overview</h2>
     <div class="div-line-below">
-        <h4><i>AquaristSpecies.net</i> features a 'crowd-sourced' database of <b>Aquarists</b> and the <b>Species</b> they keep.</h4>
-        <h4>
-            Generally you'll begin with the <b>Search Species</b> option which is always available on the top of each page. <br>
-            You can enter the <i>Genus</i> and <i>species</i> name in full or just part of the name. 
-            You can also enter any keywords you think might show up in the description. For example 'Lake Tanganyika' or 'Amazon' returns many species 
-            native to these bodies of water. If you are looking for a single species it's best to enter the species name.
-        </h4>
-        <h4>
-            Species searches return a list of results each of which links to a <b>Species</b> page. These pages provide general descriptions
+        <p>
+            <i>AquaristSpecies.net</i> features a 'crowd-sourced' database of <b>Aquarists</b> and the <b>Species</b> they keep.
+        </p>
+        <p>
+            Generally you'll begin with the <b>Search Species</b> option which is always available on the top of each page. 
+        </p>
+        <p>
+            You can search by entering the <i>Genus</i> and <i>species</i> name in full or just part of the name. For example 'Apisto' brings up
+            all of the Apistogramma species in the database. You can also enter any keywords you think might show up in the description. 
+            For example 'Lake Tanganyika' or 'Amazon' returns many species native to these bodies of water. 
+        </p>    
+        <p>   
+            If you're looking for a single species it's best to enter the species name, or enough of the name to bring it near the top 
+            of your search results. For example entering 'caudopunc' will bring up the species Neolamprologus caudopunctatus.
+        </p>      
+        <p>
+            Species searches return a list of results each of which is a link to the associated <b>Species</b> page. These pages provide general descriptions
             of the species along with links to <b>Aquarists</b> keeping this fish. If you keep the species you can click on the 'I keep this fish' button to 
             add your own <b>Aquarist Species</b> entry. 
-        </h4>
-        <h4>            
+        </p>      
+        <p>            
             If a Species isn't found, you can easily add it to the database. An 'Add Species' link always appears if your search returns no results. 
-        </h4>
-        <h4>You can also use the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species</a> Wizard to help you quickly get your Aquarist's species added to the database.</h4>
-        <h4>        
-            <b>Here's a visual guide to help you get started: </b>
-        </h4>
-        <h4 style="text-align:center;"><img src={% static 'images\ASN_VisualTutorial_01.jpg' %}></h4>
-        <h4><small>&nbsp;</small></h4>
+        </p>       
+        <p>You can also use the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species Guided Tutorial</a> to help you quickly get your Aquarist's species added to the database.</h4>
+        <p style="text-align:center;"><b>Here's a visual guide to help you get started: </b></p>
+        <p style="text-align:center;"><img src={% static 'images\ASN_VisualTutorial_01.jpg' %}></p>
     </div>
 </div>
 {% endblock content %}
