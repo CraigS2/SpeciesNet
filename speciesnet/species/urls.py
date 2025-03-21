@@ -33,6 +33,12 @@ urlpatterns = [
     path('createSpeciesInstance/<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
+
+    path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
+    path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
+    path('editSpeciesInstanceLogEntry/<str:pk>/', views.editSpeciesInstanceLogEntry, name="editSpeciesInstanceLogEntry"),
+    path('deleteSpeciesInstanceLogEntry/<str:pk>/', views.deleteSpeciesInstanceLogEntry, name="deleteSpeciesInstanceLogEntry"),
+
     path('exportSpeciesInstances/', views.exportSpeciesInstances, name="exportSpeciesInstances"),
     path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
 

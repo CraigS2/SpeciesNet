@@ -10,14 +10,16 @@ from django.core.exceptions import PermissionDenied
 #from django.core.mail import send_mail
 from django.core.mail import EmailMessage
 from smtplib import SMTPException
-from species.models import Species, SpeciesComment, SpeciesInstance, ImportArchive, User
-from species.forms import SpeciesForm, SpeciesCommentForm, SpeciesInstanceForm, UserProfileForm, ImportCsvForm, EmailAquaristForm #, RegistrationForm
+from species.models import Species, SpeciesComment, SpeciesInstance, SpeciesInstanceLogEntry, ImportArchive, User
+from species.forms import SpeciesForm, SpeciesCommentForm, SpeciesInstanceForm, SpeciesInstanceLogEntryForm, UserProfileForm, ImportCsvForm, EmailAquaristForm #, RegistrationForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances, export_csv_aquarists
 from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
 from datetime import datetime
+from django.utils import timezone
 from csv import DictReader
+import logging
 
 ### Home page
 
@@ -69,7 +71,6 @@ def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     species = speciesInstance.species
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-
     #TODO better permissions for edit/delete of speciesInstances
     cur_user = request.user
     userCanEdit = False
@@ -81,6 +82,18 @@ def speciesInstance(request, pk):
     context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstance.html', context)
 
+def speciesInstanceLog(request, pk):
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    speciesInstanceLogEntries = SpeciesInstanceLogEntry.objects.filter(speciesInstance=speciesInstance)
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    elif cur_user == speciesInstance.user:
+        userCanEdit = True       # Allow owner to edit
+
+    context = {'speciesInstance': speciesInstance, 'speciesInstanceLogEntries': speciesInstanceLogEntries, 'userCanEdit': userCanEdit}
+    return render (request, 'species/speciesInstanceLog.html', context)
 
 ### User profile
 
@@ -347,6 +360,52 @@ def deleteSpeciesInstance (request, pk):
         return redirect('searchSpecies')
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/deleteSpeciesInstance.html', context)
+
+
+@login_required(login_url='login')
+def createSpeciesInstanceLogEntry (request, pk):
+    register_heif_opener()
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    now = timezone.now()
+    name = now.strftime("%Y-%m-%d ") + speciesInstance.name       # Formats date as YYYY-MM-DD prefix
+    form = SpeciesInstanceLogEntryForm(initial={"name":name, "speciesInstance":speciesInstance.id })
+    # logger = logging.getLogger(__name__)
+    if (request.method == 'POST'):
+        form2 = SpeciesInstanceLogEntryForm(request.POST, request.FILES)
+        form2.speciesInstance = speciesInstance.id
+        #logger.info('Process speciesInstanceLogEntry: check form validity')
+        if form2.is_valid():
+            #logger.info('Process speciesInstanceLogEntry: form is valid')
+            speciesInstanceLogEntry = form2.save()
+            # workaround to set speciesInstance TODO sort out the root issue here
+            speciesInstanceLogEntry.speciesInstance = speciesInstance
+            speciesInstanceLogEntry.save()
+            #logger.info('New speciesInstanceLogEntry saved | name: %s', speciesInstanceLogEntry.name)
+            if (speciesInstanceLogEntry.log_entry_image):
+                processUploadedImageFile (speciesInstanceLogEntry.log_entry_image, speciesInstance.name, request)
+        # else:
+        #     for field,errors in form2.errors.items():
+        #         logger.info ('Field: %s', field)
+        #         for error in errors:
+        #             logger.info ('Error: %s', error)
+        #     logger.info('List speciesInstanceLogEntry: name %s', form.name)
+
+        return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))    
+    context = {'form': form}
+    return render (request, 'species/createSpeciesInstanceLogEntry.html', context)
+
+
+@login_required(login_url='login')
+def editSpeciesInstanceLogEntry (request, pk):
+    return render (request, 'species/createSpeciesInstance.html', context)
+    
+
+
+@login_required(login_url='login')
+def deleteSpeciesInstanceLogEntry (request, pk):
+    return render (request, 'species/createSpeciesInstance.html', context)
+
+
 
 @login_required(login_url='login')
 def speciesComments (request):

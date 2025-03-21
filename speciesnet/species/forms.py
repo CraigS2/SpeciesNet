@@ -1,7 +1,7 @@
 from django.forms import ModelForm
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Species, SpeciesComment, SpeciesInstance, ImportArchive, User, UserEmail
+from .models import Species, SpeciesComment, SpeciesInstance, SpeciesInstanceLogEntry, ImportArchive, User, UserEmail
 from allauth.account.forms import SignupForm, ResetPasswordForm
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -29,6 +29,14 @@ class SpeciesInstanceForm (ModelForm):
                    'aquarist_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
                    'spawning_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
                    'fry_rearing_notes':  forms.Textarea(attrs={'rows':6,'cols':50}),}
+
+class SpeciesInstanceLogEntryForm (ModelForm):
+    class Meta:
+        model = SpeciesInstanceLogEntry
+        fields = 'name', 'speciesInstance', 'log_entry_image', 'log_entry_notes'
+        exclude = ['speciesInstance']
+        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'log_entry_notes':    forms.Textarea(attrs={'rows':6,'cols':50}),}
 
 class SpeciesCommentForm (ModelForm):
     class Meta:

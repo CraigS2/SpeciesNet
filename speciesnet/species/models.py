@@ -199,6 +199,7 @@ class SpeciesInstance (models.Model):
     fry_rearing_notes         = models.TextField(null=True, blank=True)
     young_available           = models.BooleanField(default=False)
     currently_keep            = models.BooleanField(default=True)
+    enable_species_log        = models.BooleanField(default=False)
 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
@@ -209,6 +210,20 @@ class SpeciesInstance (models.Model):
     def __str__(self):
         return self.name
     
+class SpeciesInstanceLogEntry (models.Model):
+    name                      = models.CharField (max_length=240)
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='species_instance_log_entry') # deletes ALL log entries referencing any deleted species instance
+    log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
+    log_entry_notes           = models.TextField(null=False, blank=False)
+    created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
+    lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
+
+    class Meta:
+        ordering = ['-created'] # sorts in descending order - newest first
+
+    def __str__(self):
+        return self.name
+
 
 class SpeciesInstanceComment (models.Model):
 
