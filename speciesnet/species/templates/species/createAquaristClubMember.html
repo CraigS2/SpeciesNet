@@ -2,16 +2,17 @@
 
 {% block content %}
 
-<h2>Add Species Log Entry</h2>
+<h2>Add Club Member:</h2>
 <p><small>&nbsp;</small></p>
     <div>
         <table>
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" action="">
                 {% csrf_token %}
                 {{form.as_table}}
                 <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
             </form>
         </table>
     </div>
+<p><small>&nbsp;</small></p>
 
 {% endblock content %}

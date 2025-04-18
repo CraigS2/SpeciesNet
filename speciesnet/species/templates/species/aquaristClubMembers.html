@@ -1,0 +1,12 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div>
+    <h2>Club Members</h2>
+    {% for member in aquaristClubMembers %}
+        <div>
+            <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.username}}</a></h5>
+        </div>
+    {% endfor %} 
+</div>
+{% endblock content %}

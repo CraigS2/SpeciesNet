@@ -8,7 +8,6 @@
     <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a></h3>
     {% if userCanEdit %}
         <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a></p>
-        <small>&nbsp;</small>
     {% endif %}
 </div>
 {% if speciesInstance.enable_species_log and speciesInstanceLogEntries.all.count > 0 %}
@@ -20,6 +19,10 @@
                 <p><img src={{logEntry.log_entry_image.url}}></p>
             {% endif %}   
             <p>{{logEntry.log_entry_notes}}</p>
+            <p>
+                <a class="btn btn-secondary" href="{% url 'editSpeciesInstanceLogEntry' logEntry.id  %}" role="button">&nbsp;Edit Log Entry&nbsp;</a>&nbsp;
+                <a class="btn btn-secondary" href="{% url 'deleteSpeciesInstanceLogEntry' logEntry.id  %}" role="button">&nbsp;Delete Log Entry&nbsp;</a>
+            </p>
         </div>
     {% endfor %} 
 {% else %}

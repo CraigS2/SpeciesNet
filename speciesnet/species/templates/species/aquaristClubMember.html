@@ -1,0 +1,24 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<div>
+    <h2>{{aquaristClubMember.club.name}}</h2>
+    <h3>Member: {{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}}</h3>
+    <p><b>Username:</b> &nbsp;&nbsp;{{aquaristClubMember.user.username}}</p>
+    <p><b>Membership Requested:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_requested}}</p>
+    <p><b>Membership Approved:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_approved}}</p>
+    <p><b>Annual Dues Paid:</b> &nbsp;&nbsp;{{aquaristClubMember.annual_dues_paid}}</p>
+   <small>&nbsp;</small>
+    <!--hr-->
+</div>
+
+{% if userCanEdit %}
+<small>&nbsp;</small>
+<div class="div-line-above">
+    <h3>Edit</h3>
+    <p><a class="btn btn-secondary" href="{% url 'editAquaristClubMember' aquaristClubMember.id  %}" role="button">&nbsp;&nbsp;Edit Membership Status&nbsp;&nbsp;</a></p>
+    <p><a class="btn btn-secondary" href="{% url 'deleteAquaristClubMember' aquaristClubMember.id  %}" role="button">&nbsp;&nbsp;&nbsp;Delete Member&nbsp;&nbsp;&nbsp;</a></p>
+{% endif %}
+
+{% endblock content %}

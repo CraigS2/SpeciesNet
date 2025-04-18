@@ -1,0 +1,24 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<div>
+    <h2>Species Reference Links</h2>
+     {% if speciesReferenceLinks.all.count > 0  %}
+        {% for speciesReferenceLink in speciesReferenceLinks %}
+        <div class="div-line-below">
+            <p>
+                <a href="{% url 'aquarist' speciesReferenceLink.user.id %}">{{speciesReferenceLink.user.username}}</a>&nbsp;&nbsp;
+                <a href="{% url 'species' speciesReferenceLink.species.id %}">{{speciesReferenceLink.species.name}}</a> &nbsp;&nbsp;
+                {{speciesReferenceLink.name}}&nbsp;&nbsp;
+                <i>"{{speciesReferenceLink.reference_url}}"</i>
+            </p>       
+        </div>
+        {% endfor %}
+    {% else %}
+    <h5>None</h5>
+    {% endif %}     
+
+</div>
+
+{% endblock content %}

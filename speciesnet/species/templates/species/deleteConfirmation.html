@@ -2,13 +2,12 @@
 
 {% block content %}
 
-<h1>Delete Species Comment</h1>
+<h1>Delete {{object_type}}</h1>
 
     <div>
         <form method="POST" action="">
             {% csrf_token %}
-            <p>Are you sure you want to delete this <a href="{% url 'species' speciesComment.species.id %}">{{speciesComment.species}}</a> Species Comment?</p>
-            <p><i>"{{speciesComment.comment}}"</i></p>
+            <p>Are you sure you want to delete {{object_name}}?</p>
             <p><a href="{{request.META.HTTP_REFERER}}">Cancel</a></p>
             <p><input type="Submit" value="Delete"></p>
         </form>

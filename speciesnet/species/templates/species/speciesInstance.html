@@ -76,9 +76,17 @@
                 <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a></p>
             {% endif %}
             <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
-            <p><a class="btn btn-secondary" href="{% url 'deleteSpeciesInstance' speciesInstance.id %}" role="button">Delete Aquarist Species</a></p>
         {% endif %}
     {% endif %}
+
+    <small>&nbsp;</small>
+    <div class="div-line-above">
+        <h3>Species Maintenance Collaboration</h3>
+        <p>Working to preserve a species?</p>
+        <p>Maintaining a healthy gene pool while preserving the integrity of a species or subspecies is challenging.</p> 
+        <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
+        <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
+    </div>
 </div>
 
 {% endblock content %}

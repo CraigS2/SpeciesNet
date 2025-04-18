@@ -2,14 +2,14 @@
 
 {% block content %}
 
-<h1>Edit Species:</h1>
-<p><b>Required Fields:  &nbsp;&nbsp;<i>Name</i></b>, a brief <b><i>Description</i></b>, and <b><i>Local distribution</i></b>.<br/>
-    It's okay to leave any of the remaining text fields blank. They won't show on the Species page.</p>
+<h2>Edit Species Maintenance Log Entry</h2>
+<p><small>&nbsp;</small></p>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 {{form.as_table}}
+                <!--td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td-->
                 <tr>
                     <td></td>
                     <td style="text-align: left; padding-top: 1em;">
@@ -20,8 +20,8 @@
                     <td></td>
                     <td style="text-align:left; padding-top:1em;">
                         <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            onclick="window.location.href='{% url 'deleteSpecies' species.id %}';" 
-                            type="button">&nbsp;Delete Species&nbsp;
+                            onclick="window.location.href='{% url 'deleteSpeciesMaintenanceLogEntry' speciesMaintenanceLogEntry.id  %}';" 
+                            type="button">&nbsp;Delete Comment&nbsp;
                         </button></td>    
                 </tr>
             </form>

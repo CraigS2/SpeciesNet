@@ -12,9 +12,24 @@
             <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 {{form.as_table}}
-                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+                <tr>
+                    <td></td>
+                    <td style="text-align: left; padding-top: 1em;">
+                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Apply Changes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"></td>  
+                </tr>
+                <tr>
+                    <td></td>
+                    <td style="text-align:left; padding-top:1em;">
+                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            onclick="window.location.href='{% url 'deleteSpeciesInstance' speciesInstance.id %}';" 
+                            type="button">Delete Aquarist Species
+                        </button></td>    
+                </tr>
             </form>
         </table>
     </div>
 
 {% endblock content %}
+
+<p><a class="btn btn-secondary" href="" role="button">Delete Aquarist Species</a></p>

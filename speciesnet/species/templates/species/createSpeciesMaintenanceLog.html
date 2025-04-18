@@ -1,0 +1,39 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h2>New Species Maintenance Log</h2>
+<h3>{{speciesInstance.name}} </h3>
+<h4>{{speciesInstance.species.name}} </h4>
+<p><small>&nbsp;</small></p>
+    <div>
+        <table>
+            <form method="POST">
+                {% csrf_token %}
+                {{form.as_table}}
+                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+                {% if form.errors %}
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td></td><td><font style="color:#860404;" ><b>Errors:</b></font><td></td></tr>
+                    {% for field, errors in form.errors.items %}
+                    <tr>
+                        {% for error in errors %}
+                            <td>{{ field|title }}:</td><td><font style="color:#860404;" >{{ error }}</font></td>
+                        {% endfor %}                       
+                    </tr>
+                    {% endfor %} 
+                    {% for field, errors in form.non_field_errors.items %}
+                    <tr>
+                        {% for error in errors %}
+                            <td>{{ field|title }}:</td><td><font style="color:#860404;" >{{ error }}</font></td>
+                        {% endfor %}                       
+                    </tr>
+                    {% endfor %}  
+                {% endif %}                   
+            </form>
+        </table>
+    </div>
+
+
+
+{% endblock content %}
