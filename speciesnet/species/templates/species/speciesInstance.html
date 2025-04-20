@@ -1,6 +1,6 @@
 {% extends 'main.html' %}
-<!-- context = {'speciesInstance': speciesInstance, 'speciesInstanceLogEntries': speciesInstanceLogEntries,
-                 'species': species, 'renderCares': renderCares} -->
+<!-- context = speciesInstance, species, speciesMaintenanceLog, renderCares, userCanEdit -->
+
 {% block content %}
 
 <div class="div-line-below">
@@ -59,34 +59,40 @@
             {% endif %}
         {% endif %}
     {% endif %}
-
-    {% if request.user.is_authenticated and speciesInstance.enable_species_log %}
-        {% if userCanEdit and speciesInstance.enable_species_log %}
-            <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
-            <small>&nbsp;</small>
-        {% endif %}
-    {% endif %}
-
-    {% if request.user.is_authenticated %}
-        {% if userCanEdit %}
-            </div>
-            <div class="div-line-above">
-            <h3>Edit Aquarist Species</h3>
-            {% if userCanEdit and speciesInstance.enable_species_log %}
-                <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a></p>
-            {% endif %}
-            <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
-        {% endif %}
-    {% endif %}
-
     <small>&nbsp;</small>
-    <div class="div-line-above">
-        <h3>Species Maintenance Collaboration</h3>
+    {% if request.user.is_authenticated %}
+        {% if speciesInstance.enable_species_log %}
+            {% if userCanEdit %}
+                <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                <small>&nbsp;</small>
+            {% elif not speciesInstance.log_is_private %}    
+                <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                <small>&nbsp;</small>
+            {% else %}
+            <div class="div-line-above">
+                <h3>Edit Aquarist Species</h3>
+                <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
+                <small>&nbsp;</small>
+            </div>
+            {% endif %} 
+        {% endif %} 
+    {% endif %} 
+
+</div>
+<div class="div-line-above">
+    <h3>Species Maintenance Collaboration</h3>
+    {% if speciesMaintenanceLog %}
+        {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
+                <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
+        {% else %}
+            <p>Species Maintenance Log is private</p>
+        {% endif %}
+    {% else %}
         <p>Working to preserve a species?</p>
         <p>Maintaining a healthy gene pool while preserving the integrity of a species or subspecies is challenging.</p> 
         <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
         <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
-    </div>
+    {% endif %}
 </div>
 
 {% endblock content %}

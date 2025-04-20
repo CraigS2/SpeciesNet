@@ -81,7 +81,6 @@ urlpatterns = [
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),
     path('tools/', views.tools, name="tools"),
-    path('working/', views.working, name="working"),
 
     path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
 

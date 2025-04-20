@@ -51,7 +51,7 @@ def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenance
     if cur_user.is_staff:
         userCanEdit = True       
     else:
-        for speciesInstance in speciesInstances:
+        for speciesInstance in speciesInstances.all():
             if speciesInstances.user == cur_user:
                 userCanEdit = True;                   # allow all contributors to edit/delete
     return userCanEdit

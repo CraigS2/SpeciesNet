@@ -70,9 +70,20 @@ def species(request, pk):
 def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     species = speciesInstance.species
+    # TODO sort out reasonable clean and db efficent approach to displaying optional speciesMaintenanceLog, if found
+    speciesMaintenanceLog = None
+    print ('speciesInstance speciesMaintenanceLog lookup')
+    speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.filter(species=species) 
+    print ('speciesInstance speciesMaintenanceLog lookup potential matches: ' + (str(len(speciesMaintenanceLogs))))
+    if (len(speciesMaintenanceLogs) > 0):
+        for sml in speciesMaintenanceLogs:
+            print ('speciesInstance speciesMaintenanceLog lookup checking: ' + (sml.name))
+            if speciesInstance in sml.speciesInstances.all():
+                print ('speciesInstance speciesMaintenanceLog lookup match found: ' + (sml.name))
+                speciesMaintenanceLog = sml
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
-    context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
+    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstance.html', context)
 
 def speciesInstanceLog(request, pk):
@@ -352,6 +363,7 @@ def createSpeciesInstanceLogEntry (request, pk):
             speciesInstanceLogEntry.save()
             if (speciesInstanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesInstanceLogEntry.log_entry_image, speciesInstance.name, request)
+            speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances
         return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))    
     context = {'form': form}
     return render (request, 'species/createSpeciesInstanceLogEntry.html', context)
@@ -372,6 +384,7 @@ def editSpeciesInstanceLogEntry (request, pk):
             speciesInstanceLogEntry = form2.save()
             if (speciesInstanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesInstanceLogEntry.log_entry_image, speciesInstance.name, request)
+            speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances        
             return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))
     context = {'form': form, 'speciesInstanceLogEntry': speciesInstanceLogEntry}
     return render (request, 'species/editSpeciesInstanceLogEntry.html', context)
@@ -461,11 +474,9 @@ def editSpeciesMaintenanceLog (request, pk):
 def addMaintenanceGroupCollaborator(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     available_collaborators = get_sml_available_collaborators (speciesMaintenanceLog)
-    #choices = get_sml_collaborator_choices (speciesMaintenanceLog)
     choices = []
     for user in available_collaborators:
         choice = (str(user.id), user.username)
-        print ('addMaintenanceGroupCollaborator adding choice: ' + str(choice))
         choices.append(choice)
     form = MaintenanceGroupCollaboratorForm(dynamic_choices=choices)
     if (request.method == 'POST'):
@@ -595,7 +606,13 @@ def createSpeciesMaintenanceLogEntry (request, pk):
             if (speciesMaintenanceLogEntry.log_entry_image):
                 print ("createSpeciesMaintenanceLogEntry: processing image")
                 processUploadedImageFile (speciesMaintenanceLogEntry.log_entry_image, species.name, request)
-        return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))    
+            speciesInstances = speciesMaintenanceLog.speciesInstances.all()
+            for speciesInstance in speciesInstances:
+                speciesInstance.save()                                                     # update time stamps
+            return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))    
+        else:
+            context = {'form': form }
+            return render (request, 'species/createSpeciesMaintenanceLogEntry.html', context)
     context = {'form': form }
     return render (request, 'species/createSpeciesMaintenanceLogEntry.html', context)
 
@@ -613,7 +630,13 @@ def editSpeciesMaintenanceLogEntry (request, pk):
             speciesMaintenanceLogEntry = form.save()
             if (speciesMaintenanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesMaintenanceLogEntry.log_entry_image, speciesMaintenanceLogEntry.speciesMaintenanceLog.species.name, request)
+            speciesInstances = speciesMaintenanceLog.speciesInstances.all()
+            for speciesInstance in speciesInstances:
+                speciesInstance.save()                                                     # update time stamps    
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLogEntry.speciesMaintenanceLog.id]))
+        else:
+            context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
+            return render (request, 'species/editSpeciesMaintenanceLogEntry.html', context)
     context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
     return render (request, 'species/editSpeciesMaintenanceLogEntry.html', context)
 
@@ -956,7 +979,7 @@ def about_us(request):
 def howItWorks(request):
     return render(request, 'species/howItWorks.html')
 
-# Working Page - temporary page to try out view scenarios and keep useful nuggets of code
+# Admin tools Page - collection of views useful for csv import/export and reviewing db changes
 
 def tools(request):
     cur_user = request.user
@@ -966,19 +989,6 @@ def tools(request):
     if not userCanEdit:
         raise PermissionDenied()
     return render(request, 'species/tools.html')
-
-def working(request):
-    cur_user = request.user
-    userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True
-    if not userCanEdit:
-        raise PermissionDenied()
-    speciesKeepers = User.objects.all()
-    speciesSet = Species.objects.all()
-    speciesInstances = SpeciesInstance.objects.all()
-    context = {'speciesSet': speciesSet, 'speciesInstances': speciesInstances, 'speciesKeepers': speciesKeepers}
-    return render(request, 'species/working.html', context)
 
 # # login and user registration
 
