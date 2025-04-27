@@ -37,8 +37,8 @@ class SpeciesInstanceLogEntryForm (ModelForm):
         model = SpeciesInstanceLogEntry
         fields = '__all__'
         exclude = ['speciesInstance']
-        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'log_entry_notes':    forms.Textarea(attrs={'rows':6,'cols':50}),}
+        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':60}),
+                   'log_entry_notes':    forms.Textarea(attrs={'rows':6,'cols':60}),}
 
 class SpeciesCommentForm (ModelForm):
     class Meta:
@@ -68,8 +68,8 @@ class SpeciesMaintenanceLogEntryForm (ModelForm):
         model = SpeciesMaintenanceLogEntry
         fields = '__all__'
         exclude = ['speciesMaintenanceLog']
-        widgets = { 'name':                forms.Textarea(attrs={'rows':1,'cols':40}),               
-                     'log_entry_notes':    forms.Textarea(attrs={'rows':1,'cols':40}),}
+        widgets = { 'name':                forms.Textarea(attrs={'rows':1,'cols':60}),               
+                     'log_entry_notes':    forms.Textarea(attrs={'rows':1,'cols':60}),}
             
 class MaintenanceGroupCollaboratorForm (forms.Form):
     def __init__(self, *args, **kwargs):
@@ -86,7 +86,6 @@ class MaintenanceGroupSpeciesForm (forms.Form):
         self.fields['species'].choices = dynamic_choices
     species = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=True)
 
-
 class UserProfileForm (ModelForm):
     class Meta:
         model = User
@@ -96,7 +95,6 @@ class UserProfileForm (ModelForm):
                     'state':              forms.Textarea(attrs={'rows':1,'cols':40}),
                     'country':            forms.Textarea(attrs={'rows':1,'cols':40}),}
         
-
 class EmailAquaristForm (ModelForm):
     class Meta:
         model = UserEmail
@@ -105,23 +103,28 @@ class EmailAquaristForm (ModelForm):
         widgets = { 'email_subject':      forms.Textarea(attrs={'rows':1,'cols':50}),
                     'email_text':         forms.Textarea(attrs={'rows':10,'cols':50}),}
         
-
 class AquaristClubForm (ModelForm):
     class Meta:
         model = AquaristClub
         fields = '__all__'
-        exclude = ['club_admins', 'club_members', 'name']
+        exclude = ['club_admins', 'club_members']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'website':            forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'city':               forms.Textarea(attrs={'rows':6,'cols':50}),
-                   'state':              forms.Textarea(attrs={'rows':6,'cols':50}),
-                   'country':            forms.Textarea(attrs={'rows':6,'cols':50}),}
+                   'city':               forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'state':              forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'country':            forms.Textarea(attrs={'rows':1,'cols':50}),}
         
+class AquaristClubMemberJoinForm (ModelForm):
+    class Meta:
+        model = AquaristClubMember
+        fields = '__all__'
+        exclude = ['name', 'club', 'membership_approved', 'annual_dues_paid']
+
 class AquaristClubMemberForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club']
+        exclude = ['name', 'club', 'annual_dues_paid']
         
 
 class ImportCsvForm (ModelForm):

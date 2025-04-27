@@ -31,12 +31,23 @@
             {% endif %}
             <p><B>Member since:</B> &nbsp;{{aquarist.date_joined|date:"M d, Y" }}</p>
         </large>
+
         <!--p><h5><a href="{% url 'editUserProfile' %}">Edit {{request.user}} Profile</a></h5></p-->
         <p><a class="btn btn-secondary" href="{% url 'editUserProfile' %}" role="button">&nbsp;Edit Profile&nbsp;</a></p>
 
         <!--p><h5><a href="{% url 'account_logout' %}">Sign out {{request.user}}</a></h5></p-->
-        <p><a class="btn btn-secondary" href="{% url 'account_logout' %}" role="button">&nbsp;&nbsp;&nbsp;Sign out&nbsp;&nbsp;&nbsp;</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'account_logout' %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;Sign out&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
         <!--hr-->
+
+        {% if aquarist.id == 1 or aquarist.id == 2 %}
+            <div class="div-line-above">
+                <h2>Admin Tools</h2>
+                <p><a class="btn btn-secondary" href="{% url 'tools' %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tools&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                {% if aquarist.id == 1 %}
+                    <p><a class="btn btn-secondary" href="{% url 'admin:index' %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Admin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 
 {% endblock content %}

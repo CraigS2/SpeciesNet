@@ -13,7 +13,7 @@ from smtplib import SMTPException
 from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink
 from species.models import SpeciesInstance, SpeciesMaintenanceLog, SpeciesInstanceLogEntry, SpeciesMaintenanceLogEntry, ImportArchive
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
-from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, ImportCsvForm
+from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
@@ -22,7 +22,7 @@ from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speci
 from species.asn_tools.asn_utils import user_can_edit, user_can_edit_s, user_can_edit_si, user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances
-from datetime import datetime
+#from datetime import datetime
 from django.utils import timezone
 from csv import DictReader
 import logging
@@ -620,6 +620,7 @@ def createSpeciesMaintenanceLogEntry (request, pk):
 @login_required(login_url='login')
 def editSpeciesMaintenanceLogEntry (request, pk):
     speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects.get(id=pk)
+    speciesMaintenanceLog = speciesMaintenanceLog = speciesMaintenanceLogEntry.speciesMaintenanceLog
     userCanEdit = user_can_edit_sml (request.user, speciesMaintenanceLogEntry.speciesMaintenanceLog)
     if not userCanEdit:
         raise PermissionDenied()
@@ -632,7 +633,7 @@ def editSpeciesMaintenanceLogEntry (request, pk):
                 processUploadedImageFile (speciesMaintenanceLogEntry.log_entry_image, speciesMaintenanceLogEntry.speciesMaintenanceLog.species.name, request)
             speciesInstances = speciesMaintenanceLog.speciesInstances.all()
             for speciesInstance in speciesInstances:
-                speciesInstance.save()                                                     # update time stamps    
+                speciesInstance.save()  # update time stamps    
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLogEntry.speciesMaintenanceLog.id]))
         else:
             context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
@@ -785,9 +786,11 @@ def aquaristClub (request, pk):
 def createAquaristClub (request):
     form = AquaristClubForm()
     if (request.method == 'POST'):
-        form2 = AquaristClubForm(request.POST)
+        form2 = AquaristClubForm(request.POST, request.FILES)
         if form2.is_valid():
             aquaristClub = form2.save(commit=True)
+            if (aquaristClub.logo_image):
+                processUploadedImageFile (aquaristClub.logo_image, aquaristClub.name, request)      
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
     context = {'form': form}
     return render (request, 'species/createAquaristClub.html', context)
@@ -854,7 +857,7 @@ def aquaristClubMember (request, pk):
 def createAquaristClubMember (request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     user = request.user 
-    form = AquaristClubMemberForm(initial={"name":aquaristClub, "user":user})
+    form = AquaristClubMemberJoinForm(initial={"name":aquaristClub, "user":user})
     if (request.method == 'POST'):
         form2 = AquaristClubMemberForm(request.POST)
         form2.instance.name = aquaristClub.name + user.username       

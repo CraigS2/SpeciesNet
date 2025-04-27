@@ -3,20 +3,24 @@
 {% block content %}
 
 <div>
-    <h2>Species Maintenance Log</h2>
+    <h2>Species Maintenance Log: <b>{{speciesMaintenanceLog.species.name}}</b></h2>
     <h3>{{speciesMaintenanceLog.name}}</h3>
-    <h4><b>Species</b>: {{speciesMaintenanceLog.species.name}}</h4>
     <p>{{speciesMaintenanceLog.description}}</p>
     <h4><b>Contributors</b>:</h4>
     <ul>
-        {% for user in collaborators %}
-        <li><font style="color:black;">{{user.username}}</font></li>
+        {% for aquarist in collaborators %}
+            {% if aquarist.is_private_name %}
+                <!--li><font style="color:black;">{{user.username}}</font></li-->
+                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a></font></li>
+            {% else %}
+                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a> ({{aquarist.first_name}} {{aquarist.last_name}})</font></li>
+            {% endif %}        
         {% endfor %} 
     </ul>
     <h4><b>Aquarist Species</b>:</h4>  
     <ul>
         {% for speciesInstance in speciesInstances %}
-        <li><font style="color:black;">{{speciesInstance.user.username}} : {{speciesInstance.name}}</font></li>
+        <li><font style="color:black;">{{speciesInstance.user.username}} : <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></font></li>
         {% endfor %} 
     </ul> 
 </div>
@@ -30,7 +34,6 @@
         {% for logEntry in speciesMaintenanceLogEntries %}
             <div class="div-line-above">
                 <small>&nbsp;</small>
-
                 <h5 style = "display: flex; justify-content: space-between;">
                     <span>{{logEntry.name}}&nbsp;&nbsp;</span>
                     {% if userCanEdit %}
