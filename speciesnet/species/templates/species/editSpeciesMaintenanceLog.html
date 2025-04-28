@@ -3,8 +3,7 @@
 {% block content %}
 
 <h2>Edit Species Maintenance Log</h2>
-<h3>Log Definition:</h3>
-<div>
+<h4><a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a></h4>
     <table>
         <td>Species:</td><td>{{speciesMaintenanceLog.species.name}}</td>
         <form method="POST" enctype="multipart/form-data">
@@ -16,7 +15,7 @@
     <p><small>&nbsp;</small></p>
 </div>
 <div class="div-line-above">
-    <h3>Group Collaborators:</h3>
+    <h2>Group Collaborators:</h2>
     {% if collaborators.all.count > 0  %}
         {% for collaborator in collaborators %}
             <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -35,10 +34,9 @@
         <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Remove Collaborator</a>
     </p>
     <p>There are {{num_avail_collaborators}} more aquarists keeping {{speciesMaintenanceLog.species.name}} who may be added as collaborators</p>
-    <p><small>&nbsp;</small></p>
 </div>
 <div class="div-line-above">
-    <h3>Aquarist Species in Group:</h3>
+    <h2>Aquarist Species in Group:</h2>
     {% if speciesInstances.all.count > 0  %}
         {% for speciesInstance in speciesInstances %}
             <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -52,7 +50,13 @@
         <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Remove Aquarist Species</a>
     </p>
     <p>There are {{num_avail_speciesInstances}} aquarist species available from collaborators which may be added to the maintenance group.</p>
-    <p><small>&nbsp;</small></p>
+</div>
+<div class="div-line-above">
+    <h2>Delete Species Maintenance Log:</h2>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <a class="btn btn-secondary" href="{% url 'deleteSpeciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;Delete Log&nbsp;</a>
+    </p>
+    <p>Warning! This will delete the log, all log entries, the Collaborator list, and Species list for this log.</p>
 </div>
 
 {% endblock content %}

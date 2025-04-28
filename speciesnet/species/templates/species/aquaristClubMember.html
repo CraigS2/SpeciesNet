@@ -3,7 +3,7 @@
 {% block content %}
 
 <div>
-    <h2>Club: {{aquaristClubMember.club.name}}</h2>
+    <h2>Club: <a href="{% url 'aquaristClub' aquaristClubMember.club.id %}">{{aquaristClubMember.club.name}}</a></h2>
     <h4>Member: {{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}}</h4>
     <p><b>Username:</b> &nbsp;&nbsp;{{aquaristClubMember.user.username}}</p>
     <p><b>Membership Requested:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_requested}}</p>

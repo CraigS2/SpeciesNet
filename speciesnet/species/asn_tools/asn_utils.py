@@ -52,7 +52,7 @@ def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenance
         userCanEdit = True       
     else:
         for speciesInstance in speciesInstances.all():
-            if speciesInstances.user == cur_user:
+            if speciesInstance.user == cur_user:
                 userCanEdit = True;                   # allow all contributors to edit/delete
     return userCanEdit
 
@@ -63,8 +63,9 @@ def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLo
     available_collaborators = []
     for speciesInstance in allSpeciesInstances:
         if speciesInstance.user not in collaborators:
-            print ('addMaintenanceGroupCollaborator adding choice: ' + speciesInstance.user.username)
-            available_collaborators.append (speciesInstance.user)
+            if speciesInstance.user not in available_collaborators:
+                print ('addMaintenanceGroupCollaborator adding choice: ' + speciesInstance.user.username)
+                available_collaborators.append (speciesInstance.user)
     return available_collaborators
 
 def get_sml_collaborator_choices (speciesMaintenanceLog: SpeciesMaintenanceLog):

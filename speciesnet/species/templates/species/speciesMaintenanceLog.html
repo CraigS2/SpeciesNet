@@ -55,11 +55,9 @@
 {% endif %}
 <small>&nbsp;</small>
 {% if userCanEdit %}
-<small>&nbsp;</small>
 <div class="div-line-above">
     <h3>Edit</h3>
     <p><a class="btn btn-secondary" href="{% url 'editSpeciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp;Edit Log&nbsp;&nbsp;</a></p>
-    <p><a class="btn btn-secondary" href="{% url 'deleteSpeciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;Delete Log&nbsp;</a></p>
 {% endif %}
 
 {% endblock content %}

@@ -890,19 +890,18 @@ def editAquaristClubMember (request, pk):
 @login_required(login_url='login')
 def deleteAquaristClubMember (request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
+    aquaristClub = aquaristClubMember.club
     cur_user = request.user
     userCanEdit = False
     if cur_user.is_staff:
-        userCanEdit = True       
-    elif created_date == today_date:
-        userCanEdit = True       
+        userCanEdit = True            
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
         aquaristClubMember.delete()
-        return redirect('aquaristClubMembers')
-    context = {'aquaristClubMember': aquaristClubMember}
-    return render (request, 'species/deleteAquaristClub.html', context)
+        return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
+    context = {'aquaristClubMember': aquaristClubMember, 'aquaristClub': aquaristClub}
+    return render (request, 'species/deleteAquaristClubMember.html', context)
 
 ### Import and Export of Species & SpeciesInstances
 

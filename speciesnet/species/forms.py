@@ -61,7 +61,7 @@ class SpeciesMaintenanceLogForm (ModelForm):
         fields = '__all__'
         exclude = ['species', 'speciesInstances', 'collaborators']
         widgets = { 'name':                 forms.Textarea(attrs={'rows':1,'cols':60}),
-                    'description':          forms.Textarea(attrs={'rows':3,'cols':60}),}
+                    'description':          forms.Textarea(attrs={'rows':2,'cols':60}),}
 
 class SpeciesMaintenanceLogEntryForm (ModelForm):
     class Meta:
