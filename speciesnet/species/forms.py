@@ -69,7 +69,7 @@ class SpeciesMaintenanceLogEntryForm (ModelForm):
         fields = '__all__'
         exclude = ['speciesMaintenanceLog']
         widgets = { 'name':                forms.Textarea(attrs={'rows':1,'cols':60}),               
-                     'log_entry_notes':    forms.Textarea(attrs={'rows':1,'cols':60}),}
+                     'log_entry_notes':    forms.Textarea(attrs={'rows':6,'cols':60}),}
             
 class MaintenanceGroupCollaboratorForm (forms.Form):
     def __init__(self, *args, **kwargs):
@@ -118,13 +118,13 @@ class AquaristClubMemberJoinForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'membership_approved', 'annual_dues_paid']
+        exclude = ['name', 'club', 'membership_approved', 'membership_admin']
 
 class AquaristClubMemberForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'annual_dues_paid']
+        exclude = ['name', 'club', 'membership_admin']
         
 
 class ImportCsvForm (ModelForm):

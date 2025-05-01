@@ -312,7 +312,7 @@ class AquaristClubMember (models.Model):
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_club_members') # deletes species instances if user deleted
     membership_requested      = models.BooleanField(default=True)
     membership_approved       = models.BooleanField(default=False)
-    annual_dues_paid          = models.BooleanField(default=False)
+    membership_admin          = models.BooleanField(default=False)
     date_requested            = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     last_updated              = models.DateTimeField(auto_now=True)      # updated every save
 

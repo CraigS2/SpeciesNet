@@ -102,7 +102,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=240)),
                 ('membership_requested', models.BooleanField(default=True)),
                 ('membership_approved', models.BooleanField(default=False)),
-                ('annual_dues_paid', models.BooleanField(default=False)),
+                ('membership_admin', models.BooleanField(default=False)),
                 ('date_requested', models.DateTimeField(auto_now_add=True)),
                 ('last_updated', models.DateTimeField(auto_now=True)),
                 ('club', models.ForeignKey(editable=False, on_delete=django.db.models.deletion.CASCADE, related_name='member_clubs', to='species.aquaristclub')),

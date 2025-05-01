@@ -81,20 +81,21 @@
 </div>
 
 {% if request.user.is_authenticated %}
+    {% if speciesMaintenanceLog %}
+        {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
+        <div class="div-line-above">
+            <h3>Species Maintenance Collaboration</h3>
+            <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
+        </div>
+        {% endif %}
+    {% elif userCanEdit %}
     <div class="div-line-above">
         <h3>Species Maintenance Collaboration</h3>
-        {% if speciesMaintenanceLog %}
-            {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
-                    <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
-            {% else %}
-                <p>Species Maintenance Log is private</p>
-            {% endif %}
-        {% elif userCanEdit %}
-            <p>Working to preserve a species?</p>
-            <p>Maintaining a healthy gene pool while preserving the integrity of a species or subspecies is challenging.</p> 
-            <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
-            <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
-        {% endif %}
+        <p>Working to preserve a species?</p>
+        <p>Maintaining a healthy gene pool while preserving the integrity of a species or subspecies is challenging.</p> 
+        <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
+        <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
+    {% endif %}
     </div>
 {% endif %} 
 
