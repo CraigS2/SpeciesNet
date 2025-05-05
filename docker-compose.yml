@@ -18,6 +18,7 @@ services:
       container_name: ASN_DJANGO
       image: gunicorn:23.0.0
       restart: unless-stopped
+      tty: true
       depends_on: 
         - db
       volumes:

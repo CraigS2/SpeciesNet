@@ -24,6 +24,8 @@ while True:
     time.sleep(1)
 END
 
+### only use migrations when you know they are needed ###
+#python manage.py makemigrations --no-input
 python manage.py migrate --no-input
 python manage.py collectstatic --no-input
 

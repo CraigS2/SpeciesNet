@@ -1,0 +1,18 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h2>Add Club:</h2>
+<p><small>&nbsp;</small></p>
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data" action="">
+                {% csrf_token %}
+                {{form.as_table}}
+                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+            </form>
+        </table>
+    </div>
+<p><small>&nbsp;</small></p>
+
+{% endblock content %}

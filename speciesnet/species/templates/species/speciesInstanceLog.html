@@ -1,0 +1,42 @@
+{% extends 'main.html' %}
+<!-- context = {'speciesInstance': speciesInstance, 'speciesInstanceLogEntries': speciesInstanceLogEntries, 'userCanEdit': userCanEdit} -->
+{% block content %}
+
+<div class="div-line-below">
+    <h2>Species Log </a></h2>
+    <h3><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h3>
+    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a></h3>
+    {% if userCanEdit %}
+        <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a></p>
+    {% endif %}
+</div>
+{% if speciesInstance.enable_species_log %}
+    <div>
+        {% if speciesInstanceLogEntries.all.count > 0 %}
+            {% for logEntry in speciesInstanceLogEntries %}
+                <div class="div-line-above">
+                    <small>&nbsp;</small>
+                    <h5 style = "display: flex; justify-content: space-between;">
+                        <span>{{logEntry.name}}&nbsp;&nbsp;</span>
+                        {% if userCanEdit %}
+                            <a href="{% url 'editSpeciesInstanceLogEntry' logEntry.id  %}">Edit Log Entry</a>
+                        {% endif %}  
+                    </h5>  
+                    {% if logEntry.log_entry_image %}
+                        <p><img src={{logEntry.log_entry_image.url}}></p>
+                    {% endif %}   
+                    <p>{{logEntry.log_entry_notes}}</p>
+                </div>
+            {% endfor %} 
+        {% else %}
+            <div class="div-line-above">
+                <small>&nbsp;</small>
+                <p>No Species Logs Found</p>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
+<small>&nbsp;</small>
+<p><a class="btn btn-secondary" href="{% url 'speciesInstance' speciesInstance.id %}" role="button">Back to Aquarist Species</a></p>
+
+{% endblock content %}

@@ -12,19 +12,37 @@ urlpatterns = [
 
     path('', views.home, name="home"),
 
+    path('userProfile/', views.userProfile, name="userProfile"),
+    path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
+
     path('aquarists/', views.aquarists, name="aquarists"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
     path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
-    path('userProfile/', views.userProfile, name="userProfile"),
-    path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
     path('exportAquarists/', views.exportAquarists, name="exportAquarists"),
+
+    path('aquaristClubs/', views.aquaristClubs, name="aquaristClubs"),
+    path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"), 
+    path('aquaristClubMembers/<str:pk>/', views.aquaristClubMembers, name="aquaristClubMembers"), 
+    path('aquaristClubMember/<str:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
+    path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
+    path('createAquaristClubMember/<str:pk>', views.createAquaristClubMember, name="createAquaristClubMember"),
+    path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
+    path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
+    path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
+    path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
-    path('speciesComments/', views.speciesComments, name="speciesComments"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
-    path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"),    
+    path('speciesComments/', views.speciesComments, name="speciesComments"),
+    path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"), 
+    path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"), 
+    path('speciesReferenceLinks/', views.speciesReferenceLinks, name="speciesReferenceLinks"),
+    path('createSpeciesReferenceLink/<str:pk>/', views.createSpeciesReferenceLink, name="createSpeciesReferenceLink"),     
+    path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
+    path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
+
     path('searchSpecies/', views.searchSpecies, name="searchSpecies"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),
@@ -33,6 +51,27 @@ urlpatterns = [
     path('createSpeciesInstance/<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
+
+    path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
+    path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
+    path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
+    path('editSpeciesInstanceLogEntry/<str:pk>/', views.editSpeciesInstanceLogEntry, name="editSpeciesInstanceLogEntry"),
+    path('deleteSpeciesInstanceLogEntry/<str:pk>/', views.deleteSpeciesInstanceLogEntry, name="deleteSpeciesInstanceLogEntry"),
+
+    path('speciesMaintenanceLogs/', views.speciesMaintenanceLogs, name="speciesMaintenanceLogs"),
+    path('speciesMaintenanceLog/<str:pk>/', views.speciesMaintenanceLog, name="speciesMaintenanceLog"), 
+    path('createSpeciesMaintenanceLog/<str:pk>/', views.createSpeciesMaintenanceLog, name="createSpeciesMaintenanceLog"),
+    path('editSpeciesMaintenanceLog/<str:pk>/', views.editSpeciesMaintenanceLog, name="editSpeciesMaintenanceLog"),
+    path('addMaintenanceGroupCollaborator/<str:pk>/', views.addMaintenanceGroupCollaborator, name="addMaintenanceGroupCollaborator"), 
+    path('removeMaintenanceGroupCollaborator/<str:pk>/', views.removeMaintenanceGroupCollaborator, name="removeMaintenanceGroupCollaborator"), 
+    path('addMaintenanceGroupSpecies/<str:pk>/', views.addMaintenanceGroupSpecies, name="addMaintenanceGroupSpecies"),
+    path('removeMaintenanceGroupSpecies/<str:pk>/', views.removeMaintenanceGroupSpecies, name="removeMaintenanceGroupSpecies"),
+
+    path('deleteSpeciesMaintenanceLog/<str:pk>/', views.deleteSpeciesMaintenanceLog, name="deleteSpeciesMaintenanceLog"),
+    path('createSpeciesMaintenanceLogEntry/<str:pk>/', views.createSpeciesMaintenanceLogEntry, name="createSpeciesMaintenanceLogEntry"),
+    path('editSpeciesMaintenanceLogEntry/<str:pk>/', views.editSpeciesMaintenanceLogEntry, name="editSpeciesMaintenanceLogEntry"),
+    path('deleteSpeciesMaintenanceLogEntry/<str:pk>/', views.deleteSpeciesMaintenanceLogEntry, name="deleteSpeciesMaintenanceLogEntry"),
+
     path('exportSpeciesInstances/', views.exportSpeciesInstances, name="exportSpeciesInstances"),
     path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
 
@@ -42,7 +81,6 @@ urlpatterns = [
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),
     path('tools/', views.tools, name="tools"),
-    path('working/', views.working, name="working"),
 
     path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
 

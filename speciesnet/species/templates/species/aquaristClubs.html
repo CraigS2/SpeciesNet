@@ -1,0 +1,16 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div>
+    <h2>Aquarist Clubs</h2>
+    {% if aquaristClubs.all.count > 0  %}
+        {% for club in aquaristClubs %}
+        <div>
+            <h5><a href="{% url 'aquaristClub' club.id %}">{{club.name}}</a> </h5>
+        </div>
+        {% endfor %} 
+    {% else %}
+        <h5>None</h5>
+    {% endif %}  
+</div>
+{% endblock content %}

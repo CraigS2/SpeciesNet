@@ -1,8 +1,7 @@
 {% extends 'main.html' %}
 {% load static %}
 
-<!-- context = {'species': species, speciesComments: speciesComments, 'speciesInstances': speciesInstances, 
-                'renderCares:' renderCares, 'userCanEdit': userCanEdit, 'form': form} -->
+<!-- context = {species, speciesComments, speciesReferenceLinks, speciesInstances, renderCares, userCanEdit, cform, rlform, userCanEdit} -->
 {% block content %}
 
 <div class="div-line-below">
@@ -46,24 +45,42 @@
         <p><b>None</b></p>
     {% endif %}
     {% if request.user.is_authenticated %}
-        <!--h4><a href="{% url 'createSpeciesInstance' species.id %}">Add Species Instance</a> <i>(I keep this fish!)</i></h4-->
         <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this fish!</i></a></p>
-        <small>&nbsp;</small>
     {% endif %}
 </div>
 
 {% if request.user.is_authenticated %}
     <div class="div-line-above">
+        <h2>Reference Links</h2>
+        {% if speciesReferenceLinks.all.count > 0  %}
+            {% for speciesReferenceLink in speciesReferenceLinks %}
+                <div>
+                    <h5 style = "display: flex; justify-content: space-between;">
+                        <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank">{{speciesReferenceLink.name}}</a></span>
+                        {% if speciesComment.user == request.user or userCanEdit %}
+                            <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
+                        {% endif %}  
+                    </h5>  
+                </div>
+            {% endfor %}  
+        {% else %}    
+                <p>None</p>
+        {% endif %}
+        {% if userCanEdit %}
+            <p><a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;&nbsp;</a></p>
+        {% endif %}
+    </div>
+    <div class="div-line-above">
         <h2>Comments</h2>
         {% if speciesComments.all.count > 0  %}
             {% for speciesComment in speciesComments %}
                 <div>
-                    <p>
-                        <a href="{% url 'aquarist' speciesComment.user.id %}">{{speciesComment.user.username}}</a>: {{speciesComment.comment}}&nbsp;&nbsp;
-                        {% if speciesComment.user == request.user %}
-                            <a class="btn btn-secondary" href="{% url 'deleteSpeciesComment' speciesComment.id  %}" role="button">Delete Comment</a>
-                        {% endif %}    
-                    </p>
+                    <h5 style = "display: flex; justify-content: space-between;">
+                            <span><a href="{% url 'aquarist' speciesComment.user.id %}">{{speciesComment.user.username}}</a>: {{speciesComment.comment}}&nbsp;&nbsp;</span>
+                            {% if speciesComment.user == request.user or userCanEdit %}
+                                <a href="{% url 'editSpeciesComment' speciesComment.id  %}">Edit Comment</a>
+                            {% endif %}  
+                    </h5>  
                 </div>
             {% endfor %}    
         {% endif %}
@@ -71,22 +88,20 @@
         <p><i>Add a new comment about this species:</i></p>
         <form method="POST" enctype="multipart/form-data" action="">
             {% csrf_token %}
-            {{form.as_p}}
+            {{cform.as_p}}
             <input type="Submit" value="Add Comment">
         </form>
         {% endif %}
-        <small>&nbsp;</small>
     </div>
 
     {% if userCanEdit %}
         <small>&nbsp;</small>
         <div class="div-line-above">
             <h3>Edit Species</h3>
-            <!--h4><a href="{% url 'editSpecies' species.id %}">Edit Species</a></h4-->
             <p><a class="btn btn-secondary" href="{% url 'editSpecies' species.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Species&nbsp;&nbsp;&nbsp;</a></p>
-            <!--h4><a href="{% url 'deleteSpecies' species.id %}">Delete Species</a></h4-->
-            <p><a class="btn btn-secondary" href="{% url 'deleteSpecies' species.id %}" role="button">Delete Species</a></p>
+        </div>
     {% endif %}
+
 {% endif %}
 
 {% endblock content %}

@@ -1,0 +1,19 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h1>{{aquaristClubMember.club.name}}</h1>
+<h3>{{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}} Membership Status:</h1>
+<p>Username: {{aquaristClubMember.user.username}} </p>
+
+<div>
+    <table>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{form.as_table}}
+            <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+        </form>
+    </table>
+</div>
+
+{% endblock content %}

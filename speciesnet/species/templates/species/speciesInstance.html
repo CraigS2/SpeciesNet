@@ -1,9 +1,10 @@
 {% extends 'main.html' %}
-<!-- context = {'speciesInstance': speciesInstance, 'species': species, 'renderCares': renderCares} -->
+<!-- context = speciesInstance, species, speciesMaintenanceLog, renderCares, userCanEdit -->
+
 {% block content %}
 
 <div class="div-line-below">
-    <h2><i>{{speciesInstance.name}}</i></h2>
+    <h2>{{speciesInstance.name}}</h2>
     <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a></h3>
     <h3>Species:  <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
     {% if species.alt_name %}
@@ -12,6 +13,7 @@
     {% if species.common_name %}
         <p><b>Common Name: &nbsp;&nbsp;</b>{{species.common_name}}</p>
     {% endif %}
+    <small>&nbsp;</small>
     {% if species.species_image %}
         <p><img src={{species.species_image.url}}></p>
     {% endif %}
@@ -57,18 +59,44 @@
             {% endif %}
         {% endif %}
     {% endif %}
+    <small>&nbsp;</small>
     {% if request.user.is_authenticated %}
-        {% if userCanEdit %}
-        <small>&nbsp;</small>
-        </div>
-        <div class="div-line-above">
-            <h3>Edit Aquarist Species</h3>
-            <!--h4><a href="{% url 'editSpeciesInstance' speciesInstance.id %}">Edit Species Instance</a></h4-->
-            <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
-            <!--h4><a href="{% url 'deleteSpeciesInstance' speciesInstance.id %}">Delete Species Instance</a></h4-->
-            <p><a class="btn btn-secondary" href="{% url 'deleteSpeciesInstance' speciesInstance.id %}" role="button">Delete Aquarist Species</a></p>
-        {% endif %}
-    {% endif %}
+        {% if speciesInstance.enable_species_log %}
+            {% if userCanEdit %}
+                <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                <small>&nbsp;</small>
+            {% elif not speciesInstance.log_is_private %}    
+                <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                <small>&nbsp;</small>
+            {% endif %}
+        {% endif %} 
+        {% if userCanEdit %} 
+            <div class="div-line-above">
+                <h3>Edit Aquarist Species</h3>
+                <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
+                <small>&nbsp;</small>
+            </div>
+        {% endif %} 
+    {% endif %} 
 </div>
+
+{% if request.user.is_authenticated %}
+    {% if speciesMaintenanceLog %}
+        {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
+        <div class="div-line-above">
+            <h3>Species Maintenance Collaboration</h3>
+            <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
+        </div>
+        {% endif %}
+    {% elif userCanEdit %}
+    <div class="div-line-above">
+        <h3>Species Maintenance Collaboration</h3>
+        <p>Working to preserve a species?</p>
+        <p>Maintaining a healthy gene pool while preserving the integrity of a species or subspecies is challenging.</p> 
+        <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
+        <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
+    {% endif %}
+    </div>
+{% endif %} 
 
 {% endblock content %}

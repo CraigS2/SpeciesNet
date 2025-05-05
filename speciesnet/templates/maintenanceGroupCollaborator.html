@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h2>{{edit_action}} {{object_name}}</h2>
+<p><small>&nbsp;</small></p>
+<div>
+    <table style="text-align: left; vertical-align: top; padding-top: 1em;">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{form.as_table}}
+            <td></td><td style="text-align: left; vertical-align: top; padding-top: 1em;"><input type="Submit" value="Submit"></td>                              
+        </form>
+    </table>
+</div>
+
+{% endblock content %}

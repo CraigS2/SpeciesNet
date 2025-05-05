@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<div>
+    <h2>Species Instances with Logs</h2>
+    {% if not speciesInstancesEmpty%}
+        {% for speciesInstance in speciesInstances %}
+            <div>
+                <p>
+                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>:&nbsp;  
+                    <a href="{% url 'speciesInstanceLog' speciesInstance.id %}">{{speciesInstance.name}} Log</a>
+                </p>
+            </div>
+        {% endfor %}
+    {% else %} 
+        <p>None</p>
+    {% endif %}  
+</div>
+
+{% endblock content %}
