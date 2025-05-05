@@ -302,7 +302,7 @@ def createSpeciesInstance (request, pk):
 def editSpeciesInstance (request, pk): 
     register_heif_opener() # must be done before form use or rejects heic files
     speciesInstance = SpeciesInstance.objects.get(id=pk)
-    userCanEdit = user_can_edit_si (request.user, species)
+    userCanEdit = user_can_edit_si (request.user, speciesInstance)
     if not userCanEdit:
         raise PermissionDenied()
     form = SpeciesInstanceForm(instance=speciesInstance)
@@ -320,7 +320,7 @@ def editSpeciesInstance (request, pk):
 @login_required(login_url='login')
 def deleteSpeciesInstance (request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
-    userCanEdit = user_can_edit_si (request.user, species)
+    userCanEdit = user_can_edit_si (request.user, speciesInstance)
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
