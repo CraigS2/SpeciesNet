@@ -4,22 +4,37 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 #from django.core.mail import send_mail
 from django.core.mail import EmailMessage
 from smtplib import SMTPException
-from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink
-from species.models import SpeciesInstance, SpeciesMaintenanceLog, SpeciesInstanceLogEntry, SpeciesMaintenanceLogEntry, ImportArchive
+from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance
+from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
+from species.forms import SpeciesLabelsSelectionForm, SpeciesLabelsAddTextForm, SpeciesInstanceLabelForm, SpeciesInstanceLabelFormSet
+
+from io import BytesIO
+#from django.shortcuts import render, redirect
+#from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+#from .forms import LabelFormSet
+#from .models import LabelEntry
+
+from PIL import Image
+
+
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
+from species.asn_tools.asn_img_tools import generate_qr_code
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances, export_csv_aquarists
 from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
-from species.asn_tools.asn_utils import user_can_edit, user_can_edit_s, user_can_edit_si, user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
+from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si, user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances
 #from datetime import datetime
@@ -36,10 +51,11 @@ def home(request):
 
 def aquarist(request, pk):
     aquarist = User.objects.get(id=pk)
+    userCanEdit = user_can_edit_a(request.user, aquarist)
     speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).order_by('name')
     speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).order_by('name')
     speciesComments = SpeciesComment.objects.filter(user=aquarist)
-    context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept, 'speciesComments': speciesComments}
+    context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept, 'speciesComments': speciesComments, 'userCanEdit': userCanEdit }
     return render (request, 'species/aquarist.html', context)
 
 def species(request, pk):
@@ -48,10 +64,8 @@ def species(request, pk):
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesComments = SpeciesComment.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
-
     cur_user = request.user
     userCanEdit = user_can_edit_s(request.user, species)
-
     # enable comments on species page
     cform = SpeciesCommentForm()
     if (request.method == 'POST'):
@@ -70,16 +84,12 @@ def species(request, pk):
 def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     species = speciesInstance.species
-    # TODO sort out reasonable clean and db efficent approach to displaying optional speciesMaintenanceLog, if found
+    # TODO improve finding and displaying optional speciesMaintenanceLog
     speciesMaintenanceLog = None
-    print ('speciesInstance speciesMaintenanceLog lookup')
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.filter(species=species) 
-    print ('speciesInstance speciesMaintenanceLog lookup potential matches: ' + (str(len(speciesMaintenanceLogs))))
     if (len(speciesMaintenanceLogs) > 0):
         for sml in speciesMaintenanceLogs:
-            print ('speciesInstance speciesMaintenanceLog lookup checking: ' + (sml.name))
             if speciesInstance in sml.speciesInstances.all():
-                print ('speciesInstance speciesMaintenanceLog lookup match found: ' + (sml.name))
                 speciesMaintenanceLog = sml
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
@@ -232,7 +242,6 @@ def createSpecies (request):
             species_name = species.name
             # assure unique species names - prevent duplicates
             if not Species.objects.filter(name=species_name).exists():
-                print ("Form is valid - saving Species")
                 species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
                 species.created_by = request.user
                 species.save()
@@ -307,7 +316,6 @@ def editSpeciesInstance (request, pk):
         raise PermissionDenied()
     form = SpeciesInstanceForm(instance=speciesInstance)
     if (request.method == 'POST'):
-        print ("Saving Species Instance Form")
         form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
         if form2.is_valid():
             form2.save()
@@ -330,6 +338,135 @@ def deleteSpeciesInstance (request, pk):
     return render (request, 'species/deleteSpeciesInstance.html', context)
 
 
+@login_required(login_url='login')
+def chooseSpeciesInstancesForLabels(request, pk):
+    aquarist = User.objects.get(id=pk)
+    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).order_by('name')
+    choices = []
+    for speciesInstance in speciesKept:
+        choice_txt = speciesInstance.name
+        choice = (speciesInstance.id, choice_txt)
+        choices.append(choice)
+    form = SpeciesLabelsSelectionForm(dynamic_choices=choices)
+    if (request.method == 'POST'):
+        speciesChosen = []
+        form = SpeciesLabelsSelectionForm(request.POST, dynamic_choices=choices)
+        if form.is_valid():
+            user_choices = form.cleaned_data['species']
+            for choice in user_choices:
+                speciesInstance = SpeciesInstance.objects.get(id=choice)
+                #speciesChosen.add(speciesInstance)
+                speciesChosen.append(speciesInstance)
+            request.session['species_choices'] = user_choices
+            return HttpResponseRedirect(reverse("editSpeciesInstanceLabels"))
+    context = {'form': form}
+    return render(request, 'chooseSpeciesInstancesForLabels.html', context)
+
+
+@login_required(login_url='login')
+def editSpeciesInstanceLabels (request):
+    species_choices = request.session['species_choices']
+    label_set = []
+    for choice in species_choices:
+        speciesInstance = SpeciesInstance.objects.get(id=choice)
+        si_label = None
+        si_labels = SpeciesInstanceLabel.objects.filter (speciesInstance=speciesInstance) # should only be 1 or none
+        if (len(si_labels) > 0):
+            si_label = si_labels[0]
+            label_set.append(si_label)
+
+    if request.method == 'POST':
+        formset = SpeciesInstanceLabelFormSet(request.POST)
+        if formset.is_valid():
+            # Pull form text input by user and persist labels for pfd gen and future defaults
+            label_counter = 0
+            for form in formset:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    # assume order is maintained TODO find a better way to do this
+                    si_label = label_set[label_counter]
+                    si_label.name = form.cleaned_data['name']
+                    si_label.text = form.cleaned_data['text']
+                    si_label.save() 
+                    label_counter += 1
+
+            # Configure PDF
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="AquaristSpecies_Labels.pdf"'
+
+            buffer = BytesIO()
+            c = canvas.Canvas(response, pagesize=letter)
+            c.setTitle ("Aquarist Species Labels")
+            
+            # Avery 5162 specifications 
+            # 14 labels 1.33"x4" per 8.5"x11" sheet 2 columns of 7 labels
+
+            label_width = 4.0 * inch
+            label_height = 1.35 * inch  # 1.33 spec
+            margin_left = 0.03 * inch   # Left margin 0.17 spec
+            margin_top  = 0.88 * inch   # Top margin 0.83 spec
+                
+            # QR code specifications
+            qr_size = 0.8 * inch  # square QR code
+            
+            # Generate labels
+            current_label = 0
+            total_labels = len(label_set)
+            
+            while current_label < total_labels:
+                if current_label > 0 and current_label % 14 == 0:
+                    c.showPage()  # Start a new page after every 14 labels
+                
+                # Calculate label position uses % modulus operator which returns remainder after division
+
+                row = (current_label % 14) // 2   
+                col = (current_label % 14) % 2     
+                
+                # positioning on canvas is done using 'points' unit where 1 point = 1/72 of an inch
+
+                x = margin_left + (col * label_width) + (col * 10) # adjust 2nd column offset ~ 0.14" to right
+                y = letter[1] - margin_top - (row * label_height)
+
+                si_label = label_set[current_label]
+
+                c.drawImage(si_label.qr_code.path, x + 0.20*inch, y - 1.0*inch, width=1.0*inch, height=1.0*inch)
+                c.setFont("Helvetica-Bold", 10)  
+                c.drawString(x + qr_size + 0.45*inch, y - 0.4*inch, si_label.name)
+                c.setFont("Helvetica", 8)  
+                c.drawString(x + qr_size + 0.45*inch, y - 0.6*inch, si_label.text)
+                
+                current_label += 1
+            
+            c.showPage()
+            c.save()
+            
+            # Get the value of the BytesIO buffer and return the response
+            pdf = buffer.getvalue()
+            buffer.close()
+            response.write(pdf)
+            return response
+
+    else:
+        default_labels = []
+        for si in species_choices:
+            speciesInstance = SpeciesInstance.objects.get(id=si)
+            si_label = None
+            si_labels = SpeciesInstanceLabel.objects.filter (speciesInstance=speciesInstance) # should only be 1 or none
+            if (len(si_labels) > 0):
+                si_label = si_labels[0]
+            else:
+                name = speciesInstance.name
+                text = 'Scan the QR Code to see photos and additonal info about this fish.'
+                url = 'https://aquaristspecies.net/speciesInstance/' + str(speciesInstance.id) + '/'
+                si_label = SpeciesInstanceLabel (name=name, text=text, speciesInstance=speciesInstance)
+                generate_qr_code(si_label.qr_code, url, name, request)
+                si_label.save()
+            default_labels.append({'name': si_label.name, 'text': si_label.text})
+        formset = SpeciesInstanceLabelFormSet(initial = default_labels)
+
+    return render(request, 'editSpeciesInstanceLabels.html', {'formset': formset})
+
+
+
 ### Create Edit Delete Species Log Entries
 
 
@@ -338,12 +475,9 @@ def speciesInstancesWithLogs (request):
     log_entries = SpeciesInstanceLogEntry.objects.all()
     speciesInstances = []
     for log_entry in log_entries:
-        print ('Reading speciesInstance log entry: ' + log_entry.log_entry_notes)
         speciesInstance = log_entry.speciesInstance
         if speciesInstance not in speciesInstances:
-            print ('Appending speciesInstances: ' + speciesInstance.name)
             speciesInstances.append(speciesInstance)
-    print ('speciesInstances count: ' + str(len(speciesInstances)))
     speciesInstancesEmpty = len(speciesInstances) == 0
     context = {'speciesInstances': speciesInstances, 'speciesInstancesEmpty': speciesInstancesEmpty}
     return render (request, 'species/speciesInstancesWithLogs.html', context)
@@ -464,7 +598,6 @@ def editSpeciesMaintenanceLog (request, pk):
         form = SpeciesMaintenanceLogForm(request.POST, instance=speciesMaintenanceLog)
         if form.is_valid: 
             speciesMaintenanceLog = form.save()
-            print ('editSpeciesMaintenanceLog saved, species = ' + speciesMaintenanceLog.species.name)
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
     context = {'form': form, 'speciesMaintenanceLog': speciesMaintenanceLog, 'collaborators': collaborators, 'speciesInstances': speciesInstances,
                'num_avail_collaborators': num_avail_collaborators, 'num_avail_speciesInstances': num_avail_speciesInstances}
@@ -525,24 +658,16 @@ def addMaintenanceGroupSpecies (request, pk):
         choice = (speciesInstance.id, choice_txt)
         choices.append(choice)
     form = MaintenanceGroupSpeciesForm(dynamic_choices=choices)
-    print ('addMaintenanceGroupSpecies form initialized')
     edit_action = 'Add'
     object_name = 'Maintenance Group Species'
     if (request.method == 'POST'):
         form = MaintenanceGroupSpeciesForm(request.POST, dynamic_choices=choices)
         if form.is_valid():
-            print ('addMaintenanceGroupSpecies form is_valid')
             user_choices = form.cleaned_data['species']
-            print ('user_choices: ' + str(user_choices))
-            print ('addMaintenanceGroupSpecies user choices')
             for choice in user_choices:
                 speciesInstance = SpeciesInstance.objects.get(id=choice)
-                print ('addMaintenanceGroupSpecies user choice: ' + speciesInstance.name)
                 speciesMaintenanceLog.speciesInstances.add(speciesInstance)
             return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
-        else:
-            print ('addMaintenanceGroupSpecies form NOT is_valid')
-            print ('form.is_bound: ' + str(form.is_bound))
         context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
         return render(request, 'addMaintenanceGroupSpecies.html', context)        
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
@@ -566,7 +691,6 @@ def removeMaintenanceGroupSpecies (request, pk):
             user_choices = form.cleaned_data['species']
             for choice in user_choices:
                 speciesInstance = SpeciesInstance.objects.get(id=choice)
-                print ('removeMaintenanceGroupSpecies user choice: ' + speciesInstance.name)
                 speciesMaintenanceLog.speciesInstances.remove(speciesInstance)
             return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
         context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
@@ -579,7 +703,6 @@ def removeMaintenanceGroupSpecies (request, pk):
 def deleteSpeciesMaintenanceLog (request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     species = speciesMaintenanceLog.species
-    print ("species name: " + species.name)
     userCanEdit = user_can_edit_sml (request.user, speciesMaintenanceLog)
     if not userCanEdit:
         raise PermissionDenied()
@@ -602,9 +725,7 @@ def createSpeciesMaintenanceLogEntry (request, pk):
         if form.is_valid():
             form.instance.speciesMaintenanceLog = speciesMaintenanceLog
             speciesMaintenanceLogEntry = form.save()
-            print ("createSpeciesMaintenanceLogEntry: log entry saved")            
             if (speciesMaintenanceLogEntry.log_entry_image):
-                print ("createSpeciesMaintenanceLogEntry: processing image")
                 processUploadedImageFile (speciesMaintenanceLogEntry.log_entry_image, species.name, request)
             speciesInstances = speciesMaintenanceLog.speciesInstances.all()
             for speciesInstance in speciesInstances:
@@ -913,10 +1034,8 @@ def exportSpecies (request):
 def importSpecies (request): 
     current_user = request.user
     form = ImportCsvForm()
-    print ("Begin Processing Species CSV Upload")
     if (request.method == 'POST'):
         form2 = ImportCsvForm(request.POST, request.FILES)
-        print ("Validating Import Form")
         if form2.is_valid(): 
             import_archive = form2.save() 
             import_csv_species (import_archive, current_user)
@@ -935,10 +1054,8 @@ def exportSpeciesInstances (request):
 def importSpeciesInstances (request): 
     current_user = request.user
     form = ImportCsvForm()
-    print ("Begin Processing SpeciesInstances CSV Upload")
     if (request.method == 'POST'):
         form2 = ImportCsvForm(request.POST, request.FILES)
-        print ("Validating Import Form")
         if form2.is_valid(): 
             import_archive = form2.save() 
             import_csv_speciesInstances (import_archive, current_user)

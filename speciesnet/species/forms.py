@@ -1,5 +1,8 @@
 from django.forms import ModelForm, Form
 from django import forms
+from django.forms import formset_factory
+from django.forms.formsets import formset_factory
+from .models import SpeciesInstanceLabel
 from django.contrib.auth.forms import UserCreationForm
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
@@ -79,12 +82,42 @@ class MaintenanceGroupCollaboratorForm (forms.Form):
     users = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=True)
 
 class MaintenanceGroupSpeciesForm (forms.Form):
-
     def __init__(self, *args, **kwargs):
         dynamic_choices = kwargs.pop('dynamic_choices', [])
         super().__init__(*args, **kwargs)
         self.fields['species'].choices = dynamic_choices
     species = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=True)
+
+class SpeciesLabelsSelectionForm (forms.Form):
+    def __init__(self, *args, **kwargs):
+        dynamic_choices = kwargs.pop('dynamic_choices', [])
+        super().__init__(*args, **kwargs)
+        self.fields['species'].choices = dynamic_choices
+    species = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=True)
+
+class SpeciesLabelsAddTextForm (forms.Form):
+    def __init__(self, *args, **kwargs):
+        dynamic_choices = kwargs.pop('dynamic_choices', [])
+        super().__init__(*args, **kwargs)
+        self.fields['species'].choices = dynamic_choices
+    species = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=True)
+
+class SpeciesInstanceLabelForm(forms.ModelForm):
+    #qr_code = forms.ImageField()
+    name = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        max_length=200
+    )
+    text = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        max_length=200
+    )
+
+    class Meta:
+        model = SpeciesInstanceLabel
+        fields = ['name', 'text']
+
+SpeciesInstanceLabelFormSet = formset_factory(SpeciesInstanceLabelForm, extra=0)
 
 class UserProfileForm (ModelForm):
     class Meta:

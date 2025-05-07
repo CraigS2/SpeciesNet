@@ -1,0 +1,39 @@
+{% extends 'main.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Create QR Code Labels</h2>
+    <form method="post" class="label-form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <div class="form-row mb-3 d-flex align-items-center">
+            <div class="col">Species Name</div>
+            <div class="col">Additional Text</div>
+        </div>
+        <div id="form-rows">
+        {% for form in formset %}
+            <div class="form-row mb-3 d-flex align-items-center">
+                <div class="col" style="border-right:1px">
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="alert alert-danger">{{ form.text.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col" style="border-left:1px">
+                    {{ form.text }}
+                    {% if form.text.errors %}
+                        <div class="alert alert-danger">{{ form.text.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+        
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Generate Labels PDF</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

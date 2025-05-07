@@ -54,6 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private_email     = models.BooleanField (default=True)
     is_private_location  = models.BooleanField (default=False)
 
+    is_admin   = models.BooleanField (default=False)
     is_staff   = models.BooleanField (default=False)
     is_active  = models.BooleanField (default=True)
 
@@ -237,6 +238,18 @@ class SpeciesInstanceLogEntry (models.Model):
     def __str__(self):
         return self.name
     
+class SpeciesInstanceLabel (models.Model):
+    name                      = models.CharField(max_length=200)
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='species_instance_label') # deletes ALL log entries referencing any deleted species instance
+    qr_code                   = models.ImageField(upload_to='qr_codes/', blank=True)
+    text                      = models.CharField(max_length=200)
+    created                   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"Label: {self.name[:30]}"    
 
 class SpeciesMaintenanceLog (models.Model):
     name                      = models.CharField (max_length=240)

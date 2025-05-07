@@ -7,3 +7,5 @@ django-allauth[socialaccount]==0.63.3
 django-crispy-forms==2.3
 crispy-bootstrap5==2024.10
 django-recaptcha==4.0.0
+qrcode==8.2
+reportlab==4.4.0
