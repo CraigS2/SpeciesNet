@@ -15,20 +15,7 @@ from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, Specie
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
-from species.forms import SpeciesLabelsSelectionForm, SpeciesLabelsAddTextForm, SpeciesInstanceLabelForm, SpeciesInstanceLabelFormSet
-
-from io import BytesIO
-#from django.shortcuts import render, redirect
-#from django.http import HttpResponse
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-#from .forms import LabelFormSet
-#from .models import LabelEntry
-
-from PIL import Image
-
-
+from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -37,6 +24,7 @@ from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speci
 from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si, user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances
+from species.asn_tools.asn_pdf_tools import generatePdfFile
 #from datetime import datetime
 from django.utils import timezone
 from csv import DictReader
@@ -374,77 +362,9 @@ def editSpeciesInstanceLabels (request):
         if (len(si_labels) > 0):
             si_label = si_labels[0]
             label_set.append(si_label)
-
     if request.method == 'POST':
         formset = SpeciesInstanceLabelFormSet(request.POST)
-        if formset.is_valid():
-            # Pull form text input by user and persist labels for pfd gen and future defaults
-            label_counter = 0
-            for form in formset:
-                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                    # assume order is maintained TODO find a better way to do this
-                    si_label = label_set[label_counter]
-                    si_label.name = form.cleaned_data['name']
-                    si_label.text = form.cleaned_data['text']
-                    si_label.save() 
-                    label_counter += 1
-
-            # Configure PDF
-            response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = 'attachment; filename="AquaristSpecies_Labels.pdf"'
-
-            buffer = BytesIO()
-            c = canvas.Canvas(response, pagesize=letter)
-            c.setTitle ("Aquarist Species Labels")
-            
-            # Avery 5162 specifications 
-            # 14 labels 1.33"x4" per 8.5"x11" sheet 2 columns of 7 labels
-
-            label_width = 4.0 * inch
-            label_height = 1.35 * inch  # 1.33 spec
-            margin_left = 0.03 * inch   # Left margin 0.17 spec
-            margin_top  = 0.88 * inch   # Top margin 0.83 spec
-                
-            # QR code specifications
-            qr_size = 0.8 * inch  # square QR code
-            
-            # Generate labels
-            current_label = 0
-            total_labels = len(label_set)
-            
-            while current_label < total_labels:
-                if current_label > 0 and current_label % 14 == 0:
-                    c.showPage()  # Start a new page after every 14 labels
-                
-                # Calculate label position uses % modulus operator which returns remainder after division
-
-                row = (current_label % 14) // 2   
-                col = (current_label % 14) % 2     
-                
-                # positioning on canvas is done using 'points' unit where 1 point = 1/72 of an inch
-
-                x = margin_left + (col * label_width) + (col * 10) # adjust 2nd column offset ~ 0.14" to right
-                y = letter[1] - margin_top - (row * label_height)
-
-                si_label = label_set[current_label]
-
-                c.drawImage(si_label.qr_code.path, x + 0.20*inch, y - 1.0*inch, width=1.0*inch, height=1.0*inch)
-                c.setFont("Helvetica-Bold", 10)  
-                c.drawString(x + qr_size + 0.45*inch, y - 0.4*inch, si_label.name)
-                c.setFont("Helvetica", 8)  
-                c.drawString(x + qr_size + 0.45*inch, y - 0.6*inch, si_label.text)
-                
-                current_label += 1
-            
-            c.showPage()
-            c.save()
-            
-            # Get the value of the BytesIO buffer and return the response
-            pdf = buffer.getvalue()
-            buffer.close()
-            response.write(pdf)
-            return response
-
+        return generatePdfFile(formset, label_set)
     else:
         default_labels = []
         for si in species_choices:
