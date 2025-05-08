@@ -104,18 +104,13 @@ class SpeciesLabelsAddTextForm (forms.Form):
 
 class SpeciesInstanceLabelForm(forms.ModelForm):
     #qr_code = forms.ImageField()
-    name = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control'}),
-        max_length=200
-    )
-    text = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control'}),
-        max_length=200
-    )
+    name       = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=200, required=True)
+    text_line1 = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=100, required=False)
+    text_line2 = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=100, required=False)
 
     class Meta:
         model = SpeciesInstanceLabel
-        fields = ['name', 'text']
+        fields = ['name', 'text_line1', 'text_line2']
 
 SpeciesInstanceLabelFormSet = formset_factory(SpeciesInstanceLabelForm, extra=0)
 

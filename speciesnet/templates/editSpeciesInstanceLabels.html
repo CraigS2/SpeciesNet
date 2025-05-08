@@ -4,12 +4,18 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Create QR Code Labels</h2>
+    <h4>Enter or revise text to describe your fish as they relate to your Aquarist Species page.</h4>
+    <h4>&nbsp;&nbsp;&nbsp;&nbsp;<b>For example</b>, Line 1 might be <b><i>"Scan the QR Code to see the parents of these fish."</i></b></h4>
+    <h4>Labels support limited text so please use care to not overrun labels. If your species name is very long, you may need
+        to abbreviate the genus name or otherwise shorten the text to fit. Your text will be saved for the next time you print labels.</h4>
+    <small>&nbsp;</small>
     <form method="post" class="label-form">
         {% csrf_token %}
         {{ formset.management_form }}
         <div class="form-row mb-3 d-flex align-items-center">
             <div class="col">Species Name</div>
-            <div class="col">Additional Text</div>
+            <div class="col">Additional Text Line 1</div>
+            <div class="col">Additional Text Line 2</div>
         </div>
         <div id="form-rows">
         {% for form in formset %}
@@ -21,9 +27,15 @@
                     {% endif %}
                 </div>
                 <div class="col" style="border-left:1px">
-                    {{ form.text }}
-                    {% if form.text.errors %}
-                        <div class="alert alert-danger">{{ form.text.errors }}</div>
+                    {{ form.text_line1 }}
+                    {% if form.text_line1.errors %}
+                        <div class="alert alert-danger">{{ form.text_line1.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="col" style="border-left:1px">
+                    {{ form.text_line2 }}
+                    {% if form.text_line2.errors %}
+                        <div class="alert alert-danger">{{ form.text_line2.errors }}</div>
                     {% endif %}
                 </div>
             </div>

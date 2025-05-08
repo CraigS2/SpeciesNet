@@ -55,6 +55,8 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
 
     except OSError:
 
+        # TODO Log the error.
+        # logging.error(traceback.format_exc())
         error_msg = ("Error processing uploaded image file: " + uploaded_image_filename)
         print (error_msg)
         messages.error (request, error_msg)

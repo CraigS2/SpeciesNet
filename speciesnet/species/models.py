@@ -242,7 +242,8 @@ class SpeciesInstanceLabel (models.Model):
     name                      = models.CharField(max_length=200)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='species_instance_label') # deletes ALL log entries referencing any deleted species instance
     qr_code                   = models.ImageField(upload_to='qr_codes/', blank=True)
-    text                      = models.CharField(max_length=200)
+    text_line1                = models.CharField(null=False, blank=False, max_length=100)
+    text_line2                = models.CharField(null=False, blank=False, max_length=100)
     created                   = models.DateTimeField(auto_now_add=True)
 
     class Meta:

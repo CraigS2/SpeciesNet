@@ -364,27 +364,31 @@ def editSpeciesInstanceLabels (request):
             label_set.append(si_label)
     if request.method == 'POST':
         formset = SpeciesInstanceLabelFormSet(request.POST)
-        return generatePdfFile(formset, label_set)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="AquaristSpecies_Labels.pdf"'
+        if formset.is_valid():
+            response = generatePdfFile(formset, label_set, request, response)
+            return response
     else:
         default_labels = []
         for si in species_choices:
             speciesInstance = SpeciesInstance.objects.get(id=si)
+            text_line1 = 'Scan the QR Code to see photos and additonal info'
+            text_line2 = 'about this fish on my AquaristSpecies.net page.'
             si_label = None
             si_labels = SpeciesInstanceLabel.objects.filter (speciesInstance=speciesInstance) # should only be 1 or none
             if (len(si_labels) > 0):
                 si_label = si_labels[0]
             else:
                 name = speciesInstance.name
-                text = 'Scan the QR Code to see photos and additonal info about this fish.'
+                si_label = SpeciesInstanceLabel (name=name, text_line1=text_line1, text_line2=text_line2, speciesInstance=speciesInstance)
                 url = 'https://aquaristspecies.net/speciesInstance/' + str(speciesInstance.id) + '/'
-                si_label = SpeciesInstanceLabel (name=name, text=text, speciesInstance=speciesInstance)
                 generate_qr_code(si_label.qr_code, url, name, request)
                 si_label.save()
-            default_labels.append({'name': si_label.name, 'text': si_label.text})
+            default_labels.append({'name': si_label.name, 'text_line1': si_label.text_line1, 'text_line2': si_label.text_line2})
         formset = SpeciesInstanceLabelFormSet(initial = default_labels)
 
     return render(request, 'editSpeciesInstanceLabels.html', {'formset': formset})
-
 
 
 ### Create Edit Delete Species Log Entries
