@@ -326,6 +326,14 @@ def deleteSpeciesInstance (request, pk):
     return render (request, 'species/deleteSpeciesInstance.html', context)
 
 
+# SpeciesInstanceLables
+
+@login_required(login_url='login')
+def speciesInstanceLabels (request):
+    si_labels = SpeciesInstanceLabel.objects.all()
+    context = {'si_labels': si_labels}
+    return render (request, 'species/speciesInstanceLabels.html', context)
+
 @login_required(login_url='login')
 def chooseSpeciesInstancesForLabels(request, pk):
     aquarist = User.objects.get(id=pk)
@@ -349,7 +357,6 @@ def chooseSpeciesInstancesForLabels(request, pk):
             return HttpResponseRedirect(reverse("editSpeciesInstanceLabels"))
     context = {'form': form}
     return render(request, 'chooseSpeciesInstancesForLabels.html', context)
-
 
 @login_required(login_url='login')
 def editSpeciesInstanceLabels (request):
@@ -392,7 +399,6 @@ def editSpeciesInstanceLabels (request):
 
 
 ### Create Edit Delete Species Log Entries
-
 
 @login_required(login_url='login')
 def speciesInstancesWithLogs (request):
