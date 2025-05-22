@@ -24,7 +24,7 @@ from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speci
 from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si, user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances
-from species.asn_tools.asn_pdf_tools import generatePdfFile
+from species.asn_tools.asn_pdf_tools import generatePdfLabels
 #from datetime import datetime
 from django.utils import timezone
 from csv import DictReader
@@ -374,7 +374,7 @@ def editSpeciesInstanceLabels (request):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="AquaristSpecies_Labels.pdf"'
         if formset.is_valid():
-            response = generatePdfFile(formset, label_set, request, response)
+            response = generatePdfLabels(formset, label_set, request, response)
             return response
     else:
         default_labels = []
@@ -382,6 +382,7 @@ def editSpeciesInstanceLabels (request):
             speciesInstance = SpeciesInstance.objects.get(id=si)
             text_line1 = 'Scan the QR Code to see photos and additonal info'
             text_line2 = 'about this fish on my AquaristSpecies.net page.'
+            number     = 1
             si_label = None
             si_labels = SpeciesInstanceLabel.objects.filter (speciesInstance=speciesInstance) # should only be 1 or none
             if (len(si_labels) > 0):
@@ -392,7 +393,7 @@ def editSpeciesInstanceLabels (request):
                 url = 'https://aquaristspecies.net/speciesInstance/' + str(speciesInstance.id) + '/'
                 generate_qr_code(si_label.qr_code, url, name, request)
                 si_label.save()
-            default_labels.append({'name': si_label.name, 'text_line1': si_label.text_line1, 'text_line2': si_label.text_line2})
+            default_labels.append({'name': si_label.name, 'text_line1': si_label.text_line1, 'text_line2': si_label.text_line2, 'number': number})
         formset = SpeciesInstanceLabelFormSet(initial = default_labels)
 
     return render(request, 'editSpeciesInstanceLabels.html', {'formset': formset})

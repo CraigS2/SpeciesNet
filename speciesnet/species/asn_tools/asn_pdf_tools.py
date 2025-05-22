@@ -8,12 +8,13 @@ from species.forms import SpeciesInstanceLabelFormSet
 from django.contrib import messages
 
 
-def generatePdfFile (formset: SpeciesInstanceLabelFormSet, label_set, request, response: HttpResponse):
+def generatePdfLabels (formset: SpeciesInstanceLabelFormSet, label_set, request, response: HttpResponse):
     
     if formset.is_valid():
         # Pull form text input by user and persist labels for pfd gen and future defaults
         try:
             label_counter = 0
+            label_num = []
             for form in formset:
                 if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
                     # assume order is maintained TODO find a better way to do this
@@ -22,6 +23,7 @@ def generatePdfFile (formset: SpeciesInstanceLabelFormSet, label_set, request, r
                     si_label.text_line1 = form.cleaned_data['text_line1']
                     si_label.text_line2 = form.cleaned_data['text_line2']
                     si_label.save() 
+                    label_num.append(form.cleaned_data['number'])
                     label_counter += 1
 
             # reportlab pdf creation
@@ -43,40 +45,47 @@ def generatePdfFile (formset: SpeciesInstanceLabelFormSet, label_set, request, r
             
             # Generate labels
             current_label = 0
-            total_labels = len(label_set)
+            species_label_count = len(label_set)
+            current_species_label = 0
             
-            while current_label < total_labels:
+            while current_species_label < species_label_count:
 
-                if current_label > 0 and current_label % 14 == 0:
-                    c.showPage()  # Start a new page after every 14 labels
-                
-                # Calculate label position uses % modulus operator which returns remainder after division
-
-                row = (current_label % 14) // 2   
-                col = (current_label % 14) % 2     
-                
-                # positioning on canvas is done using 'points' unit where 1 point = 1/72 of an inch
-
-                x = margin_left + (col * label_width) + (col * 10) # adjust 2nd column offset ~ 0.14" to right
-                y = letter[1] - margin_top - (row * label_height)
-
-                si_label = label_set[current_label]
+                si_label = label_set[current_species_label]
                 url_text = 'https://AquaristSpecies.net/speciesInstance/' + str(si_label.speciesInstance.id) + '/'
+                label_count = label_num[current_species_label]
 
-                c.drawImage(si_label.qr_code.path, x + 0.20*inch, y - 1.0*inch, width=1.0*inch, height=1.0*inch)
-                c.setFont("Helvetica-Bold", 10)  
-                if si_label.name != '':
-                    c.drawString(x + qr_size + 0.45*inch, y - 0.20*inch, si_label.name)
-                c.setFont("Helvetica", 8) 
-                if si_label.text_line1 != '':
-                    c.drawString(x + qr_size + 0.45*inch, y - 0.47*inch, si_label.text_line1)
-                if si_label.text_line2 != '':
-                    c.drawString(x + qr_size + 0.45*inch, y - 0.67*inch, si_label.text_line2)
-                #c.setFont("Times-Roman", 8)
-                c.setFont("Helvetica-Oblique", 8)
-                c.drawString(x + qr_size + 0.45*inch, y - 0.92*inch, url_text)            
+                while label_count >= 1:
+
+                    if current_label > 0 and current_label % 14 == 0:
+                        c.showPage()  # Start a new page after every 14 labels
+                    
+                    # Calculate label position uses % modulus operator which returns remainder after division
+
+                    row = (current_label % 14) // 2   
+                    col = (current_label % 14) % 2     
+                    
+                    # positioning on canvas is done using 'points' unit where 1 point = 1/72 of an inch
+
+                    x = margin_left + (col * label_width) + (col * 10) # adjust 2nd column offset ~ 0.14" to right
+                    y = letter[1] - margin_top - (row * label_height)
+
+                    c.drawImage(si_label.qr_code.path, x + 0.20*inch, y - 1.0*inch, width=1.0*inch, height=1.0*inch)
+                    c.setFont("Helvetica-Bold", 10)  
+                    if si_label.name != '':
+                        c.drawString(x + qr_size + 0.45*inch, y - 0.20*inch, si_label.name)
+                    c.setFont("Helvetica", 8) 
+                    if si_label.text_line1 != '':
+                        c.drawString(x + qr_size + 0.45*inch, y - 0.47*inch, si_label.text_line1)
+                    if si_label.text_line2 != '':
+                        c.drawString(x + qr_size + 0.45*inch, y - 0.67*inch, si_label.text_line2)
+                    #c.setFont("Times-Roman", 8)
+                    c.setFont("Helvetica-Oblique", 8)
+                    c.drawString(x + qr_size + 0.45*inch, y - 0.92*inch, url_text)            
                 
-                current_label += 1
+                    label_count = label_count - 1
+                    current_label += 1
+
+                current_species_label += 1
             
             c.showPage() 
             c.save()

@@ -3,7 +3,8 @@ from django import forms
 from django.forms import formset_factory
 from django.forms.formsets import formset_factory
 from .models import SpeciesInstanceLabel
-from django.contrib.auth.forms import UserCreationForm
+#from django.contrib.auth.forms import UserCreationForm
+from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
@@ -104,13 +105,15 @@ class SpeciesLabelsAddTextForm (forms.Form):
 
 class SpeciesInstanceLabelForm(forms.ModelForm):
     #qr_code = forms.ImageField()
-    name       = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=200, required=True)
-    text_line1 = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=100, required=False)
-    text_line2 = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=100, required=False)
+    name       = forms.CharField    (widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=200, required=True)
+    text_line1 = forms.CharField    (widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=100, required=False)
+    text_line2 = forms.CharField    (widget=forms.TextInput(attrs={'class': 'form-control'}), max_length=100, required=False)
+    number     = forms.IntegerField (widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'style': 'width: 80px;'}), validators=[MinValueValidator(1)])
+    #widget=forms.NumberInput(attrs={'style': 'width: 200px;'})
 
     class Meta:
         model = SpeciesInstanceLabel
-        fields = ['name', 'text_line1', 'text_line2']
+        fields = ['name', 'text_line1', 'text_line2', 'number']
 
 SpeciesInstanceLabelFormSet = formset_factory(SpeciesInstanceLabelForm, extra=0)
 
