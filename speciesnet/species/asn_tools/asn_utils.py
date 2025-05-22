@@ -11,6 +11,14 @@ def user_can_edit (cur_user: User):
         userCanEdit = True
     return userCanEdit
 
+def user_can_edit_a (cur_user: User, aquarist: User):
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True      
+    elif aquarist == cur_user:
+        userCanEdit = True
+    return userCanEdit
+
 def user_can_edit_s (cur_user: User, species: Species):
     created_date = species.created.date()
     today_date = datetime.today().date()
@@ -64,7 +72,6 @@ def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLo
     for speciesInstance in allSpeciesInstances:
         if speciesInstance.user not in collaborators:
             if speciesInstance.user not in available_collaborators:
-                print ('addMaintenanceGroupCollaborator adding choice: ' + speciesInstance.user.username)
                 available_collaborators.append (speciesInstance.user)
     return available_collaborators
 
@@ -84,7 +91,6 @@ def get_sml_available_speciesInstances (speciesMaintenanceLog: SpeciesMaintenanc
     collaborators = speciesMaintenanceLog.collaborators.all()
     curSpeciesInstances = speciesMaintenanceLog.speciesInstances.all()
     allSpeciesInstances = SpeciesInstance.objects.filter(species=species, currently_keep=True)
-    print ('get_sml_available_speciesInstances found matching species instances: count = ' + str(len(allSpeciesInstances)))
     available_speciesInstances = []
     for speciesInstance in allSpeciesInstances:
         if speciesInstance not in curSpeciesInstances and speciesInstance.user in collaborators:

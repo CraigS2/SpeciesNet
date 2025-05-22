@@ -5,13 +5,13 @@ from django.db.models import ImageField
 from django.core.files import File
 from io import BytesIO
 import os
+import qrcode
 from django.conf import settings
 from django.contrib import messages
 
 
 def processUploadedImageFile (image_field: ImageField, species_or_instance_name, request):
     #register_heif_opener() # must be done before form upload or rejects heic files
-    print ("Process Image: ", image_field.path)
     img = Image.open(image_field.path)
 
     split_path = os.path.split(image_field.path)
@@ -21,53 +21,42 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
     curExt = split_path[1]
     curExt = curExt.lower()
     jpgExt = ".jpg"
-    print ("Current file extension:   ", curExt) 
 
     # save image file with name based on species or instance name
     new_image_name = species_or_instance_name + jpgExt
     new_image_name = new_image_name.lower()
     new_image_name = new_image_name.replace(" ", "_")
-    print ("Revised image file name:  ", new_image_name)
 
     try:
 
         # fix for png image support - png images support transparency
         if img.mode == 'RGBA':
-            print ("Merge transparency to allow image conversion from RGBA to RGB")
             fill_color = '#E5E4E2'  # platinum very light grey default background color
             background = Image.new(img.mode[:-1], img.size, fill_color)
             background.paste(img, img.split()[-1])
             img = background
 
         if not img.mode == 'RGB':
-            print ("Converting ", image_field.name, " to RGB mode")
             img.convert('RGB')    # fails without .png fix above throws OSError: cannot write mode RGBA as JPEG
 
         # resize to 480x320
-        # print ("Uploaded image resolution: ", image_field.width, "x", image_field.height)
-        # img.thumbnail((320, 240))
         img.thumbnail((480, 320))
 
         # save the new .jpg and delete the original uploaded file
-        print ("Resize complete. Save as new .jpg file and delete the original uploaded file")
         memBlob = BytesIO()
         memBlob.seek(0)
         img.save(memBlob, 'JPEG', quality=95)
-        print ("File saved as jpg quality=95")
 
         # update Django image_field to newly saved file - deletes the old image
-        print ("Deleting previous image_field image file")
-        print ("ImageField save with new filename: ", new_image_name)
         image_field.delete (save=False) # deletes old file and sets image_field empty
         image_field.save(new_image_name, File(memBlob))
 
-        print ("Closing img")
         img.close()
-
-        print ("Done image processing without exceptions")
 
     except OSError:
 
+        # TODO Log the error.
+        # logging.error(traceback.format_exc())
         error_msg = ("Error processing uploaded image file: " + uploaded_image_filename)
         print (error_msg)
         messages.error (request, error_msg)
@@ -75,5 +64,27 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
             img.close()
         except OSError:
             print ("Unable to close opened image file")
+
+    return
+
+
+def generate_qr_code (image_field: ImageField, url_text, species_or_instance_name, request):
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=8,
+        border=2,
+    )
+
+    qr.add_data(url_text)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+
+    name = species_or_instance_name + '_qr_code'
+    image_field.save(name, File(buffer))
+    img.close()
 
     return

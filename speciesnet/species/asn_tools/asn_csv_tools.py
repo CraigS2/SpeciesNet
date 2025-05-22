@@ -16,8 +16,6 @@ from django.core.files.base import ContentFile
 # iterate through csv rows add only valid and non-duplicate species to DB
 
 def import_csv_species (import_archive: ImportArchive, current_user: User):
-    print ("Current User: ", current_user)
-    print ("Processing Species CSV file ", import_archive.import_csv_file.name)
     with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
 
         # create results csv file
@@ -29,23 +27,18 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         # batch process import one species per row
         row_count = 0
         import_count = 0
-        print ("Begin iterating rows")
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             species_name = import_row['name']
             species_cares_status = import_row['cares_status']
-            print ("Species name is ", species_name)
 
             # validate Species data using Form validation
             species_form = SpeciesForm (import_row) # reads expected fields by header name
-            print ('Row ', row_count, 'species validation: ', species_form.is_valid())
             if species_form.is_valid:
                 species = species_form.save(commit=False)
-                print ("Row ", row_count, " validates: ", import_row)
                 
                 # validate input species name and verify non-duplicate
                 if not Species.objects.filter(name=species_name).exists():
-                    print (species_name, "Validated: Species is unique and new, import successful")
                     report_row = [species_name, "Validated: Species is unique and new, import successful"]
                     import_count = import_count + 1
                     newly_added_species = species_form.save()
@@ -62,20 +55,15 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
                         species.render_cares = True
                         newly_added_species.save()
                 else:
-                    print (species_name, "ERROR: species exists - cannot add duplicate species")
                     report_row = [species_name, "ERROR: species exists - cannot add duplicate species"]
             else:
-                print (species_name, "ERROR: validation failure - cannot save species")
                 report_row = [species_name, "ERROR: validation failure - cannot save species"]
             csv_report_writer.writerow(report_row)
-
-        print ("Processed ", row_count, " csv records")
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
         csv_report_filename = current_user.username + "_species_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
-        print ("Import results written to ", import_archive.import_results_file.name)
 
         # persist import archive
         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
@@ -93,8 +81,6 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
 # NOTE: users can have multiple instances of the same species assuming they vary in collection point or genetic traits
 
 def import_csv_speciesInstances (import_archive: ImportArchive, current_user: User):
-    print ("Current User: ", current_user)
-    print ("Processing Species CSV file ", import_archive.import_csv_file.name)
     with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
 
         # create results csv file
@@ -106,12 +92,10 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         # batch process import one species per row
         row_count = 0
         import_count = 0
-        print ("Begin iterating rows")
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             speciesInstance_user = import_row['aquarist']
             speciesInstance_name = import_row['name']
-            print ("Import Instance User: ", speciesInstance_user, " -- Instance Name: ", speciesInstance_name)
 
             # Note: current_user is of type django.utils.functional.SimpleLazyObject need a str type to compare with speciesInstance_user
             current_user_str = str(current_user)
@@ -119,27 +103,20 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
 
                 # validate Species exists - required to instantiate SpeciesInstance
                 species_name = import_row['species']
-                print ("Species name is ", species_name)
                 if Species.objects.filter(name=species_name).exists():
-                    print (species_name, "Species exists - required for SpeciesInstance")
                     species = Species.objects.get(name=species_name)
-                    print ('Fetched species: ', species.name)
 
                     # validate pending SpeciesInstance object 
                     # will foreign key species resolve by name? TBD
                     
                     speciesInstance_form = SpeciesInstanceForm (import_row) # reads expected fields by header name
-                    print ('Row ', row_count, 'speciesInstance validation: ', speciesInstance_form.is_valid())
                     if speciesInstance_form.is_valid:
                         species_instance = speciesInstance_form.save(commit=False)
-                        print ("SpeciesInstance instantiated referencing species: ", species_instance.species)
                         species_instance.species = species
-                        print ("SpeciesInstance instantiated referencing species: ", species_instance.species)
                         species_instance.user = current_user
 
                         # validate instance is unique - not a duplicate - cannot rely on simply name: must use name, species name, and user
                         if not SpeciesInstance.objects.filter(name=speciesInstance_name, user=current_user).exists():
-                            print (speciesInstance_name, "Validated: species instance is unique and new for this user, import successful")
                             report_row = [speciesInstance_name, "Validated: species instance is unique and new for this user, import successful"]
                             import_count = import_count + 1
                             speciesInstance_form.save() # commits to DB
@@ -147,35 +124,27 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                             # special case: re-importing previous species may have media images - try to restore them
                             instance_image = import_row['instance_image']
                             if instance_image != '':
-                                print (speciesInstance_name, "Special Case: instance_image declared - try to restore existing media image to ImageField")
                                 if SpeciesInstance.objects.filter(name=speciesInstance_name).exists():
                                     newly_added_speciesInstance = SpeciesInstance.objects.get(name=speciesInstance_name, user=current_user)
                                     # seems like the following very simple 2 lines of code should happen via the species_form but it does not
                                     newly_added_speciesInstance.instance_image = instance_image
                                     newly_added_speciesInstance.save()
                         else:
-                            print (species_name, "ERROR: species instance exists - cannot add duplicate")
                             report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
                     else:
-                        print (speciesInstance_name, "ERROR: validation failed - unable to create species instance")
                         report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]
                             
                 else:
-                    print (speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance")
                     report_row = [speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance"]
             else:
-                print ("Current User Import User compare: ", current_user, " to ", speciesInstance_user)
-                print (speciesInstance_name, "IGNORE: aquarist ", speciesInstance_user, " is not the active user: ", current_user)
                 report_row = [speciesInstance_name, "IGNORE: aquarist ", speciesInstance_user, " is not the active user: ", current_user]
             csv_report_writer.writerow(report_row)
 
-        print ("Processed ", row_count, " csv records")
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
         csv_report_filename = current_user.username + "_species_instance_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
-        print ("Import results written to ", import_archive.import_results_file.name)
 
         # persist import archive
         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
@@ -186,30 +155,10 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                 import_archive.import_status = ImportArchive.ImportStatus.FULL
         import_archive.name = current_user.username + "_speciesInstance_import"
         import_archive.save()
-        print ("Import Archive saved: ", import_archive.name)
     return
 
 
 #Export Species List, SpeciesInstances, Aquarists
-
-    id         = models.AutoField (primary_key=True)
-    email      = models.EmailField (max_length=50, unique=True)
-    first_name = models.CharField (max_length=100, blank=True)
-    last_name  = models.CharField (max_length=100, blank=True)
-    username   = models.CharField (max_length=100, unique=True)
-    state      = models.CharField (max_length=100, blank=True)
-    country    = models.CharField (max_length=100, blank=True)
-
-    date_joined = models.DateTimeField (auto_now_add=True) 
-
-    is_private_name      = models.BooleanField (default=False)
-    is_private_email     = models.BooleanField (default=True)
-    is_private_location  = models.BooleanField (default=False)
-
-    #allow_comments       = models.BooleanField (default=True)
-
-    is_staff   = models.BooleanField (default=False)
-    is_active  = models.BooleanField (default=True)
 
 
 def export_csv_aquarists():

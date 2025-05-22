@@ -1,0 +1,84 @@
+{% extends 'main.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Create QR Code Labels</h2>
+    <h5>Enter or revise name and text lines to describe each of your fish species.</h5>
+    <h5>&nbsp;&nbsp;&nbsp;&nbsp;<b>For example</b>, Line 1 might be <b><i>"Scan the QR Code to see the parents of these fish."</i></b></h5>
+    <h5>Labels support limited text so please use care to not overrun each label. You may increase the number of labels printed as needed.</h5>
+    <h5>If your species name is very long, you may need to abbreviate the genus name or otherwise shorten the text to fit.</h5>
+    <h5>Your text will be saved for the next time you print labels.</h5>
+    <small>&nbsp;</small>
+    <form method="post" class="label-form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <style>
+            .column {
+              display: inline-block;
+              vertical-align: top;
+              padding: 3px;
+              text-align: left;
+              box-sizing: border-box;
+            }
+        
+            .large {
+              width: 31%;
+            }
+        
+            .small {
+              width: 7%;
+            }
+            .container {
+            font-family: sans-serif;
+            width: 100%;
+            white-space: nowrap; /* prevents wrapping */
+            }
+        </style>
+
+
+        <div class="form-row mb-3 d-flex align-items-center">
+            <div class="column large">&nbsp;&nbsp;Species Name</div>
+            <div class="column large">&nbsp;&nbsp;Additional Text Line 1</div>
+            <div class="column large">&nbsp;&nbsp;Additional Text Line 2</div>
+            <div class="column small">&nbsp;&nbsp;Number</div>
+        </div>
+        <div id="form-rows">
+        {% for form in formset %}
+            <div class="form-row mb-3 d-flex align-items-center">
+                <div class="column large" style="border-right:1px">
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="alert alert-danger">{{ form.text.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="column large" style="border-left:1px">
+                    {{ form.text_line1 }}
+                    {% if form.text_line1.errors %}
+                        <div class="alert alert-danger">{{ form.text_line1.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="column large" style="border-left:1px">
+                    {{ form.text_line2 }}
+                    {% if form.text_line2.errors %}
+                        <div class="alert alert-danger">{{ form.text_line2.errors }}</div>
+                    {% endif %}
+                </div>                
+                <div class="column small" style="border-left:1px">
+                    {{ form.number }}
+                    {% if form.number.errors %}
+                        <div class="alert alert-danger">{{ form.text_line2.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+        
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Generate Labels PDF</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

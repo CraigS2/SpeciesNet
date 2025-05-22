@@ -43,6 +43,10 @@ urlpatterns = [
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
     path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
 
+    path('speciesInstanceLabels', views.speciesInstanceLabels, name="speciesInstanceLabels"),  
+    path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
+    path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
+
     path('searchSpecies/', views.searchSpecies, name="searchSpecies"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),

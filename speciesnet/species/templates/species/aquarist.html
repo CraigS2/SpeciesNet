@@ -47,6 +47,12 @@
     <p><B>None</B></p>
 {% endif %}
 <small>&nbsp;</small>
+
+{% if userCanEdit %}
+
+    <p><a class="btn btn-secondary" href="{% url 'chooseSpeciesInstancesForLabels' aquarist.id  %}" role="button">&nbsp;Create Labels&nbsp;</a></p>
+    <small>&nbsp;</small>
+{% endif %}
 </div>
 
 {% if speciesPreviouslyKept.all.count > 0  %}
