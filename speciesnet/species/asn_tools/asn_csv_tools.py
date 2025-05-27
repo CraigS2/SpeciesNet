@@ -62,7 +62,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-        csv_report_filename = current_user.username + "_species_import_log.csv"
+        csv_report_filename = current_user.get_display_name + "_species_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
         # persist import archive
@@ -72,7 +72,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         else:
             if import_count == row_count:
                 import_archive.import_status = ImportArchive.ImportStatus.FULL
-        import_archive.name = current_user.username + "_species_import"
+        import_archive.name = current_user.get_display_name + "_species_import"
         import_archive.save()
     return
 
@@ -143,7 +143,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-        csv_report_filename = current_user.username + "_species_instance_import_log.csv"
+        csv_report_filename = current_user.get_display_name + "_species_instance_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
         # persist import archive
@@ -153,7 +153,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         else:
             if import_count == row_count:
                 import_archive.import_status = ImportArchive.ImportStatus.FULL
-        import_archive.name = current_user.username + "_speciesInstance_import"
+        import_archive.name = current_user.get_display_name + "_speciesInstance_import"
         import_archive.save()
     return
 

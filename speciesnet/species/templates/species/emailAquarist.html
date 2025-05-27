@@ -2,11 +2,11 @@
 
 {% block content %}
 
-<h3>Email {{aquarist.username}}</h3>
+<h3>Email {{aquarist.get_display_name}}</h3>
 <div> 
     {% if not aquarist.is_private_email %}
     <p>
-        Use this form to send email to {{aquarist.username}}
+        Use this form to send email to {{aquarist.get_display_name}}
         {% if not aquarist.is_private_name %}
             ({{aquarist.first_name}} {{aquarist.last_name}})
         {% endif %} 
@@ -15,9 +15,9 @@
     </p>
     {% else %}
     <p>
-        {{aquarist.username}} has configured their user profile to use <b><i>private email.</i></b> <br>
+        {{aquarist.get_display_name}} has configured their user profile to use <b><i>private email.</i></b> <br>
         This means you can use this form to send email but you will not be copied (cc'd) on the email message. <br>
-        Your email address will be included in the message and <b>{{aquarist.username}}</b> can reply directly to you.
+        Your email address will be included in the message and <b>{{aquarist.get_display_name}}</b> can reply directly to you.
     </p>
     {% endif %}
     <p></p>

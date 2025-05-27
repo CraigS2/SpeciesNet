@@ -10,17 +10,16 @@
     <ul>
         {% for aquarist in collaborators %}
             {% if aquarist.is_private_name %}
-                <!--li><font style="color:black;">{{user.username}}</font></li-->
-                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a></font></li>
+                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}}</a></font></li>
             {% else %}
-                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a> ({{aquarist.first_name}} {{aquarist.last_name}})</font></li>
+                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}}</a> ({{aquarist.first_name}} {{aquarist.last_name}})</font></li>
             {% endif %}        
         {% endfor %} 
     </ul>
     <h4><b>Aquarist Species</b>:</h4>  
     <ul>
         {% for speciesInstance in speciesInstances %}
-        <li><font style="color:black;">{{speciesInstance.user.username}} : <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></font></li>
+        <li><font style="color:black;">{{speciesInstance.user.get_display_name}} : <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></font></li>
         {% endfor %} 
     </ul> 
 </div>

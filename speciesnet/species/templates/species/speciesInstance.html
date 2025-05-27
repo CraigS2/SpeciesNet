@@ -5,7 +5,7 @@
 
 <div class="div-line-below">
     <h2>{{speciesInstance.name}}</h2>
-    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a></h3>
+    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h3>
     <h3>Species:  <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
     {% if species.alt_name %}
         <p><b>Alternate Name: &nbsp;&nbsp;</b>{{species.alt_name}}</p>

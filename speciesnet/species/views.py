@@ -15,7 +15,7 @@ from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, Specie
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
-from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet
+from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpecesSearchFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -28,6 +28,7 @@ from species.asn_tools.asn_pdf_tools import generatePdfLabels
 #from datetime import datetime
 from django.utils import timezone
 from csv import DictReader
+from django.views.generic import ListView
 import logging
 
 ### Home page
@@ -62,7 +63,7 @@ def species(request, pk):
             speciesComment = form2.save(commit=False)
             speciesComment.user = cur_user
             speciesComment.species = species
-            speciesComment.name = cur_user.username + " - " + species.name
+            speciesComment.name = cur_user.get_display_name + " - " + species.name
             speciesComment.save()
 
     context = {'species': species, 'speciesInstances': speciesInstances, 'speciesComments': speciesComments, 'speciesReferenceLinks': speciesReferenceLinks,
@@ -132,16 +133,69 @@ def editUserProfile(request):
 
 
 ### Search Species
+    
+############################################################################################
+
+class SpeciesListView(ListView):
+    model = Species
+    template_name = "species/speciesSearch.html"
+    context_object_name = "species_list"
+    paginate_by = 200  # Maximum 200 Species per page
+    
+    def get_queryset(self):
+        queryset = Species.objects.all()
+        
+        # Get filter parameters from GET request
+        category = self.request.GET.get('category', '')
+        global_region = self.request.GET.get('global_region', '')
+        query_text = self.request.GET.get('q', '')
+        
+        # Apply filters if they exist
+        if category:
+            queryset = queryset.filter(category=category)
+        
+        if global_region:
+            queryset = queryset.filter(global_region=global_region)
+        
+        # Text search across multiple text fields
+        if query_text:
+            queryset = queryset.filter(
+                Q(name__icontains                 = query_text) | 
+                Q(alt_name__icontains             = query_text) | 
+                Q(common_name__icontains          = query_text) | 
+                Q(local_distribution__icontains   = query_text) | 
+                Q(description__icontains          = query_text)
+            )
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add the filter choices to the context
+        context['categories'] = Species.Category.choices
+        context['global_regions'] = Species.GlobalRegion.choices
+        
+        # Add selected values to persist filters
+        context['selected_category'] = self.request.GET.get('category', '')
+        context['selected_region'] = self.request.GET.get('global_region', '')
+        context['query_text'] = self.request.GET.get('q', '')
+        
+        return context
+
 
 def searchSpecies(request):
-    speciesSet = Species.objects.all()
-    speciesInstances = SpeciesInstance.objects.all()[:32] # limit recent update list to 32 items
+    #speciesSet = Species.objects.all()                    
+    speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
+
     # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
     q = request.GET.get('q') if request.GET.get('q') != None else '' 
     speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
                                            Q(local_distribution__icontains=q) | Q(description__icontains=q))
-    context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances}
+    context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
     return render(request, 'species/searchSpecies.html', context)
+
+###############################################################################################
 
 ### Add speciesInstance Wizard 
 
@@ -160,8 +214,31 @@ def addSpeciesInstanceWizard2 (request):
     return render(request, 'species/addSpeciesInstanceWizard2.html', context)
 
 ### Aquarists page
+class AquaristListView(ListView):
+    model = User
+    template_name = "species/aquarists.html"
+    context_object_name = "aquarist_list"
+    paginate_by = 200  
+    
+    def get_queryset(self):
+        queryset = super().get_queryset() # Get the base queryset
+        queryset = User.objects.all()
+        query_text = self.request.GET.get('q', '')
 
-def aquarists (request):
+        # Text search across multiple text fields
+        if query_text:
+            print ("Query in progress: " + query_text)
+            queryset = queryset.filter( Q(username__icontains = query_text) | Q(first_name__icontains = query_text) | 
+                                        Q(last_name__icontains  = query_text) )
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query_text'] = self.request.GET.get('q', '')
+        context['recent_speciesInstances'] = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
+        return context
+
+def aquarists2 (request):
     aquarists = User.objects.all()
     context = {'aquarists': aquarists}
     return render(request, 'species/aquarists.html', context)
@@ -274,7 +351,7 @@ def deleteSpecies (request, pk):
     species = Species.objects.get(id=pk)
     if (request.method == 'POST'):
         species.delete()
-        return redirect('searchSpecies')
+        return redirect('speciesSearch')
     context = {'species': species}
     return render (request, 'species/deleteSpecies.html', context)
 
@@ -321,12 +398,12 @@ def deleteSpeciesInstance (request, pk):
         raise PermissionDenied()
     if (request.method == 'POST'):
         speciesInstance.delete()
-        return redirect('searchSpecies')
+        return redirect('speciesSearch')
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/deleteSpeciesInstance.html', context)
 
 
-# SpeciesInstanceLables
+# SpeciesInstanceLabels
 
 @login_required(login_url='login')
 def speciesInstanceLabels (request):
@@ -380,7 +457,7 @@ def editSpeciesInstanceLabels (request):
         default_labels = []
         for si in species_choices:
             speciesInstance = SpeciesInstance.objects.get(id=si)
-            text_line1 = 'Scan the QR Code to see photos and additonal info'
+            text_line1 = 'Scan the QR Code to see photos and additional info'
             text_line2 = 'about this fish on my AquaristSpecies.net page.'
             number     = 1
             si_label = None
@@ -1048,8 +1125,6 @@ def loginUser(request):
         return redirect('home')
     
     if (request.method == 'POST'):
-        #username = request.POST.get('username').lower()
-        #username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
         try:
@@ -1057,7 +1132,6 @@ def loginUser(request):
         except:
             messages.error(request, 'Login failed - user not found')
 
-        #user = authenticate(request, username=username, password=password)
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)

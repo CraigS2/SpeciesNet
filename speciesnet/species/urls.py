@@ -4,6 +4,9 @@ from django.views.static import serve
 #from django.conf.urls import url - deprecated
 from django.conf import settings
 from . import views
+from species.views import SpeciesListView
+
+
 
 urlpatterns = [
     path('login/', views.loginUser, name="login"),
@@ -15,7 +18,9 @@ urlpatterns = [
     path('userProfile/', views.userProfile, name="userProfile"),
     path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
 
-    path('aquarists/', views.aquarists, name="aquarists"),
+    path('aquarists/', views.AquaristListView.as_view(), name="aquarists"),
+
+    path('aquarists2/', views.aquarists2, name="aquarists2"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
     path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
     path('exportAquarists/', views.exportAquarists, name="exportAquarists"),
@@ -46,6 +51,9 @@ urlpatterns = [
     path('speciesInstanceLabels', views.speciesInstanceLabels, name="speciesInstanceLabels"),  
     path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
     path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
+
+    path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
+    #path('', SpeciesListView.as_view(), name='species_list'),
 
     path('searchSpecies/', views.searchSpecies, name="searchSpecies"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),

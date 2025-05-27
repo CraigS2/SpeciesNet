@@ -18,7 +18,6 @@ class UserManager (BaseUserManager):
             raise ValueError ('Password is required.')
         email = self.normalize_email (email)
         user = self.model(email=email, username=username, **extra_fields)
-        #user.set_username (username)
         user.set_password (password)
         user.save()
         return user
@@ -68,12 +67,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     def clean(self):
         super().clean()
         self.email = self.__class__.objects.normalize_email(self.email)
+
     def get_full_name(self):
         full_name = "%s %s" % (self.first_name, self.last_name)
         return full_name.strip()
 
     def get_short_name(self):
         return self.first_name
+    
+    def get_display_name(self):
+        """Return username without domain if it's an email address."""
+        if '@' in self.username:
+            return self.username.split('@')[0]
+        return self.username
 
     def email_user(self, subject, message, from_email=None, **kwargs):
         send_mail(subject, message, from_email, [self.email], **kwargs)
@@ -112,11 +118,11 @@ class Species (models.Model):
         CICHLIDS        = 'CIC', _('Cichlids')
         RAINBOWFISH     = 'RBF', _('Rainbowfish')
         KILLIFISH       = 'KLF', _('Killifish')
-        CHARACINS       = 'CHA', _('Characins (Tetras)')
+        CHARACINS       = 'CHA', _('Characins')
         CATFISH         = 'CAT', _('Catfish')
         LIVEBEARERS     = 'LVB', _('Livebearers')
-        CYPRINIDS       = 'CYP', _('Cyprinids (Carps, Barbs, Danios, Minnows)')
-        ANABATIDS       = 'ANA', _('Anabatids (Gouramis, Bettas)')
+        CYPRINIDS       = 'CYP', _('Cyprinids')
+        ANABATIDS       = 'ANA', _('Anabantids')
         LOACHES         = 'LCH', _('Loaches')
         OTHER           = 'OTH', _('All Others')
 
@@ -152,6 +158,7 @@ class Species (models.Model):
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
+        verbose_name_plural = "Species"
 
     def __str__(self):
         return self.name

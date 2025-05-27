@@ -19,7 +19,7 @@
     {% if collaborators.all.count > 0  %}
         {% for collaborator in collaborators %}
             <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <b>{{collaborator.username}}</b>
+                <b>{{collaborator.get_display_name}}</b>
                 {% if not collaborators.is_private_name  %}
                 &nbsp;&nbsp;({{collaborator.first_name}}&nbsp;{{collaborator.last_name}})
                 {% endif %}
@@ -40,7 +40,7 @@
     {% if speciesInstances.all.count > 0  %}
         {% for speciesInstance in speciesInstances %}
             <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                {{speciesInstance.name}}&nbsp;(<b>{{speciesInstance.user.username}}</b>) 
+                {{speciesInstance.name}}&nbsp;(<b>{{speciesInstance.user.get_display_name}}</b>) 
             </p>
         {% endfor %}
     {% endif %}  

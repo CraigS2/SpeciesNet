@@ -8,7 +8,7 @@
         {% for speciesComment in speciesComments %}
         <div class="div-line-below">
             <p>
-                <a href="{% url 'aquarist' speciesComment.user.id %}">{{speciesComment.user.username}}</a>&nbsp;&nbsp;
+                <a href="{% url 'aquarist' speciesComment.user.id %}">{{speciesComment.user.get_display_name}}</a>&nbsp;&nbsp;
                 <a href="{% url 'species' speciesComment.species.id %}">{{speciesComment.species.name}}</a>&nbsp;&nbsp;
                 <i>"{{speciesComment.comment}}"</i>&nbsp;&nbsp;
             </p>

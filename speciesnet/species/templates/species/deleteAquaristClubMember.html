@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1>Delete Club Member: {{aquaristClubMember.user.username}} </h1>
+<h1>Delete Club Member: {{aquaristClubMember.user.get_display_name}} </h1>
 
     <div>
         <form method="POST" action="">

@@ -5,7 +5,7 @@
 <div class="div-line-below">
     <h2>Species Log </a></h2>
     <h3><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h3>
-    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a></h3>
+    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h3>
     {% if userCanEdit %}
         <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a></p>
     {% endif %}

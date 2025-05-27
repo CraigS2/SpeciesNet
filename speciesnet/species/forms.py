@@ -117,6 +117,34 @@ class SpeciesInstanceLabelForm(forms.ModelForm):
 
 SpeciesInstanceLabelFormSet = formset_factory(SpeciesInstanceLabelForm, extra=0)
 
+class SpecesSearchFilterForm (forms.Form):
+    CATEGORY_CHOICES = [
+        ('CIC', 'Cichlids'),
+        ('RBF', 'Rainbowfish'),
+        ('KLF', 'Killifish'),
+        ('CHA', 'Characins'),
+        ('CAT', 'Catfish'),
+        ('LVB', 'Livebearers'),
+        ('CYP', 'Cyprinids'),
+        ('ANA', 'Anabatids'),
+        ('LCH', 'Loaches'),
+        ('',    'All Categories',),
+    ]
+    GLOBAL_REGION_CHOICES = [
+        ('SAM', 'Africa'),
+        ('CAM', 'South America'),
+        ('NAM', 'Central America'),
+        ('AFR', 'North America'),
+        ('SEA', 'Southeast Asia'),
+        ('AUS', 'Australia'),
+        ('',    'All Regions'),
+    ]   
+    category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
+    region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
+
+
+
+
 class UserProfileForm (ModelForm):
     class Meta:
         model = User
