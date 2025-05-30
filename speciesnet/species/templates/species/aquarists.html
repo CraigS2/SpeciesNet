@@ -74,8 +74,8 @@
                                 <!-- p-3 adds padding 1 rem or 16 px around the image-->
                                 <img src="{{ speciesInstance.instance_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
                                     style="height: 200px; object-fit: cover;">
-                            {% elif speciesInstance.species.instance_image %}
-                                <img src="{{ speciesInstance.specie.instance_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
+                            {% elif speciesInstance.species.species_image %}
+                                <img src="{{ speciesInstance.species.species_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
                                     style="height: 200px; object-fit: cover;">
                             {% else %}
                                 <img src={% static "images\asn_placeholder_not_found.png" %} class="card-img-top p-3" alt="{{ speciesInstance.name }}" 

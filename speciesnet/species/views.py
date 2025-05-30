@@ -131,10 +131,7 @@ def editUserProfile(request):
     context = {'form': form}
     return render (request, 'species/editUserProfile.html', context)
 
-
 ### Search Species
-    
-############################################################################################
 
 class SpeciesListView(ListView):
     model = Species
@@ -144,20 +141,13 @@ class SpeciesListView(ListView):
     
     def get_queryset(self):
         queryset = Species.objects.all()
-        
-        # Get filter parameters from GET request
         category = self.request.GET.get('category', '')
         global_region = self.request.GET.get('global_region', '')
         query_text = self.request.GET.get('q', '')
-        
-        # Apply filters if they exist
         if category:
             queryset = queryset.filter(category=category)
-        
         if global_region:
             queryset = queryset.filter(global_region=global_region)
-        
-        # Text search across multiple text fields
         if query_text:
             queryset = queryset.filter(
                 Q(name__icontains                 = query_text) | 
@@ -166,36 +156,25 @@ class SpeciesListView(ListView):
                 Q(local_distribution__icontains   = query_text) | 
                 Q(description__icontains          = query_text)
             )
-        
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Add the filter choices to the context
         context['categories'] = Species.Category.choices
         context['global_regions'] = Species.GlobalRegion.choices
-        
-        # Add selected values to persist filters
         context['selected_category'] = self.request.GET.get('category', '')
         context['selected_region'] = self.request.GET.get('global_region', '')
         context['query_text'] = self.request.GET.get('q', '')
-        
         return context
 
-
 def searchSpecies(request):
-    #speciesSet = Species.objects.all()                    
     speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
-
     # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
     q = request.GET.get('q') if request.GET.get('q') != None else '' 
     speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
                                            Q(local_distribution__icontains=q) | Q(description__icontains=q))
     context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
     return render(request, 'species/searchSpecies.html', context)
-
-###############################################################################################
 
 ### Add speciesInstance Wizard 
 
@@ -214,6 +193,7 @@ def addSpeciesInstanceWizard2 (request):
     return render(request, 'species/addSpeciesInstanceWizard2.html', context)
 
 ### Aquarists page
+
 class AquaristListView(ListView):
     model = User
     template_name = "species/aquarists.html"
@@ -224,12 +204,11 @@ class AquaristListView(ListView):
         queryset = super().get_queryset() # Get the base queryset
         queryset = User.objects.all()
         query_text = self.request.GET.get('q', '')
-
-        # Text search across multiple text fields
         if query_text:
-            print ("Query in progress: " + query_text)
-            queryset = queryset.filter( Q(username__icontains = query_text) | Q(first_name__icontains = query_text) | 
+            queryset = queryset.filter (Q(username__icontains   = query_text) | 
+                                        Q(first_name__icontains = query_text) | 
                                         Q(last_name__icontains  = query_text) )
+        queryset = queryset.exclude(is_private_name=True)
         return queryset
     
     def get_context_data(self, **kwargs):
@@ -292,7 +271,6 @@ def emailAquarist(request, pk):
             messages.info (request, mailed_msg)
         return HttpResponseRedirect(reverse("aquarist", args=[aquarist.id]))
     return render (request, 'species/emailAquarist.html', context)
-
     
 ### Create Edit Delete Species & SpeciesInstance pages
 
@@ -402,7 +380,6 @@ def deleteSpeciesInstance (request, pk):
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/deleteSpeciesInstance.html', context)
 
-
 # SpeciesInstanceLabels
 
 @login_required(login_url='login')
@@ -475,7 +452,6 @@ def editSpeciesInstanceLabels (request):
 
     return render(request, 'editSpeciesInstanceLabels.html', {'formset': formset})
 
-
 ### Create Edit Delete Species Log Entries
 
 @login_required(login_url='login')
@@ -510,7 +486,6 @@ def createSpeciesInstanceLogEntry (request, pk):
     context = {'form': form}
     return render (request, 'species/createSpeciesInstanceLogEntry.html', context)
 
-
 @login_required(login_url='login')
 def editSpeciesInstanceLogEntry (request, pk):
     register_heif_opener()
@@ -531,7 +506,6 @@ def editSpeciesInstanceLogEntry (request, pk):
     context = {'form': form, 'speciesInstanceLogEntry': speciesInstanceLogEntry}
     return render (request, 'species/editSpeciesInstanceLogEntry.html', context)
 
-
 @login_required(login_url='login')
 def deleteSpeciesInstanceLogEntry (request, pk):
     speciesInstanceLogEntry = SpeciesInstanceLogEntry.objects.get(id=pk)
@@ -547,7 +521,6 @@ def deleteSpeciesInstanceLogEntry (request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
-
 @login_required(login_url='login')
 def speciesMaintenanceLogs (request):
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.all()
@@ -556,7 +529,6 @@ def speciesMaintenanceLogs (request):
         raise PermissionDenied()
     context = {'speciesMaintenanceLogs': speciesMaintenanceLogs}
     return render (request, 'species/speciesMaintenanceLogs.html', context)
-
 
 def speciesMaintenanceLog (request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
@@ -567,7 +539,6 @@ def speciesMaintenanceLog (request, pk):
     context = {'speciesMaintenanceLog': speciesMaintenanceLog, 'speciesMaintenanceLogEntries': speciesMaintenanceLogEntries, 
                'speciesInstances': speciesInstances, 'collaborators': collaborators, 'userCanEdit': userCanEdit}
     return render(request, 'species/speciesMaintenanceLog.html', context)
-
 
 @login_required(login_url='login')
 def createSpeciesMaintenanceLog (request, pk):
@@ -611,7 +582,6 @@ def editSpeciesMaintenanceLog (request, pk):
                'num_avail_collaborators': num_avail_collaborators, 'num_avail_speciesInstances': num_avail_speciesInstances}
     return render (request, 'species/editSpeciesMaintenanceLog.html',context)
 
-
 def addMaintenanceGroupCollaborator(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     available_collaborators = get_sml_available_collaborators (speciesMaintenanceLog)
@@ -632,7 +602,6 @@ def addMaintenanceGroupCollaborator(request, pk):
     object_name = 'Species Maintenance Group Collaborator'
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
     return render(request, 'maintenanceGroupCollaborator.html', context)
-
 
 def removeMaintenanceGroupCollaborator(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
@@ -655,7 +624,6 @@ def removeMaintenanceGroupCollaborator(request, pk):
     object_name = 'Species Maintenance Group Collaborator'
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
     return render(request, 'maintenanceGroupCollaborator.html', context)
-
 
 def addMaintenanceGroupSpecies (request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
@@ -681,7 +649,6 @@ def addMaintenanceGroupSpecies (request, pk):
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
     return render(request, 'maintenanceGroupCollaborator.html', context)
 
-
 def removeMaintenanceGroupSpecies (request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     speciesInstances =  speciesMaintenanceLog.speciesInstances.all()
@@ -705,7 +672,6 @@ def removeMaintenanceGroupSpecies (request, pk):
         return render(request, 'maintenanceGroupCollaborator.html', context)       
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
     return render(request, 'maintenanceGroupCollaborator.html', context)
-            
 
 @login_required(login_url='login')
 def deleteSpeciesMaintenanceLog (request, pk):
@@ -719,7 +685,6 @@ def deleteSpeciesMaintenanceLog (request, pk):
         return HttpResponseRedirect(reverse("species", args=[species.id])) 
     context = {'speciesMaintenanceLog': speciesMaintenanceLog}
     return render (request, 'species/deleteSpeciesMaintenanceLog.html', context)
-
 
 @login_required(login_url='login')
 def createSpeciesMaintenanceLogEntry (request, pk):
@@ -745,7 +710,6 @@ def createSpeciesMaintenanceLogEntry (request, pk):
     context = {'form': form }
     return render (request, 'species/createSpeciesMaintenanceLogEntry.html', context)
 
-
 @login_required(login_url='login')
 def editSpeciesMaintenanceLogEntry (request, pk):
     speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects.get(id=pk)
@@ -770,7 +734,6 @@ def editSpeciesMaintenanceLogEntry (request, pk):
     context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
     return render (request, 'species/editSpeciesMaintenanceLogEntry.html', context)
 
-
 @login_required(login_url='login')
 def deleteSpeciesMaintenanceLogEntry (request, pk):
     speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects.get(id=pk)
@@ -784,7 +747,6 @@ def deleteSpeciesMaintenanceLogEntry (request, pk):
     object_name = 'Log Entry'
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
-
 
 ### Species Comments
 
@@ -826,7 +788,6 @@ def deleteSpeciesComment (request, pk):
     context = {'speciesComment': speciesComment}
     return render (request, 'species/deleteSpeciesComment.html', context)
 
-
 ### Species Reference Links
 
 @login_required(login_url='login')
@@ -836,7 +797,6 @@ def speciesReferenceLinks (request):
         raise PermissionDenied()
     context = {'speciesReferenceLinks': speciesReferenceLinks}
     return render (request, 'species/speciesReferenceLinks.html', context)
-
 
 def createSpeciesReferenceLink (request, pk):
     species = Species.objects.get(id=pk)
@@ -853,7 +813,6 @@ def createSpeciesReferenceLink (request, pk):
         return render (request, 'species/createSpeciesReferenceLink.html', context)   
     context = {'form': form }
     return render (request, 'species/createSpeciesReferenceLink.html', context)
-
 
 @login_required(login_url='login')
 def editSpeciesReferenceLink (request, pk): 
@@ -873,7 +832,6 @@ def editSpeciesReferenceLink (request, pk):
     context = {'form': form, 'speciesReferenceLink': speciesReferenceLink}
     return render (request, 'species/editSpeciesReferenceLink.html', context)
 
-
 @login_required(login_url='login')
 def deleteSpeciesReferenceLink (request, pk):
     speciesReferenceLink = SpeciesReferenceLink.objects.get(id=pk)
@@ -889,7 +847,6 @@ def deleteSpeciesReferenceLink (request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
-
 ### View Create Edit Delete Aquarist Club
 
 @login_required(login_url='login')
@@ -897,7 +854,6 @@ def aquaristClubs (request):
     aquaristClubs = AquaristClub.objects.all()
     context = {'aquaristClubs': aquaristClubs}
     return render (request, 'species/aquaristClubs.html', context)
-
 
 @login_required(login_url='login')
 def aquaristClub (request, pk):
@@ -909,7 +865,6 @@ def aquaristClub (request, pk):
         userCanEdit = True       # Allow Species Admins to always edit/delete
     context = {'aquaristClub': aquaristClub, 'aquaristClubMembers': aquaristClubMembers, 'userCanEdit': userCanEdit }
     return render (request, 'species/aquaristClub.html', context)
-
 
 @login_required(login_url='login')
 def createAquaristClub (request):
@@ -923,7 +878,6 @@ def createAquaristClub (request):
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
     context = {'form': form}
     return render (request, 'species/createAquaristClub.html', context)
-
 
 @login_required(login_url='login')
 def editAquaristClub (request, pk): 
@@ -1146,5 +1100,4 @@ def logoutUser(request):
    page = 'logout'
    logout(request)
    return redirect('home')
-
 

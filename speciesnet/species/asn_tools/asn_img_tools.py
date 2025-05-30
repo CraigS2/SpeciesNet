@@ -54,17 +54,14 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
         img.close()
 
     except OSError:
-
         # TODO Log the error.
         # logging.error(traceback.format_exc())
         error_msg = ("Error processing uploaded image file: " + uploaded_image_filename)
-        print (error_msg)
         messages.error (request, error_msg)
         try:
             img.close()
         except OSError:
             print ("Unable to close opened image file")
-
     return
 
 
