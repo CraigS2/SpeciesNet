@@ -20,13 +20,24 @@
 <body>
     {% include 'navbar.html' %}
 
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9D8MJ9CKT7"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9D8MJ9CKT7');
+    </script>
+
+    <!-- Google Sign-in Option -->
     {# Add hide_google_login = True to any of your contexts to hide the one click google login window #}
     {% if not request.user.is_authenticated and not hide_google_login %}
-    <!--script src="//accounts.google.com/gsi/client" async></script>
-      <div id="g_id_onload"
-          data-client_id="{{ GOOGLE_OAUTH_LINK }}"
-          data-login_uri="{% url 'google_login_by_token' %}">
-      <!/div-->
+    <script src="//accounts.google.com/gsi/client" async></script>
+    <div id="g_id_onload"
+        data-client_id="{{ GOOGLE_OAUTH_LINK }}"
+        data-login_uri="{% url 'google_login_by_token' %}">
+    </div>
+
     {% endif %}
     {% if messages %}
         {% for message in messages %}
