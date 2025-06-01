@@ -5,7 +5,7 @@
     <h2>Club Members</h2>
     {% for member in aquaristClubMembers %}
         <div>
-            <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.username}}</a></h5>
+            <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.get_display_name}}</a></h5>
         </div>
     {% endfor %} 
 </div>

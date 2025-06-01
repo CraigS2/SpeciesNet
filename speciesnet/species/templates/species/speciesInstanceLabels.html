@@ -7,7 +7,7 @@
     {% if not speciesInstancesEmpty%}
         {% for si_label in si_labels %}
             <div class="div-line-below">
-                <p><a href="{% url 'speciesInstance' si_label.speciesInstance.id %}">{{si_label.speciesInstance.name}}</a> ({{si_label.speciesInstance.user.username}})</p>
+                <p><a href="{% url 'speciesInstance' si_label.speciesInstance.id %}">{{si_label.speciesInstance.name}}</a> ({{si_label.speciesInstance.user.get_display_name}})</p>
                 <p>&nbsp;&nbsp;&nbsp;&nbsp;<img src={{si_label.qr_code.url}}></p>
                 <p>&nbsp;&nbsp;&nbsp;&nbsp;{{si_label.text_line1}}</p>
                 <p>&nbsp;&nbsp;&nbsp;&nbsp;{{si_label.text_line2}}</p>

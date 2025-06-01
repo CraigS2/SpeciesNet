@@ -1,16 +1,129 @@
 {% extends 'main.html' %}
-
+{% load static %}
 {% block content %}
-<div>
-    <h2>Aquarists</h2>
-    {% for aquarist in aquarists %}
-        <div>
-            {% if aquarist.species_instances.all.count > 0 %}
-                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a> ({{aquarist.species_instances.all.count}})</h5>
-            {% else %}
-                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}}</a></h5>
-            {% endif %}
+
+<div class="home-container">
+    <div class="container py-1">
+        <!--div class="card mb-4"-->
+        <h2 class="mb-2">Aquarists</h2>
+        <div class="card h-100 shadow-sm bg-secondary rounded">
+            <div class="card-body bg-secondary">
+                <form method="get" id="filter-form">
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <label for="q">Search Aquarists:</label>
+                            <input type="text" class="form-control" name="q" id="q" placeholder="Search name ... " value="{{ query_text }}">
+                            <small class="form-text text-muted">Press Enter to search</small>
+                        </div>
+                        <!--div class="col-md-2">
+                            <button type="submit" class="btn btn-primary mt-4">Search</button>
+                        </div-->
+                        <div class="col-md-2">
+                            <button type="button" id="clear-text-search" class="btn btn-secondary mt-4">Clear</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
+                </form>
+
+                {% if aquarist_list %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for aquarist in aquarist_list %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}}</a>                                       
+                                        </td>
+                                        <td>
+                                            {% if not aquarist.is_private_name %}
+                                                {{ aquarist.first_name }} {{ aquarist.last_name }} 
+                                            {% else %}
+                                                <i>Private</i>
+                                            {% endif %}
+                                        </td>                                    
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <h5>Aquarist List is empty</h5>
+                {% endif %}
+            </div>
         </div>
-    {% endfor %} 
+    </div>
+    <div class="container py-1">
+        <h2 class="mb-2">Recent Updates</h2>
+        {% if recent_speciesInstances %}
+            <!--div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4"-->
+            <!--row-cols-1 smallest screen, row-cols-2 small screen, row-cols-3 medium screen, row-cols-4 large screen-->
+            <!--g-4 adds gutter spacing between columns: 1.5 rem or 24 px-->
+            <div class="row row-cols-1 row-cols-sm-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-3 g-3">
+                {% for speciesInstance in recent_speciesInstances %}
+                    <div class="col">
+                        <div class="card h-100 shadow-sm bg-secondary">
+                            <!--p class="card-title fw fs-5">&nbsp;{{speciesInstance.name}}</p-->
+                            <p class="card-title fw fs-6 p-2">&nbsp;{{speciesInstance.name}}</p>
+                            {% if speciesInstance.instance_image %}
+                                <!-- p-3 adds padding 1 rem or 16 px around the image-->
+                                <img src="{{ speciesInstance.instance_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
+                                    style="height: 200px; object-fit: cover;">
+                            {% elif speciesInstance.species.species_image %}
+                                <img src="{{ speciesInstance.species.species_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
+                                    style="height: 200px; object-fit: cover;">
+                            {% else %}
+                                <img src={% static "images\asn_placeholder_not_found.png" %} class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
+                                    style="height: 200px; object-fit: cover;">   
+                            {% endif %}                  
+                            <div class="card-body bg-secondary bg-opacity-90">
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        {{speciesInstance.lastUpdated | timesince}} by
+                                        <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a>
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-secondary bg-opacity-90 border-top-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'speciesInstance' speciesInstance.id  %}" class="btn btn-sm btn-outline-primary">
+                                        View Details
+                                    </a>
+                                    <span class="badge bg-secondary rounded-pill">ID: {{ speciesInstance.id }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                Nothing to display
+            </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+    // Make Enter key work for text search
+    document.getElementById('q').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('filter-form').submit();
+        }
+    });
+
+    // Clear Text Search button
+    document.getElementById('clear-text-search').addEventListener('click', function() {
+        document.getElementById('q').value = '';
+        document.getElementById('filter-form').submit();
+    });
+
+</script>
+
 {% endblock content %}

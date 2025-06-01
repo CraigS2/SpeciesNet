@@ -4,10 +4,10 @@
 <!--hr-->
 
     <div>
-        <h1>{{aquarist.username}}</h1>
+        <h1>{{aquarist.get_display_name}}</h1>
         <large>
-            <p><B>Username:</B> &nbsp;{{aquarist.username}}</p>
-            <p><B>Aquarist Page:</B> <a href="{% url 'aquarist' aquarist.id %}">{{aquarist.username}} Fish Room</a></p>
+            <p><B>Username:</B> &nbsp;{{aquarist.get_display_name}}</p>
+            <p><B>Aquarist Page:</B> <a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}} Fish Room</a></p>
             <p><B>Name:</B> &nbsp;{{aquarist.first_name}} {{aquarist.last_name}}</p>
             <p><B>Email:</B> &nbsp;{{aquarist.email}}</p>
             <p><B>State:</B> &nbsp;{{aquarist.state}}</p>

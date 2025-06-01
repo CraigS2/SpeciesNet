@@ -8,7 +8,7 @@
         {% for speciesReferenceLink in speciesReferenceLinks %}
         <div class="div-line-below">
             <p>
-                <a href="{% url 'aquarist' speciesReferenceLink.user.id %}">{{speciesReferenceLink.user.username}}</a>&nbsp;&nbsp;
+                <a href="{% url 'aquarist' speciesReferenceLink.user.id %}">{{speciesReferenceLink.user.get_display_name}}</a>&nbsp;&nbsp;
                 <a href="{% url 'species' speciesReferenceLink.species.id %}">{{speciesReferenceLink.species.name}}</a> &nbsp;&nbsp;
                 {{speciesReferenceLink.name}}&nbsp;&nbsp;
                 <i>"{{speciesReferenceLink.reference_url}}"</i>

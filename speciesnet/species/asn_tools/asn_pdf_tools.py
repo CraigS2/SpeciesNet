@@ -99,7 +99,6 @@ def generatePdfLabels (formset: SpeciesInstanceLabelFormSet, label_set, request,
             # TODO Log the error.
             # logging.error(traceback.format_exc())
             error_msg = ("Error processing PDF file: " + str(e))
-            print (error_msg)
             messages.error (request, error_msg)
 
     return response

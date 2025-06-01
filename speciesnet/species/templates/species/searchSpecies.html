@@ -5,12 +5,12 @@
 <div class="home-container">
     <div>
         <h3>Species</h3>
-        <form method="GET" action="{% url 'searchSpecies' %}">
+        <form method="GET" action="{% url 'speciesSearch' %}">
             <input type="text" name="q" placeholder="Search Species ..."/>
         </form>
         <p>
         <div>
-            <h5><a href="{% url 'searchSpecies' %}">All</a></h5>
+            <h5><a href="{% url 'speciesSearch' %}">All</a></h5>
         </div>
             {% for species in speciesFilter %}
             <div>
@@ -44,7 +44,7 @@
                     <p>
                     <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
                     ({{speciesInstance.lastUpdated | timesince}}) by
-                    <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.username}}</a>
+                    <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a>
                     </p>
                 </div>
                 {% endfor %}
@@ -64,7 +64,7 @@
         </div>
         <div>
             <p>&nbsp;</p>
-            <p style="text-align:center;"><a href="{% url 'searchSpecies'%}"><img src={% static 'images\ASN_WhereAquaristMeet_06.jpg' %}></a></p>
+            <p style="text-align:center;"><a href="{% url 'speciesSearch'%}"><img src={% static 'images\ASN_WhereAquaristMeet_06.jpg' %}></a></p>
         </div>
 
         {% endif %}

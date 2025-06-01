@@ -23,7 +23,7 @@
     {% if aquaristClub.admins.count > 0 %}
         <h3>Club Admins</h3>
         {% for admin in aquariumClub.admins %}
-            <h5><a href="{% url 'aquarist' admin.id %}">{{admin.username}}</a></h5>
+            <h5><a href="{% url 'aquarist' admin.id %}">{{admin.get_display_name}}</a></h5>
         {% endfor %} 
     {% endif %}
     <p><a class="btn btn-secondary" href="{% url 'createAquaristClubMember' aquaristClub.id %}" role="button">Request to Join</a></p>
@@ -42,7 +42,7 @@
     <h3>Club Members</h3>
     {% for member in aquaristClubMembers %}
         <div>
-            <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.username}}</a></h5>
+            <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.get_display_name}}</a></h5>
         </div>
     {% endfor %} 
 </div>

@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="div-line-below">
-    <h1>{{aquarist.username}}</h1>
+    <h1>{{aquarist.get_display_name}}</h1>
     {% if request.user.is_authenticated %}
         {% if not aquarist.is_private_name  %}
             <p><large><B>Name: </B>{{aquarist.first_name}} {{aquarist.last_name}}</large></p> 
@@ -22,7 +22,7 @@
         {% else %}
             <p><large><B>Location: </B>Private</large></p>
         {% endif %}
-        <p><a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">Email {{aquarist.username}}</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">Email {{aquarist.get_display_name}}</a></p>
         <p><small>&nbsp;</small></p>
     {% endif %}  
 </div>

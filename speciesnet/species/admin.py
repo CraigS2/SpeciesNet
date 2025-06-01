@@ -18,3 +18,9 @@ admin.site.register (SpeciesInstanceLogEntry)
 admin.site.register (SpeciesMaintenanceLog)
 admin.site.register (SpeciesMaintenanceLogEntry)
 admin.site.register (ImportArchive)
+
+
+class SpeciesAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'global_region')
+    list_filter = ('category', 'global_region')
+    search_fields = ('name', 'alt_name', 'common_name', 'local_distribution', 'description')
