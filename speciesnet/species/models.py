@@ -53,7 +53,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private_email     = models.BooleanField (default=True)
     is_private_location  = models.BooleanField (default=False)
 
-    block_user_email     = models.BooleanField (default=False)
+    #block_user_email     = models.BooleanField (default=False)
 
     is_admin   = models.BooleanField (default=False)
     is_staff   = models.BooleanField (default=False)

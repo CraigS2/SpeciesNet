@@ -125,8 +125,16 @@ MIDDLEWARE = [
 SECURE_REFERRER_POLICY= "strict-origin-when-cross-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY="same-origin-allow-popups"
 GOOGLE_OAUTH_LINK = os.environ.get('GOOGLE_OAUTH_LINK', 'unsecure')
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', 'your_google_oauth_client_id')
+GOOGLE_OAUTH_SECRET = os.environ.get('GOOGLE_OAUTH_SECRET', 'your_google_oauth_secret')
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        'APP': {
+            
+            'client_id': GOOGLE_OAUTH_CLIENT_ID,
+            'secret':    GOOGLE_OAUTH_SECRET,
+            'key': ''    # Not required for Google OAuth
+        },
         'SCOPE': [
             'profile',
             'email',
@@ -149,13 +157,9 @@ ACCOUNT_FORMS = {
     'reset_password': 'species.forms.CustomResetPasswordForm',
 }
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
-#ACCOUNT_CONFIRM_EMAIL_ON_GET = False
-#ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = os.environ.get('ACCOUNT_CONFIRM_EMAIL_ON_GET', 'False')
 ACCOUNT_EMAIL_REQUIRED = True
-#ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-#ACCOUNT_EMAIL_VERIFICATION = "none"
-ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'none')
+ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'none')   # 'mandatory' or 'none'
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 ACCOUNT_LOGOUT_ON_GET = True
