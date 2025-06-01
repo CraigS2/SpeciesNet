@@ -208,7 +208,7 @@ class AquaristListView(ListView):
             queryset = queryset.filter (Q(username__icontains   = query_text) | 
                                         Q(first_name__icontains = query_text) | 
                                         Q(last_name__icontains  = query_text) )
-        queryset = queryset.exclude(is_private_name=True)
+            queryset = queryset.exclude(is_private_name=True)
         return queryset
     
     def get_context_data(self, **kwargs):

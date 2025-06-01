@@ -3,9 +3,9 @@
 {% block content %}
 
 <div class="home-container">
-    <div class="container py-4">
+    <div class="container py-1">
         <!--div class="card mb-4"-->
-        <h2 class="mb-4">Aquarists</h2>
+        <h2 class="mb-2">Aquarists</h2>
         <div class="card h-100 shadow-sm bg-secondary rounded">
             <div class="card-body bg-secondary">
                 <form method="get" id="filter-form">
@@ -58,13 +58,13 @@
             </div>
         </div>
     </div>
-    <div class="container py-4">
-        <h2 class="mb-4">Recent Updates</h2>
+    <div class="container py-1">
+        <h2 class="mb-2">Recent Updates</h2>
         {% if recent_speciesInstances %}
             <!--div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4"-->
             <!--row-cols-1 smallest screen, row-cols-2 small screen, row-cols-3 medium screen, row-cols-4 large screen-->
             <!--g-4 adds gutter spacing between columns: 1.5 rem or 24 px-->
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+            <div class="row row-cols-1 row-cols-sm-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-3 g-3">
                 {% for speciesInstance in recent_speciesInstances %}
                     <div class="col">
                         <div class="card h-100 shadow-sm bg-secondary">
