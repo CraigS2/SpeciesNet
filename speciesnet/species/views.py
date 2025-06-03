@@ -1057,6 +1057,12 @@ def about_us(request):
     context = {'aquarists': aquarists}
     return render(request, 'species/about_us.html', context)
 
+def terms_of_service (request):
+    return render(request, 'species/terms_of_service.html')
+
+def privacy_policy (request):
+    return render(request, 'species/privacy_policy.html')
+
 def howItWorks(request):
     return render(request, 'species/howItWorks.html')
 

@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="container">
-    <h1 class="my-4">Species Database</h1>
+    <h1 class="my-4">Species Lookup</h1>
     
     <!-- Filter Form -->
     <div class="card mb-4">
@@ -41,7 +41,7 @@
                     <div class="col-md-8">
                         <label for="q">Search Species:</label>
                         <input type="text" class="form-control" name="q" id="q" placeholder="Search name, distribution, or description..." value="{{ query_text }}">
-                        <small class="form-text text-muted">Press Enter to search</small>
+                        <small class="form-text text-muted">&nbsp;Enter all or part of a Species name, or any keywords for a broader search.</small>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary mt-4">Search</button>

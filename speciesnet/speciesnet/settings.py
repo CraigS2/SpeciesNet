@@ -16,16 +16,14 @@ import os, logging
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 SECRET_KEY = os.environ.get('SECRET_KEY')
-
 ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'], os.environ['ALLOWED_HOST3']]
 #ALLOWED_HOSTS = ['*']
 
+INTERNAL_IPS = ['127.0.0.1', 'localhost']
+
 CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], os.environ['CSRF_TRUSTED_ORIGIN3']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
-
-# DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
 
 if (os.environ['DEBUG'] == 'True'):
     DEBUG = True
@@ -33,6 +31,16 @@ elif (os.environ['DEBUG'] == '1'):
     DEBUG = True
 else:
     DEBUG = False
+
+###################################################################
+# TESTING ONLY remove code once toolbar troubleshooting complete
+if DEBUG:
+    def show_toolbar(request):
+        return True
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK" : show_toolbar,
+    }
+###################################################################
 
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -108,9 +116,12 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'django_recaptcha',
     'django.contrib.sites',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
+    #'Whitenoise.middleware.WhitenoiseMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -197,6 +208,7 @@ ROOT_URLCONF = 'speciesnet.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
         'DIRS': [
             BASE_DIR / 'templates'
         ],

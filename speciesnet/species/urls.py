@@ -1,4 +1,4 @@
-from django.urls import path, re_path
+from django.urls import path, re_path, include
 from django.conf.urls.static import static
 from django.views.static import serve
 #from django.conf.urls import url - deprecated
@@ -91,6 +91,9 @@ urlpatterns = [
     path('addSpeciesInstanceWizard2/', views.addSpeciesInstanceWizard2, name="addSpeciesInstanceWizard2"),
     
     path('about_us/', views.about_us, name="about_us"),
+    path('terms_of_service/', views.terms_of_service, name="terms_of_service"),
+    path('privacy_policy/', views.privacy_policy, name="privacy_policy"),
+    
     path('howItWorks/', views.howItWorks, name="howItWorks"),
     path('tools/', views.tools, name="tools"),
 
@@ -98,8 +101,13 @@ urlpatterns = [
 
     # re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
+
 ]
 
 # extend urlpatterns to support Media images uploaded by user - development DEBUG environment
 urlpatterns = urlpatterns + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
 
+# django debug toolbar -- debug only
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = urlpatterns + [path('__debug__/', include('debug_toolbar.urls')),]

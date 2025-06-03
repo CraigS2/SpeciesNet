@@ -57,8 +57,8 @@
         <small>&nbsp;</small>
         <h4 style="text-align:center;">New to the site?</h4>
         {% if request.user.is_authenticated %}
-            <h4 style="text-align:center;">Jump right in and use the</h4>
-            <h4 style="text-align:center;"><a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species - Guided Tutorial</a></h4>
+            <h5 style="text-align:center;">Jump right in and use the</h5>
+            <h5 style="text-align:center;"><a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species - Guided Tutorial</a></h5>
         {% else %}
             <h4 style="text-align:center;"><a href="{% url 'account_login' %}">Sign in or Create New Account</a></h4>
         {% endif %}
