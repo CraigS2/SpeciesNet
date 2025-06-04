@@ -9,7 +9,13 @@
 {% block content %}
     <h1>{% trans "Sign In" %}</h1>
 
-    <a id='sign-in-google' class='btn btn-primary' href="/google/login/?process=login&next={{ redirect_field_value }}">Sign in with your Google account</a>
+    <p>
+      <a id='sign-in-google' class='btn btn-primary' href="/google/login/?process=login&next={{ redirect_field_value }}">Sign in with your Google account</a>
+    </p>
+
+    <p>
+      <a href="{% provider_login_url 'google' %}">Login with Google</a>   
+    </p>
 
       <br><br><h5>Sign in with your Google account or create a new account with username:</h5>
      

@@ -21,6 +21,7 @@ ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'], os.en
 #ALLOWED_HOSTS = ['*']
 
 INTERNAL_IPS = ['127.0.0.1', 'localhost']
+SITE_ID=1
 
 CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], os.environ['CSRF_TRUSTED_ORIGIN3']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
@@ -96,7 +97,6 @@ LOGGING = {
         },
     },
 }
-
 
 # Application definition
 
@@ -311,3 +311,5 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #LOGOUT_REDIRECT_URL = 'home'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
