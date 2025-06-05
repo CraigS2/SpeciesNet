@@ -18,6 +18,35 @@
           });
     </script>
 <body>
+
+    <style>
+        /* Workaround bug fix to force all bootstrap primary button to ensure white text */
+        .btn-primary,
+        input.btn-primary,
+        button.btn-primary,
+        a.btn-primary,
+        .btn-primary:not([type="submit"]) {
+            color: #fff !important;
+        }
+        
+        /* Handle hover states for all types */
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active,
+        input.btn-primary:hover,
+        input.btn-primary:focus,
+        input.btn-primary:active,
+        button.btn-primary:hover,
+        button.btn-primary:focus,
+        button.btn-primary:active,
+        a.btn-primary:hover,
+        a.btn-primary:focus,
+        a.btn-primary:active {
+            color: #fff !important;
+        }
+    </style>
+
+
     {% include 'navbar.html' %}
 
     <!-- Google Analytics -->
@@ -30,6 +59,7 @@
     </script>
 
     <!-- Google Sign-in Option -->
+    <!--
     {# Add hide_google_login = True to any of your contexts to hide the one click google login window #}
     {% if not request.user.is_authenticated and not hide_google_login %}
     <script src="//accounts.google.com/gsi/client" async></script>
@@ -37,6 +67,7 @@
         data-client_id="{{ GOOGLE_OAUTH_LINK }}"
         data-login_uri="{% url 'google_login_by_token' %}">
     </div>
+    -->
 
     {% endif %}
     {% if messages %}

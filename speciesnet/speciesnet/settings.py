@@ -135,7 +135,7 @@ MIDDLEWARE = [
 # needed to allow Google one click auth
 SECURE_REFERRER_POLICY= "strict-origin-when-cross-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY="same-origin-allow-popups"
-GOOGLE_OAUTH_LINK = os.environ.get('GOOGLE_OAUTH_LINK', 'unsecure')
+#GOOGLE_OAUTH_LINK = os.environ.get('GOOGLE_OAUTH_LINK', 'unsecure')
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', 'your_google_oauth_client_id')
 GOOGLE_OAUTH_SECRET = os.environ.get('GOOGLE_OAUTH_SECRET', 'your_google_oauth_secret')
 SOCIALACCOUNT_PROVIDERS = {
@@ -153,7 +153,7 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {
             'access_type': 'online',
         },
-        'OAUTH_PKCE_ENABLED': True,
+        'OAUTH_PKCE_ENABLED': True, # Proof Key for Code Exchange - security code verifier/challenge flow
         'FETCH_USERINFO': True
     }
 }
@@ -161,8 +161,9 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION=True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT=True
 SOCIALACCOUNT_LOGIN_ON_GET=True
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
-LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
+#LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_FORMS = {
     'signup': 'species.forms.CustomSignupForm',
     'reset_password': 'species.forms.CustomResetPasswordForm',
@@ -310,6 +311,4 @@ MEDIA_URL = '/media/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-#LOGOUT_REDIRECT_URL = 'home'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+

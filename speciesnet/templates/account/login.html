@@ -7,26 +7,28 @@
 {% block title %}{% trans "Sign In" %}{% endblock %}
 
 {% block content %}
-    <h1>{% trans "Sign In" %}</h1>
-
-    <p>
-      <a id='sign-in-google' class='btn btn-primary' href="/google/login/?process=login&next={{ redirect_field_value }}">Sign in with your Google account</a>
-    </p>
-
-    <p>
-      <a href="{% provider_login_url 'google' %}">Login with Google</a>   
-    </p>
-
-      <br><br><h5>Sign in with your Google account or create a new account with username:</h5>
-     
-    <form class="login" method="POST" action="{% url 'account_login' %}">
-      {% csrf_token %}
-      {{ form | crispy }}
-      {% if redirect_field_value %}
-      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-      {% endif %}
-      
-      <a class='btn btn-primary' href="{{ signup_url }}">Create a new account</a> <button id='sign-in-local' class="btn btn-success" type="submit">{% trans "Sign In" %}</button>
-    </form>
+<div>
+  <h2>Sign In</h2>
+  <h5>Sign in with your username or email:</h5>
+  <form class="login" method="POST" action="{% url 'account_login' %}">
+    {% csrf_token %}
+    {{ form | crispy }}
+    {% if redirect_field_value %}
+    <!--input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" /-->
+    {% endif %}
+    <button id='sign-in-local' class="btn btn-success" type="submit">{% trans "Sign In" %}</button>
+  </form>  
+  <p><small>&nbsp;</small></p>
+  <p>Don't have an account? <a href="{{ signup_url }}">Create a new account</a></p>
+</div>
+<div class="div-line-above"></div>
+  <h2>Sign In with Google</h2>
+  <p>
+    Have a Google account? Sign-in with your Google credentials:
+  </p>
+  <p>
+    <a id='sign-in-google' class='btn btn-primary text-white' href="/google/login/?process=login&next={{ redirect_field_value }}">Sign in with your Google account</a>
+  </p>
+</div>
 
     {% endblock %}
