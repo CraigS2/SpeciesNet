@@ -108,6 +108,6 @@ urlpatterns = [
 urlpatterns = urlpatterns + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
 
 # django debug toolbar -- debug only
-if settings.DEBUG:
+if settings.DEBUG and settings.DEBUG_TOOLBAR:
     import debug_toolbar
     urlpatterns = urlpatterns + [path('__debug__/', include('debug_toolbar.urls')),]

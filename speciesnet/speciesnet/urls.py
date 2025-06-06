@@ -16,10 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+#from species.views import google_auth
 #from django.http import HttpResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),
+    #path('auth/google/', google_auth, name='google_auth'),
     path('', include('allauth.urls')),
     path('', include('species.urls')),
     #path('', home),

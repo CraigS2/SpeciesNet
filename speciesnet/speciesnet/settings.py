@@ -32,21 +32,19 @@ elif (os.environ['DEBUG'] == '1'):
     DEBUG = True
 else:
     DEBUG = False
+    
+DEBUG_TOOLBAR = os.environ.get('DEBUG_TOOLBAR', 'False')
 
-###################################################################
-# TESTING ONLY remove code once toolbar troubleshooting complete
-if DEBUG:
+if DEBUG and DEBUG_TOOLBAR:
     def show_toolbar(request):
         return True
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK" : show_toolbar,
     }
-###################################################################
 
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
-    # https://docs.djangoproject.com/en/5.0/topics/email/#topic-email-backends
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 if os.environ.get('EMAIL_USE_TLS', 'True') == "True":
@@ -60,6 +58,7 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
 EMAIL_SUBJECT_PREFIX = ""
+
 SITE_ID = 1
 
 # logging
@@ -98,8 +97,6 @@ LOGGING = {
     },
 }
 
-# Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -107,6 +104,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'crispy_forms',
     'crispy_bootstrap5',
     'species.apps.SpeciesConfig',
@@ -115,13 +113,10 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'django_recaptcha',
-    'django.contrib.sites',
-    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
     #'Whitenoise.middleware.WhitenoiseMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -132,10 +127,14 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
+# order for middleware affects toolbar - for some debugging may need higher in list
+if DEBUG and DEBUG_TOOLBAR:
+    INSTALLED_APPS = INSTALLED_APPS + ['debug_toolbar',]
+    MIDDLEWARE = MIDDLEWARE + ['debug_toolbar.middleware.DebugToolbarMiddleware',]
+    
 # needed to allow Google one click auth
 SECURE_REFERRER_POLICY= "strict-origin-when-cross-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY="same-origin-allow-popups"
-#GOOGLE_OAUTH_LINK = os.environ.get('GOOGLE_OAUTH_LINK', 'unsecure')
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', 'your_google_oauth_client_id')
 GOOGLE_OAUTH_SECRET = os.environ.get('GOOGLE_OAUTH_SECRET', 'your_google_oauth_secret')
 SOCIALACCOUNT_PROVIDERS = {
@@ -163,7 +162,7 @@ SOCIALACCOUNT_LOGIN_ON_GET=True
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
-#LOGOUT_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_FORMS = {
     'signup': 'species.forms.CustomSignupForm',
     'reset_password': 'species.forms.CustomResetPasswordForm',
@@ -258,14 +257,10 @@ DATABASES = {
     }
 }
 
-
 # Custom User Model
 AUTH_USER_MODEL = 'species.User'
 # Allauth integration with custom user model
 ACCOUNT_USER_MODEL_USERNAME_FIELD='username'
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -282,23 +277,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
 # STATIC_ROOT defines the absolute path where 'collectstatic' will be populated
 STATIC_ROOT = '/static/'
 # STATIC_URL defines the url used by the nginx webserver to serve up static files
 STATIC_URL = '/static/'
 
-# STATIC_FILES_DIRs defines additional project folders for static files
 # Default is to include the project app folder: ./speciesnet/species/static
-#STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
 STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
 
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -308,7 +297,5 @@ MEDIA_ROOT = '/media/'
 MEDIA_URL = '/media/'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
