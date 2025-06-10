@@ -28,7 +28,7 @@ class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from']
+        exclude = ['user', 'species', 'acquired_from', 'cares_validated']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'unique_traits':      forms.Textarea(attrs={'rows':1,'cols':50}),
                    'collection_point':   forms.Textarea(attrs={'rows':1,'cols':50}),
@@ -141,9 +141,6 @@ class SpecesSearchFilterForm (forms.Form):
     ]   
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
-
-
-
 
 class UserProfileForm (ModelForm):
     class Meta:

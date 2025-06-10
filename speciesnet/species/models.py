@@ -53,6 +53,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private_email     = models.BooleanField (default=True)
     is_private_location  = models.BooleanField (default=False)
 
+    is_email_blocked     = models.BooleanField (default=False)
+
     is_admin   = models.BooleanField (default=False)
     is_staff   = models.BooleanField (default=False)
     is_active  = models.BooleanField (default=True)
@@ -221,6 +223,8 @@ class SpeciesInstance (models.Model):
     currently_keep            = models.BooleanField(default=True)
     enable_species_log        = models.BooleanField(default=False)
     log_is_private            = models.BooleanField(default=False)
+
+    cares_validated           = models.BooleanField(default=False)
 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
