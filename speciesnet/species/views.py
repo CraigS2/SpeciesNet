@@ -847,6 +847,16 @@ def deleteSpeciesReferenceLink (request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
+def caresAdmin(request):
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True
+    if not userCanEdit:
+        raise PermissionDenied()
+    return render(request, 'species/tools.html')
+
+
 ### View Create Edit Delete Aquarist Club
 
 @login_required(login_url='login')

@@ -36,6 +36,8 @@ urlpatterns = [
     path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
 
+    path('caresAdmin/', views.caresAdmin, name="caresAdmin"),
+
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),

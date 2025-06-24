@@ -1,0 +1,28 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h2>CARES Admin</h2>
+
+<div class="div-line-below">
+    <h2>Species Tools</h2>
+    <h4><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></h4>
+    <h4><a href="{% url 'importSpecies' %}">Import Species from CSV</a></h4>
+    <small>&nbsp;</small>
+</div>
+
+<div class="div-line-below">
+    <h2>Aquarist Species Tools</h2>
+    <h4><a href="{% url 'exportSpeciesInstances' %}">Export Aquarist Species to CSV</a></h4>
+    <h4><a href="{% url 'importSpeciesInstances' %}">Import Aquarist Species from CSV</a></h4>
+    <small>&nbsp;</small>
+</div>
+
+<div class="div-line-below">
+    <h2>Aquarist Clubs</h2>
+    <h4><a href="{% url 'aquaristClubs' %}">View all Clubs</a></h4>
+    <h4><a href="{% url 'createAquaristClub' %}">Add Club</a></h4>
+    <small>&nbsp;</small>
+</div>
+
+{% endblock content %}
