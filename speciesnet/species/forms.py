@@ -117,7 +117,7 @@ class SpeciesInstanceLabelForm(forms.ModelForm):
 
 SpeciesInstanceLabelFormSet = formset_factory(SpeciesInstanceLabelForm, extra=0)
 
-class SpecesSearchFilterForm (forms.Form):
+class SpeciesSearchFilterForm (forms.Form):
     CATEGORY_CHOICES = [
         ('CIC', 'Cichlids'),
         ('RBF', 'Rainbowfish'),
@@ -141,6 +141,44 @@ class SpecesSearchFilterForm (forms.Form):
     ]   
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
+
+class CaresSpeciesSearchFilterForm (forms.Form):
+    CARES_CATEGORY_CHOICES = [
+        ('RIC', 'Adrianichthyidae (Ricefish)'),
+        ('ANA', 'Anabantidae (Climbing Gouramies)'),
+        ('EKF', 'Aphaniidae (Eurasian Killifish)'),
+        ('MKF', 'Bedotiidae (Madagascan Killifish)'),
+        ('OKF', 'Killifish (Other Killifish)'),
+        ('CHA', 'Characidae (Tetras)'),
+        ('CIC', 'Cichlidae (Cichlids)'),
+        ('LCH', 'Cobitidae (Loaches)'),
+        ('CYP', 'Cyprinidae (Minnows and Carps)'),
+        ('PUP', 'Cyprinodontidae (Pupfish)'),
+        ('GOB', 'Gobiidae (Gobies)'),
+        ('GOO', 'Goodeidae (Splitfins)'),
+        ('LOR', 'Loricariidae (Armoured Catfish)'),
+        ('RBF', 'Melanotaeniidae (Rainbowfish)'),
+        ('SQU', 'Mochokidae (Squeakers)'),
+        ('TCA', 'Nothobranchiidae (Toothcarps)'),
+        ('LVB', 'Poeciliidae (Livebearers)'),
+        ('BLE', 'Pseudomugilidae (Blue Eyes)'),
+        ('RIV', 'Rivulidae (Rivulus)'),
+        ('VLC', 'Valenciidae (Valencias)'),
+        ('UDF', 'Undefined'),
+        ('',    'All CARES Categories',),
+
+    ]
+    GLOBAL_REGION_CHOICES = [
+        ('SAM', 'Africa'),
+        ('CAM', 'South America'),
+        ('NAM', 'Central America'),
+        ('AFR', 'North America'),
+        ('SEA', 'Southeast Asia'),
+        ('AUS', 'Australia'),
+        ('',    'All Regions'),
+    ]   
+    cares_category = forms.ChoiceField (choices = CARES_CATEGORY_CHOICES, required = False)
+    region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)    
 
 class UserProfileForm (ModelForm):
     class Meta:

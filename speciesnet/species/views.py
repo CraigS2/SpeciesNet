@@ -15,7 +15,7 @@ from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, Specie
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
-from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpecesSearchFilterForm
+from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm, CaresSpeciesSearchFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -69,6 +69,18 @@ def species(request, pk):
     context = {'species': species, 'speciesInstances': speciesInstances, 'speciesComments': speciesComments, 'speciesReferenceLinks': speciesReferenceLinks,
                'renderCares': renderCares, 'userCanEdit': userCanEdit, 'cform': cform, 'userCanEdit': userCanEdit }
     return render (request, 'species/species.html', context)
+
+# def caresSpecies(request, pk):
+#     species = Species.objects.get(id=pk)
+#     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+#     speciesInstances = SpeciesInstance.objects.filter(species=species)
+#     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
+#     cur_user = request.user
+#     userCanEdit = user_can_edit_s(request.user, species)
+#     context = {'species': species, 'speciesInstances': speciesInstances, 'speciesReferenceLinks': speciesReferenceLinks,
+#                'renderCares': renderCares, 'userCanEdit': userCanEdit, 'cform': cform, 'userCanEdit': userCanEdit }
+#     return render (request, 'species/caresSpecies.html', context)
+
 
 def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
@@ -166,14 +178,59 @@ class SpeciesListView(ListView):
         context['selected_region'] = self.request.GET.get('global_region', '')
         context['query_text'] = self.request.GET.get('q', '')
         return context
+    
+
+class CaresSpeciesListView(ListView):
+    model = Species
+    template_name = "species/caresSpeciesSearch.html"
+    context_object_name = "species_list"
+    paginate_by = 200  # Maximum 200 Species per page
+    
+    def get_queryset(self):
+        queryset = Species.objects.all()
+        queryset = queryset.exclude(cares_status=Species.CaresStatus.NOT_CARES_SPECIES)
+        cares_category = self.request.GET.get('cares_category', '')
+        global_region = self.request.GET.get('global_region', '')
+        query_text = self.request.GET.get('q', '')
+        if cares_category:
+            queryset = queryset.filter(cares_category=cares_category)
+        if global_region:
+            queryset = queryset.filter(global_region=global_region)
+        if query_text:
+            queryset = queryset.filter(
+                Q(name__icontains                 = query_text) | 
+                Q(alt_name__icontains             = query_text) | 
+                Q(common_name__icontains          = query_text) | 
+                Q(local_distribution__icontains   = query_text) | 
+                Q(description__icontains          = query_text)
+            )
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['cares_categories'] = Species.CaresCategory.choices
+        context['global_regions'] = Species.GlobalRegion.choices
+        context['selected_cares_category'] = self.request.GET.get('cares_category', '')
+        context['selected_region'] = self.request.GET.get('global_region', '')
+        context['query_text'] = self.request.GET.get('q', '')
+        return context
+
 
 def searchSpecies(request):
-    speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
-    # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
-    q = request.GET.get('q') if request.GET.get('q') != None else '' 
-    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
-                                           Q(local_distribution__icontains=q) | Q(description__icontains=q))
-    context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
+    # speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
+    # # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
+    # q = request.GET.get('q') if request.GET.get('q') != None else '' 
+    # speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
+    #                                        Q(local_distribution__icontains=q) | Q(description__icontains=q))
+    # context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
+
+    speciesList = Species.objects.all()
+    for species in speciesList:
+        if species.cares_category == Species.CaresCategory.UNDEFINED:
+            if species.category == Species.Category.CICHLIDS:
+                species.cares_category = Species.CaresCategory.CICHLIDS
+                species.save()
+                print ('Updated CARES Category for ', species.name)
     return render(request, 'species/searchSpecies.html', context)
 
 ### Add speciesInstance Wizard 
@@ -854,7 +911,7 @@ def caresAdmin(request):
         userCanEdit = True
     if not userCanEdit:
         raise PermissionDenied()
-    return render(request, 'species/tools.html')
+    return render(request, 'species/caresAdmin.html')
 
 
 ### View Create Edit Delete Aquarist Club

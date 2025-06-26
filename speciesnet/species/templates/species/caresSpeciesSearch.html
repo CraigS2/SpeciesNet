@@ -1,0 +1,208 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container">
+    <h1 class="my-4">CARES Species Database</h1>
+    
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Search Filters</h4>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label for="cares_category">CARES Category:</label>
+                        <select name="cares_category" id="cares_category" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- All Categories --</option>
+                            {% for value, label in cares_categories %}
+                                <option value="{{ value }}" {% if value == selected_cares_category %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="global_region">Global Region:</label>
+                        <select name="global_region" id="global_region" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- All Regions --</option>
+                            {% for value, label in global_regions %}
+                                <option value="{{ value }}" {% if value == selected_region %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" id="clear-category-region" class="btn btn-secondary mt-4">Clear Filters</button>
+                    </div>
+                </div>
+                
+                <!-- Text search -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <label for="q">Search Species:</label>
+                        <input type="text" class="form-control" name="q" id="q" placeholder="Search name, distribution, or description..." value="{{ query_text }}">
+                        <small class="form-text text-muted">Press Enter to search</small>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary mt-4">Search</button>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" id="clear-text-search" class="btn btn-secondary mt-4">Clear Search</button>
+                    </div>
+                </div>
+                
+                <!-- Hidden fields to preserve pagination when only clearing specific filters -->
+                <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
+            </form>
+        </div>
+    </div>
+    
+    <!-- Species List -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Species</h4>
+            <span>Total: {{ page_obj.paginator.count }} species found</span>
+        </div>
+        <div class="card-body">
+            {% if species_list %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <style>
+                            .custom-col-name     { width: 30%; }
+                            .custom-col-category { width: 20%; }
+                            .custom-col-status   { width: 20%; }
+                            .custom-col-region   { width: 15%; }
+                            .custom-col-aqcount  { width: 15%; }
+                            /* You can adjust percentages as needed */
+                        </style>                        
+                        <thead>
+                            <tr>
+                                <th class="custom-col-name">Name</th>
+                                <th class="custom-col-category" style='text-align:center'>&nbsp;CARES Category</th>
+                                <th class="custom-col-status" style='text-align:center'>&nbsp;CARES Status&nbsp;</th>
+                                <th class="custom-col-region" style='text-align:center'>&nbsp;&nbsp;Region&nbsp;&nbsp;</th>
+                                <th class="custom-col-aqcount" style='text-align:center'>Aquarists Count</th>
+                                <!--th>Description</th-->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for species in species_list %}
+                                <tr>
+                                    <td class="custom-col-name" >
+                                        <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font>
+                                    </td>
+                                    <td class="custom-col-category" style='text-align:center'>{{ species.get_cares_category_display }}</td>
+                                    <td class="custom-col-status" style='text-align:center'>{{ species.get_cares_status_display }}</td>
+                                    <td class="custom-col-region" style='text-align:center'>{{ species.get_global_region_display }}</td>
+                                    <td class="custom-col-aqcount" style='text-align:center'>
+                                        {% if species.species_instances.all.count > 0 %}
+                                            {{ species.species_instances.all.count }} 
+                                        {% else %}
+                                            &nbsp;
+                                        {% endif %}
+                                    </td>  
+                                    <!--td>{{ species.description|truncatewords:10 }}</td-->
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {# Show current page and neighboring pages #}
+                        {% for i in page_obj.paginator.page_range %}
+                            {% if page_obj.number == i %}
+                                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}">{{ i }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <!--div class="alert alert-info">No species found matching your criteria.</div-->
+                <div>
+                    <h3  style="text-align:center;">Species Not Found</h3>
+                    <div>
+                        <p style="text-align:center;"><b>Your species search returned no results.</b> This can happen if the <i>Species</i> does not yet exist in the database.</p> 
+                        <p style="text-align:center;">It can also happen if you misspelled the <i>Species</i> name or entered additional search keywords not found. 
+                        <p style="text-align:center;"><b>Tip:</b> <i>Try entering partial text.</i> For example 'apisto' brings up all Apistogramma species in the database.</p>
+                        <p style="text-align:center;">If you'd like help adding your species you can use the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species Guided Tutorial</a>.</p>
+                        <p style="text-align:center;">If you're confident the species needs to be added you can use <a href="{% url 'createSpecies'%}">Add Species</a> now.</p>
+                    </div>
+                    <div>
+                        <p>&nbsp;</p>
+                        <p style="text-align:center;"><a href="{% url 'caresSpeciesSearch'%}"><img src={% static 'images\cares_logo_400x400.jpg' %}></a></p>
+                    </div>
+                </div>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Make Enter key work for text search
+    document.getElementById('q').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('filter-form').submit();
+        }
+    });
+    
+    // Clear Category and Global Region filters button
+    document.getElementById('clear-category-region').addEventListener('click', function() {
+        // Reset category and region dropdowns
+        document.getElementById('cares_category').value = '';
+        document.getElementById('global_region').value = '';
+        
+        // Keep text search if it exists
+        const q = document.getElementById('q').value;
+        
+        // Submit the form
+        document.getElementById('filter-form').submit();
+    });
+    
+    // Clear Text Search button
+    document.getElementById('clear-text-search').addEventListener('click', function() {
+        // Clear the text search field
+        document.getElementById('q').value = '';
+        
+        // Submit the form to update results
+        document.getElementById('filter-form').submit();
+    });
+</script>
+
+{% endblock content %}

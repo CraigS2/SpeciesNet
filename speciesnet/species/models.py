@@ -130,6 +130,31 @@ class Species (models.Model):
 
     category                  = models.CharField (max_length=3, choices=Category.choices, default=Category.CICHLIDS)
 
+    class CaresCategory (models.TextChoices):
+        RICEFISH        = 'RIC', _('Adrianichthyidae (Ricefish)')
+        ANABANTIDS      = 'ANA', _('Anabantidae (Climbing Gouramies)')
+        EUROKILLIFISH   = 'EKF', _('Aphaniidae (Eurasian Killifish)')
+        MADAKILLIFISH   = 'MKF', _('Bedotiidae (Madagascan Killifish)')
+        KILLIFISH       = 'OKF', _('Killifish (Other Killifish)')
+        CHARACINS       = 'CHA', _('Characidae (Tetras)')
+        CICHLIDS        = 'CIC', _('Cichlidae (Cichlids)')
+        LOACHES         = 'LCH', _('Cobitidae (Loaches)')
+        CYPRINDAE       = 'CYP', _('Cyprinidae (Minnows and Carps)')
+        PUPFISH         = 'PUP', _('Cyprinodontidae (Pupfish)')
+        GOBIES          = 'GOB', _('Gobiidae (Gobies)')
+        GOODEIDS        = 'GOO', _('Goodeidae (Splitfins)')
+        LORICARIIDAE    = 'LOR', _('Loricariidae (Armoured Catfish)')
+        RAINBOWFISH     = 'RBF', _('Melanotaeniidae (Rainbowfish)')
+        SQUEEKERS       = 'SQU', _('Mochokidae (Squeakers)')
+        TOOTHCARPS      = 'TCA', _('Nothobranchiidae (Toothcarps)')
+        LIVEBEARERS     = 'LVB', _('Poeciliidae (Livebearers)')
+        BLUEEYES        = 'BLE', _('Pseudomugilidae (Blue Eyes)')
+        RIVULUS         = 'RIV', _('Rivulidae (Rivulus)')
+        VALENCIAS       = 'VLC', _('Valenciidae (Valencias)')
+        UNDEFINED       = 'UDF', _('Undefined')
+
+    cares_category            = models.CharField (max_length=3, choices=CaresCategory.choices, default=CaresCategory.UNDEFINED)
+
     class GlobalRegion (models.TextChoices):
         SOUTH_AMERICA   = 'SAM', _('South America')
         CENTRAL_AMERICA = 'CAM', _('Central America')
@@ -143,7 +168,7 @@ class Species (models.Model):
     local_distribution        = models.CharField (max_length=200, null=True, blank=True)
 
     class CaresStatus (models.TextChoices):
-        NOT_CARES_SPECIES = 'NOTC', _('Not a CARES Species')
+        NOT_CARES_SPECIES = 'NOTC', _('Undefined')
         NEAR_THREATENED   = 'NEAR', _('Near Threatened')
         VULNERABLE        = 'VULN', _('Vulnerable')
         ENDANGERED        = 'ENDA', _('Endangered')
@@ -151,6 +176,17 @@ class Species (models.Model):
         EXTINCT_IN_WILD   = 'EXCT', _('Extict in the Wild')
     
     cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
+
+    class IucnStatus (models.TextChoices):
+        UNDEFINED          = 'UD', _('Undefined')
+        NEAR_THREATENED   = 'NT', _('Near Threatened')
+        VULNERABLE        = 'VU', _('Vulnerable')
+        ENDANGERED        = 'EN', _('Endangered')
+        CRIT_ENDANGERED   = 'CR', _('Critically Endangered')
+        EXTINCT_IN_WILD   = 'EW', _('Extict in the Wild')
+    
+    iucn_status              = models.CharField (max_length=2, choices=IucnStatus.choices, default=IucnStatus.UNDEFINED)
+
     render_cares              = models.BooleanField (default=False)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
@@ -308,6 +344,28 @@ class SpeciesInstanceComment (models.Model):
 
     class Meta:
         ordering = ['-created'] # sorts in descending order - newest first
+
+    def __str__(self):
+        return self.name
+
+
+class CaresRegistration (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_registrations') 
+    approver                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approver_registrations') 
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
+    
+    class CaresRegStatus (models.TextChoices):
+        OPEN     = 'OPEN', _('Open')
+        APPROVED = 'APRV', _('Approved')
+        DECLINED = 'DECL', _('Declined')
+        RESUBMIT = 'RESU', _('Resubmitted')
+        CLOSED   = 'CLSD', _('Closed')
+
+    status                    = models.CharField (max_length=4, choices=CaresRegStatus.choices, default=CaresRegStatus.OPEN)
+    created                   = models.DateTimeField(auto_now_add=True)
+    lastUpdated               = models.DateTimeField(auto_now=True)    
 
     def __str__(self):
         return self.name

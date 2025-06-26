@@ -5,7 +5,7 @@
 {% block content %}
 
 <div class="div-line-below">
-    <h2>{{species.name}}</h2>
+    <h2><b>CARES Profile</b>: <i>{{species.name}}</i></h2>
     {% if species.alt_name %}
         <p><b>Alternate Name:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
     {% endif %}
@@ -20,7 +20,8 @@
     {% endif %}
     <h3>Description</h3>
     <p>{{species.description}}</p>
-    <p><b>Category:</b> &nbsp;&nbsp;{{species.get_category_display}}</p>
+    <p><b>CARES Category:</b> &nbsp;&nbsp;{{species.get_cares_category_display}}</p>
+    <!--p><b>Category:</b> &nbsp;&nbsp;{{species.get_category_display}}</p-->
     <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
     <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
     {% if renderCares %}
@@ -68,29 +69,6 @@
         {% endif %}
         {% if userCanEdit %}
             <p><a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;&nbsp;</a></p>
-        {% endif %}
-    </div>
-    <div class="div-line-above">
-        <h2>Comments</h2>
-        {% if speciesComments.all.count > 0  %}
-            {% for speciesComment in speciesComments %}
-                <div>
-                    <p style = "display: flex; justify-content: space-between;">
-                            <span><a href="{% url 'aquarist' speciesComment.user.id %}">{{speciesComment.user.get_display_name}}</a>: {{speciesComment.comment}}&nbsp;&nbsp;</span>
-                            {% if speciesComment.user == request.user or userCanEdit %}
-                                <a href="{% url 'editSpeciesComment' speciesComment.id  %}">Edit Comment</a>
-                            {% endif %}  
-                    </p>  
-                </div>
-            {% endfor %}    
-        {% endif %}
-        {% if request.user.is_authenticated %}
-        <p><i>Add a new comment about this species:</i></p>
-        <form method="POST" enctype="multipart/form-data" action="">
-            {% csrf_token %}
-            {{cform.as_p}}
-            <input type="Submit" value="Add Comment">
-        </form>
         {% endif %}
     </div>
 

@@ -3,11 +3,8 @@
 {% block content %}
 
 <h2>Add Species:</h2>
-<h4>Complete the form below to add a new species declaration to the database.</h4>
-<h4><b>Please use care entering Species data as it is <i>declared once</i> and shared by all Aquarists keeping the species.</b></h4>
-<h4><b>Required Fields:</b> &nbsp;&nbsp;<i>Name</i>, a brief <i>Description</i>, and <i>Local distribution</i>.<br/>
-    It's okay to leave any of the remaining text fields blank. They won't show on the Species page.<br/>
-    If you add a photo, please also provide a name for the photo credit. </h4>
+<p>Complete the form below to add a new species declaration to the database.</p>
+<p><b>Required Fields:</b> &nbsp;&nbsp;<i>Name</i>, a brief <i>Description</i>, and <i>Local distribution</i>.</p>
 <p><small>&nbsp;</small></p>
     <div>
         <table>
@@ -23,8 +20,5 @@
             <img src="{{ img_obj.image.url}}" alt="connect" style="max-height:300px">
         {% endif %}
     </div>
-<p><small>&nbsp;</small></p>
-<h4>Note that once you add a new species declaration, you may make same-day revisions if needed.</h4>
-<h4>After that Admins are responsible for reviewing and revising shared Species declarations.</h4>
 
 {% endblock content %}
