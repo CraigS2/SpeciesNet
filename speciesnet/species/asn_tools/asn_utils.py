@@ -116,6 +116,8 @@ def get_cares_approver_user (approver_enum: CaresRegistration.CaresApproverGroup
         approver = User.objects.get(username = 'sme_cichlids_tanganyika')
     elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_MALAWI:
         approver = User.objects.get(username = 'sme_cichlids_malawi')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_VICTORIA:
+        approver = User.objects.get(username = 'sme_cichlids_victoria')        
     elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_CAMERICA:
         approver = User.objects.get(username = 'sme_cichlids_c_america')
     elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_SAMERICA:
@@ -143,6 +145,18 @@ def get_cares_approver_enum (species: Species):
         if 'Tanganyika' in species_distribution:
             approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_TANGANYIKA
             print ('setting approver_enum: CICHLIDS_TANGANYIKA')
+        elif 'Malawi' in species_distribution:
+            approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_MALAWI
+            print ('setting approver_enum: CICHLIDS_TANGANYIKA')
+        elif 'Victoria' in species_distribution:
+            approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_VICTORIA
+            print ('setting approver_enum: CICHLIDS_TANGANYIKA')     
+        elif 'West Africa' in species_distribution:
+            approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_WAFRICA
+            print ('setting approver_enum: CICHLIDS_TANGANYIKA')     
+        elif 'South America' in species_distribution:
+            approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_SAMERICA
+            print ('setting approver_enum: CICHLIDS_TANGANYIKA')                        
         elif 'Central America' in species_distribution:
             approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_CAMERICA
             print ('setting approver_enum: CICHLIDS_CAMERICA')
