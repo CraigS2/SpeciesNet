@@ -34,6 +34,15 @@ elif (os.environ['DEBUG'] == '1'):
 else:
     DEBUG = False
 
+DEBUG_TOOLBAR = os.environ.get('DEBUG_TOOLBAR', 'False')
+
+if DEBUG and DEBUG_TOOLBAR:
+    def show_toolbar(request):
+        return True
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK" : show_toolbar,
+    }
+
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
@@ -121,6 +130,11 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
+# order for middleware affects toolbar - for some debugging may need higher in list
+if DEBUG and DEBUG_TOOLBAR:
+    INSTALLED_APPS = INSTALLED_APPS + ['debug_toolbar',]
+    MIDDLEWARE = MIDDLEWARE + ['debug_toolbar.middleware.DebugToolbarMiddleware',]
+
 # needed to allow Google one click auth
 SECURE_REFERRER_POLICY= "strict-origin-when-cross-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY="same-origin-allow-popups"
@@ -143,6 +157,7 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT=True
 SOCIALACCOUNT_LOGIN_ON_GET=True
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
 LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 ACCOUNT_FORMS = {
     'signup': 'species.forms.CustomSignupForm',
