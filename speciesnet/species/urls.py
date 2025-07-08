@@ -39,6 +39,11 @@ urlpatterns = [
     path('caresAdmin/', views.caresAdmin, name="caresAdmin"),
     #path('caresSpecies/', views.caresSpecies, name="caresSpecies"),
     path('caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
+    path('caresRegistrations/', views.CaresRegistrationsView.as_view(), name="caresRegistrations"),
+    path('caresRegistration/<str:pk>/', views.caresRegistration, name="caresRegistration"),
+    path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
+    path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
+    path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),

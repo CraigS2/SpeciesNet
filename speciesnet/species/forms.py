@@ -8,6 +8,7 @@ from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
+from .models import CaresRegistration
 from allauth.account.forms import SignupForm, ResetPasswordForm
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -165,7 +166,7 @@ class CaresSpeciesSearchFilterForm (forms.Form):
         ('RIV', 'Rivulidae (Rivulus)'),
         ('VLC', 'Valenciidae (Valencias)'),
         ('UDF', 'Undefined'),
-        ('',    'All CARES Categories',),
+        ('',    'All CARES Categories'),
 
     ]
     GLOBAL_REGION_CHOICES = [
@@ -179,6 +180,36 @@ class CaresSpeciesSearchFilterForm (forms.Form):
     ]   
     cares_category = forms.ChoiceField (choices = CARES_CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)    
+
+
+class CaresRegistrationFilterForm (forms.Form):
+    STATUS_CHOICES = [
+        ('OPEN', 'Open'),
+        ('APRV', 'Approved'),
+        ('DECL', 'Declined'),
+        ('RESU', 'Resubmitted'),
+        ('CLSD', 'Closed'),
+        ('',    'All Status Options'),
+    ]
+    APPROVER_CHOICES = [
+        ('DEFAULT',    'BigKahoona'),
+        ('CICHLID',    'sme_cares_cichlids'),
+        ('LIVEBEARER', 'sme_cares_livebearers'),
+        ('GOODEIDS',   'sme_cares_goodeids'),
+        ('BLUEEYES',   'sme_cares_blueeyes'),
+        ('KILLIFISH',  'sme_cares_killifish'),
+        ('',           'All Status Options'),
+    ]
+    status = forms.ChoiceField (choices = STATUS_CHOICES, required = False)
+    approver = forms.ChoiceField (choices = APPROVER_CHOICES, required = False)    
+
+class CaresRegistrationForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['club_admins', 'club_members']
+        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),}      
+
 
 class UserProfileForm (ModelForm):
     class Meta:

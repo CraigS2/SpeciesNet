@@ -1,0 +1,22 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<div>
+    <h2>Aquarist Species: <a href="{% url 'speciesInstance' caresRegistration.speciesInstance.id %}">{{caresRegistration.speciesInstance.name}}</a></h2>
+    <h4>Aquarist: {{caresRegistration.aquarist.first_name}} {{caresRegistration.aquarist.last_name}} </h4>
+    <p><b>Username:</b> &nbsp;&nbsp;{{caresRegistration.aquarist.get_display_name}}</p>
+    <p><b>Registration Status:</b> &nbsp;&nbsp;{{caresRegistration.get_status_display}}</p>
+    <p><b>Species Group:</b> &nbsp;&nbsp;{{caresRegistration.get_approver_group_display}}</p>
+    <p><b>Registration Approver:</b> &nbsp;&nbsp;{{caresRegistration.approver.first_name}} {{caresRegistration.approver.last_name}}</p>
+    <p><b>Last Modified:</b> &nbsp;&nbsp;{{caresRegistration.lastUpdated | timesince}}</p>
+</div>
+
+{% if userCanEdit %}
+<small>&nbsp;</small>
+<div class="div-line-above">
+    <h3>Edit Species Registration </h3>
+    <p><a class="btn btn-secondary" href="{% url 'editCaresRegistration' caresRegistration.id  %}" role="button">&nbsp;&nbsp;Edit Registration&nbsp;&nbsp;</a></p>
+{% endif %}
+
+{% endblock content %}

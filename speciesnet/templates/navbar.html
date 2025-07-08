@@ -5,7 +5,8 @@
     <h5 style = "display: flex; justify-content: space-between;">
         <span><a href="/">Home</a></span>
         <a href="{% url 'caresSpeciesSearch'%}">Search Species</a>
-        <a href="{% url 'caresAdmin' %}">CARES Admin</a>
+        <a href="{% url 'aquarists' %}">Aquarists</a>
+        <a href="{% url 'caresRegistrations' %}">CARES Admin</a>
         <a href="{% url 'userProfile' %}">{{request.user}}</a>
     </h5>
     {% else %}

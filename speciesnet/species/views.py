@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
@@ -12,10 +13,12 @@ from django.core.mail import EmailMessage
 from smtplib import SMTPException
 from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance
 from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
+from species.models import CaresRegistration
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
-from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm, CaresSpeciesSearchFilterForm
+from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm, CaresSpeciesSearchFilterForm, CaresRegistrationFilterForm
+from species.forms import CaresRegistrationForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -24,6 +27,7 @@ from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speci
 from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si, user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances
+from species.asn_tools.asn_utils import get_cares_approver_enum, get_cares_approver_user
 from species.asn_tools.asn_pdf_tools import generatePdfLabels
 #from datetime import datetime
 from django.utils import timezone
@@ -904,6 +908,9 @@ def deleteSpeciesReferenceLink (request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
+## Cares Species Registration Prototype ###
+
+@login_required(login_url='login')
 def caresAdmin(request):
     cur_user = request.user
     userCanEdit = False
@@ -913,6 +920,90 @@ def caresAdmin(request):
         raise PermissionDenied()
     return render(request, 'species/caresAdmin.html')
 
+@login_required(login_url='login')
+def caresRegistration (request, pk):
+    caresRegistration = CaresRegistration.objects.get(id=pk)
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    context = {'caresRegistration': caresRegistration, 'userCanEdit': userCanEdit }
+    return render (request, 'species/caresRegistration.html', context)
+
+@login_required(login_url='login')
+def createCaresRegistration (request, pk):
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    aquarist = speciesInstance.user
+    name = speciesInstance.user.first_name + ' ' + speciesInstance.user.last_name + ': ' + speciesInstance.name  
+    #approver = User.objects.get(username = 'Senex68') 
+    approver_enum = get_cares_approver_enum (speciesInstance.species)
+    approver = get_cares_approver_user (approver_enum)
+    approver_enum = get_cares_approver_enum (speciesInstance.species)
+    form = CaresRegistrationForm(initial={'name':name, 'speciesInstance':speciesInstance, 'aquarist': aquarist, 'approver': approver, 'approver_group': approver_enum})
+    if (request.method == 'POST'):
+        form = CaresRegistrationForm(request.POST)
+        if form.is_valid():
+            caresRegistration = form.save(commit=True)
+            return HttpResponseRedirect(reverse("caresRegistration", args=[caresRegistration.id]))
+    context = {'form': form}
+    return render (request, 'species/createCaresRegistration.html', context)
+
+@login_required(login_url='login')
+def editCaresRegistration (request, pk):
+    caresRegistration = CaresRegistration.objects.get(id=pk)
+    form = CaresRegistrationForm(instance=caresRegistration)
+    if (request.method == 'POST'):
+        form = CaresRegistrationForm(request.POST, instance=caresRegistration)
+        if form.is_valid():
+            caresRegistration = form.save(commit=True)
+            return HttpResponseRedirect(reverse("caresRegistration", args=[caresRegistration.id]))
+    context = {'form': form}
+    return render (request, 'species/editCaresRegistration.html', context)
+
+@login_required(login_url='login')
+def deleteCaresRegistration (request, pk):
+    caresRegistration = CaresRegistration.objects.get(id=pk)
+    userCanEdit = user_can_edit(request.user)    #TODO configure admins to edit
+    if not userCanEdit:
+        raise PermissionDenied()
+    if (request.method == 'POST'):
+        caresRegistration.delete()
+        return redirect('aquaristClubs')
+    object_type = 'CARES Registration'
+    object_name = caresRegistration.name
+    context = {'object_type': object_type, 'object_name': object_name}
+    return render (request, 'species/deleteConfirmation.html', context)
+
+class CaresRegistrationsView(LoginRequiredMixin, ListView):
+    model = CaresRegistration
+    #filter_form = CaresRegistrationFilterForm(request.GET or None)
+    #filter_form = CaresRegistrationFilterForm()
+    template_name = "species/caresRegistrations.html"
+    context_object_name = "caresRegistrations_list"
+    paginate_by = 200  # Maximum 200 Species per page
+
+    def get_queryset(self):
+        queryset = CaresRegistration.objects.all()
+        status = self.request.GET.get('status', '')
+        if status:
+            queryset = queryset.filter(status=status)
+        approver = self.request.GET.get('approver', '')
+        if approver:
+            # TODO cleanup this mess - cast string to enum
+            #status_enum_member = CaresRegistration.CaresApprover[approver] 
+            #approver_enum = get_cares_approver_enum (approver)
+            approver_user = get_cares_approver_user (approver)
+            queryset = queryset.filter(approver=approver_user)      
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status'] = CaresRegistration.CaresRegStatus.choices
+        context['selected_status'] = self.request.GET.get('status', '')
+        context['approver'] = CaresRegistration.CaresApproverGroup.choices
+        context['selected_approver'] = self.request.GET.get('approver', '')        
+        #context['filter_form'] = self.request.GET.get('filter_form', 'filter_form')
+        return context
 
 ### View Create Edit Delete Aquarist Club
 

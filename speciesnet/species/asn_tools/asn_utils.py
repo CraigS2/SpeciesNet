@@ -1,4 +1,5 @@
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry
+from species.models import CaresRegistration
 from datetime import datetime
 from django.utils import timezone
 import logging
@@ -109,9 +110,53 @@ def get_sml_speciesInstance_choices (speciesMaintenanceLog: SpeciesMaintenanceLo
             choices.append(choice)
     return choices
 
+def get_cares_approver_user (approver_enum: CaresRegistration.CaresApproverGroup):
+    approver = User.objects.get(username = 'BigKahoona')
+    if approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_TANGANYIKA:
+        approver = User.objects.get(username = 'sme_cichlids_tanganyika')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_MALAWI:
+        approver = User.objects.get(username = 'sme_cichlids_malawi')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_CAMERICA:
+        approver = User.objects.get(username = 'sme_cichlids_c_america')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_SAMERICA:
+        approver = User.objects.get(username = 'sme_cichlids_s_america')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.CICHLIDS_EAFRICA:
+        approver = User.objects.get(username = 'sme_cichlids_e_africa')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.BLUEEYES:
+        approver = User.objects.get(username = 'sme_cares_blueeyes')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.LIVEBEARERS:
+        approver = User.objects.get(username = 'sme_cares_livebearers')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.ANABANTIDS:
+        approver = User.objects.get(username = 'sme_cares_anabantids')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.GOODEIDS:
+        approver = User.objects.get(username = 'sme_cares_goodeids')
+    elif approver_enum == CaresRegistration.CaresApproverGroup.KILLIFISH:
+        approver = User.objects.get(username = 'sme_cares_killifish')       
+    return approver
 
-    
-
+def get_cares_approver_enum (species: Species):
+    approver_enum = CaresRegistration.CaresApproverGroup.UNASSIGNED
+    if species.cares_category == Species.CaresCategory.CICHLIDS:
+        species_distribution = species.get_global_region_display()
+        species_distribution = species.local_distribution + ' ' + species_distribution
+        print ('species_distribution: ' + species_distribution)
+        if 'Tanganyika' in species_distribution:
+            approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_TANGANYIKA
+            print ('setting approver_enum: CICHLIDS_TANGANYIKA')
+        elif 'Central America' in species_distribution:
+            approver_enum = CaresRegistration.CaresApproverGroup.CICHLIDS_CAMERICA
+            print ('setting approver_enum: CICHLIDS_CAMERICA')
+    elif species.cares_category == Species.CaresCategory.BLUEEYES:
+        approver_enum = CaresRegistration.CaresApproverGroup.BLUEEYES
+    elif species.cares_category == Species.CaresCategory.LIVEBEARERS:
+        approver_enum = CaresRegistration.CaresApproverGroup.LIVEBEARERS
+    elif species.cares_category == Species.CaresCategory.ANABANTIDS:
+        approver_enum = CaresRegistration.CaresApproverGroup.ANABANTIDS
+    elif species.cares_category == Species.CaresCategory.GOODEIDS:
+        approver_enum = CaresRegistration.CaresApproverGroup.GOODEIDS
+    elif species.cares_category == Species.CaresCategory.KILLIFISH:
+        approver_enum = CaresRegistration.CaresApproverGroup.KILLIFISH
+    return approver_enum
 
 def validate_sml_collection (speciesMaintenanceLog: SpeciesMaintenanceLog):
     return True

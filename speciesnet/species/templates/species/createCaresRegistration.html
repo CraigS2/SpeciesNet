@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+
+{% block content %}
+    <h2>Add CARES Registration:</h2>
+    <p><small>&nbsp;</small></p>
+    <p>To submit a CARES Species registration with CaresForFish.org your Aquarist Species page must include:</p>
+    <p>&nbsp;&nbsp;1. A <b>photo of your actual fish</b> suitable for species verfication</p>
+    <p>&nbsp;&nbsp;2. <b>A note describing when and how you acquired your fish.</b> Please be specific as the source is important.</p>
+    <p>A CARES Species Expert will review your registration request. You will be notified when the review is completed.</p>
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data" action="">
+                {% csrf_token %}
+                {{form.as_table}}
+                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+            </form>
+        </table>
+    </div>
+<p><small>&nbsp;</small></p>
+
+{% endblock content %}

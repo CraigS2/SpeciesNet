@@ -356,6 +356,23 @@ class CaresRegistration (models.Model):
     approver                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approver_registrations') 
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
     
+    class CaresApproverGroup (models.TextChoices):
+        UNASSIGNED           = 'UNAS', _('Unassigned')
+        CICHLIDS_TANGANYIKA  = 'CICT', _('Cichlids (Tanganyika)')
+        CICHLIDS_MALAWI      = 'CICM', _('Cichlids (Malawi)')
+        CICHLIDS_VICTORIA    = 'CICV', _('Cichlids (Victoria)')
+        CICHLIDS_SAMERICA    = 'CICS', _('Cichlids (S America)')
+        CICHLIDS_CAMERICA    = 'CICC', _('Cichlids (C America)')
+        CICHLIDS_WAFRICA     = 'CICW', _('Cichlids (W Africa)')
+        CICHLIDS_EAFRICA     = 'CICE', _('Cichlids (E Africa)')
+        LIVEBEARERS          = 'LIVB', _('Livebearers')
+        GOODEIDS             = 'GOOD', _('Goodeids')
+        BLUEEYES             = 'BLUE', _('Blueeyes')
+        ANABANTIDS           = 'ANAB', _('Anabantids')
+        KILLIFISH            = 'KILL', _('Killifish')
+
+    approver_group = models.CharField (max_length=4, choices=CaresApproverGroup.choices, default=CaresApproverGroup.UNASSIGNED)
+
     class CaresRegStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
         APPROVED = 'APRV', _('Approved')

@@ -81,12 +81,19 @@
 </div>
 
 {% if request.user.is_authenticated %}
+    {% if userCanEdit and renderCares %}
+        <div class="div-line-above">
+            <h3>CARES Registration</h3>
+            <p><a class="btn btn-secondary" href="{% url 'createCaresRegistration' speciesInstance.id  %}" role="button">&nbsp; Submit CARES Species Registration &nbsp;</a></p>
+        </div>
+    {% endif %}
+
     {% if speciesMaintenanceLog %}
         {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
-        <div class="div-line-above">
-            <h3>Species Maintenance Collaboration</h3>
-            <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
-        </div>
+            <div class="div-line-above">
+                <h3>Species Maintenance Collaboration</h3>
+                <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
+            </div>
         {% endif %}
     {% elif userCanEdit %}
     <div class="div-line-above">
