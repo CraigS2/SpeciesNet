@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
@@ -12,10 +13,12 @@ from django.core.mail import EmailMessage
 from smtplib import SMTPException
 from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance
 from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
+from species.models import BapSubmission
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
-from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpecesSearchFilterForm
+from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm
+from species.forms import BapSubmissionForm, BapSubmissionFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -80,9 +83,14 @@ def speciesInstance(request, pk):
         for sml in speciesMaintenanceLogs:
             if speciesInstance in sml.speciesInstances.all():
                 speciesMaintenanceLog = sml
+    bapClubMemberships = AquaristClubMember.objects.filter(user=speciesInstance.user)
+    if bapClubMemberships.count() > 0:
+        request.session['species_instance_id'] = speciesInstance.id
+    #TODO filter out and special case feedback on existing current bap submissions
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
-    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 'renderCares': renderCares, 'userCanEdit': userCanEdit}
+    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 
+               'bapClubMemberships': bapClubMemberships, 'renderCares': renderCares, 'userCanEdit': userCanEdit }
     return render (request, 'species/speciesInstance.html', context)
 
 def speciesInstanceLog(request, pk):
@@ -167,14 +175,22 @@ class SpeciesListView(ListView):
         context['query_text'] = self.request.GET.get('q', '')
         return context
 
-def searchSpecies(request):
-    speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
-    # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
-    q = request.GET.get('q') if request.GET.get('q') != None else '' 
-    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
-                                           Q(local_distribution__icontains=q) | Q(description__icontains=q))
-    context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
-    return render(request, 'species/searchSpecies.html', context)
+# def searchSpecies(request):
+#     # speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
+#     # # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
+#     # q = request.GET.get('q') if request.GET.get('q') != None else '' 
+#     # speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
+#     #                                        Q(local_distribution__icontains=q) | Q(description__icontains=q))
+#     # context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
+
+#     speciesList = Species.objects.all()
+#     for species in speciesList:
+#         if species.cares_category == Species.CaresCategory.UNDEFINED:
+#             if species.category == Species.Category.CICHLIDS:
+#                 species.cares_category = Species.CaresCategory.CICHLIDS
+#                 species.save()
+#                 print ('Updated CARES Category for ', species.name)
+#     return render(request, 'species/searchSpecies.html', context)
 
 ### Add speciesInstance Wizard 
 
@@ -847,6 +863,110 @@ def deleteSpeciesReferenceLink (request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
+## Club BAP Programs ###
+
+@login_required(login_url='login')
+def bapAdmin(request):
+    cur_user = request.user
+    #TODO manage user --> bap club admin lookup club(s?)
+    club = AquaristClub.objects.get(id=1)
+    clubMembers = AquaristClubMember.objects.filter(club=club)
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True
+    if not userCanEdit:
+        raise PermissionDenied()
+    context = {'club': club, 'clubMembers': clubMembers }
+    return render(request, 'species/bapAdmin.html', context)
+
+@login_required(login_url='login')
+def bapSubmission (request, pk):
+    bap_submission = BapSubmission.objects.get(id=pk)
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True       # Allow Species Admins to always edit/delete
+    context = {'bap_submission': bap_submission, 'userCanEdit': userCanEdit }
+    return render (request, 'species/bap_submission.html', context)
+
+@login_required(login_url='login')
+def createBapSubmission (request, pk):
+    bapClub = AquaristClub.objects.get(id=pk)
+    speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
+    aquarist = speciesInstance.user
+    name = speciesInstance.user.first_name + ' ' + speciesInstance.user.last_name + ': ' + speciesInstance.name  
+    form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': bapClub, 'speciesInstance': speciesInstance})
+    if (request.method == 'POST'):
+        form = BapSubmissionForm(request.POST)
+        if form.is_valid():
+            bap_submission = form.save(commit=True)
+            return HttpResponseRedirect(reverse("bap_submission", args=[bap_submission.id]))
+    context = {'form': form}
+    return render (request, 'species/createBapSubmission.html', context)
+
+@login_required(login_url='login')
+def editBapSubmission (request, pk):
+    bap_submission = BapSubmission.objects.get(id=pk)
+    form = BapSubmissionForm(instance=bap_submission)
+    if (request.method == 'POST'):
+        form = BapSubmissionForm(request.POST, instance=bap_submission)
+        if form.is_valid():
+            bap_submission = form.save(commit=True)
+            return HttpResponseRedirect(reverse("bap_submission", args=[bap_submission.id]))
+    context = {'form': form}
+    return render (request, 'species/editBapSubmission.html', context)
+
+@login_required(login_url='login')
+def deleteBapSubmission (request, pk):
+    bap_submission = BapSubmission.objects.get(id=pk)
+    userCanEdit = user_can_edit(request.user)    #TODO configure admins to edit
+    if not userCanEdit:
+        raise PermissionDenied()
+    if (request.method == 'POST'):
+        bap_submission.delete()
+        return redirect('aquaristClubs')
+    object_type = 'BAP Submission'
+    object_name = bap_submission.name
+    context = {'object_type': object_type, 'object_name': object_name}
+    return render (request, 'species/deleteConfirmation.html', context)
+
+class BapSubmissionsView(LoginRequiredMixin, ListView):
+    model = BapSubmission
+    #filter_form = BapSubmissionFilterForm(request.GET or None)
+    #filter_form = BapSubmissionFilterForm()
+    template_name = "species/bapSubmissions.html"
+    context_object_name = "bap_submissions"
+    paginate_by = 200  # Maximum 200 Species per page
+
+    def get_bap_club(self):
+        bap_club_id = self.kwargs.get('pk')
+        bap_club = AquaristClub.objects.get(id=bap_club_id)      
+        return bap_club
+
+    def get_queryset(self):
+        bap_club_id = self.kwargs.get('pk')
+        #bap_club = AquaristClub.objects.get(id=bap_club_id)
+        queryset = BapSubmission.objects.filter(club=bap_club_id)
+        status = self.request.GET.get('status', '')
+        if status:
+            queryset = queryset.filter(status=status)
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['bap_club'] = self.get_bap_club()
+        context['status'] = BapSubmission.BapSubmissionStatus.choices
+        context['selected_status'] = self.request.GET.get('status', '')
+
+        #bap_participanting_members = self.get_queryset().values('aquarist').distinct().order_by('first_name')
+        bap_participants = self.get_queryset().values('aquarist').distinct()
+        context['bap_participants'] = bap_participants
+
+        selected_aquarist_id = self.request.GET.get('bap_participants', 'all')
+        context['selected_aquarist_id'] = selected_aquarist_id
+
+        return context
+    
 ### View Create Edit Delete Aquarist Club
 
 @login_required(login_url='login')

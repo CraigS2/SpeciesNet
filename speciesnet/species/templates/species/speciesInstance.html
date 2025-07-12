@@ -1,5 +1,5 @@
 {% extends 'main.html' %}
-<!-- context = speciesInstance, species, speciesMaintenanceLog, renderCares, userCanEdit -->
+<!-- context = speciesInstance, species, speciesMaintenanceLog, bapClubMemberships, renderCares, userCanEdit -->
 
 {% block content %}
 
@@ -96,6 +96,15 @@
         <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
         <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
     {% endif %}
+    {% if bapClubMemberships.count > 0 and userCanEdit %}
+        <div class="div-line-above">
+        <h3>BAP Programs</h3>
+        {% for bapClubMember in bapClubMemberships %}
+            <p><b>{{bapClubMember.club.name}}</b>: <a href="{% url 'createBapSubmission' bapClubMember.club.id %}">Submit BAP Request</a></p>
+        {% endfor %}    
+        </div>
+        {% endif %}
+    {% elif userCanEdit %}
     </div>
 {% endif %} 
 

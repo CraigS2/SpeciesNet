@@ -1,4 +1,5 @@
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry
+from species.models import BapSubmission
 from datetime import datetime
 from django.utils import timezone
 import logging
@@ -108,10 +109,6 @@ def get_sml_speciesInstance_choices (speciesMaintenanceLog: SpeciesMaintenanceLo
         if choice not in choices and speciesInstance not in groupSpeciesInstances and speciesInstance.user in collaborators:
             choices.append(choice)
     return choices
-
-
-    
-
 
 def validate_sml_collection (speciesMaintenanceLog: SpeciesMaintenanceLog):
     return True

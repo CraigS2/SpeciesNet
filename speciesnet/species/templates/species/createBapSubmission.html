@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+
+{% block content %}
+    <h2>BAP Submission:</h2>
+    <p><small>&nbsp;</small></p>
+    <p>To qualify for your club's Breeder Awared Program your Aquarist Species page must include:</p>
+    <p>&nbsp;&nbsp;1. A <b>photo of your breeders</b> suitable for species verfication</p>
+    <p>&nbsp;&nbsp;2. <b>Young Available</b> checked. </p>
+    <p>Your BAP Admin(s) review the submission using the Club's BAP rules. You will be notified when your submission is reviewed.</p>
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data" action="">
+                {% csrf_token %}
+                {{form.as_table}}
+                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+            </form>
+        </table>
+    </div>
+<p><small>&nbsp;</small></p>
+
+{% endblock content %}

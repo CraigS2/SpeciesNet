@@ -1,0 +1,23 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<div>
+    <h2>Aquarist Species: <a href="{% url 'speciesInstance' bap_submission.speciesInstance.id %}">{{bap_submission.speciesInstance.name}}</a></h2>
+    <h4><b>Aquarist: </b>{{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</h4>
+    <p><b>Username:</b> &nbsp;&nbsp;{{bap_submission.aquarist.get_display_name}}</p>
+    <p><b>Club:</b> &nbsp;&nbsp;TODO</p>    
+    <p><b>BAP Status:</b> &nbsp;&nbsp;{{bap_submission.get_status_display}}</p>
+    <!--p><b>Species Group:</b> &nbsp;&nbsp;{{bap_submission.get_approver_group_display}}</p-->
+    <!--p><b>Registration Approver:</b> &nbsp;&nbsp;{{bap_submission.approver.first_name}} {{bap_submission.approver.last_name}}</p-->
+    <p><b>BAP Submitted:</b> &nbsp;&nbsp;{{bap_submission.created | date:'Y-m-d'}}</p>
+</div>
+
+{% if userCanEdit %}
+<small>&nbsp;</small>
+<div class="div-line-above">
+    <h3>Edit BAP Submission </h3>
+    <p><a class="btn btn-secondary" href="{% url 'editBapSubmission' bap_submission.id  %}" role="button">&nbsp;&nbsp;Edit BAP Submission&nbsp;&nbsp;</a></p>
+{% endif %}
+
+{% endblock content %}

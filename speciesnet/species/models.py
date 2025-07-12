@@ -52,6 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private_name      = models.BooleanField (default=False)
     is_private_email     = models.BooleanField (default=True)
     is_private_location  = models.BooleanField (default=False)
+    is_email_blocked     = models.BooleanField (default=False)
 
     is_admin   = models.BooleanField (default=False)
     is_staff   = models.BooleanField (default=False)
@@ -110,7 +111,6 @@ class Species (models.Model):
     alt_name                  = models.CharField (max_length=240, null=True, blank=True)
     common_name               = models.CharField (max_length=240, null=True, blank=True)
     description               = models.TextField (null=True, blank=True)
-
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     photo_credit              = models.CharField (max_length=200, null=True, blank=True)
 
@@ -141,7 +141,7 @@ class Species (models.Model):
     local_distribution        = models.CharField (max_length=200, null=True, blank=True)
 
     class CaresStatus (models.TextChoices):
-        NOT_CARES_SPECIES = 'NOTC', _('Not a CARES Species')
+        NOT_CARES_SPECIES = 'NOTC', _('Undefined')
         NEAR_THREATENED   = 'NEAR', _('Near Threatened')
         VULNERABLE        = 'VULN', _('Vulnerable')
         ENDANGERED        = 'ENDA', _('Endangered')
@@ -150,6 +150,7 @@ class Species (models.Model):
     
     cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
     render_cares              = models.BooleanField (default=False)
+    species_instance_count    = models.PositiveIntegerField (default=0)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') # delestes species instances if user deleted
@@ -218,9 +219,12 @@ class SpeciesInstance (models.Model):
     have_reared_fry           = models.BooleanField(default=False)
     fry_rearing_notes         = models.TextField(null=True, blank=True)
     young_available           = models.BooleanField(default=False)
+    young_available_image     = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     currently_keep            = models.BooleanField(default=True)
     enable_species_log        = models.BooleanField(default=False)
     log_is_private            = models.BooleanField(default=False)
+
+    cares_validated           = models.BooleanField(default=False)
 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
@@ -317,6 +321,10 @@ class AquaristClub (models.Model):
     city                      = models.CharField (max_length=100, blank=True)
     state                     = models.CharField (max_length=100, blank=True)
     country                   = models.CharField (max_length=100, blank=True)
+    bap_guidelines            = models.TextField(null=True, blank=True)
+    bap_start_date            = models.DateField (null=True, blank=True)
+    bap_end_date              = models.DateField (null=True, blank=True)
+    bap_admins                = models.ManyToManyField(User, related_name='user_bap_club_admins') 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -339,6 +347,30 @@ class AquaristClubMember (models.Model):
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
+
+    def __str__(self):
+        return self.name
+
+
+class BapSubmission (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_submissions') 
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
+    notes                     = models.TextField(null=True, blank=True)
+
+    class BapSubmissionStatus (models.TextChoices):
+        OPEN     = 'OPEN', _('Open')
+        APPROVED = 'APRV', _('Approved')
+        DECLINED = 'DECL', _('Declined')
+        RESUBMIT = 'RESU', _('Resubmitted')
+        CLOSED   = 'CLSD', _('Closed')
+
+    status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
+    active                    = models.BooleanField(default=True)
+    created                   = models.DateTimeField(auto_now_add=True)
+    lastUpdated               = models.DateTimeField(auto_now=True)    
 
     def __str__(self):
         return self.name

@@ -8,6 +8,7 @@ from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
+from .models import BapSubmission
 from allauth.account.forms import SignupForm, ResetPasswordForm
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -28,7 +29,7 @@ class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from']
+        exclude = ['user', 'species', 'acquired_from', 'cares_validated']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'unique_traits':      forms.Textarea(attrs={'rows':1,'cols':50}),
                    'collection_point':   forms.Textarea(attrs={'rows':1,'cols':50}),
@@ -117,7 +118,7 @@ class SpeciesInstanceLabelForm(forms.ModelForm):
 
 SpeciesInstanceLabelFormSet = formset_factory(SpeciesInstanceLabelForm, extra=0)
 
-class SpecesSearchFilterForm (forms.Form):
+class SpeciesSearchFilterForm (forms.Form):
     CATEGORY_CHOICES = [
         ('CIC', 'Cichlids'),
         ('RBF', 'Rainbowfish'),
@@ -142,8 +143,36 @@ class SpecesSearchFilterForm (forms.Form):
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
 
+    GLOBAL_REGION_CHOICES = [
+        ('SAM', 'Africa'),
+        ('CAM', 'South America'),
+        ('NAM', 'Central America'),
+        ('AFR', 'North America'),
+        ('SEA', 'Southeast Asia'),
+        ('AUS', 'Australia'),
+        ('',    'All Regions'),
+    ]   
+    region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)    
 
 
+class BapSubmissionFilterForm (forms.Form):
+    STATUS_CHOICES = [
+        ('OPEN', 'Open'),
+        ('APRV', 'Approved'),
+        ('DECL', 'Declined'),
+        ('RESU', 'Resubmitted'),
+        ('CLSD', 'Closed'),
+        ('',    'All Status Options'),
+    ]
+    status = forms.ChoiceField (choices = STATUS_CHOICES, required = False)
+
+class BapSubmissionForm (ModelForm):
+    class Meta:
+        model = BapSubmission
+        fields = '__all__'
+        exclude = ['club_admins', 'club_members']
+        widgets = { 'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'notes':              forms.Textarea(attrs={'rows':6,'cols':50}),}                            
 
 class UserProfileForm (ModelForm):
     class Meta:
