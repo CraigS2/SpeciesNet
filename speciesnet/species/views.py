@@ -887,20 +887,20 @@ def bapSubmission (request, pk):
     if cur_user.is_staff:
         userCanEdit = True       # Allow Species Admins to always edit/delete
     context = {'bap_submission': bap_submission, 'userCanEdit': userCanEdit }
-    return render (request, 'species/bap_submission.html', context)
+    return render (request, 'species/bapSubmission.html', context)
 
 @login_required(login_url='login')
 def createBapSubmission (request, pk):
     bapClub = AquaristClub.objects.get(id=pk)
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
     aquarist = speciesInstance.user
-    name = speciesInstance.user.first_name + ' ' + speciesInstance.user.last_name + ': ' + speciesInstance.name  
+    name = speciesInstance.user.username + ' - ' + bapClub.name + ' - ' + speciesInstance.name  
     form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': bapClub, 'speciesInstance': speciesInstance})
     if (request.method == 'POST'):
         form = BapSubmissionForm(request.POST)
         if form.is_valid():
             bap_submission = form.save(commit=True)
-            return HttpResponseRedirect(reverse("bap_submission", args=[bap_submission.id]))
+            return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
     context = {'form': form}
     return render (request, 'species/createBapSubmission.html', context)
 
@@ -945,8 +945,9 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         bap_club_id = self.kwargs.get('pk')
-        #bap_club = AquaristClub.objects.get(id=bap_club_id)
-        queryset = BapSubmission.objects.filter(club=bap_club_id)
+        bap_club = AquaristClub.objects.get(id=bap_club_id)
+        queryset = BapSubmission.objects.filter(club=bap_club)
+        #print ('BapSubmissions get_queryset filter club:', bap_club.name, ', query_count: ', str(queryset.count()) )
         status = self.request.GET.get('status', '')
         if status:
             queryset = queryset.filter(status=status)
@@ -960,6 +961,8 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
 
         #bap_participanting_members = self.get_queryset().values('aquarist').distinct().order_by('first_name')
         bap_participants = self.get_queryset().values('aquarist').distinct()
+        print ('BapSubmissions bap_participants count: ', str(bap_participants.count()) )
+
         context['bap_participants'] = bap_participants
 
         selected_aquarist_id = self.request.GET.get('bap_participants', 'all')
@@ -979,6 +982,19 @@ def aquaristClubs (request):
 def aquaristClub (request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     aquaristClubMembers = AquaristClubMember.objects.filter(club=aquaristClub)
+
+############# TODO delete this HACK ###########################################
+    # user = User.objects.get(id=10)
+    # #member_exists_set = aquaristClubMembers.values('user').distinct()
+    # member_exists_set = AquaristClubMember.objects.filter(club=aquaristClub, user=user)
+    # print ('new user: ', user.username)
+    # print ('member_exists_set count: ', str(member_exists_set.count()))
+    # if (member_exists_set.count() == 0):
+    #     new_member_name = aquaristClub.name + ': ' + user.username
+    #     new_member = AquaristClubMember (name=new_member_name, user=user, club=aquaristClub)
+    #     new_member.save()
+############## TODO ###########################################################
+
     cur_user = request.user
     userCanEdit = False
     if cur_user.is_staff:
@@ -1063,7 +1079,7 @@ def createAquaristClubMember (request, pk):
     form = AquaristClubMemberJoinForm(initial={"name":aquaristClub, "user":user})
     if (request.method == 'POST'):
         form2 = AquaristClubMemberForm(request.POST)
-        form2.instance.name = aquaristClub.name + user.username       
+        form2.instance.name = aquaristClub.name + ': ' + user.username       
         form2.instance.user = request.user
         form2.instance.club = aquaristClub
         if form2.is_valid():

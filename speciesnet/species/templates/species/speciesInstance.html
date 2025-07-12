@@ -100,7 +100,7 @@
         <div class="div-line-above">
         <h3>BAP Programs</h3>
         {% for bapClubMember in bapClubMemberships %}
-            <p><b>{{bapClubMember.club.name}}</b>: <a href="{% url 'createBapSubmission' bapClubMember.club.id %}">Submit BAP Request</a></p>
+            <p>{{bapClubMember.club.name}}</b>: <a class="btn btn-secondary" href="{% url 'createBapSubmission' bapClubMember.club.id %}" role="button">&nbsp;&nbsp;Submit BAP Request&nbsp;&nbsp;</a></p>
         {% endfor %}    
         </div>
         {% endif %}

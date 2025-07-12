@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 
-<!--context['bap_club', 'bap_participants', 'status', 'selected_status'] -->
+<!--context['bap_club', 'bap_participants', 'status', 'selected_status'] + bap_submissions context_object -->
 
 <div class="container">
     <h1 class="my-4">BAP Submissions</h1>
@@ -32,7 +32,7 @@
                             <option value="all" {% if selected_aquarist_id == 'all' %}selected{% endif %}>-- All Participants --</option>
                             {% for aquarist in bap_participants %}
                                 <option value="{{ aquarist.id }}" {% if selected_aquarist_id|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ aquarist.get_full_name|default:aquarist.username }}
+                                    {{ aquarist.first_name }} {{ aquarist.last_name }}
                                 </option>
                             {% endfor %}
                         </select>
@@ -48,10 +48,10 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4>BAP Submissions</h4>
-            <span>Total: {{ page_obj.paginator.count }} registrations found</span>
+            <span>Total: {{ page_obj.paginator.count }} BAP Submissions found</span>
         </div>
         <div class="card-body">
-            {% if bap_submissions_list %}
+            {% if bap_submissions %}
                 <div class="table-responsive">
                     <table class="table table-striped table-hover">                    
                         <thead>
@@ -59,18 +59,18 @@
                                 <th>Name</th>
                                 <th style='text-align:center'>Status</th>
                                 <th style='text-align:center'>Aquarist</th>
-                                <th style='text-align:center'>Approver Group</th> 
-                                <th style='text-align:center'>Approver</th> 
+                                <th style='text-align:center'>Username</th> 
+                                <th style='text-align:center'>BAP Points</th> 
                             </tr>
                         </thead>
                         <tbody>
-                            {% for bap_submission in bap_submissions_list %}
+                            {% for bap_submission in bap_submissions %}
                                 <tr>
-                                    <td ><a href="{% url 'bap_submission' bap_submission.id %}">{{ bap_submission.name }}</a></td>
+                                    <td ><a href="{% url 'bapSubmission' bap_submission.id %}">{{ bap_submission.name }}</a></td>
                                     <td style='text-align:center'>{{ bap_submission.get_status_display }}</td>
                                     <td style='text-align:center'>{{ bap_submission.aquarist.first_name }} {{ bap_submission.aquarist.last_name }}</td>
-                                    <td style='text-align:center'>{{ bap_submission.get_approver_group_display }}</td>                                    
-                                    <td style='text-align:center'>{{ bap_submission.approver.first_name }} {{ bap_submission.approver.last_name }}</td>
+                                    <td style='text-align:center'>{{ bap_submission.aquarist.username }} </td>                                    
+                                    <td style='text-align:center'>TODO</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
