@@ -5,13 +5,13 @@
 <!--context['bap_club', 'bap_participants', 'status', 'selected_status'] + bap_submissions context_object -->
 
 <div class="container">
-    <h1 class="my-4">BAP Submissions</h1>
+    <h2 class="my-4">BAP Submissions</h2>
     <h3>{{ bap_club.name }}</h3>
     
     <!-- Filter Form -->
     <div class="card mb-4">
         <div class="card-header">
-            <h4>Search Filters</h4>
+            <h4>BAP Submission Filters</h4>
         </div>
         <div class="card-body">
             <form method="get" id="filter-form">
@@ -26,17 +26,16 @@
                         </select>
                     </div> 
                     <div class="col-md-5">
-                        <label for="bap_participants">Participating Members:</label>
-                        <!--select name="bap_participants" id="bap_participants" class="form-select" onchange="this.form.submit()"-->
+                        <label for="bap_participants">Participants:</label>
                         <select name="bap_participants" id="bap_participants" class="form-control" onchange="this.form.submit()">
-                            <option value="all" {% if selected_aquarist_id == 'all' %}selected{% endif %}>-- All Participants --</option>
+                            <option value="all" {% if selected_bap_particpant_id == 'all' %}selected{% endif %}>-- All Participants --</option>
                             {% for aquarist in bap_participants %}
-                                <option value="{{ aquarist.id }}" {% if selected_aquarist_id|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>
+                                <option value="{{ aquarist.id }}" {% if selected_bap_particpant_id|stringformat:"s" == aquarist.id|stringformat:"s" %}selected{% endif %}>
                                     {{ aquarist.first_name }} {{ aquarist.last_name }}
                                 </option>
                             {% endfor %}
                         </select>
-                    </div> 
+                    </div>
                 </div>               
                 <!-- Hidden fields to preserve pagination when only clearing specific filters -->
                 <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
@@ -56,21 +55,27 @@
                     <table class="table table-striped table-hover">                    
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th style='text-align:center'>Status</th>
+                                <th>Species</th>
                                 <th style='text-align:center'>Aquarist</th>
                                 <th style='text-align:center'>Username</th> 
-                                <th style='text-align:center'>BAP Points</th> 
+                                <th style='text-align:center'>Submitted</th>
+                                <th style='text-align:center'>Status</th>
+                                <th style='text-align:center'>CARES</th> 
                             </tr>
                         </thead>
                         <tbody>
                             {% for bap_submission in bap_submissions %}
                                 <tr>
-                                    <td ><a href="{% url 'bapSubmission' bap_submission.id %}">{{ bap_submission.name }}</a></td>
-                                    <td style='text-align:center'>{{ bap_submission.get_status_display }}</td>
+                                    <td ><a href="{% url 'bapSubmission' bap_submission.id %}">{{ bap_submission.speciesInstance.name }}</a></td>
                                     <td style='text-align:center'>{{ bap_submission.aquarist.first_name }} {{ bap_submission.aquarist.last_name }}</td>
-                                    <td style='text-align:center'>{{ bap_submission.aquarist.username }} </td>                                    
-                                    <td style='text-align:center'>TODO</td>
+                                    <td style='text-align:center'>{{ bap_submission.aquarist.username }} </td>  
+                                    <td style='text-align:center'>{{ bap_submission.created | date:'Y-m-d' }} </td>  
+                                    <td style='text-align:center'>{{ bap_submission.get_status_display }}</td>
+                                    {% if bap_submission.speciesInstance.species.render_cares %}
+                                        <td style='text-align:center'>Yes</td>
+                                    {% else %} 
+                                        <td style='text-align:center'></td>
+                                    {% endif %}                                                                      
                                 </tr>
                             {% endfor %}
                         </tbody>

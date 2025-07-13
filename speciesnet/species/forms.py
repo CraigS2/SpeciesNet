@@ -170,9 +170,10 @@ class BapSubmissionForm (ModelForm):
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['club_admins', 'club_members']
-        widgets = { 'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'notes':              forms.Textarea(attrs={'rows':6,'cols':50}),}                            
+        exclude = ['name', 'club_admins', 'club_members']
+        widgets = { 'club':               forms.Select(attrs={'class': 'wide-input'}),
+                    'speciesInstance':    forms.Select(attrs={'class': 'wide-input'}),
+                    'notes':              forms.Textarea(attrs={'rows':6,'cols':44}),}                            
 
 class UserProfileForm (ModelForm):
     class Meta:

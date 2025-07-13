@@ -2,15 +2,17 @@
 
 {% block content %}
 
+<h1>{{bap_submission.club.name}}</h1>
+<h3>Breeders Award Program</h3>
+
 <div>
     <h2>Aquarist Species: <a href="{% url 'speciesInstance' bap_submission.speciesInstance.id %}">{{bap_submission.speciesInstance.name}}</a></h2>
-    <h4><b>Aquarist: </b>{{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</h4>
+    <h4><b>Aquarist: </b><a href="{% url 'aquarist' bap_submission.aquarist.id %}">{{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</a></h4>
     <p><b>Username:</b> &nbsp;&nbsp;{{bap_submission.aquarist.get_display_name}}</p>
-    <p><b>Club:</b> &nbsp;&nbsp;TODO</p>    
-    <p><b>BAP Status:</b> &nbsp;&nbsp;{{bap_submission.get_status_display}}</p>
+    <p><b>Status:</b> &nbsp;&nbsp;{{bap_submission.get_status_display}}</p>
     <!--p><b>Species Group:</b> &nbsp;&nbsp;{{bap_submission.get_approver_group_display}}</p-->
     <!--p><b>Registration Approver:</b> &nbsp;&nbsp;{{bap_submission.approver.first_name}} {{bap_submission.approver.last_name}}</p-->
-    <p><b>BAP Submitted:</b> &nbsp;&nbsp;{{bap_submission.created | date:'Y-m-d'}}</p>
+    <p><b>Submission:</b> &nbsp;&nbsp;{{bap_submission.created | date:'Y-m-d'}}</p>
 </div>
 
 {% if userCanEdit %}

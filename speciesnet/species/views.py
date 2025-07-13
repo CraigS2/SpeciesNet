@@ -868,7 +868,8 @@ def deleteSpeciesReferenceLink (request, pk):
 @login_required(login_url='login')
 def bapAdmin(request):
     cur_user = request.user
-    #TODO manage user --> bap club admin lookup club(s?)
+    #TODO manage user --> bap club admin lookup club(s?) 'n' clubs supported?
+    #TODO remove the club hard-coded HACK below
     club = AquaristClub.objects.get(id=1)
     clubMembers = AquaristClubMember.objects.filter(club=club)
     userCanEdit = False
@@ -913,7 +914,7 @@ def editBapSubmission (request, pk):
         if form.is_valid():
             bap_submission = form.save(commit=True)
             return HttpResponseRedirect(reverse("bap_submission", args=[bap_submission.id]))
-    context = {'form': form}
+    context = {'form': form, 'bap_submission': bap_submission}
     return render (request, 'species/editBapSubmission.html', context)
 
 @login_required(login_url='login')
@@ -946,8 +947,7 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         bap_club_id = self.kwargs.get('pk')
         bap_club = AquaristClub.objects.get(id=bap_club_id)
-        queryset = BapSubmission.objects.filter(club=bap_club)
-        #print ('BapSubmissions get_queryset filter club:', bap_club.name, ', query_count: ', str(queryset.count()) )
+        queryset = BapSubmission.objects.filter(club=bap_club).order_by('-created')
         status = self.request.GET.get('status', '')
         if status:
             queryset = queryset.filter(status=status)
@@ -958,17 +958,19 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
         context['bap_club'] = self.get_bap_club()
         context['status'] = BapSubmission.BapSubmissionStatus.choices
         context['selected_status'] = self.request.GET.get('status', '')
-
-        #bap_participanting_members = self.get_queryset().values('aquarist').distinct().order_by('first_name')
-        bap_participants = self.get_queryset().values('aquarist').distinct()
-        print ('BapSubmissions bap_participants count: ', str(bap_participants.count()) )
-
+        # Manage Participant list and associated Filtering 
+        # Note that the BapSubmission 'aquarist' is a foreign key integer id
+        aquarist_ids = self.get_queryset().values_list('aquarist', flat=True).distinct()
+        bap_participants = User.objects.filter(id__in=aquarist_ids)
         context['bap_participants'] = bap_participants
-
-        selected_aquarist_id = self.request.GET.get('bap_participants', 'all')
-        context['selected_aquarist_id'] = selected_aquarist_id
-
-        return context
+        selected_bap_particpant_id = self.request.GET.get('bap_participants', 'all')
+        context['selected_bap_particpant_id'] = selected_bap_particpant_id
+        if selected_bap_particpant_id != 'all' and selected_bap_particpant_id.isdigit():
+            aquarist_id = int(selected_bap_particpant_id)
+            context['bap_submissions'] = self.get_queryset().filter(aquarist=aquarist_id)
+        else:
+            context['bap_submissions'] = self.get_queryset()
+        return context    
     
 ### View Create Edit Delete Aquarist Club
 
@@ -984,7 +986,7 @@ def aquaristClub (request, pk):
     aquaristClubMembers = AquaristClubMember.objects.filter(club=aquaristClub)
 
 ############# TODO delete this HACK ###########################################
-    # user = User.objects.get(id=10)
+    # user = User.objects.get(id=14)
     # #member_exists_set = aquaristClubMembers.values('user').distinct()
     # member_exists_set = AquaristClubMember.objects.filter(club=aquaristClub, user=user)
     # print ('new user: ', user.username)

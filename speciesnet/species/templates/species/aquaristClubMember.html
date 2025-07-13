@@ -4,7 +4,7 @@
 
 <div>
     <h2>Club: <a href="{% url 'aquaristClub' aquaristClubMember.club.id %}">{{aquaristClubMember.club.name}}</a></h2>
-    <h4>Member: {{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}}</h4>
+    <h4>Member: <a href="{% url 'aquarist' aquaristClubMember.user.id %}">{{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}}</a></h4>
     <p><b>Username:</b> &nbsp;&nbsp;{{aquaristClubMember.user.get_display_name}}</p>
     <p><b>Membership Requested:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_requested}}</p>
     <p><b>Membership Approved:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_approved}}</p>
