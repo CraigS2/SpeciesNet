@@ -3,6 +3,7 @@ from django.db import models
 #from django.contrib.auth.models import User
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 import datetime
 
@@ -161,6 +162,15 @@ class Species (models.Model):
         ordering = ['name'] # sorts in alphabetical order
         verbose_name_plural = "Species"
 
+    @property
+    def breeder_points(self):
+        #TODO sort out the best way to override lesser or greater points values and configure each club's BAP reference
+        points = 10
+        cares_muliplier = 2
+        if self.render_cares :
+            points = points * cares_muliplier
+        return points
+
     def __str__(self):
         return self.name
 
@@ -212,7 +222,7 @@ class SpeciesInstance (models.Model):
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, null=True, blank=True)
     acquired_from             = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # deletes ALL instances referencing any deleted species
-    year_acquired             = models.IntegerField(null=True, blank=True, default=2025)
+    year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
     aquarist_notes            = models.TextField(null=True, blank=True)
     have_spawned              = models.BooleanField(default=False)
     spawning_notes            = models.TextField(null=True, blank=True)
@@ -224,7 +234,7 @@ class SpeciesInstance (models.Model):
     enable_species_log        = models.BooleanField(default=False)
     log_is_private            = models.BooleanField(default=False)
 
-    cares_validated           = models.BooleanField(default=False)
+    cares_validated           = models.BooleanField(default=False)       #TODO rename to cares_registered
 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
@@ -357,6 +367,7 @@ class BapSubmission (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_submissions') 
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
+    year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
     notes                     = models.TextField(null=True, blank=True)
 
@@ -368,9 +379,19 @@ class BapSubmission (models.Model):
         CLOSED   = 'CLSD', _('Closed')
 
     status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
+    points                    = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
     active                    = models.BooleanField(default=True)
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)    
+
+    # @property
+    # def points(self):
+    #     #TODO sort out the best way to override lesser or greater points values
+    #     points = 10
+    #     cares_muliplier = 2
+    #     if self.speciesInstance.species.render_cares :
+    #         points = points * cares_muliplier
+    #     return points
 
     def __str__(self):
         return self.name

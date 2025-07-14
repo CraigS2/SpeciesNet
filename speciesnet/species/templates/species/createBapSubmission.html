@@ -1,12 +1,11 @@
 {% extends 'main.html' %}
+<!--context = {'form': form, 'bapClub': bapClub, 'aquarist': aquarist, 'speciesInstance': speciesInstance}-->
 
 {% block content %}
-    <h2>BAP Submission:</h2>
-    <p><small>&nbsp;</small></p>
-    <p>To qualify for your club's Breeder Awared Program your Aquarist Species page must include:</p>
-    <p>&nbsp;&nbsp;1. A <b>photo of your breeders</b> suitable for species verfication</p>
-    <p>&nbsp;&nbsp;2. <b>Young Available</b> checked. </p>
-    <p>Your BAP Admin(s) review the submission using the Club's BAP rules. You will be notified when your submission is reviewed.</p>
+    <h2>{{bapClub.name}}</h2>
+    <h3><b>BAP Submission</b></h3>
+    <h4><b>Aquarist:</b> {{aquarist.first_name}} {{aquarist.last_name}}</a></h4>
+    <h4><b>Species:</b> &nbsp;&nbsp;{{speciesInstance.name}}</h4>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data" action="">

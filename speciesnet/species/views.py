@@ -18,7 +18,7 @@ from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, Speci
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
 from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm
-from species.forms import BapSubmissionForm, BapSubmissionFilterForm
+from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -896,19 +896,23 @@ def createBapSubmission (request, pk):
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
     aquarist = speciesInstance.user
     name = speciesInstance.user.username + ' - ' + bapClub.name + ' - ' + speciesInstance.name  
+    print ('createBapSubmission name: ', name)
     form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': bapClub, 'speciesInstance': speciesInstance})
     if (request.method == 'POST'):
         form = BapSubmissionForm(request.POST)
         if form.is_valid():
-            bap_submission = form.save(commit=True)
+            bap_submission = form.save(commit=False)
+            bap_submission.name = name
+            bap_submission.points = speciesInstance.species.breeder_points
+            bap_submission.save()
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
-    context = {'form': form}
+    context = {'form': form, 'bapClub': bapClub, 'aquarist': aquarist, 'speciesInstance': speciesInstance}
     return render (request, 'species/createBapSubmission.html', context)
 
 @login_required(login_url='login')
 def editBapSubmission (request, pk):
     bap_submission = BapSubmission.objects.get(id=pk)
-    form = BapSubmissionForm(instance=bap_submission)
+    form = BapSubmissionFormEdit (instance=bap_submission)
     if (request.method == 'POST'):
         form = BapSubmissionForm(request.POST, instance=bap_submission)
         if form.is_valid():
@@ -986,7 +990,7 @@ def aquaristClub (request, pk):
     aquaristClubMembers = AquaristClubMember.objects.filter(club=aquaristClub)
 
 ############# TODO delete this HACK ###########################################
-    # user = User.objects.get(id=14)
+    # user = User.objects.get(id=2)
     # #member_exists_set = aquaristClubMembers.values('user').distinct()
     # member_exists_set = AquaristClubMember.objects.filter(club=aquaristClub, user=user)
     # print ('new user: ', user.username)

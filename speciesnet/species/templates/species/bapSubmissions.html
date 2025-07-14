@@ -36,6 +36,8 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="col-md-5">
+                    </div>                    
                 </div>               
                 <!-- Hidden fields to preserve pagination when only clearing specific filters -->
                 <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
@@ -60,7 +62,8 @@
                                 <th style='text-align:center'>Username</th> 
                                 <th style='text-align:center'>Submitted</th>
                                 <th style='text-align:center'>Status</th>
-                                <th style='text-align:center'>CARES</th> 
+                                <th style='text-align:center'>CARES</th>
+                                <th style='text-align:center'>Points</th> 
                             </tr>
                         </thead>
                         <tbody>
@@ -68,14 +71,15 @@
                                 <tr>
                                     <td ><a href="{% url 'bapSubmission' bap_submission.id %}">{{ bap_submission.speciesInstance.name }}</a></td>
                                     <td style='text-align:center'>{{ bap_submission.aquarist.first_name }} {{ bap_submission.aquarist.last_name }}</td>
-                                    <td style='text-align:center'>{{ bap_submission.aquarist.username }} </td>  
+                                    <td style='text-align:center'><a href="{% url 'aquarist' bap_submission.aquarist.id %}">{{bap_submission.aquarist.get_display_name}} </td>  
                                     <td style='text-align:center'>{{ bap_submission.created | date:'Y-m-d' }} </td>  
                                     <td style='text-align:center'>{{ bap_submission.get_status_display }}</td>
                                     {% if bap_submission.speciesInstance.species.render_cares %}
                                         <td style='text-align:center'>Yes</td>
                                     {% else %} 
                                         <td style='text-align:center'></td>
-                                    {% endif %}                                                                      
+                                    {% endif %}   
+                                    <td style='text-align:center'>{{ bap_submission.points }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

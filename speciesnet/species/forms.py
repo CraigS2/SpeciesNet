@@ -166,14 +166,21 @@ class BapSubmissionFilterForm (forms.Form):
     ]
     status = forms.ChoiceField (choices = STATUS_CHOICES, required = False)
 
+
 class BapSubmissionForm (ModelForm):
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club_admins', 'club_members']
-        widgets = { 'club':               forms.Select(attrs={'class': 'wide-input'}),
-                    'speciesInstance':    forms.Select(attrs={'class': 'wide-input'}),
-                    'notes':              forms.Textarea(attrs={'rows':6,'cols':44}),}                            
+        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'speciesInstance', 'status', 'active']
+        widgets = {'notes': forms.Textarea(attrs={'rows':4,'cols':44}),} 
+
+
+class BapSubmissionFormEdit (ModelForm):
+    class Meta:
+        model = BapSubmission
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'club', 'active' ]
+        widgets = { 'notes': forms.Textarea(attrs={'rows':6,'cols':44}),}                                    
 
 class UserProfileForm (ModelForm):
     class Meta:
