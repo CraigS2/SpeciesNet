@@ -27,8 +27,9 @@ urlpatterns = [
 
     path('aquaristClubs/', views.aquaristClubs, name="aquaristClubs"),
     path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"), 
-    path('aquaristClubMembers/<str:pk>/', views.aquaristClubMembers, name="aquaristClubMembers"), 
-    path('aquaristClubMember/<str:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
+    path('aquaristClubMembers/<str:pk>/', views.AquaristClubMemberListView.as_view(), name="aquaristClubMembers"), 
+
+    path('aquaristClubMember/<int:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
     path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
     path('createAquaristClubMember/<str:pk>', views.createAquaristClubMember, name="createAquaristClubMember"),
     path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
@@ -36,12 +37,13 @@ urlpatterns = [
     path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
 
-    path('bapAdmin/', views.bapAdmin, name="bapAdmin"),
-    path('bapSubmissions/<str:pk>', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
+    path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
     path('bapSubmission/<str:pk>/', views.bapSubmission, name="bapSubmission"),
+    path('bapSubmissions/<str:pk>/', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
     path('createBapSubmission/<str:pk>/', views.createBapSubmission, name="createBapSubmission"),
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
     path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
+    path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),

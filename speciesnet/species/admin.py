@@ -4,7 +4,7 @@ from django.contrib import admin
 from .models import Species, SpeciesComment, SpeciesReferenceLink
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
-from .models import BapSubmission
+from .models import BapSubmission, BapLeaderboard
 
 admin.site.register (User)
 admin.site.register (UserEmail)
@@ -20,7 +20,7 @@ admin.site.register (SpeciesMaintenanceLog)
 admin.site.register (SpeciesMaintenanceLogEntry)
 admin.site.register (ImportArchive)
 admin.site.register (BapSubmission)
-
+admin.site.register (BapLeaderboard)
 
 class SpeciesAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'global_region')

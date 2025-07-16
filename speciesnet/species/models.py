@@ -349,7 +349,7 @@ class AquaristClubMember (models.Model):
     name                      = models.CharField (max_length=240)
     club                      = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, editable=False, related_name='member_clubs') # deletes species instances if user deleted
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_club_members') # deletes species instances if user deleted
-    membership_requested      = models.BooleanField(default=True)
+    bap_participant           = models.BooleanField(default=False)
     membership_approved       = models.BooleanField(default=False)
     membership_admin          = models.BooleanField(default=False)
     date_requested            = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
@@ -395,6 +395,21 @@ class BapSubmission (models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class BapLeaderboard (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_leaderboards') 
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_leaderboards') 
+    year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    species_count             = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
+    cares_species_count       = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
+    points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    created                   = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name    
 
 
 class ImportArchive (models.Model):

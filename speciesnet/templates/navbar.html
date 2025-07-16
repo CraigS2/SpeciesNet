@@ -6,7 +6,7 @@
         <span><a href="/">Home</a></span>
         <a href="/speciesSearch">Search Species</a>
         <a href="{% url 'aquarists' %}">Aquarists</a>
-        <a href="{% url 'bapAdmin' %}">BAP Admin</a>
+        <a href="{% url 'aquaristClubAdmin' 1 %}">BAP Admin</a>
         <a href="{% url 'userProfile' %}">{{request.user}}</a>
     </h5>
     {% else %}

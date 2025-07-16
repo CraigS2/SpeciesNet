@@ -1,49 +1,38 @@
 {% extends 'main.html' %}
+{% load static %}
 {% block content %}
 
-<!--context['club'] + member_list context_object -->
+<!--context['bap_club', 'bap_participants', 'status', 'selected_status'] + bap_submissions context_object -->
 
 <div class="container">
-    <h2>{{ club.name }}</h2>
-    <p><small>&nbsp;</small></p>
-    <!-- Membership List -->
+    <h3>{{ bap_club.name }}</h3>
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4>Club Members</h4>
-            <span>Total: {{ page_obj.paginator.count }} Members found</span>
+            <h4>BAP Leaderboard</h4>
+            <span>Total: {{ page_obj.paginator.count }} BAP Participants found</span>
         </div>
         <div class="card-body">
-            {% if member_list %}
+            {% if bap_leaderboard %}
                 <div class="table-responsive">
                     <table class="table table-striped table-hover">                    
                         <thead>
                             <tr>
-                                <th>Aquarist</th> 
-                                <th>Username</th>
-                                <th style='text-align:center'>Member since</th>
-                                <th style='text-align:center'>Pending approval</th>
-                                <th style='text-align:center'>BAP Particpant</th>
+                                <th>Aquarist</th>
+                                <th>Username</th> 
+                                <th style='text-align:center'>Total Species</th> 
+                                <th style='text-align:center'>CARES Species</th> 
+                                <th style='text-align:center'>Total Points</th>                                 
                             </tr>
                         </thead>
                         <tbody>
-                            {% for member in member_list %}
+                            {% for bap_participant in bap_leaderboard %}
                                 <tr>
-                                    <td>{{ member.user.first_name }} {{ member.user.last_name }}</td>
-                                    <td><a href="{% url 'aquarist' member.user.id %}">{{member.user.get_display_name}} </td>  
-                                    <td style='text-align:center'>{{ member.date_requested | date:'M-Y' }} </td>  
-                                    <td style='text-align:center'>
-                                        {% if member.membership_approved %}
-                                            Approved
-                                        {% else %}
-                                            <font style="color:#860404;" >Pending</font>
-                                        {% endif %}
-                                    </td>
-                                    <td style='text-align:center'>
-                                        {% if member.bap_participant %}
-                                            Yes
-                                        {% endif %}
-                                    </td>
-                                </tr>
+                                    <td>{{ bap_participant.aquarist.first_name }} {{ bap_participant.aquarist.last_name }}</td>
+                                    <td><a href="{% url 'aquarist' bap_participant.aquarist.id %}">{{bap_participant.aquarist.get_display_name}} </td>  
+                                    <td style='text-align:center'>{{bap_participant.species_count}}</td>  
+                                    <td style='text-align:center'>{{bap_participant.cares_species_count}}</td>  
+                                    <td style='text-align:center'>{{bap_participant.points}}</td>  
+    
                             {% endfor %}
                         </tbody>
                     </table>
@@ -92,9 +81,15 @@
                     </ul>
                 </nav>
                 {% endif %}
+            {% else %}
+                <p>None</p>
             {% endif %}
         </div>
+    </div>
+    <div>
+        <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' bap_club.id %}" role="button">BAP Submissions</a></p>
     </div>
 </div>
 
 {% endblock content %}
+

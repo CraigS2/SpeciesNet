@@ -5,9 +5,7 @@
 <!--context['bap_club', 'bap_participants', 'status', 'selected_status'] + bap_submissions context_object -->
 
 <div class="container">
-    <h2 class="my-4">BAP Submissions</h2>
     <h3>{{ bap_club.name }}</h3>
-    
     <!-- Filter Form -->
     <div class="card mb-4">
         <div class="card-header">
@@ -45,7 +43,7 @@
         </div>
     </div>
     
-    <!-- Cares Registrations List -->
+    <!-- BAP Submissions List -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4>BAP Submissions</h4>
@@ -129,8 +127,13 @@
                     </ul>
                 </nav>
                 {% endif %}
+            {% else %}
+                <p>None</p>
             {% endif %}
         </div>
+    </div>
+    <div>
+        <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' bap_club.id %}" role="button">BAP Leaderboard</a></p>
     </div>
 </div>
 
