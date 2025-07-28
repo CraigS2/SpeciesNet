@@ -1,20 +1,97 @@
 {% load static %}
 
-<div class="div-line-below">
-    {% if request.user.is_authenticated %}
-    <h5 style = "display: flex; justify-content: space-between;">
-        <span><a href="/">Home</a></span>
-        <a href="/speciesSearch">Search Species</a>
-        <a href="{% url 'aquarists' %}">Aquarists</a>
-        <a href="{% url 'aquaristClubAdmin' 1 %}">BAP Admin</a>
-        <a href="{% url 'userProfile' %}">{{request.user}}</a>
-    </h5>
-    {% else %}
-    <h5 style = "display: flex; justify-content: space-between;">
-        <span><a href="/">Home</a></span>
-        <a href="/speciesSearch">Search Species</a>
-        <a href="{% url 'aquarists' %}">Aquarists</a>
-        <a href="{% url 'account_login' %}">Sign in</a>
-    </h5>  
-    {% endif %}
-</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+
+<!--nav class="navbar navbar-expand-lg navbar-dark bg-primary"-->
+<nav class="navbar navbar-expand-lg navbar-dark" style="background-color: rgb(152, 199, 231);">
+<!--nav class="navbar navbar-expand-lg navbar-dark bg-primary" style="background-color: rgb(152, 199, 231);"></nav-->
+    
+    <!--div class="container"-->
+    <div class="container-fluid">
+        <!--a class="navbar-brand" href="/">Home</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+                aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button-->
+
+        <div class="collapse navbar-collapse" style="background-color: rgb(152, 199, 231); id="navbarMain" >
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <!-- Home (Direct Link) -->
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" 
+                       href="{% url 'home' %}">Home</a>
+                </li>
+                
+                <!-- About (Direct Link) -->
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'about_us' %}active{% endif %}" 
+                       href="{% url 'about_us' %}">About Us</a>
+                </li>
+                
+                <!-- Species (Dropdown) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if 'species' in request.path %}active{% endif %}" 
+                       href="#" id="speciesDropdown" role="button" 
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        Species
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="speciesDropdown">
+                        <li><a class="dropdown-item" href="{% url 'speciesSearch'%}">Search Species</a></li>
+                        <li><a class="dropdown-item" href="{% url 'aquarists' %}">Recent Updates</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
+                    </ul>
+                </li>
+                
+                <!-- Clubs (Dropdown) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if 'club' in request.path %}active{% endif %}" 
+                       href="#" id="clubsDropdown" role="button" 
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        Clubs
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="clubsDropdown">
+                        <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">BAP Clubs</a></li>
+                        <li><a class="dropdown-item" href="{% url 'aquarists' %}">Aquarists</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'createAquaristClub' %}">Add New Club</a></li>
+                    </ul>
+                </li>
+                
+                <!-- Aquarists (Direct Link) -->
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'aquarists' %}active{% endif %}" 
+                       href="{% url 'aquarists' %}">Aquarists</a>
+                </li>
+            </ul>
+            
+            <!-- Right-aligned menu items (user account) -->
+            <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    <!-- Account (Dropdown when logged in) -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">{{ user.username }}</a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
+                            <li><a class="dropdown-item" href="{% url 'userProfile' %}">Profile</a></li>
+                            <li><a class="dropdown-item" href="{% url 'aquarist' user.id %}">Fishroom</a></li>
+                            {% if user.is_staff %}
+                                <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <!-- Login/Register links when not logged in -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'account_login' %}">Sign-in</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'signup' %}">Register</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

@@ -1166,16 +1166,18 @@ def createAquaristClubMember (request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     user = request.user 
     #TODO trap duplicates - do not let users request membership if they already joined
-    form = AquaristClubMemberJoinForm(initial={"name":aquaristClub, "user":user})
+    form = AquaristClubMemberJoinForm(initial={"name":aquaristClub, "user":user, "bap_participant":True})
     if (request.method == 'POST'):
         form2 = AquaristClubMemberForm(request.POST)
         form2.instance.name = aquaristClub.name + ': ' + user.username       
         form2.instance.user = request.user
         form2.instance.club = aquaristClub
         if form2.is_valid():
-            aquaristClubMember = form2.save(commit=True)
+            aquaristClubMember = form2.save(commit=False)
+            aquaristClubMember.bap_participant = True
+            aquaristClubMember.save()
             return HttpResponseRedirect(reverse("aquaristClubMember", args=[aquaristClubMember.id]))
-    context = {'form': form}
+    context = {'form': form, 'aquaristClub': aquaristClub}
     return render (request, 'species/createAquaristClubMember.html', context)
 
 @login_required(login_url='login')

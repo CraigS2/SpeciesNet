@@ -2,8 +2,12 @@
 
 {% block content %}
 
-<h2>Add Club Member:</h2>
+<h2>{{aquaristClub.name}}</h2>
     <div>
+        <h4>Submit a request to join {{aquaristClub.name}}'s BAP program </h4>
+        <p>A club admin will need to approve your membership.</p>
+        <p><b>Name:</b> {{request.user.first_name}} {{request.user.last_name}}</p>
+        <p><b>Username:</b> {{request.user.username}}</p>
         <table>
             <form method="POST" enctype="multipart/form-data" action="">
                 {% csrf_token %}
