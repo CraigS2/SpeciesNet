@@ -1,35 +1,36 @@
 {% extends 'main.html' %}
 
 {% block content %}
+<div class="container">
+    <h3>Edit Aquarist Species:</h3>
+    <p><b>Required Fields:  &nbsp;&nbsp;<i>Name</i></b>, the <b><i></i>Year acquired</i></b>, the <b><i></i>Genetic traits</i></b>, and <b><i>Aquarist notes</i></b>.<br/>
+        The name is the Species name by default. It can be appended to more fully describe your fish. Any remaining blank fields <br/>
+        won't show on your page. &nbsp;As a best practice, please describe where you got your fish in your Aquarist notes.</p>
+    <p></p>
+        <div>
+            <table>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{form.as_table}}
+                    <tr>
+                        <td></td>
+                        <td style="text-align: left; padding-top: 1em;">
+                            <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                                value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Apply Changes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"></td>  
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td style="text-align:left; padding-top:1em;">
+                            <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                                onclick="window.location.href='{% url 'deleteSpeciesInstance' speciesInstance.id %}';" 
+                                type="button">Delete Aquarist Species
+                            </button></td>    
+                    </tr>
+                </form>
+            </table>
+        </div>
 
-<h1>Edit Aquarist Species:</h1>
-<p><b>Required Fields:  &nbsp;&nbsp;<i>Name</i></b>, the <b><i></i>Year acquired</i></b>, the <b><i></i>Genetic traits</i></b>, and <b><i>Aquarist notes</i></b>.<br/>
-    The name is the Species name by default. It can be appended to more fully describe your fish. Any remaining blank fields <br/>
-    won't show on your page. &nbsp;As a best practice, please describe where you got your fish in your Aquarist notes.</p>
-<p></p>
-    <div>
-        <table>
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{form.as_table}}
-                <tr>
-                    <td></td>
-                    <td style="text-align: left; padding-top: 1em;">
-                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Apply Changes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"></td>  
-                </tr>
-                <tr>
-                    <td></td>
-                    <td style="text-align:left; padding-top:1em;">
-                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            onclick="window.location.href='{% url 'deleteSpeciesInstance' speciesInstance.id %}';" 
-                            type="button">Delete Aquarist Species
-                        </button></td>    
-                </tr>
-            </form>
-        </table>
-    </div>
+    {% endblock content %}
 
-{% endblock content %}
-
-<p><a class="btn btn-secondary" href="" role="button">Delete Aquarist Species</a></p>
+    <p><a class="btn btn-secondary" href="" role="button">Delete Aquarist Species</a></p>
+</div>

@@ -1,0 +1,25 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+    <h2>BAP Programs</h2>
+    <large>
+        <p><b>AquaristSpecies.net</b> supports local club BAP Programs.</b></p>
+        <p>To enable this feature:</p>
+        <ul>
+            <li><font style="color:black;">Find and join your club from the <a href="{% url 'aquaristClubs'%}">Aquarist Clubs</a></font> list.</li>
+            <li><font style="color:black;">If your club is not listed it can be added by an admin. Please submit this request to our <a href="{% url 'emailAquarist' 1 %}">Site Admin</a></font></li>
+        </ul>
+        <p>Once you have joined your club on AquaristSpecies.net you can participate in your club's BAP program:</a></p>
+        <ul>
+                <li><font style="color:black;">List your breeding species on your 'Fishroom Page' by Searching Species and choosing <i>I keep this fish!</i></font></li>
+                <li><font style="color:black;">As a best practice, add a photo of the parents for each of your breeding species.</li>
+                <li><font style="color:black;">Edit your Aquarist Species and check the <i>'have spawned'</i> and <i>'have reared fry'</i> options</font></li>
+                <li><font style="color:black;">Click the <b>'BAP Submission'</b> button that appears at the bottom of each of these Aquarist Species pages.</font></li>
+        </ul>
+        <p>Note that the BAP Submission button only appears for species you mark as having 'fry available'. Once you submit your BAP request, 
+            it must be approved by your Club Admin. Only a single request may be submitted for each year. </p>
+        <p>The BAP feature will evolve as clubs are added based on feedback from Aquarists and Admins. In its current form your club may choose to support <b>CARES Species</b>point multipliers for first time breeding submissions 
+            and enable <b>Species Maintenance</b>points for long term maintenance of CARES species or other rare or hard to find species.</p>
+    </large>
+</div>
+{% endblock content %}

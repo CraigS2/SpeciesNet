@@ -66,7 +66,7 @@ def species(request, pk):
             speciesComment = form2.save(commit=False)
             speciesComment.user = cur_user
             speciesComment.species = species
-            speciesComment.name = cur_user.get_display_name + " - " + species.name
+            speciesComment.name = cur_user.get_display_name() + " - " + species.name
             speciesComment.save()
 
     context = {'species': species, 'speciesInstances': speciesInstances, 'speciesComments': speciesComments, 'speciesReferenceLinks': speciesReferenceLinks,
@@ -890,27 +890,29 @@ def bapSubmission (request, pk):
 
 @login_required(login_url='login')
 def createBapSubmission (request, pk):
-    bapClub = AquaristClub.objects.get(id=pk)
+    club = AquaristClub.objects.get(id=pk)
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
     aquarist = speciesInstance.user
-    bapClubMember = AquaristClubMember.objects.get(user=aquarist)
+    # users may join multiple clubs so need to resolve
+    bapClubMember = AquaristClubMember.objects.get(user=aquarist, club=club)
     bapClubMember.bap_participant = True
-    name = speciesInstance.user.username + ' - ' + bapClub.name + ' - ' + speciesInstance.name  
+    name = speciesInstance.user.username + ' - ' + club.name + ' - ' + speciesInstance.name  
+    notes = "Water conditions: \n \nAquarium setup: \n \nApproximate spawn date: \n "
     print ('createBapSubmission name: ', name)
-    form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': bapClub, 'speciesInstance': speciesInstance})
+    form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': club, 'notes': notes, 'speciesInstance': speciesInstance})
     if (request.method == 'POST'):
         form = BapSubmissionForm(request.POST)
         if form.is_valid():
             bap_submission = form.save(commit=False)
             bap_submission.name = name
             bap_submission.aquarist = aquarist
-            bap_submission.club = bapClub
+            bap_submission.club = club
             bap_submission.speciesInstance = speciesInstance
             bap_submission.points = speciesInstance.species.breeder_points
             bap_submission.save()
             print ("BAP Submission form validated and new object saved.")
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
-    context = {'form': form, 'bapClub': bapClub, 'aquarist': aquarist, 'speciesInstance': speciesInstance}
+    context = {'form': form, 'bapClub': club, 'aquarist': aquarist, 'speciesInstance': speciesInstance}
     return render (request, 'species/createBapSubmission.html', context)
 
 @login_required(login_url='login')
@@ -937,6 +939,9 @@ def editBapSubmission (request, pk):
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
     context = {'form': form, 'bap_submission': bap_submission}
     return render (request, 'species/editBapSubmission.html', context)
+
+def bap_about (request):
+    return render(request, 'species/bap_about.html')
 
 @login_required(login_url='login')
 def deleteBapSubmission (request, pk):
@@ -1049,7 +1054,8 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
 @login_required(login_url='login')
 def aquaristClubs (request):
     aquaristClubs = AquaristClub.objects.all()
-    context = {'aquaristClubs': aquaristClubs}
+    userCanEdit = user_can_edit(request.user)    #TODO configure admins to edit
+    context = {'aquaristClubs': aquaristClubs, 'userCanEdit': userCanEdit}
     return render (request, 'species/aquaristClubs.html', context)
 
 ### View Create Edit Delete Aquarist Clubs

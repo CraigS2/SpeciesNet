@@ -1,12 +1,12 @@
 {% extends 'main.html' %}
 <!-- context = {'form': form, 'bap_submission': bap_submission} -->
 {% block content %}
-    <h2>BAP Submission</h2>
-    <h3>{{bap_submission.club.name}}</h3>
+<div class="container">
+    <h3>BAP Submission</h3>
+    <h4><b>{{bap_submission.club.name}}</b></h4>
     <h4><b>Aquarist:</b> {{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</a></h4>
     <h4><b>Species:</b> &nbsp;&nbsp;{{bap_submission.speciesInstance.name}}</h4>
     <h4><b>Points:</b> &nbsp;&nbsp;{{bap_submission.points}}</h4>
-
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data" action="">
@@ -16,6 +16,6 @@
             </form>
         </table>
     </div>
-<p><small>&nbsp;</small></p>
-
+    <p><small>&nbsp;</small></p>
+</div>
 {% endblock content %}

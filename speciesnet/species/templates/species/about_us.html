@@ -1,17 +1,18 @@
 {% extends 'main.html' %}
 {% block content %}
-<div>
+<div class="container">
     <h2>About Us</h2>
     <large>
     <p>
         Welcome to a new site promoting <b>CARES</b> awareness and <i>connecting <b>Aquarists</b> according to the <b>Species</b> they keep.</i>
+    </p>
     <ul>
-        <li><font style="color:black;">Find aquarists keeping fish you want.</font></li>
+        <li><font style="color:black;">Find aquarists keeping the fish you want.</font></li>
         <li><font style="color:black;">Easily contact them!</font></li>
         <li><font style="color:black;">Share the fish you keep.</font></li>
         <li><font style="color:black;">Let others know you have fry available.</font></li>
         <li><font style="color:black;">Make it easy for aquarists to find you!</font></li>
-        <li><font style="color:black;">Share your contact info or keep it private - you choose.</font></li>
+        <li><font style="color:black;">Share your contact info or keep it private - <i>you choose.</i></font></li>
     </ul>
     <p>For an overview of features please visit the <a href="{% url 'howItWorks'%}">How It Works</a> page.</p>
     <p>Once you have an account and are ready to add your species you can use the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species Guided Tutorial</a></p>
@@ -19,15 +20,17 @@
     <ul>
             <li><font style="color:black;">Share the species you keep.</font></li>
             <li><font style="color:black;">Share your whole fish room or just your favorites.</font></li>
-            <li><font style="color:black;">Log notes for the species you keep.</font></li>
+            <li><font style="color:black;">Add photos and log notes for the species you keep.</font></li>
+            <li><font style="color:black;">Add an optional Species Log for more detailed notes and additional photos.</font></li>
             <li><font style="color:black;">Maintaining a CARES Speces? Collaborate with others using a Species Maintenance Group.</font></li>
-            <li><font style="color:black;"><b>AquaristSpecies.net</b> is an open-source solution <i>by Aquarists - for Aquarists.</font></i></li>
+            <li><font style="color:black;"><b>AquaristSpecies.net</b> is a free open-source solution <i>by Aquarists - for Aquarists.</font></i></li>
             <li><font style="color:black;">Hobbyists only please! Not for business use.</font></li>
     </ul>
     <p>AquaristSpecies.net is a <i>croud-sourced</i> community. To succeed we need your help growing the community.</p>
 
     {% if request.user.is_authenticated %}
-        <p>Please add the species you keep to the community database. Help others find you and the fish your breed. </p>
+        <p>Please add the species you keep to the community database. Help others find you and the fish your breed. This is particularly valuable for CARES species!</p>
+        <p>New support for club 'Breeder Award Programs' (BAP). &nbsp;See <a href="{% url 'bap_about' %}">About BAP Programs</a></p>
         <p>Questions or comments? Please contact us at <b><i>AquaristSpecies@gmail.com</i></b></p>
         <p>Feedback is always welcome!</p>
         <p><a class="btn btn-secondary" href="{% url 'emailAquarist' 1 %}" role="button">Feedback</a></p>

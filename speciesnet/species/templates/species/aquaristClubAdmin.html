@@ -1,31 +1,31 @@
 {% extends 'main.html' %}
 
 {% block content %}
+<div class="container">
+    <div class="div-line-below">
+        <h2>Club Admin</h2>
+        <h4><b>Club: </b>{{club.name}}</h4>
+        {% if club.logo_image %}
+            <p><img src={{club.logo_image.path}}></p>
+        {% endif %} 
+    </div>
 
-<div class="div-line-below">
-    <h2>Club Admin</h2>
-    <h4><b>Club: </b>{{club.name}}</h4>
-    {% if club.logo_image %}
-        <p><img src={{club.logo_image.path}}></p>
-    {% endif %} 
+    <div class="div-line-below">
+        <h2>Breeder Award Program</h2>
+        <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' club.id %}" role="button">BAP Submissions</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' club.id %}" role="button">BAP Leaderboard</a></p>
+        <small>&nbsp;</small>
+    </div>
+
+    <div class="div-line-below">
+        <h2>Club Membership</h2>
+        <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' club.id %}" role="button">View all Club Members</a></p>    
+        {% for member in clubMembers %}
+            <div>
+                <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.get_display_name}}</a></h5>
+            </div>
+        {% endfor %} 
+        <small>&nbsp;</small>
+    </div>
 </div>
-
-<div class="div-line-below">
-    <h2>Breeder Award Program</h2>
-    <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' club.id %}" role="button">BAP Submissions</a></p>
-    <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' club.id %}" role="button">BAP Leaderboard</a></p>
-    <small>&nbsp;</small>
-</div>
-
-<div class="div-line-below">
-    <h2>Club Membership</h2>
-    <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' club.id %}" role="button">View all Club Members</a></p>    
-    {% for member in clubMembers %}
-        <div>
-            <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.get_display_name}}</a></h5>
-        </div>
-    {% endfor %} 
-    <small>&nbsp;</small>
-</div>
-
 {% endblock content %}

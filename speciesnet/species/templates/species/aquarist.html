@@ -1,71 +1,69 @@
 {% extends 'main.html' %}
 <!-- context = {'aquarist': aquarist, 'speciesKept': speciesKept} -->
 {% block content %}
-
-<div class="div-line-below">
-    <h1>{{aquarist.get_display_name}}</h1>
-    {% if request.user.is_authenticated %}
-        {% if not aquarist.is_private_name  %}
-            <p><large><B>Name: </B>{{aquarist.first_name}} {{aquarist.last_name}}</large></p> 
-        {% else %}
-            <p><large><B>Name: </B>Private</large></p>
-        {% endif %}
-        {% if not aquarist.is_private_email  %}
-            <p><large><B>Email: </B>{{aquarist.email}} </large></p>    
-        {% else %}
-            <p><large><B>Email: </B>Private</large></p>
-        {% endif %}
-        {% if not aquarist.is_private_location  %}
-            {% if aquarist.state or aquarist.country  %}
-                <p><large><B>Location: </B>{{aquarist.state}}, {{aquarist.country}}</large></p> 
-            {% endif %} 
-        {% else %}
-            <p><large><B>Location: </B>Private</large></p>
-        {% endif %}
-        <p><a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">Email {{aquarist.get_display_name}}</a></p>
-        <p><small>&nbsp;</small></p>
-    {% endif %}  
-</div>
-
-<div class="div-line-below">
-<h2>Keeps the following species:</h2>
-{% if speciesKept.all.count > 0  %}
-    {% for speciesInstance in speciesKept %}
-        {% if speciesInstance.currently_keep %}
-            {% if speciesInstance.species.render_cares and speciesInstance.young_available %}
-                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> (Young Available)</p>
-            {% elif speciesInstance.species.render_cares %}
-                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </p>
-            {% elif speciesInstance.young_available %}
-                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> (Young Available)</p>
+<div class="container">
+    <div class="div-line-below">
+        <h3>{{aquarist.get_display_name}}'s Fishroom</h3>
+        {% if request.user.is_authenticated %}
+            {% if not aquarist.is_private_name  %}
+                <p><large><B>Name: </B>{{aquarist.first_name}} {{aquarist.last_name}}</large></p> 
             {% else %}
-                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-            {% endif%}
-        {% endif %}
-    {% endfor %}    
-{% else %}
-    <p><B>None</B></p>
-{% endif %}
-<small>&nbsp;</small>
+                <p><large><B>Name: </B>Private</large></p>
+            {% endif %}
+            {% if not aquarist.is_private_email  %}
+                <p><large><B>Email: </B>{{aquarist.email}} </large></p>    
+            {% else %}
+                <p><large><B>Email: </B>Private</large></p>
+            {% endif %}
+            {% if not aquarist.is_private_location  %}
+                {% if aquarist.state or aquarist.country  %}
+                    <p><large><B>Location: </B>{{aquarist.state}}, {{aquarist.country}}</large></p> 
+                {% endif %} 
+            {% else %}
+                <p><large><B>Location: </B>Private</large></p>
+            {% endif %}
+            <p><a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">Email {{aquarist.get_display_name}}</a></p>
+        {% endif %}  
+    </div>
 
-{% if userCanEdit and speciesKept.all.count > 0 %}
-    <p><a class="btn btn-secondary" href="{% url 'chooseSpeciesInstancesForLabels' aquarist.id  %}" role="button">&nbsp;Create Labels&nbsp;</a></p>
+    <div class="div-line-below">
+    <h3>Keeps the following species:</h3>
+    {% if speciesKept.all.count > 0  %}
+        {% for speciesInstance in speciesKept %}
+            {% if speciesInstance.currently_keep %}
+                {% if speciesInstance.species.render_cares and speciesInstance.young_available %}
+                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> (Young Available)</p>
+                {% elif speciesInstance.species.render_cares %}
+                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </p>
+                {% elif speciesInstance.young_available %}
+                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> (Young Available)</p>
+                {% else %}
+                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+                {% endif%}
+            {% endif %}
+        {% endfor %}    
+    {% else %}
+        <p><B>None</B></p>
+    {% endif %}
     <small>&nbsp;</small>
-{% endif %}
-</div>
 
-{% if speciesPreviouslyKept.all.count > 0  %}
-<!--hr-->
-<h2>Previously kept the following species:</h2>
-<div>
-    {% for speciesInstance in speciesPreviouslyKept %}
-        {% if not speciesInstance.currently_keep %}
+    {% if userCanEdit and speciesKept.all.count > 0 %}
+        <p><a class="btn btn-secondary" href="{% url 'chooseSpeciesInstancesForLabels' aquarist.id  %}" role="button">&nbsp;Create Labels&nbsp;</a></p>
+        <small>&nbsp;</small>
+    {% endif %}
+    </div>
+
+    {% if speciesPreviouslyKept.all.count > 0  %}
+        <h3>Previously kept the following species:</h3>
         <div>
-            <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+            {% for speciesInstance in speciesPreviouslyKept %}
+                {% if not speciesInstance.currently_keep %}
+                <div>
+                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+                </div>
+                {% endif %}
+            {% endfor %}    
         </div>
-        {% endif %}
-    {% endfor %}    
+    {% endif %}
 </div>
-{% endif %}
-
 {% endblock content %}

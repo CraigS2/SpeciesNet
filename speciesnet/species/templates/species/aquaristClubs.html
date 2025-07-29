@@ -1,7 +1,7 @@
 {% extends 'main.html' %}
 
 {% block content %}
-<div>
+<div class="container">
     <h2>Aquarist Clubs</h2>
     {% if aquaristClubs.all.count > 0  %}
         {% for club in aquaristClubs %}
@@ -12,5 +12,10 @@
     {% else %}
         <h5>None</h5>
     {% endif %}  
+    <small>&nbsp;</small>
+    {% if userCanEdit %}
+        <p><a class="btn btn-secondary" href="{% url 'createAquaristClub' %}" role="button">&nbsp;Add New Club&nbsp;</a></p>
+        <small>&nbsp;</small>
+    {% endif %}
 </div>
 {% endblock content %}

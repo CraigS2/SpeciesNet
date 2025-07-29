@@ -1,11 +1,10 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h2>New Species Maintenance Log</h2>
-<h3>{{speciesInstance.name}} </h3>
-<h4>{{speciesInstance.species.name}} </h4>
-<p><small>&nbsp;</small></p>
+<div class="container">
+    <h3>New Species Maintenance Log</h3>
+    <h4>{{speciesInstance.species.name}} </h4>
+    <p><small>&nbsp;</small></p>
     <div>
         <table>
             <form method="POST">
@@ -33,7 +32,5 @@
             </form>
         </table>
     </div>
-
-
-
+</div>
 {% endblock content %}

@@ -1,9 +1,8 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<div>
-    <h2>Species Instances with Logs</h2>
+<div class="container">
+    <h3>Species Instances with Logs</h3>
     {% if not speciesInstancesEmpty%}
         {% for speciesInstance in speciesInstances %}
             <div>

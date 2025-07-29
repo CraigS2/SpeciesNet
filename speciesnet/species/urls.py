@@ -4,9 +4,7 @@ from django.views.static import serve
 #from django.conf.urls import url - deprecated
 from django.conf import settings
 from . import views
-from species.views import SpeciesListView
-
-
+from species.views import SpeciesListView, BapLeaderboardView
 
 urlpatterns = [
     path('login/', views.loginUser, name="login"),
@@ -44,6 +42,7 @@ urlpatterns = [
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
     path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
+    path('bap_about/', views.bap_about, name="bap_about"),
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),

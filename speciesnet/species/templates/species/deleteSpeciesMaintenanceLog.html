@@ -1,9 +1,8 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h1>Delete Species Maintenance Log Entry</h1>
-
+<div class="container">
+    <h3>Delete Species Maintenance Log Entry</h3>
     <div>
         <form method="POST" action="">
             {% csrf_token %}
@@ -13,5 +12,5 @@
             <p><input type="Submit" value="Delete"></p>
         </form>
     </div>
-
+</div>
 {% endblock content %}

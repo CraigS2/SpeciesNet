@@ -1,11 +1,9 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h2>Create Reference Link:</h2>
-<p><small>&nbsp;</small></p>
-<p>Enter a <b>name</b> for the link (<i>it will be displayed on the species page</i>) and a valid URL.</p>
-
+<div class="container">
+    <h3>Create Reference Link:</h3>
+    <p>Enter a <b>name</b> for the link (<i>it will be displayed on the species page</i>) and a valid URL (<i>copied from a verified webpage</i>).</p>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data" action="">
@@ -33,6 +31,6 @@
             </form>
         </table>
     </div>
-<p><small>&nbsp;</small></p>
-
+    <p><small>&nbsp;</small></p>
+</div>
 {% endblock content %}

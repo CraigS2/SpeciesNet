@@ -1,21 +1,21 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h2>{{aquaristClub.name}}</h2>
-    <div>
-        <h4>Submit a request to join {{aquaristClub.name}}'s BAP program </h4>
-        <p>A club admin will need to approve your membership.</p>
-        <p><b>Name:</b> {{request.user.first_name}} {{request.user.last_name}}</p>
-        <p><b>Username:</b> {{request.user.username}}</p>
-        <table>
-            <form method="POST" enctype="multipart/form-data" action="">
-                {% csrf_token %}
-                {{form.as_table}}
-                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
-            </form>
-        </table>
-    </div>
-<p><small>&nbsp;</small></p>
-
+<div class="container">
+    <h3>{{aquaristClub.name}}</h3>
+        <div>
+            <p>Submit a request to join {{aquaristClub.name}}'s BAP program </p>
+            <p>A club admin will need to approve your membership.</p>
+            <p><b>Name:</b> {{request.user.first_name}} {{request.user.last_name}}</p>
+            <p><b>Username:</b> {{request.user.username}}</p>
+            <table>
+                <form method="POST" enctype="multipart/form-data" action="">
+                    {% csrf_token %}
+                    {{form.as_table}}
+                    <td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+                </form>
+            </table>
+        </div>
+    <p><small>&nbsp;</small></p>
+</div>
 {% endblock content %}

@@ -1,41 +1,35 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<div class="div-line-below">
-    <h2>Aquarist Tools</h2>
-    <h4><a href="{% url 'exportAquarists'%}">Export Aquarists to CSV</a></h4>
-
-<div class="div-line-below">
-    <h2>Species Tools</h2>
-    <h4><a href="{% url 'createSpecies'%}">Add Species</a></h4>
-    <h4><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></h4>
-    <h4><a href="{% url 'speciesComments' %}">View all Species Comments</a></h4>
-    <h4><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></h4>
-    <h4><a href="{% url 'importSpecies' %}">Import Species from CSV</a></h4>
-    <small>&nbsp;</small>
+<div class="container">
+    <div class="div-line-below">
+        <h3>Aquarist Tools</h3>
+        <p><a href="{% url 'exportAquarists'%}">Export Aquarists to CSV</a></p>
+    </div>
+    <div class="div-line-below">
+        <h3>Species Tools</h3>
+        <p><a href="{% url 'createSpecies'%}">Add Species</a></p>
+        <p><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></p>
+        <p><a href="{% url 'speciesComments' %}">View all Species Comments</a></p>
+        <p><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></p>
+        <p><a href="{% url 'importSpecies' %}">Import Species from CSV</a></p>
+    </div>
+    <div class="div-line-below">
+        <h3>Aquarist Species Tools</h3>
+        <p><a href="{% url 'exportSpeciesInstances' %}">Export Aquarist Species to CSV</a></p>
+        <p><a href="{% url 'importSpeciesInstances' %}">Import Aquarist Species from CSV</a></p>
+        <p><a href="{% url 'speciesInstancesWithLogs' %}">View all Species Instances with Logs</a></p>
+        <p><a href="{% url 'speciesInstanceLabels' %}">View all Species Instances with Labels</a></p>
+    </div>
+    <div class="div-line-below">
+        <h3>Aquarist Clubs</h3>
+        <p><a href="{% url 'aquaristClubs' %}">View all Clubs</a></p>
+        <p><a href="{% url 'createAquaristClub' %}">Add Club</a></p>
+    </div>
+    <div>
+        <h3>Shared Species Maintenance</h3>
+        <p><a href="{% url 'speciesMaintenanceLogs' %}">View all Species Maintenance Logs</a></p>
+        <small>&nbsp;</small>
+    </div>
 </div>
-
-<div class="div-line-below">
-    <h2>Aquarist Species Tools</h2>
-    <h4><a href="{% url 'exportSpeciesInstances' %}">Export Aquarist Species to CSV</a></h4>
-    <h4><a href="{% url 'importSpeciesInstances' %}">Import Aquarist Species from CSV</a></h4>
-    <h4><a href="{% url 'speciesInstancesWithLogs' %}">View all Species Instances with Logs</a></h4>
-    <h4><a href="{% url 'speciesInstanceLabels' %}">View all Species Instances with Labels</a></h4>
-    <small>&nbsp;</small>
-</div>
-
-<div class="div-line-below">
-    <h2>Aquarist Clubs</h2>
-    <h4><a href="{% url 'aquaristClubs' %}">View all Clubs</a></h4>
-    <h4><a href="{% url 'createAquaristClub' %}">Add Club</a></h4>
-    <small>&nbsp;</small>
-</div>
-
-<div>
-    <h2>Shared Species Maintenance</h2>
-    <h4><a href="{% url 'speciesMaintenanceLogs' %}">View all Species Maintenance Logs</a></h4>
-    <small>&nbsp;</small>
-</div>
-
 {% endblock content %}

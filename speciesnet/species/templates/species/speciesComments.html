@@ -1,9 +1,8 @@
 {% extends 'main.html' %}
 <!-- context = {'speciesComments': speciesComments } -->
 {% block content %}
-
-<div>
-    <h2>Species Comments</h2>
+<div class="container">
+    <h3>Species Comments</h3>
      {% if speciesComments.all.count > 0  %}
         {% for speciesComment in speciesComments %}
         <div class="div-line-below">
@@ -18,7 +17,6 @@
     {% else %}
     <h5>None</h5>
     {% endif %}     
-
 </div>
 
 {% endblock content %}

@@ -17,7 +17,7 @@ class SpeciesForm (ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares']
+        exclude = ['render_cares', 'species_instance_count']
         widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':50}),
                     'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
                     'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
@@ -57,8 +57,8 @@ class SpeciesReferenceLinkForm (ModelForm):
         model = SpeciesReferenceLink
         fields = '__all__'
         exclude = ['user', 'species']
-        widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':100}),
-                   'reference_url':       forms.Textarea(attrs={'rows':1,'cols':100}),}
+        widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':96}),
+                   'reference_url':       forms.Textarea(attrs={'rows':1,'cols':96}),}
 
 class SpeciesMaintenanceLogForm (ModelForm):
     class Meta:
@@ -172,7 +172,7 @@ class BapSubmissionForm (ModelForm):
         model = BapSubmission
         fields = '__all__'
         exclude = ['name', 'aquarist', 'club', 'points', 'year', 'speciesInstance', 'status', 'active']
-        widgets = {'notes': forms.Textarea(attrs={'rows':4,'cols':44}),} 
+        widgets = {'notes': forms.Textarea(attrs={'rows':8,'cols':50}),} 
 
 
 class BapSubmissionFormEdit (ModelForm):
@@ -180,7 +180,7 @@ class BapSubmissionFormEdit (ModelForm):
         model = BapSubmission
         fields = '__all__'
         exclude = ['name', 'aquarist', 'club', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':6,'cols':44}),}                                    
+        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),}                                    
 
 class UserProfileForm (ModelForm):
     class Meta:

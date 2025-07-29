@@ -2,110 +2,76 @@
 <!-- context = speciesInstance, species, speciesMaintenanceLog, bapClubMemberships, renderCares, userCanEdit -->
 
 {% block content %}
+<div class="container">
+    <div class="div-line-below">
+        <h3><b>{{speciesInstance.name}}</b></h3>
+        <h4>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h4>
+        <h4>Species Overview:  <a href="{% url 'species' species.id %}">{{species.name}}</a></h4>
+        <small>&nbsp;</small>
+        <!--hr-->
+    </div>
+    <div>
+        <h3><b>Aquarist Notes:</b></h3>
+        {% if speciesInstance.instance_image %}
+            <p><img src={{speciesInstance.instance_image.url}}></p>
+        {% endif %}
+        {% if speciesInstance.collection_point %}
+            <p><b>Collection Point:</b> &nbsp;&nbsp;{{speciesInstance.collection_point}}</p>
+        {% endif %}   
+        <p><b>Genetic Line:</b> &nbsp;&nbsp;{{speciesInstance.get_genetic_traits_display}}</p>
+        {% if speciesInstance.unique_traits %}
+            <p><b>Line Traits:</b> &nbsp;&nbsp;{{speciesInstance.unique_traits}}</p>
+        {% endif %}  
+        <p><b>Year Acquired:</b> &nbsp;&nbsp;{{speciesInstance.year_acquired}}</p>
+        <p>{{speciesInstance.aquarist_notes}}</p>
 
-<div class="div-line-below">
-    <h2>{{speciesInstance.name}}</h2>
-    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h3>
-    <h3>Species:  <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
-    {% if species.alt_name %}
-        <p><b>Alternate Name: &nbsp;&nbsp;</b>{{species.alt_name}}</p>
-    {% endif %}
-    {% if species.common_name %}
-        <p><b>Common Name: &nbsp;&nbsp;</b>{{species.common_name}}</p>
-    {% endif %}
-    <small>&nbsp;</small>
-    {% if species.species_image %}
-        <p><img src={{species.species_image.url}}></p>
-    {% endif %}
-    {% if species.photo_credit %}
-        <p>Photo by:<i> &nbsp;&nbsp;{{species.photo_credit}}</i> </p>
-    {% endif %}
-    <h3>Description</h3>
-    <p>{{species.description}}</p>
-    <!-- Non Obvious use of TextChoices: to display text and no enum string use get_VARNAME_display -->
-    <p><b>Category:</b>  &nbsp;&nbsp;{{species.get_category_display}}</p>
-    <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
-    <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
-    {% if renderCares %}
-        <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
-    {% endif %}
-    <small>&nbsp;</small>
-    <!--hr-->
-</div>
-
-<div>
-    <h3>Aquarist Notes</h3>
-    {% if speciesInstance.instance_image %}
-        <p><img src={{speciesInstance.instance_image.url}}></p>
-    {% endif %}
-    {% if speciesInstance.collection_point %}
-        <p><b>Collection Point:</b> &nbsp;&nbsp;{{speciesInstance.collection_point}}</p>
-    {% endif %}   
-    <p><b>Genetic Line:</b> &nbsp;&nbsp;{{speciesInstance.get_genetic_traits_display}}</p>
-    {% if speciesInstance.unique_traits %}
-        <p><b>Line Traits:</b> &nbsp;&nbsp;{{speciesInstance.unique_traits}}</p>
-    {% endif %}  
-    <p><b>Year Acquired:</b> &nbsp;&nbsp;{{speciesInstance.year_acquired}}</p>
-    <p>{{speciesInstance.aquarist_notes}}</p>
-
-    {% if speciesInstance.have_spawned %}
-        <p><b>Species Spawned:</b> &nbsp;&nbsp;Yes</p>
-        <p>{{speciesInstance.spawning_notes}}</p>
-        {% if speciesInstance.have_reared_fry %}
-            <p><b>Have Reared Fry?</b> &nbsp;&nbsp;Yes</p>
-            <p>{{speciesInstance.fry_rearing_notes}}</p>
-            {% if speciesInstance.young_available %}
-                <p><b>Young fish available?</b> &nbsp;&nbsp;Yes</p>
+        {% if speciesInstance.have_spawned %}
+            <p><b>Species Spawned:</b> &nbsp;&nbsp;Yes</p>
+            <p>{{speciesInstance.spawning_notes}}</p>
+            {% if speciesInstance.have_reared_fry %}
+                <p><b>Have Reared Fry?</b> &nbsp;&nbsp;Yes</p>
+                <p>{{speciesInstance.fry_rearing_notes}}</p>
+                {% if speciesInstance.young_available %}
+                    <p><b>Young fish available?</b> &nbsp;&nbsp;Yes</p>
+                {% endif %}
             {% endif %}
         {% endif %}
-    {% endif %}
-    <small>&nbsp;</small>
-    {% if request.user.is_authenticated %}
-        {% if speciesInstance.enable_species_log %}
-            {% if userCanEdit %}
-                <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
-                <small>&nbsp;</small>
-            {% elif not speciesInstance.log_is_private %}    
-                <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
-                <small>&nbsp;</small>
-            {% endif %}
-        {% endif %} 
-        {% if userCanEdit %} 
-            <div class="div-line-above">
-                <h3>Edit Aquarist Species</h3>
+        <!--small>&nbsp;</small-->
+        {% if request.user.is_authenticated %}
+            {% if speciesInstance.enable_species_log %}
+                {% if userCanEdit %}
+                    <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                    <small>&nbsp;</small>
+                {% elif not speciesInstance.log_is_private %}    
+                    <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                    <small>&nbsp;</small>
+                {% endif %}
+            {% endif %} 
+            {% if userCanEdit %} 
                 <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
                 <small>&nbsp;</small>
-            </div>
+            {% endif %} 
         {% endif %} 
+    </div>
+
+    {% if request.user.is_authenticated %}
+        {% if speciesMaintenanceLog %}
+            {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
+            <div class="div-line-above">
+                <h4>Species Maintenance Collaboration</h4>
+                <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        {% if bapClubMemberships.count > 0 and userCanEdit %}
+            <div class="div-line-above">
+            <h4>BAP Programs</h4>
+            {% for bapClubMember in bapClubMemberships %}
+                <p><a class="btn btn-secondary" href="{% url 'createBapSubmission' bapClubMember.club.id %}" role="button">&nbsp;&nbsp;{{bapClubMember.club.name}} BAP Request&nbsp;&nbsp;</a></p>
+            {% endfor %}    
+            </div>
+        {% endif %}
     {% endif %} 
 </div>
-
-{% if request.user.is_authenticated %}
-    {% if speciesMaintenanceLog %}
-        {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
-        <div class="div-line-above">
-            <h3>Species Maintenance Collaboration</h3>
-            <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
-        </div>
-        {% endif %}
-    {% elif userCanEdit %}
-    <div class="div-line-above">
-        <h3>Species Maintenance Collaboration</h3>
-        <p>Working to preserve a species?</p>
-        <p>Maintaining a healthy gene pool while preserving the integrity of a species or subspecies is challenging.</p> 
-        <p>Collaborating with fellow hobbyists can be an effective and rewarding approach.</p>
-        <p><a class="btn btn-secondary" href="{% url 'createSpeciesMaintenanceLog' speciesInstance.id  %}" role="button">&nbsp;&nbsp;&nbsp;Create Species Maintenance Group&nbsp;&nbsp;&nbsp;</a></p>
-    {% endif %}
-    {% if bapClubMemberships.count > 0 and userCanEdit %}
-        <div class="div-line-above">
-        <h3>BAP Programs</h3>
-        {% for bapClubMember in bapClubMemberships %}
-            <p>{{bapClubMember.club.name}}</b>: <a class="btn btn-secondary" href="{% url 'createBapSubmission' bapClubMember.club.id %}" role="button">&nbsp;&nbsp;Submit BAP Request&nbsp;&nbsp;</a></p>
-        {% endfor %}    
-        </div>
-        {% endif %}
-    {% elif userCanEdit %}
-    </div>
-{% endif %} 
-
 {% endblock content %}
