@@ -891,14 +891,15 @@ def bapSubmission (request, pk):
 @login_required(login_url='login')
 def createBapSubmission (request, pk):
     club = AquaristClub.objects.get(id=pk)
+    print ('BAP Submission club name: ' + club.name)
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
     aquarist = speciesInstance.user
     # users may join multiple clubs so need to resolve
     bapClubMember = AquaristClubMember.objects.get(user=aquarist, club=club)
     bapClubMember.bap_participant = True
     name = speciesInstance.user.username + ' - ' + club.name + ' - ' + speciesInstance.name  
-    notes = "Water conditions: \n \nAquarium setup: \n \nApproximate spawn date: \n "
-    print ('createBapSubmission name: ', name)
+    #notes = "Water conditions: \n \nAquarium setup: \n \nApproximate spawn date: \n "
+    notes = club.bap_notes_template
     form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': club, 'notes': notes, 'speciesInstance': speciesInstance})
     if (request.method == 'POST'):
         form = BapSubmissionForm(request.POST)
@@ -912,7 +913,7 @@ def createBapSubmission (request, pk):
             bap_submission.save()
             print ("BAP Submission form validated and new object saved.")
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
-    context = {'form': form, 'bapClub': club, 'aquarist': aquarist, 'speciesInstance': speciesInstance}
+    context = {'form': form, 'club': club, 'aquarist': aquarist, 'speciesInstance': speciesInstance}
     return render (request, 'species/createBapSubmission.html', context)
 
 @login_required(login_url='login')

@@ -1,9 +1,8 @@
 {% extends 'main.html' %}
-
+<!--context = {'form': form, 'aquaristClub': aquaristClub}-->
 {% block content %}
 <div class="container">
-    <h3>Edit Club:</h3>
-    <p><small>&nbsp;</small></p>
+    <h3>Edit Club: {{ aquaristClub.name }}</h3>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data">

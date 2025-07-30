@@ -326,15 +326,16 @@ class SpeciesInstanceComment (models.Model):
 class AquaristClub (models.Model):
     name                      = models.CharField (max_length=240)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
-    club_admins               = models.ManyToManyField (User, related_name='user_aquarist_clubs') 
+    club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
     website                   = models.URLField ()
     city                      = models.CharField (max_length=100, blank=True)
     state                     = models.CharField (max_length=100, blank=True)
     country                   = models.CharField (max_length=100, blank=True)
-    bap_guidelines            = models.TextField(null=True, blank=True)
+    bap_guidelines            = models.TextField (null=True, blank=True)
+    bap_notes_template        = models.TextField (null=True, blank=True)
     bap_start_date            = models.DateField (null=True, blank=True)
     bap_end_date              = models.DateField (null=True, blank=True)
-    bap_admins                = models.ManyToManyField(User, related_name='user_bap_club_admins') 
+    #bap_admins                = models.ManyToManyField(User, related_name='user_bap_club_admins') 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 

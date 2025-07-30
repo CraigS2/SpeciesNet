@@ -2,19 +2,25 @@
 <!--context = {'form': form, 'club': club, 'aquarist': aquarist, 'speciesInstance': speciesInstance}-->
 
 {% block content %}
+{% load crispy_forms_tags %}
+
 <div class="container">
-    <h3>{{club.name}}</h3>
+
     <h3><b>BAP Submission</b></h3>
-    <h4><b>Aquarist:</b> {{aquarist.first_name}} {{aquarist.last_name}}</a></h4>
-    <h4><b>Species:</b> &nbsp;&nbsp;{{speciesInstance.name}}</h4>
+    <h5><b>Club:</b> &nbsp;{{ club.name }}</h5>
+    <h5><b>Aquarist:</b> {{aquarist.first_name}} {{aquarist.last_name}}</a></h5>
+    <h5><b>Species:</b> &nbsp;&nbsp;{{speciesInstance.name}}</h5>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data" action="">
                 {% csrf_token %}
-                {{form.as_table}}
+                {% crispy form %}
                 <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
             </form>
         </table>
     </div>
+    <p><small>&nbsp;</small></p>
+    <h4><b>BAP Guidelines</b></h4>
+    <p>{{ club.bap_guidelines|linebreaks }}</p>
 </div>
 {% endblock content %}

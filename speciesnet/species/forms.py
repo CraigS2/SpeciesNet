@@ -2,6 +2,8 @@ from django.forms import ModelForm, Form
 from django import forms
 from django.forms import formset_factory
 from django.forms.formsets import formset_factory
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, Field
 from .models import SpeciesInstanceLabel
 #from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import MinValueValidator
@@ -10,8 +12,8 @@ from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArc
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission
 from allauth.account.forms import SignupForm, ResetPasswordForm
-from django_recaptcha.fields import ReCaptchaField
-from django_recaptcha.widgets import ReCaptchaV2Invisible
+#from django_recaptcha.fields import ReCaptchaField
+#from django_recaptcha.widgets import ReCaptchaV2Invisible
 
 class SpeciesForm (ModelForm):
     class Meta:
@@ -174,6 +176,14 @@ class BapSubmissionForm (ModelForm):
         exclude = ['name', 'aquarist', 'club', 'points', 'year', 'speciesInstance', 'status', 'active']
         widgets = {'notes': forms.Textarea(attrs={'rows':8,'cols':50}),} 
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Field('notes', css_class='mb-3'),
+            Submit('submit', 'Submit', css_class='btn btn-primary')
+        )
 
 class BapSubmissionFormEdit (ModelForm):
     class Meta:
@@ -208,7 +218,9 @@ class AquaristClubForm (ModelForm):
                    'website':            forms.Textarea(attrs={'rows':1,'cols':50}),
                    'city':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'state':              forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'country':            forms.Textarea(attrs={'rows':1,'cols':50}),}
+                   'country':            forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'bap_guidelines':     forms.Textarea(attrs={'rows':8,'cols':50}),
+                   'bap_notes_template': forms.Textarea(attrs={'rows':8,'cols':50}),}
         
 class AquaristClubMemberJoinForm (ModelForm):
     class Meta:
@@ -231,7 +243,6 @@ class ImportCsvForm (ModelForm):
 
 # class RegistrationForm (UserCreationForm):
 #     email = forms.EmailField(max_length=200, help_text='Required')
-
 #     class Meta:
 #         model = User
 #         fields = ('username', 'email', 'password1', 'password2')

@@ -9,7 +9,7 @@
             <b>Aquarist: &nbsp;</b><a href="{% url 'aquarist' bap_submission.aquarist.id %}">{{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</a>
             &nbsp;({{bap_submission.aquarist.get_display_name}})
         </h4>
-        <h4><b>Aquarist Species:</b> &nbsp;<a href="{% url 'speciesInstance' bap_submission.speciesInstance.id %}">{{bap_submission.speciesInstance.name}}</a></h4>
+        <h4><b>Species:</b> &nbsp;<a href="{% url 'speciesInstance' bap_submission.speciesInstance.id %}">{{bap_submission.speciesInstance.name}}</a></h4>
         <p><b>Status:</b> &nbsp;&nbsp;{{bap_submission.get_status_display}}</p>
         <p><b>Year:</b>&nbsp;&nbsp;{{bap_submission.year}}</p>
         <p><b>Points:</b> &nbsp;&nbsp;{{bap_submission.points}}</p>
