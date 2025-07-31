@@ -6,9 +6,35 @@
 
 <div class="container">
     <h3>{{ bap_club.name }}</h3>
+
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>BAP Species Points Filter</h4>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label for="category">Category:</label>
+                        <select name="category" id="category" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- All Categories --</option>
+                            {% for value, label in categories %}
+                                <option value="{{ value }}" {% if value == selected_category %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <!-- Hidden fields to preserve pagination when only clearing specific filters -->
+                <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
+            </form>
+        </div>
+    </div>
+
+    <!-- species_points_list -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4>BAP Species Points Configuration</h4>
+            <h4>BAP Species Points</h4>
             <span>Total: {{ page_obj.paginator.count }} BAP Genus entries found</span>
         </div>
         <div class="card-body">
@@ -17,7 +43,9 @@
                     <table class="table table-striped table-hover">                    
                         <thead>
                             <tr>
-                                <th>Species</th>
+                                <th style="width: 40%">Species</th>
+                                <th style='text-align:center'>Category</th> 
+                                <th style='text-align:center'>CARES</th> 
                                 <th style='text-align:center'>Points</th> 
                             </tr>
                         </thead>
@@ -25,7 +53,14 @@
                             {% for species_entry in species_points_list %}
                                 <tr>
                                     <td><a href="{% url 'editBapSpeciesPoints' species_entry.id %}">{{ species_entry.name }}</a></td>
-                                    <td style='text-align:center'>{{species_entry.points}}</td>  
+                                    <td style='text-align:center'>{{ species_entry.species.get_category_display }}</td>  
+                                    {% if species_entry.species.render_cares %}
+                                        <td style='text-align:center'>Yes</td>  
+                                        <td style='text-align:center'>{{species_entry.points}} x {{bap_club.cares_muliplier}}</td>  
+                                    {% else %}
+                                        <td></td>  
+                                        <td style='text-align:center'>{{species_entry.points}}</td>  
+                                    {% endif %}                                    
                             {% endfor %}
                         </tbody>
                     </table>

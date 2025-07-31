@@ -175,23 +175,6 @@ class SpeciesListView(ListView):
         context['query_text'] = self.request.GET.get('q', '')
         return context
 
-# def searchSpecies(request):
-#     # speciesInstances = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
-#     # # set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
-#     # q = request.GET.get('q') if request.GET.get('q') != None else '' 
-#     # speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q) | Q(common_name__icontains=q) | 
-#     #                                        Q(local_distribution__icontains=q) | Q(description__icontains=q))
-#     # context = {'speciesFilter': speciesFilter, 'speciesInstances': speciesInstances, 'form': form }
-
-#     speciesList = Species.objects.all()
-#     for species in speciesList:
-#         if species.cares_category == Species.CaresCategory.UNDEFINED:
-#             if species.category == Species.Category.CICHLIDS:
-#                 species.cares_category = Species.CaresCategory.CICHLIDS
-#                 species.save()
-#                 print ('Updated CARES Category for ', species.name)
-#     return render(request, 'species/searchSpecies.html', context)
-
 ### Add speciesInstance Wizard 
 
 def addSpeciesInstanceWizard1 (request):
@@ -1086,14 +1069,21 @@ class BapSpeciesPointsView(ListView):
     
     def get_queryset(self):
         club = self.get_bap_club()
-        queryset = BapSpeciesPoints.objects.filter(club=club)
+        category = self.request.GET.get('category', '')
+        queryset = None
+        if category:
+            queryset = BapSpeciesPoints.objects.filter(club=club, species__category=category)
+        else:
+            queryset = BapSpeciesPoints.objects.filter(club=club)
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['categories'] = Species.Category.choices
+        context['selected_category'] = self.request.GET.get('category', '')
         context['bap_club'] = self.get_bap_club()
         return context
-
+    
 @login_required(login_url='login')
 def editBapGenusPoints (request, pk):
     bapGP = BapGenusPoints.objects.get(id=pk)
@@ -1434,7 +1424,7 @@ def dirtyDeed (request):
         raise PermissionDenied()
     
     # dirty deed goes here ... then return to tools2
-
+    #TODO delete this HACK
     # hackish code to populate PVAS sample BapGenusPoints table
     # club = AquaristClub.objects.get(id=1) 
     # species_set = Species.objects.all()

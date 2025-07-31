@@ -162,14 +162,13 @@ class Species (models.Model):
         ordering = ['name'] # sorts in alphabetical order
         verbose_name_plural = "Species"
 
-    @property
-    def breeder_points(self):
-        #TODO sort out the best way to override lesser or greater points values and configure each club's BAP reference
-        points = 10
-        cares_muliplier = 2
-        if self.render_cares :
-            points = points * cares_muliplier
-        return points
+    # @property
+    # def breeder_points(self):
+    #     points = 10
+    #     cares_muliplier = 2
+    #     if self.render_cares :
+    #         points = points * cares_muliplier
+    #     return points
 
     def __str__(self):
         return self.name
@@ -334,9 +333,9 @@ class AquaristClub (models.Model):
     bap_guidelines            = models.TextField (null=True, blank=True)
     bap_notes_template        = models.TextField (null=True, blank=True)
     bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
+    cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)  
     bap_start_date            = models.DateField (null=True, blank=True)
     bap_end_date              = models.DateField (null=True, blank=True)
-    #bap_config_file           = models.FileField (null=True, blank=True, upload_to="uploads/%Y/%m/%d/")
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
