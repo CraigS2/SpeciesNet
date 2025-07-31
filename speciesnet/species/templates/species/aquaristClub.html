@@ -32,9 +32,10 @@
     {% if userCanEdit %}
     <small>&nbsp;</small>
     <div class="div-line-above">
-        <h3>Edit Club</h3>
+        <h3>Club Admin</h3>
         <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'deleteAquaristClub' aquaristClub.id  %}" role="button">&nbsp;Delete Club&nbsp;</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'bapGenusPoints' aquaristClub.id  %}" role="button">&nbsp;BAP Genus Points Config&nbsp;</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'bapSpeciesPoints' aquaristClub.id  %}" role="button">&nbsp;BAP Species Points Config&nbsp;</a></p>
     </div>
     {% endif %}
 

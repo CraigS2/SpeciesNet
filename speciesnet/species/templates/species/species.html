@@ -16,7 +16,7 @@
             <p><img src={{species.species_image.url}}></p>
         {% endif %}
         {% if species.photo_credit %}
-            <p>Photo by:<i> &nbsp;&nbsp;{{species.photo_credit}}</i> </p>
+            <p>Photo by:<i> &nbsp;{{species.photo_credit}}</i> </p>
         {% endif %}
         <h4>Description</h4>
         <p>{{species.description}}</p>
@@ -91,7 +91,9 @@
             <form method="POST" enctype="multipart/form-data" action="">
                 {% csrf_token %}
                 {{cform.as_p}}
-                <input type="Submit" value="Add Comment">
+                <!--input type="Submit" value="Add Comment"-->
+                <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Add Comment"> 
+                
             </form>
             {% endif %}
         </div>

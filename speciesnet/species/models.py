@@ -333,9 +333,10 @@ class AquaristClub (models.Model):
     country                   = models.CharField (max_length=100, blank=True)
     bap_guidelines            = models.TextField (null=True, blank=True)
     bap_notes_template        = models.TextField (null=True, blank=True)
+    bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
     bap_start_date            = models.DateField (null=True, blank=True)
     bap_end_date              = models.DateField (null=True, blank=True)
-    #bap_admins                = models.ManyToManyField(User, related_name='user_bap_club_admins') 
+    #bap_config_file           = models.FileField (null=True, blank=True, upload_to="uploads/%Y/%m/%d/")
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -411,6 +412,37 @@ class BapLeaderboard (models.Model):
 
     def __str__(self):
         return self.name    
+    
+
+class BapGenusPoints (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_genus_points') 
+    points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
+    created                   = models.DateTimeField(auto_now_add=True)
+    lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
+
+    class Meta:
+        ordering = ['name'] # sorts in alphabetical order
+
+    def __str__(self):
+        return self.name    
+
+
+class BapSpeciesPoints (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_bap_points') # deletes ALL instances referencing any deleted species
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_species_points') 
+    points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
+    created                   = models.DateTimeField(auto_now_add=True)
+    lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
+
+    class Meta:
+        ordering = ['name'] # sorts in alphabetical order    
+
+    def __str__(self):
+        return self.name            
 
 
 class ImportArchive (models.Model):

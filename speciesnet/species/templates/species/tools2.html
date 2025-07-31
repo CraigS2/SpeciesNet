@@ -3,17 +3,29 @@
 {% block content %}
 <div class="container">
     <div class="div-line-below">
+        <h3>Import Export Tools</h3>
+        <p><a href="{% url 'exportAquarists'%}">Export Aquarists to CSV</a></p>
+        <p><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></p>
+        <p><a href="{% url 'importSpecies' %}">Import Species from CSV</a></p> 
+        <p><a href="{% url 'exportSpeciesInstances' %}">Export Aquarist Species to CSV</a></p>
+        <p><a href="{% url 'importSpeciesInstances' %}">Import Aquarist Species from CSV</a></p>               
+    </div>
+    <div class="div-line-below">
         <h3>Species Tools</h3>
         <p><a href="{% url 'createSpecies'%}">Add Species</a></p>
         <p><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></p>
         <p><a href="{% url 'speciesComments' %}">View all Species Comments</a></p>     
 
     </div>
-    <div>
+    <div class="div-line-below">
         <h3>Aquarist Species Tools</h3>
         <p><a href="{% url 'speciesInstancesWithLogs' %}">View all Aquarist Species with Logs</a></p>
         <p><a href="{% url 'speciesInstanceLabels' %}">View all Aquarist Species with Labels</a></p>
         <p><a href="{% url 'speciesMaintenanceLogs' %}">View all Aquarist Species Maintenance Logs</a></p>   
+    </div>
+    <div>
+        <h3>Danger Will Robinson</h3>
+        <p><a href="{% url 'dirtyDeed' %}">Do the Dirty Deed</a></p>  
     </div>
 </div>
 {% endblock content %}

@@ -13,12 +13,12 @@ from django.core.mail import EmailMessage
 from smtplib import SMTPException
 from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance
 from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
-from species.models import BapSubmission, BapLeaderboard
+from species.models import BapSubmission, BapLeaderboard, BapGenusPoints, BapSpeciesPoints
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
 from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm
-from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFilterForm
+from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapGenusPointsForm, BapSpeciesPointsForm, BapSubmissionFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -1006,7 +1006,7 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
     #filter_form = BapSubmissionFilterForm()
     template_name = "species/bapLeaderboard.html"
     context_object_name = "bap_leaderboard"
-    paginate_by = 50  # Maximum 200 Species per page
+    paginate_by = 50  # Maximum per page
 
     def get_bap_club(self):
         bap_club_id = self.kwargs.get('pk')
@@ -1052,6 +1052,116 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
         return context    
 
 
+class BapGenusPointsView(ListView):
+    model = BapGenusPoints
+    template_name = "species/bapGenusPoints.html"
+    context_object_name = "genus_points_list"
+    paginate_by = 100  
+
+    def get_bap_club(self):
+        club_id = self.kwargs.get('pk')
+        bap_club = AquaristClub.objects.get(id=club_id)      
+        return bap_club
+    
+    def get_queryset(self):
+        club = self.get_bap_club()
+        queryset = BapGenusPoints.objects.filter(club=club)
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['bap_club'] = self.get_bap_club()        
+        return context
+    
+class BapSpeciesPointsView(ListView):
+    model = BapSpeciesPoints
+    template_name = "species/bapSpeciesPoints.html"
+    context_object_name = "species_points_list"
+    paginate_by = 100 
+
+    def get_bap_club(self):
+        club_id = self.kwargs.get('pk')
+        bap_club = AquaristClub.objects.get(id=club_id)      
+        return bap_club
+    
+    def get_queryset(self):
+        club = self.get_bap_club()
+        queryset = BapSpeciesPoints.objects.filter(club=club)
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['bap_club'] = self.get_bap_club()
+        return context
+
+@login_required(login_url='login')
+def editBapGenusPoints (request, pk):
+    bapGP = BapGenusPoints.objects.get(id=pk)
+    club = bapGP.club
+    userCanEdit = user_can_edit (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()    
+    form = BapGenusPointsForm (instance=bapGP)
+    if (request.method == 'POST'):
+        # TODO review ALL edit operations and use the best practice for hidden fields
+        # initializing the 2nd form with BOTH request.POST and the object instance preserves all hidden fields        
+        form = BapGenusPointsForm(request.POST, instance=bapGP)
+        if form.is_valid():
+            bapGP = form.save()
+            # bapGP.club = club
+            # bapGP.save()         
+            return HttpResponseRedirect(reverse("bapGenusPoints", args=[club.id]))
+    context = {'form': form, 'bapGP': bapGP, 'club': club}
+    return render (request, 'species/editBapGenusPoints.html', context)
+
+@login_required(login_url='login')
+def editBapSpeciesPoints (request, pk):
+    bapSP = BapSpeciesPoints.objects.get(id=pk)
+    club = bapSP.club
+    userCanEdit = user_can_edit (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    form = BapSpeciesPointsForm (instance=bapSP)
+    if (request.method == 'POST'):
+        form = BapGenusPointsForm(request.POST, instance=bapSP)
+        if form.is_valid():
+            bapSP = form.save()       
+            return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
+    context = {'form': form, 'bapSP': bapSP, 'club': club}
+    return render (request, 'species/editBapSpeciesPoints.html', context)
+
+@login_required(login_url='login')
+def deleteBapGenusPoints (request, pk):
+    bapGP = BapGenusPoints.objects.get(id=pk)
+    club = bapGP.club
+    userCanEdit = user_can_edit (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    if (request.method == 'POST'):
+        bapGP.delete()
+        return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
+    object_type = 'BapGenusPoints'
+    object_name = 'BAP Genus Points'
+    context = {'object_type': object_type, 'object_name': object_name}
+    return render (request, 'species/deleteConfirmation.html', context)
+
+@login_required(login_url='login')
+def deleteBapSpeciesPoints (request, pk):
+    bapSP = BapSpeciesPoints.objects.get(id=pk)
+    club = bapSP.club
+    userCanEdit = user_can_edit (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    if (request.method == 'POST'):
+        bapSP.delete()
+        return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
+    object_type = 'BapSpeciesPoints'
+    object_name = 'BAP Species Points'
+    context = {'object_type': object_type, 'object_name': object_name}
+    return render (request, 'species/deleteConfirmation.html', context)
+
+### View Create Edit Delete Aquarist Clubs
+
 @login_required(login_url='login')
 def aquaristClubs (request):
     aquaristClubs = AquaristClub.objects.all()
@@ -1059,14 +1169,12 @@ def aquaristClubs (request):
     context = {'aquaristClubs': aquaristClubs, 'userCanEdit': userCanEdit}
     return render (request, 'species/aquaristClubs.html', context)
 
-### View Create Edit Delete Aquarist Clubs
-
 @login_required(login_url='login')
 def aquaristClub (request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     aquaristClubMembers = AquaristClubMember.objects.filter(club=aquaristClub)
 
-############# TODO delete this HACK ###########################################
+############# TODO delete this HACK #####################################
     # user = User.objects.get(id=44)
     # #member_exists_set = aquaristClubMembers.values('user').distinct()
     # member_exists_set = AquaristClubMember.objects.filter(club=aquaristClub, user=user)
@@ -1076,7 +1184,7 @@ def aquaristClub (request, pk):
     #     new_member_name = aquaristClub.name + ': ' + user.username
     #     new_member = AquaristClubMember (name=new_member_name, user=user, club=aquaristClub)
     #     new_member.save()
-############## TODO ###########################################################
+#########################################################################
 
     cur_user = request.user
     userCanEdit = False
@@ -1108,6 +1216,7 @@ def editAquaristClub (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     form = AquaristClubForm(instance=aquaristClub)
+    print ('AquaristClub config file: ', str(aquaristClub))
     if (request.method == 'POST'):
         form2 = AquaristClubForm(request.POST, request.FILES, instance=aquaristClub)
         if form2.is_valid: 
@@ -1141,6 +1250,7 @@ class AquaristClubMemberListView(ListView):
     context_object_name = "member_list"
     paginate_by = 100  
     club = AquaristClub.objects.get(id=1)
+    #club = None
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
@@ -1305,6 +1415,46 @@ def tools(request):
     if not userCanEdit:
         raise PermissionDenied()
     return render(request, 'species/tools.html')
+
+def tools2(request):
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True
+    if not userCanEdit:
+        raise PermissionDenied()
+    return render(request, 'species/tools2.html')
+
+def dirtyDeed (request):
+    cur_user = request.user
+    userCanEdit = False
+    if cur_user.is_staff:
+        userCanEdit = True
+    if not userCanEdit:
+        raise PermissionDenied()
+    
+    # dirty deed goes here ... then return to tools2
+
+    # hackish code to populate PVAS sample BapGenusPoints table
+    # club = AquaristClub.objects.get(id=1) 
+    # species_set = Species.objects.all()
+    # genus_names = set() # prevents duplicate entries
+    # for species in species_set:
+    #     if species.name and ' ' in species.name:
+    #         genus_name = species.name.split(' ')[0]
+    #         genus_names.add(genus_name)
+    # print ('Genus list length: ', (str(len(genus_names))))
+    # for name in genus_names:
+    #     bapGP = BapGenusPoints(name=name, club=club, points=10)
+    #     bapGP.save()
+
+    # club = AquaristClub.objects.get(id=1) 
+    # species_set = Species.objects.all()
+    # for species in species_set:
+    #     bapSP = BapSpeciesPoints (name=species.name, species=species, club=club, points=10)
+    #     bapSP.save()    
+
+    return render(request, 'species/tools2.html')
 
 # # login and user registration
 

@@ -40,7 +40,13 @@ urlpatterns = [
     path('bapSubmissions/<str:pk>/', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
     path('createBapSubmission/<str:pk>/', views.createBapSubmission, name="createBapSubmission"),
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
+    path('bapGenusPoints/<str:pk>/', views.BapGenusPointsView.as_view(), name="bapGenusPoints"),
+    path('bapSpeciesPoints/<str:pk>/', views.BapSpeciesPointsView.as_view(), name="bapSpeciesPoints"),
     path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
+    path('editBapGenusPoints/<str:pk>/', views.editBapGenusPoints, name="editBapGenusPoints"),
+    path('editBapSpeciesPoints/<str:pk>/', views.editBapSpeciesPoints, name="editBapSpeciesPoints"),
+    path('deleteBapGenusPoints/<str:pk>/', views.deleteBapGenusPoints, name="deleteBapGenusPoints"),
+    path('deleteBapSpeciesPoints/<str:pk>/', views.deleteBapSpeciesPoints, name="deleteBapSpeciesPoints"),
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
     path('bap_about/', views.bap_about, name="bap_about"),
 
@@ -98,6 +104,8 @@ urlpatterns = [
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),
     path('tools/', views.tools, name="tools"),
+    path('tools2/', views.tools2, name="tools2"),
+    path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),
 
     path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
 

@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
-from .models import BapSubmission
+from .models import BapSubmission, BapGenusPoints, BapSpeciesPoints
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -145,16 +145,16 @@ class SpeciesSearchFilterForm (forms.Form):
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
 
-    GLOBAL_REGION_CHOICES = [
-        ('SAM', 'Africa'),
-        ('CAM', 'South America'),
-        ('NAM', 'Central America'),
-        ('AFR', 'North America'),
-        ('SEA', 'Southeast Asia'),
-        ('AUS', 'Australia'),
-        ('',    'All Regions'),
-    ]   
-    region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)    
+    # GLOBAL_REGION_CHOICES = [
+    #     ('SAM', 'Africa'),
+    #     ('CAM', 'South America'),
+    #     ('NAM', 'Central America'),
+    #     ('AFR', 'North America'),
+    #     ('SEA', 'Southeast Asia'),
+    #     ('AUS', 'Australia'),
+    #     ('',    'All Regions'),
+    # ]   
+    # region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)    
 
 
 class BapSubmissionFilterForm (forms.Form):
@@ -190,25 +190,20 @@ class BapSubmissionFormEdit (ModelForm):
         model = BapSubmission
         fields = '__all__'
         exclude = ['name', 'aquarist', 'club', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),}                                    
+        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),}            
 
-class UserProfileForm (ModelForm):
+class BapGenusPointsForm (ModelForm):
     class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'state', 'country', 'is_private_name', 'is_private_email', 'is_private_location']
-        widgets = { 'first_name':         forms.Textarea(attrs={'rows':1,'cols':40}),
-                    'last_name':          forms.Textarea(attrs={'rows':1,'cols':40}),                   
-                    'state':              forms.Textarea(attrs={'rows':1,'cols':40}),
-                    'country':            forms.Textarea(attrs={'rows':1,'cols':40}),}
-        
-class EmailAquaristForm (ModelForm):
-    class Meta:
-        model = UserEmail
+        model = BapGenusPoints
         fields = '__all__'
-        exclude = ['name', 'send_to', 'send_from']     
-        widgets = { 'email_subject':      forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'email_text':         forms.Textarea(attrs={'rows':10,'cols':50}),}
-        
+        exclude = ['name', 'club']
+
+class BapSpeciesPointsForm (ModelForm):
+    class Meta:
+        model = BapGenusPoints
+        fields = '__all__'
+        exclude = ['name', 'club']        
+
 class AquaristClubForm (ModelForm):
     class Meta:
         model = AquaristClub
@@ -233,7 +228,23 @@ class AquaristClubMemberForm (ModelForm):
         model = AquaristClubMember
         fields = '__all__'
         exclude = ['name', 'club', 'membership_admin']
+
+class UserProfileForm (ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'state', 'country', 'is_private_name', 'is_private_email', 'is_private_location']
+        widgets = { 'first_name':         forms.Textarea(attrs={'rows':1,'cols':40}),
+                    'last_name':          forms.Textarea(attrs={'rows':1,'cols':40}),                   
+                    'state':              forms.Textarea(attrs={'rows':1,'cols':40}),
+                    'country':            forms.Textarea(attrs={'rows':1,'cols':40}),}
         
+class EmailAquaristForm (ModelForm):
+    class Meta:
+        model = UserEmail
+        fields = '__all__'
+        exclude = ['name', 'send_to', 'send_from']     
+        widgets = { 'email_subject':      forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'email_text':         forms.Textarea(attrs={'rows':10,'cols':50}),}       
 
 class ImportCsvForm (ModelForm):
     class Meta:

@@ -4,15 +4,36 @@
 {% block content %}
 <div class="container">
     <div class="div-line-below">
-        <h3><b>{{speciesInstance.name}}</b></h3>
+        <h3>{{speciesInstance.name}}</h3>
         <h4>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h4>
-        <h4>Species Overview:  <a href="{% url 'species' species.id %}">{{species.name}}</a></h4>
         <small>&nbsp;</small>
-        <!--hr-->
+    </div> 
+    <div class="div-line-below">
+        <h3>Species Overview: <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
+        {% if species.common_name %}
+            <p><b>Common Name: &nbsp;&nbsp;</b>{{species.common_name}}</p>
+        {% endif %}
+        {% if species.species_image %}
+            <p><img src={{species.species_image.url}}></p>
+            {% if species.photo_credit %}
+                <p>Species Photo by:<i>&nbsp;{{species.photo_credit}}</i> </p>
+            {% else %}
+                <p><i>General species photo</i></p>
+            {% endif %}            
+        {% endif %}            
+        <p><b>Description: &nbsp;&nbsp;</b>{{species.description}}</p>
+        <p><b>Category:</b>  &nbsp;&nbsp;{{species.get_category_display}}</p>
+        <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
+        <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
+        {% if renderCares %}
+            <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+        {% endif %}
+        <small>&nbsp;</small>
     </div>
     <div>
-        <h3><b>Aquarist Notes:</b></h3>
+        <h3>Aquarist Notes</h3>
         {% if speciesInstance.instance_image %}
+            <p><i>Photo of aquarist's species:</i></p>
             <p><img src={{speciesInstance.instance_image.url}}></p>
         {% endif %}
         {% if speciesInstance.collection_point %}
