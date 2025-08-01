@@ -1,5 +1,5 @@
 {% extends 'main.html' %}
-<!--context = {'form': form, 'club': club, 'aquarist': aquarist, 'speciesInstance': speciesInstance}-->
+<!--context = {'form': form, 'club': club, 'speciesInstance': speciesInstance}-->
 
 {% block content %}
 {% load crispy_forms_tags %}
@@ -8,7 +8,7 @@
 
     <h3><b>BAP Submission</b></h3>
     <h5><b>Club:</b> &nbsp;{{ club.name }}</h5>
-    <h5><b>Aquarist:</b> {{aquarist.first_name}} {{aquarist.last_name}}</a></h5>
+    <h5><b>Aquarist:</b> {{speciesInstance.user.first_name}} {{speciesInstance.user.last_name}}</a></h5>
     <h5><b>Species:</b> &nbsp;&nbsp;{{speciesInstance.name}}</h5>
     <div>
         <table>

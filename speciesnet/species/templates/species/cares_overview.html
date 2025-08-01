@@ -1,0 +1,27 @@
+{% extends 'main.html' %}
+{% block content %}
+{% load static %}
+<div class="container">
+    <h2>CARES Preservation Program</h2>
+    <large>
+        <p>The <b>CARES Fish Preservation Program</b> promotes conservation of threatened and endangered species, encouraging aquarists to 
+           contribute by maintaining CARES Species in their fishrooms and home aquariums. By maintaining these species with particular focus
+           on preserving a healthy gene pool and preventing hybridization, we can help preserve CARES species.
+        </p>
+        <p></p>
+        <p><b>AquaristSpecies.net</b> promotes CARES species by emphasizing the species listed on the <a href="https://caresforfish.org/?page_id=40">CARES Priority List</a>
+           and integrating CARES species into our hosted club <a href="{% url 'bap_overview'%}">BAP Programs</a> which include a <b>CARES Multiplier</b> to increase recognition
+           for breeding CARES species, and a long term <b>Maintenance Multiplier</b> to recognize CARES species maintenance and encourage aquarists to keep and breed
+           CARES species longer term. 
+        </p>
+        <p><b>AquaristSpecies.net</b> is proud to partner with the CARES Preservation Program to help aquarists find and distribute CARES species by 
+           providing a community where members can contact one another and learn from aquarist species posts which share information on breeding and raising fry.  
+        <p></p>
+        <p>For more information visit <a href="https://caresforfish.org">CaresForFish.org</a></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p style='text-align:center'><img src={% static 'images\cares_logo_fish_330x330_large_border_black.png' %}></p>
+    </large>
+</div>
+{% endblock content %}

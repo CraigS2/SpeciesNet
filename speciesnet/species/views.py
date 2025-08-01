@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, MultipleObjectsReturned
 #from django.core.mail import send_mail
 from django.core.mail import EmailMessage
 from smtplib import SMTPException
@@ -876,27 +876,62 @@ def createBapSubmission (request, pk):
     club = AquaristClub.objects.get(id=pk)
     print ('BAP Submission club name: ' + club.name)
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
-    aquarist = speciesInstance.user
-    # users may join multiple clubs so need to resolve
-    bapClubMember = AquaristClubMember.objects.get(user=aquarist, club=club)
+    bapClubMember = AquaristClubMember.objects.get(user=speciesInstance.user, club=club)
     bapClubMember.bap_participant = True
-    name = speciesInstance.user.username + ' - ' + club.name + ' - ' + speciesInstance.name  
-    #notes = "Water conditions: \n \nAquarium setup: \n \nApproximate spawn date: \n "
-    notes = club.bap_notes_template
-    form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': club, 'notes': notes, 'speciesInstance': speciesInstance})
-    if (request.method == 'POST'):
-        form = BapSubmissionForm(request.POST)
-        if form.is_valid():
-            bap_submission = form.save(commit=False)
-            bap_submission.name = name
-            bap_submission.aquarist = aquarist
-            bap_submission.club = club
-            bap_submission.speciesInstance = speciesInstance
-            bap_submission.points = speciesInstance.species.breeder_points
-            bap_submission.save()
-            print ("BAP Submission form validated and new object saved.")
-            return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
-    context = {'form': form, 'club': club, 'aquarist': aquarist, 'speciesInstance': speciesInstance}
+    species_name = speciesInstance.species.name
+    bapGenusPoints = None
+    bapSpeciesPoints = None
+    bap_points = 0
+
+    # lookup species points first - if not found lookup genus points
+    try:
+        bapSpeciesPoints = BapSpeciesPoints.objects.get(name=species_name, club=club)
+        bap_points = bapSpeciesPoints.points
+        print ('Create BAP Submission species points set: ' + (str(bap_points)))
+    except ObjectDoesNotExist:
+        pass # this is a valid case override at species level not found                 
+    except MultipleObjectsReturned:
+        error_msg = "BAP Submission: multiple entries for BAP Species Points found!"
+        messages.error (request, error_msg)        
+
+    if bap_points == 0:
+        genus_name = None
+        if species_name and ' ' in species_name:
+            genus_name = species_name.split(' ')[0]
+            try:
+                bapGenusPoints = BapGenusPoints.objects.get(name=genus_name, club=club)
+                bap_points = bapGenusPoints.points
+                print ('BAP Submission genus points set: ' + (str(bap_points)))
+            except ObjectDoesNotExist:
+                warning_msg = "Create BAP Submission: no entry found for BAP Genus Points. Using club default."
+                messages.warning (request, warning_msg)
+                bap_points = club.bap_default_points
+                print ('WARNING: BAP Submission points unresolved, default points set: ' + (str(bap_points)))
+                pass
+            except MultipleObjectsReturned:
+                error_msg = "Create BAP Submission: multiple entries for BAP Species Points found!"
+                messages.error (request, error_msg)
+        else:
+            error_msg = "Create BAP Submission: species failed to resolve genus name."
+            messages.error (request, error_msg)
+    
+    if bap_points > 0:
+        name = speciesInstance.user.username + ' - ' + club.name + ' - ' + speciesInstance.name  
+        notes = club.bap_notes_template
+        form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': club, 'notes': notes, 'speciesInstance': speciesInstance})
+        if (request.method == 'POST'):
+            form = BapSubmissionForm(request.POST)
+            if form.is_valid():
+                bap_submission = form.save(commit=False)
+                bap_submission.name = name
+                bap_submission.aquarist = aquarist
+                bap_submission.club = club
+                bap_submission.speciesInstance = speciesInstance
+                bap_submission.points = bap_points
+                bap_submission.save()
+                bapClubMember.save()
+                return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
+    context = {'form': form, 'club': club, 'speciesInstance': speciesInstance}
     return render (request, 'species/createBapSubmission.html', context)
 
 @login_required(login_url='login')
@@ -923,9 +958,6 @@ def editBapSubmission (request, pk):
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
     context = {'form': form, 'bap_submission': bap_submission}
     return render (request, 'species/editBapSubmission.html', context)
-
-def bap_about (request):
-    return render(request, 'species/bap_about.html')
 
 @login_required(login_url='login')
 def deleteBapSubmission (request, pk):
@@ -1395,6 +1427,12 @@ def about_us(request):
 def howItWorks(request):
     return render(request, 'species/howItWorks.html')
 
+def bap_overview (request):
+    return render(request, 'species/bap_overview.html')
+
+def cares_overview (request):
+    return render(request, 'species/cares_overview.html')
+
 # Admin tools Page - collection of views useful for csv import/export and reviewing db changes
 
 def tools(request):
@@ -1404,6 +1442,7 @@ def tools(request):
         userCanEdit = True
     if not userCanEdit:
         raise PermissionDenied()
+
     return render(request, 'species/tools.html')
 
 def tools2(request):
@@ -1424,8 +1463,7 @@ def dirtyDeed (request):
         raise PermissionDenied()
     
     # dirty deed goes here ... then return to tools2
-    #TODO delete this HACK
-    # hackish code to populate PVAS sample BapGenusPoints table
+    ######### populate PVAS sample BapGenusPoints table ########
     # club = AquaristClub.objects.get(id=1) 
     # species_set = Species.objects.all()
     # genus_names = set() # prevents duplicate entries
@@ -1438,11 +1476,22 @@ def dirtyDeed (request):
     #     bapGP = BapGenusPoints(name=name, club=club, points=10)
     #     bapGP.save()
 
+    ######## populate PVAS sample BapSpeciesPoints table ########
     # club = AquaristClub.objects.get(id=1) 
     # species_set = Species.objects.all()
     # for species in species_set:
     #     bapSP = BapSpeciesPoints (name=species.name, species=species, club=club, points=10)
     #     bapSP.save()    
+
+    ######## migrate aquarist species to new user###############
+    # old_user = User.objects.get(username='fehringerk')
+    # new_user = User.objects.get(username='fehringer')
+    # si_set = SpeciesInstance.objects.filter(user=old_user)
+    # for si in si_set:
+    #     si.user = new_user
+    #     si.save()
+    #     print ('Moved ' + si.name + ' to ' + new_user.username )
+
 
     return render(request, 'species/tools2.html')
 

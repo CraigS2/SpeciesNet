@@ -48,7 +48,8 @@ urlpatterns = [
     path('deleteBapGenusPoints/<str:pk>/', views.deleteBapGenusPoints, name="deleteBapGenusPoints"),
     path('deleteBapSpeciesPoints/<str:pk>/', views.deleteBapSpeciesPoints, name="deleteBapSpeciesPoints"),
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
-    path('bap_about/', views.bap_about, name="bap_about"),
+    path('bap_overview/', views.bap_overview, name="bap_overview"),
+    path('cares_overview/', views.cares_overview, name="cares_overview"),
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),

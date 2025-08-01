@@ -38,10 +38,12 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {% if 'club' in request.path %}active{% endif %}" 
                             href="#" id="clubsDropdown" role="button" 
-                            data-bs-toggle="dropdown" aria-expanded="false">&nbsp;Clubs&nbsp;</a>
+                            data-bs-toggle="dropdown" aria-expanded="false">&nbsp;Community&nbsp;</a>
                             <ul class="dropdown-menu" aria-labelledby="clubsDropdown">
                                 <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">BAP Clubs</a></li>
-                                <li><a class="dropdown-item" href="{% url 'bap_about' %}">About BAP Programs</a></li>
+                                <li><a class="dropdown-item" href="{% url 'bap_overview' %}">BAP Program Overview</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cares_overview' %}">CARES Preservation Program</a></li>
+                                <li><a class="dropdown-item" href="{% url 'speciesMaintenanceLogs' %}">Species Maintenance Groups</a></li>
                             </ul>
                         </li>
                     {% endif %}
