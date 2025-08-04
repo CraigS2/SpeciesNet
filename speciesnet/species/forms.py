@@ -196,13 +196,13 @@ class BapGenusPointsForm (ModelForm):
     class Meta:
         model = BapGenusPoints
         fields = '__all__'
-        exclude = ['name', 'club']
+        exclude = ['name', 'club', 'example_species', 'species_count', 'species_override_count']
 
 class BapSpeciesPointsForm (ModelForm):
     class Meta:
-        model = BapGenusPoints
+        model = BapSpeciesPoints
         fields = '__all__'
-        exclude = ['name', 'club']        
+        exclude = ['name', 'species', 'club']        
 
 class AquaristClubForm (ModelForm):
     class Meta:

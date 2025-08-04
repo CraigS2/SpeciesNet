@@ -4,7 +4,7 @@ from django.views.static import serve
 #from django.conf.urls import url - deprecated
 from django.conf import settings
 from . import views
-from species.views import SpeciesListView, BapLeaderboardView
+#from species.views import SpeciesListView, BapLeaderboardView, BapGenusSpeciesPointsView
 
 urlpatterns = [
     path('login/', views.loginUser, name="login"),
@@ -42,8 +42,10 @@ urlpatterns = [
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
     path('bapGenusPoints/<str:pk>/', views.BapGenusPointsView.as_view(), name="bapGenusPoints"),
     path('bapSpeciesPoints/<str:pk>/', views.BapSpeciesPointsView.as_view(), name="bapSpeciesPoints"),
+    path('bapGenusSpeciesPoints/<str:pk>/', views.BapGenusSpeciesPointsView.as_view(), name="bapGenusSpeciesPoints"),    
     path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
     path('editBapGenusPoints/<str:pk>/', views.editBapGenusPoints, name="editBapGenusPoints"),
+    path('createBapSpeciesPoints/<str:pk>/', views.createBapSpeciesPoints, name="createBapSpeciesPoints"),
     path('editBapSpeciesPoints/<str:pk>/', views.editBapSpeciesPoints, name="editBapSpeciesPoints"),
     path('deleteBapGenusPoints/<str:pk>/', views.deleteBapGenusPoints, name="deleteBapGenusPoints"),
     path('deleteBapSpeciesPoints/<str:pk>/', views.deleteBapSpeciesPoints, name="deleteBapSpeciesPoints"),

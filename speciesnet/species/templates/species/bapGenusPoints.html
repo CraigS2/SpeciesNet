@@ -6,6 +6,9 @@
 
 <div class="container">
     <h3>{{ bap_club.name }}</h3>
+    <p>By default species are assigned BAP Points by genus.</p>
+    <p>You can optionally set individual species BAP Points using <b><i>species overrides</i></b>.</p>
+    <small>&nbsp;</small>    
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4>BAP Genus Points Configuration</h4>
@@ -17,15 +20,23 @@
                     <table class="table table-striped table-hover">                    
                         <thead>
                             <tr>
+                                <!-- th style="width: 40%">Genus</th-->
                                 <th>Genus</th>
-                                <th style='text-align:center'>Points</th> 
+                                <th style='text-align:center'>Category</th>                                
+                                <th style='text-align:center'>Points</th>
+                                <th style='text-align:center'>Species</th>
+                                <th style='text-align:center'>Overrides</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for genus_entry in genus_points_list %}
                                 <tr>
-                                    <td><a href="{% url 'editBapGenusPoints' genus_entry.id %}">{{ genus_entry.name }}</a></td>
-                                    <td style='text-align:center'>{{genus_entry.points}}</td>  
+                                    <td>{{ genus_entry.name }}</td>
+                                    <td style='text-align:center'>{{ genus_entry.example_species.get_category_display }}</td>  
+                                    <td style='text-align:center'><a href="{% url 'editBapGenusPoints' genus_entry.id %}">{{ genus_entry.points }}</a></td>  
+                                    <td style='text-align:center'>{{ genus_entry.species_count }}</td>                                      
+                                    <td style='text-align:center'><a href="{% url 'bapGenusSpeciesPoints' genus_entry.id %}">{{ genus_entry.species_override_count }}</a></td>                                   
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>

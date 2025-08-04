@@ -151,7 +151,7 @@ class Species (models.Model):
     
     cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
     render_cares              = models.BooleanField (default=False)
-    species_instance_count    = models.PositiveIntegerField (default=0)
+    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in searchSpecies list view
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') # delestes species instances if user deleted
@@ -162,13 +162,14 @@ class Species (models.Model):
         ordering = ['name'] # sorts in alphabetical order
         verbose_name_plural = "Species"
 
-    # @property
-    # def breeder_points(self):
-    #     points = 10
-    #     cares_muliplier = 2
-    #     if self.render_cares :
-    #         points = points * cares_muliplier
-    #     return points
+    @property
+    def genus_name (self):
+        genus_name = self.name.lstrip()   # strips any leading space characters
+        if ' ' in genus_name:
+            genus_name = self.name.split(' ')[0]
+        else:
+            print ('Species name failed to resolve to genus name for species: ' + self.name)
+        return genus_name
 
     def __str__(self):
         return self.name
@@ -286,11 +287,6 @@ class SpeciesMaintenanceLog (models.Model):
     def __str__(self):
         return self.name
     
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.fields['speciesInstances'].disabled = True                  # disables form editing (hides field) while preserving validation
-    #     #self._meta.fields.fields['speciesInstances'].disabled = True                  # disables form editing (hides field) while preserving validation
-
 
 class SpeciesMaintenanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
@@ -385,15 +381,6 @@ class BapSubmission (models.Model):
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)    
 
-    # @property
-    # def points(self):
-    #     #TODO sort out the best way to override lesser or greater points values
-    #     points = 10
-    #     cares_muliplier = 2
-    #     if self.speciesInstance.species.render_cares :
-    #         points = points * cares_muliplier
-    #     return points
-
     def __str__(self):
         return self.name
     
@@ -412,22 +399,26 @@ class BapLeaderboard (models.Model):
     def __str__(self):
         return self.name    
     
-
+#TODO rename BapGenusPoints BapGenusConfig
 class BapGenusPoints (models.Model):
 
     name                      = models.CharField (max_length=240)
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_genus_points') 
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
+    example_species           = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='example_species_bap_points')
+    species_count             = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in GenusPoints list view
+    species_override_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in GenusPoints list view
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
+        verbose_name_plural = "BapGenusPoints"
 
     def __str__(self):
         return self.name    
 
-
+#TODO rename BapSpeciesPoints BapSpeciesConfig
 class BapSpeciesPoints (models.Model):
 
     name                      = models.CharField (max_length=240)
@@ -439,6 +430,7 @@ class BapSpeciesPoints (models.Model):
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order    
+        verbose_name_plural = "BapSpeciesPoints"
 
     def __str__(self):
         return self.name            

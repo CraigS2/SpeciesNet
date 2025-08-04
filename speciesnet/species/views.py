@@ -1067,7 +1067,7 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
         return context    
 
 
-class BapGenusPointsView(ListView):
+class BapGenusPointsView(LoginRequiredMixin, ListView):
     model = BapGenusPoints
     template_name = "species/bapGenusPoints.html"
     context_object_name = "genus_points_list"
@@ -1078,8 +1078,46 @@ class BapGenusPointsView(ListView):
         bap_club = AquaristClub.objects.get(id=club_id)      
         return bap_club
     
+    def initialize_bap_genus_points(self):
+        club = self.get_bap_club()
+        species_set = Species.objects.all()
+        genus_names = set() # prevents duplicate entries
+        for species in species_set:
+            species_name = species.name.lstrip()                # crowd sourced data - clean out any leading spaces
+            if species_name and ' ' in species_name:            # string is not empty and contains at least one space
+                genus_name = species_name.split(' ')[0]
+                if not genus_name in genus_names:
+                    print ('BapGenusPoints initialization genus name: ' + genus_name)
+                    genus_names.add(genus_name)
+                    bapGP = BapGenusPoints(name=genus_name, club=club, example_species=species, points=10)
+                    bapGP.species_count = 1
+                    bapGP.save()  
+                    # should only be a single entry but this is fragile due to heavy dependency on crowd-sourced strings
+                    try:
+                        # results = Model.objects.filter(name__regex=r'^' + first_word + r'\s')
+                        # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
+                        print ('initialize_bap_genus_points - getting number of species for ' + genus_name)
+                        genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s') #TODO optimize remove N+1 query
+                        bapGP.species_count = len(genus_species)
+                        bapGP.save()
+                        print ('BapGenusPoints object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+                    except ObjectDoesNotExist:
+                        print ('initialize_bap_genus_points - ObjectDoesNotExist exception for ' + genus_name)
+                        error_msg = "Initialization error: BapGenusPoints object not found: " + genus_name
+                        messages.error (self.request, error_msg)  
+                    except MultipleObjectsReturned:
+                        print ('initialize_bap_genus_points - MultipleObjectsReturned exception for ' + genus_name)
+                        error_msg = "Initialization error: Multiple BapGenusPoints objects found for Genus: " + genus_name
+                        messages.error (self.request, error_msg)  
+                # if genus_name == 'Altolamprologus':
+                #     break; #TODO remove hack to test one case
+        print ('BapGenusPoints initialized - genus count: ', (str(len(genus_names))))
+        
     def get_queryset(self):
         club = self.get_bap_club()
+        if not BapGenusPoints.objects.filter(club=club).exists():
+            self.initialize_bap_genus_points()
+            print ('Initializing BapGenusPoints for club: ' + club.name)
         queryset = BapGenusPoints.objects.filter(club=club)
         return queryset
     
@@ -1088,7 +1126,8 @@ class BapGenusPointsView(ListView):
         context['bap_club'] = self.get_bap_club()        
         return context
     
-class BapSpeciesPointsView(ListView):
+# view all 
+class BapSpeciesPointsView(LoginRequiredMixin, ListView):
     model = BapSpeciesPoints
     template_name = "species/bapSpeciesPoints.html"
     context_object_name = "species_points_list"
@@ -1116,6 +1155,87 @@ class BapSpeciesPointsView(ListView):
         context['bap_club'] = self.get_bap_club()
         return context
     
+class BapGenusSpeciesPointsView(LoginRequiredMixin, ListView):
+    model = BapSpeciesPoints
+    template_name = "species/bapGenusSpeciesPoints.html"
+    context_object_name = "genus_species_points_list"
+
+    # uses BapGenusPoints pk lookup to access all Species that match genus and existing BapSpeciesPoints entries
+
+    def get_bgp (self):
+        bgp_id = self.kwargs.get('pk')
+        #TODO remove duplicate calls below - debug only HACK
+        #self.request.session['bap_genus_points_id'] = bgp_id
+        #print ("Setting request.session['bap_genus_points_id']")
+        return BapGenusPoints.objects.get(id=bgp_id) 
+
+    def get_bap_club(self):
+        bgp = self.get_bgp()
+        return bgp.club
+    
+    def get_genus_name (self):
+        bgp = self.get_bgp()
+        return bgp.example_species.genus_name  
+    
+    def get_species_without_bsp_overrides(self):
+        bgp = self.get_bgp()
+        # store bgp for use in createSpeciesPoints
+        self.request.session['bap_genus_points_id'] = bgp.id
+        print ("Setting request.session['bap_genus_points_id']")
+
+        club = self.get_bap_club()
+        genus_name = self.get_genus_name()
+        try:
+            # results = Model.objects.filter(name__regex=r'^' + first_word + r'\s')
+            # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
+            
+            #bapGP = BapGenusPoints.objects.get(name__regex=r'^' + genus_name + r'\s')
+            bapGP = BapGenusPoints.objects.get(name=genus_name)
+            print ('BapGenusPoints object ' + bapGP.name + ' species count: ' + str(bapGP.species_count))
+            bapGP.species_count = bapGP.species_count + 1
+            print ('BapGenusPoints object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+        except ObjectDoesNotExist:
+            error_msg = "Initialization error: BapGenusPoints object not found!"
+            messages.error (self.request, error_msg)  
+        except MultipleObjectsReturned:
+            error_msg = "Initialization error: Multiple BapGenusPoints objects found for Genus: " + genus_name
+            messages.error (self.request, error_msg)  
+        species_set = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')
+        bsp_set = BapSpeciesPoints.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
+        bsp_species_ids = []
+        for bsp in bsp_set:
+            bsp_species_ids.append(bsp.species.id)
+        #species_set = Species.objects.filter(id=club_id, name__icontains=self.get_genus_name)
+        #results_set = Species.objects.filter(id=club_id, name__icontains=self.get_genus_name).exclude(id__in=bsp_ids)
+        results_set = species_set.exclude(id__in=bsp_species_ids)
+        print ('Comparing species count (' + str(species_set.count()) + ') to bgp count (' + str(bgp.species_count))
+        if species_set.count != bgp.species_count:
+            bgp.species_count = int (species_set.count())
+            bgp.save()
+            print ('bgp ' + bgp.name + ' updated species count: ' + str(bgp.species_count))
+        return results_set
+    
+    def get_queryset(self):
+        bgp = self.get_bgp()
+        club = self.get_bap_club()
+        genus_name = self.get_genus_name()
+        #queryset = BapSpeciesPoints.objects.filter(club=club, name__icontains=self.get_genus_name)
+        queryset = BapSpeciesPoints.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
+        print ('BapGenusSpeciesPointsView query BapSpeciesPoints count: ' + str(queryset.count()))
+        if bgp.species_override_count != queryset.count:
+            bgp.species_override_count = int(queryset.count())
+            bgp.save() #cache species_override_count for optimization of BapGenusPointsView
+            print ('BapGenusPoints object ' + bgp.name  + ' species_override_count updated: ' + str(bgp.species_override_count))
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['bgp'] = self.get_bgp()
+        context['bap_club'] = self.get_bap_club()        
+        context['available_species'] = self.get_species_without_bsp_overrides()
+        return context 
+
+    
 @login_required(login_url='login')
 def editBapGenusPoints (request, pk):
     bapGP = BapGenusPoints.objects.get(id=pk)
@@ -1137,19 +1257,44 @@ def editBapGenusPoints (request, pk):
     return render (request, 'species/editBapGenusPoints.html', context)
 
 @login_required(login_url='login')
+def createBapSpeciesPoints (request, pk):
+    #TODO try-except
+    #TODO remove 'edit' from shared url
+    bapGP = BapGenusPoints.objects.get(id=request.session['bap_genus_points_id'])
+    species = Species.objects.get(id=pk)
+    club = bapGP.club
+    userCanEdit = user_can_edit (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    form = BapSpeciesPointsForm(initial={'points': bapGP.points})
+    if (request.method == 'POST'):
+        form = BapSpeciesPointsForm(request.POST)
+        if form.is_valid():
+            bapSP = form.save(commit=False) 
+            bapSP.name = species.name
+            bapSP.species = species
+            bapSP.club = club
+            bapSP.save()      
+            return HttpResponseRedirect(reverse("bapGenusSpeciesPoints", args=[bapGP.id]))
+    context = {'form': form, 'club': club, 'species': species, 'bapSP': False}
+    return render (request, 'species/editBapSpeciesPoints.html', context)
+
+@login_required(login_url='login')
 def editBapSpeciesPoints (request, pk):
     bapSP = BapSpeciesPoints.objects.get(id=pk)
+    species = bapSP.species
     club = bapSP.club
     userCanEdit = user_can_edit (request.user)
     if not userCanEdit:
         raise PermissionDenied()
     form = BapSpeciesPointsForm (instance=bapSP)
     if (request.method == 'POST'):
-        form = BapGenusPointsForm(request.POST, instance=bapSP)
+        form = BapSpeciesPointsForm(request.POST, instance=bapSP)
         if form.is_valid():
             bapSP = form.save()       
             return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
-    context = {'form': form, 'bapSP': bapSP, 'club': club}
+    context = {'form': form, 'club': club, 'species': species, 'bapSP': bapSP}
+
     return render (request, 'species/editBapSpeciesPoints.html', context)
 
 @login_required(login_url='login')
