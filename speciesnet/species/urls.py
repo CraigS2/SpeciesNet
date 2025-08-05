@@ -4,7 +4,6 @@ from django.views.static import serve
 #from django.conf.urls import url - deprecated
 from django.conf import settings
 from . import views
-#from species.views import SpeciesListView, BapLeaderboardView, BapGenusSpeciesPointsView
 
 urlpatterns = [
     path('login/', views.loginUser, name="login"),
@@ -40,15 +39,15 @@ urlpatterns = [
     path('bapSubmissions/<str:pk>/', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
     path('createBapSubmission/<str:pk>/', views.createBapSubmission, name="createBapSubmission"),
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
-    path('bapGenusPoints/<str:pk>/', views.BapGenusPointsView.as_view(), name="bapGenusPoints"),
-    path('bapSpeciesPoints/<str:pk>/', views.BapSpeciesPointsView.as_view(), name="bapSpeciesPoints"),
-    path('bapGenusSpeciesPoints/<str:pk>/', views.BapGenusSpeciesPointsView.as_view(), name="bapGenusSpeciesPoints"),    
+    path('bapGenus/<str:pk>/', views.BapGenusView.as_view(), name="bapGenus"),
+    path('bapSpecies/<str:pk>/', views.BapSpeciesView.as_view(), name="bapSpecies"),
+    path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    
     path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
-    path('editBapGenusPoints/<str:pk>/', views.editBapGenusPoints, name="editBapGenusPoints"),
-    path('createBapSpeciesPoints/<str:pk>/', views.createBapSpeciesPoints, name="createBapSpeciesPoints"),
-    path('editBapSpeciesPoints/<str:pk>/', views.editBapSpeciesPoints, name="editBapSpeciesPoints"),
-    path('deleteBapGenusPoints/<str:pk>/', views.deleteBapGenusPoints, name="deleteBapGenusPoints"),
-    path('deleteBapSpeciesPoints/<str:pk>/', views.deleteBapSpeciesPoints, name="deleteBapSpeciesPoints"),
+    path('editBapGenus/<str:pk>/', views.editBapGenus, name="editBapGenus"),
+    path('createBapSpecies/<str:pk>/', views.createBapSpecies, name="createBapSpecies"),
+    path('editBapSpecies/<str:pk>/', views.editBapSpecies, name="editBapSpecies"),
+    path('deleteBapGenus/<str:pk>/', views.deleteBapGenus, name="deleteBapGenus"),
+    path('deleteBapSpecies/<str:pk>/', views.deleteBapSpecies, name="deleteBapSpecies"),
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
     path('bap_overview/', views.bap_overview, name="bap_overview"),
     path('cares_overview/', views.cares_overview, name="cares_overview"),

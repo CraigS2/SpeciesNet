@@ -13,12 +13,12 @@ from django.core.mail import EmailMessage
 from smtplib import SMTPException
 from species.models import User, AquaristClub, AquaristClubMember, Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance
 from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
-from species.models import BapSubmission, BapLeaderboard, BapGenusPoints, BapSpeciesPoints
+from species.models import BapSubmission, BapLeaderboard, BapGenus, BapSpecies
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
 from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm
-from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapGenusPointsForm, BapSpeciesPointsForm, BapSubmissionFilterForm
+from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -879,14 +879,14 @@ def createBapSubmission (request, pk):
     bapClubMember = AquaristClubMember.objects.get(user=speciesInstance.user, club=club)
     bapClubMember.bap_participant = True
     species_name = speciesInstance.species.name
-    bapGenusPoints = None
-    bapSpeciesPoints = None
+    bapGenus = None
+    bapSpecies = None
     bap_points = 0
 
-    # lookup species points first - if not found lookup genus points
+    # lookup species first - if not found lookup genus
     try:
-        bapSpeciesPoints = BapSpeciesPoints.objects.get(name=species_name, club=club)
-        bap_points = bapSpeciesPoints.points
+        bapSpecies = BapSpecies.objects.get(name=species_name, club=club)
+        bap_points = bapSpecies.points
         print ('Create BAP Submission species points set: ' + (str(bap_points)))
     except ObjectDoesNotExist:
         pass # this is a valid case override at species level not found                 
@@ -899,17 +899,17 @@ def createBapSubmission (request, pk):
         if species_name and ' ' in species_name:
             genus_name = species_name.split(' ')[0]
             try:
-                bapGenusPoints = BapGenusPoints.objects.get(name=genus_name, club=club)
-                bap_points = bapGenusPoints.points
+                bapGenus = BapGenus.objects.get(name=genus_name, club=club)
+                bap_points = bapGenus.points
                 print ('BAP Submission genus points set: ' + (str(bap_points)))
             except ObjectDoesNotExist:
-                warning_msg = "Create BAP Submission: no entry found for BAP Genus Points. Using club default."
+                warning_msg = "Create BAP Submission: no entry found for BAP Genus. Using club default."
                 messages.warning (request, warning_msg)
                 bap_points = club.bap_default_points
                 print ('WARNING: BAP Submission points unresolved, default points set: ' + (str(bap_points)))
                 pass
             except MultipleObjectsReturned:
-                error_msg = "Create BAP Submission: multiple entries for BAP Species Points found!"
+                error_msg = "Create BAP Submission: multiple entries for BAP Species found!"
                 messages.error (request, error_msg)
         else:
             error_msg = "Create BAP Submission: species failed to resolve genus name."
@@ -1067,10 +1067,10 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
         return context    
 
 
-class BapGenusPointsView(LoginRequiredMixin, ListView):
-    model = BapGenusPoints
-    template_name = "species/bapGenusPoints.html"
-    context_object_name = "genus_points_list"
+class BapGenusView(LoginRequiredMixin, ListView):
+    model = BapGenus
+    template_name = "species/bapGenus.html"
+    context_object_name = "bap_genus_list"
     paginate_by = 100  
 
     def get_bap_club(self):
@@ -1078,7 +1078,7 @@ class BapGenusPointsView(LoginRequiredMixin, ListView):
         bap_club = AquaristClub.objects.get(id=club_id)      
         return bap_club
     
-    def initialize_bap_genus_points(self):
+    def initialize_bap_genus_list(self):
         club = self.get_bap_club()
         species_set = Species.objects.all()
         genus_names = set() # prevents duplicate entries
@@ -1087,50 +1087,55 @@ class BapGenusPointsView(LoginRequiredMixin, ListView):
             if species_name and ' ' in species_name:            # string is not empty and contains at least one space
                 genus_name = species_name.split(' ')[0]
                 if not genus_name in genus_names:
-                    print ('BapGenusPoints initialization genus name: ' + genus_name)
+                    print ('BapGenus initialization genus name: ' + genus_name)
                     genus_names.add(genus_name)
-                    bapGP = BapGenusPoints(name=genus_name, club=club, example_species=species, points=10)
+                    bapGP = BapGenus(name=genus_name, club=club, example_species=species, points=10)
                     bapGP.species_count = 1
                     bapGP.save()  
                     # should only be a single entry but this is fragile due to heavy dependency on crowd-sourced strings
                     try:
                         # results = Model.objects.filter(name__regex=r'^' + first_word + r'\s')
                         # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
-                        print ('initialize_bap_genus_points - getting number of species for ' + genus_name)
+                        print ('initialize_bap_genus_list - getting number of species for ' + genus_name)
                         genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s') #TODO optimize remove N+1 query
                         bapGP.species_count = len(genus_species)
                         bapGP.save()
-                        print ('BapGenusPoints object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+                        print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
                     except ObjectDoesNotExist:
-                        print ('initialize_bap_genus_points - ObjectDoesNotExist exception for ' + genus_name)
-                        error_msg = "Initialization error: BapGenusPoints object not found: " + genus_name
+                        print ('initialize_bap_genus_list - ObjectDoesNotExist exception for ' + genus_name)
+                        error_msg = "Initialization error: BapGenus object not found: " + genus_name
                         messages.error (self.request, error_msg)  
                     except MultipleObjectsReturned:
-                        print ('initialize_bap_genus_points - MultipleObjectsReturned exception for ' + genus_name)
-                        error_msg = "Initialization error: Multiple BapGenusPoints objects found for Genus: " + genus_name
+                        print ('initialize_bap_genus_list - MultipleObjectsReturned exception for ' + genus_name)
+                        error_msg = "Initialization error: Multiple BapGenus objects found for Genus: " + genus_name
                         messages.error (self.request, error_msg)  
                 # if genus_name == 'Altolamprologus':
                 #     break; #TODO remove hack to test one case
-        print ('BapGenusPoints initialized - genus count: ', (str(len(genus_names))))
+        print ('BapGenus initialized - genus count: ', (str(len(genus_names))))
         
     def get_queryset(self):
         club = self.get_bap_club()
-        if not BapGenusPoints.objects.filter(club=club).exists():
-            self.initialize_bap_genus_points()
-            print ('Initializing BapGenusPoints for club: ' + club.name)
-        queryset = BapGenusPoints.objects.filter(club=club)
+        category = self.request.GET.get('category', '')
+        if not BapGenus.objects.filter(club=club).exists():
+            self.initialize_bap_genus_list()
+            print ('Initializing BapGenus for club: ' + club.name)
+        if category:
+            queryset = BapGenus.objects.filter(club=club, example_species__category=category)
+        else:
+            queryset = BapGenus.objects.filter(club=club)
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['categories'] = Species.Category.choices
+        context['selected_category'] = self.request.GET.get('category', '')        
         context['bap_club'] = self.get_bap_club()        
         return context
     
-# view all 
-class BapSpeciesPointsView(LoginRequiredMixin, ListView):
-    model = BapSpeciesPoints
-    template_name = "species/bapSpeciesPoints.html"
-    context_object_name = "species_points_list"
+class BapSpeciesView(LoginRequiredMixin, ListView):
+    model = BapSpecies
+    template_name = "species/bapSpecies.html"
+    context_object_name = "bap_species_list"
     paginate_by = 100 
 
     def get_bap_club(self):
@@ -1143,9 +1148,9 @@ class BapSpeciesPointsView(LoginRequiredMixin, ListView):
         category = self.request.GET.get('category', '')
         queryset = None
         if category:
-            queryset = BapSpeciesPoints.objects.filter(club=club, species__category=category)
+            queryset = BapSpecies.objects.filter(club=club, species__category=category)
         else:
-            queryset = BapSpeciesPoints.objects.filter(club=club)
+            queryset = BapSpecies.objects.filter(club=club)
         return queryset
     
     def get_context_data(self, **kwargs):
@@ -1155,19 +1160,16 @@ class BapSpeciesPointsView(LoginRequiredMixin, ListView):
         context['bap_club'] = self.get_bap_club()
         return context
     
-class BapGenusSpeciesPointsView(LoginRequiredMixin, ListView):
-    model = BapSpeciesPoints
-    template_name = "species/bapGenusSpeciesPoints.html"
-    context_object_name = "genus_species_points_list"
+class BapGenusSpeciesView(LoginRequiredMixin, ListView):
+    model = BapSpecies
+    template_name = "species/bapGenusSpecies.html"
+    context_object_name = "genus_bap_species_list"
 
-    # uses BapGenusPoints pk lookup to access all Species that match genus and existing BapSpeciesPoints entries
+    # uses BapGenus pk lookup to access all Species that match genus and existing BapSpecies entries
 
     def get_bgp (self):
         bgp_id = self.kwargs.get('pk')
-        #TODO remove duplicate calls below - debug only HACK
-        #self.request.session['bap_genus_points_id'] = bgp_id
-        #print ("Setting request.session['bap_genus_points_id']")
-        return BapGenusPoints.objects.get(id=bgp_id) 
+        return BapGenus.objects.get(id=bgp_id) 
 
     def get_bap_club(self):
         bgp = self.get_bgp()
@@ -1179,9 +1181,9 @@ class BapGenusSpeciesPointsView(LoginRequiredMixin, ListView):
     
     def get_species_without_bsp_overrides(self):
         bgp = self.get_bgp()
-        # store bgp for use in createSpeciesPoints
-        self.request.session['bap_genus_points_id'] = bgp.id
-        print ("Setting request.session['bap_genus_points_id']")
+        # store bgp for use in createBapSpecies
+        self.request.session['bap_genus_id'] = bgp.id
+        print ("Setting request.session['bap_genus_id']")
 
         club = self.get_bap_club()
         genus_name = self.get_genus_name()
@@ -1189,19 +1191,19 @@ class BapGenusSpeciesPointsView(LoginRequiredMixin, ListView):
             # results = Model.objects.filter(name__regex=r'^' + first_word + r'\s')
             # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
             
-            #bapGP = BapGenusPoints.objects.get(name__regex=r'^' + genus_name + r'\s')
-            bapGP = BapGenusPoints.objects.get(name=genus_name)
-            print ('BapGenusPoints object ' + bapGP.name + ' species count: ' + str(bapGP.species_count))
+            #bapGP = BapGenus.objects.get(name__regex=r'^' + genus_name + r'\s')
+            bapGP = BapGenus.objects.get(name=genus_name)
+            print ('BapGenus object ' + bapGP.name + ' species count: ' + str(bapGP.species_count))
             bapGP.species_count = bapGP.species_count + 1
-            print ('BapGenusPoints object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+            print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
         except ObjectDoesNotExist:
-            error_msg = "Initialization error: BapGenusPoints object not found!"
+            error_msg = "Initialization error: BapGenus object not found!"
             messages.error (self.request, error_msg)  
         except MultipleObjectsReturned:
-            error_msg = "Initialization error: Multiple BapGenusPoints objects found for Genus: " + genus_name
+            error_msg = "Initialization error: Multiple BapGenus objects found for Genus: " + genus_name
             messages.error (self.request, error_msg)  
         species_set = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')
-        bsp_set = BapSpeciesPoints.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
+        bsp_set = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
         bsp_species_ids = []
         for bsp in bsp_set:
             bsp_species_ids.append(bsp.species.id)
@@ -1219,13 +1221,13 @@ class BapGenusSpeciesPointsView(LoginRequiredMixin, ListView):
         bgp = self.get_bgp()
         club = self.get_bap_club()
         genus_name = self.get_genus_name()
-        #queryset = BapSpeciesPoints.objects.filter(club=club, name__icontains=self.get_genus_name)
-        queryset = BapSpeciesPoints.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
-        print ('BapGenusSpeciesPointsView query BapSpeciesPoints count: ' + str(queryset.count()))
+        #queryset = BapSpecies.objects.filter(club=club, name__icontains=self.get_genus_name)
+        queryset = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
+        print ('BapGenusSpeciesView query BapSpecies count: ' + str(queryset.count()))
         if bgp.species_override_count != queryset.count:
             bgp.species_override_count = int(queryset.count())
-            bgp.save() #cache species_override_count for optimization of BapGenusPointsView
-            print ('BapGenusPoints object ' + bgp.name  + ' species_override_count updated: ' + str(bgp.species_override_count))
+            bgp.save() #cache species_override_count for optimization of BapGenusView
+            print ('BapGenus object ' + bgp.name  + ' species_override_count updated: ' + str(bgp.species_override_count))
         return queryset
     
     def get_context_data(self, **kwargs):
@@ -1237,92 +1239,92 @@ class BapGenusSpeciesPointsView(LoginRequiredMixin, ListView):
 
     
 @login_required(login_url='login')
-def editBapGenusPoints (request, pk):
-    bapGP = BapGenusPoints.objects.get(id=pk)
+def editBapGenus (request, pk):
+    bapGP = BapGenus.objects.get(id=pk)
     club = bapGP.club
     userCanEdit = user_can_edit (request.user)
     if not userCanEdit:
         raise PermissionDenied()    
-    form = BapGenusPointsForm (instance=bapGP)
+    form = BapGenusForm (instance=bapGP)
     if (request.method == 'POST'):
         # TODO review ALL edit operations and use the best practice for hidden fields
         # initializing the 2nd form with BOTH request.POST and the object instance preserves all hidden fields        
-        form = BapGenusPointsForm(request.POST, instance=bapGP)
+        form = BapGenusForm(request.POST, instance=bapGP)
         if form.is_valid():
             bapGP = form.save()
             # bapGP.club = club
             # bapGP.save()         
-            return HttpResponseRedirect(reverse("bapGenusPoints", args=[club.id]))
+            return HttpResponseRedirect(reverse("bapGenus", args=[club.id]))
     context = {'form': form, 'bapGP': bapGP, 'club': club}
-    return render (request, 'species/editBapGenusPoints.html', context)
+    return render (request, 'species/editBapGenus.html', context)
 
 @login_required(login_url='login')
-def createBapSpeciesPoints (request, pk):
+def createBapSpecies (request, pk):
     #TODO try-except
     #TODO remove 'edit' from shared url
-    bapGP = BapGenusPoints.objects.get(id=request.session['bap_genus_points_id'])
+    bapGP = BapGenus.objects.get(id=request.session['bap_genus_id'])
     species = Species.objects.get(id=pk)
     club = bapGP.club
     userCanEdit = user_can_edit (request.user)
     if not userCanEdit:
         raise PermissionDenied()
-    form = BapSpeciesPointsForm(initial={'points': bapGP.points})
+    form = BapSpeciesForm(initial={'points': bapGP.points})
     if (request.method == 'POST'):
-        form = BapSpeciesPointsForm(request.POST)
+        form = BapSpeciesForm(request.POST)
         if form.is_valid():
             bapSP = form.save(commit=False) 
             bapSP.name = species.name
             bapSP.species = species
             bapSP.club = club
             bapSP.save()      
-            return HttpResponseRedirect(reverse("bapGenusSpeciesPoints", args=[bapGP.id]))
+            return HttpResponseRedirect(reverse("bapGenusSpecies", args=[bapGP.id]))
     context = {'form': form, 'club': club, 'species': species, 'bapSP': False}
-    return render (request, 'species/editBapSpeciesPoints.html', context)
+    return render (request, 'species/editBapSpecies.html', context)
 
 @login_required(login_url='login')
-def editBapSpeciesPoints (request, pk):
-    bapSP = BapSpeciesPoints.objects.get(id=pk)
+def editBapSpecies (request, pk):
+    bapSP = BapSpecies.objects.get(id=pk)
     species = bapSP.species
     club = bapSP.club
     userCanEdit = user_can_edit (request.user)
     if not userCanEdit:
         raise PermissionDenied()
-    form = BapSpeciesPointsForm (instance=bapSP)
+    form = BapSpeciesForm (instance=bapSP)
     if (request.method == 'POST'):
-        form = BapSpeciesPointsForm(request.POST, instance=bapSP)
+        form = BapSpeciesForm(request.POST, instance=bapSP)
         if form.is_valid():
             bapSP = form.save()       
-            return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
+            return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
     context = {'form': form, 'club': club, 'species': species, 'bapSP': bapSP}
 
-    return render (request, 'species/editBapSpeciesPoints.html', context)
+    return render (request, 'species/editBapSpecies.html', context)
 
 @login_required(login_url='login')
-def deleteBapGenusPoints (request, pk):
-    bapGP = BapGenusPoints.objects.get(id=pk)
+def deleteBapGenus (request, pk):
+    bapGP = BapGenus.objects.get(id=pk)
     club = bapGP.club
     userCanEdit = user_can_edit (request.user)
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
         bapGP.delete()
-        return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
-    object_type = 'BapGenusPoints'
+        return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
+    object_type = 'BapGenus'
     object_name = 'BAP Genus Points'
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
 @login_required(login_url='login')
-def deleteBapSpeciesPoints (request, pk):
-    bapSP = BapSpeciesPoints.objects.get(id=pk)
+def deleteBapSpecies (request, pk):
+    bapSP = BapSpecies.objects.get(id=pk)
     club = bapSP.club
     userCanEdit = user_can_edit (request.user)
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
         bapSP.delete()
-        return HttpResponseRedirect(reverse("bapSpeciesPoints", args=[club.id]))
-    object_type = 'BapSpeciesPoints'
+        return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
+    object_type = 'BapSpecies'
     object_name = 'BAP Species Points'
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
@@ -1608,7 +1610,7 @@ def dirtyDeed (request):
         raise PermissionDenied()
     
     # dirty deed goes here ... then return to tools2
-    ######### populate PVAS sample BapGenusPoints table ########
+    ######### populate PVAS sample BapGenus table ########
     # club = AquaristClub.objects.get(id=1) 
     # species_set = Species.objects.all()
     # genus_names = set() # prevents duplicate entries
@@ -1618,14 +1620,14 @@ def dirtyDeed (request):
     #         genus_names.add(genus_name)
     # print ('Genus list length: ', (str(len(genus_names))))
     # for name in genus_names:
-    #     bapGP = BapGenusPoints(name=name, club=club, points=10)
+    #     bapGP = BapGenus(name=name, club=club, points=10)
     #     bapGP.save()
 
-    ######## populate PVAS sample BapSpeciesPoints table ########
+    ######## populate PVAS sample BapSpecies table ########
     # club = AquaristClub.objects.get(id=1) 
     # species_set = Species.objects.all()
     # for species in species_set:
-    #     bapSP = BapSpeciesPoints (name=species.name, species=species, club=club, points=10)
+    #     bapSP = BapSpecies (name=species.name, species=species, club=club, points=10)
     #     bapSP.save()    
 
     ######## migrate aquarist species to new user###############

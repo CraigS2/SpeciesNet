@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
-from .models import BapSubmission, BapGenusPoints, BapSpeciesPoints
+from .models import BapSubmission, BapGenus, BapSpecies
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -192,15 +192,15 @@ class BapSubmissionFormEdit (ModelForm):
         exclude = ['name', 'aquarist', 'club', 'active' ]
         widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),}            
 
-class BapGenusPointsForm (ModelForm):
+class BapGenusForm (ModelForm):
     class Meta:
-        model = BapGenusPoints
+        model = BapGenus
         fields = '__all__'
         exclude = ['name', 'club', 'example_species', 'species_count', 'species_override_count']
 
-class BapSpeciesPointsForm (ModelForm):
+class BapSpeciesForm (ModelForm):
     class Meta:
-        model = BapSpeciesPoints
+        model = BapSpecies
         fields = '__all__'
         exclude = ['name', 'species', 'club']        
 

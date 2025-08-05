@@ -34,8 +34,8 @@
     <div class="div-line-above">
         <h3>Club Admin</h3>
         <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'bapGenusPoints' aquaristClub.id  %}" role="button">&nbsp;BAP Genus Points Config&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'bapSpeciesPoints' aquaristClub.id  %}" role="button">&nbsp;BAP Species Points Config&nbsp;</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'bapGenus' aquaristClub.id  %}" role="button">&nbsp;BAP Genus Points Config&nbsp;</a></p>
+        <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;BAP Species Points Config&nbsp;</a></p>
     </div>
     {% endif %}
 

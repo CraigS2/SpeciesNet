@@ -399,13 +399,13 @@ class BapLeaderboard (models.Model):
     def __str__(self):
         return self.name    
     
-#TODO rename BapGenusPoints BapGenusConfig
-class BapGenusPoints (models.Model):
+#TODO rename BapGenus BapGenusConfig
+class BapGenus (models.Model):
 
     name                      = models.CharField (max_length=240)
-    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_genus_points') 
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_genus') 
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
-    example_species           = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='example_species_bap_points')
+    example_species           = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='example_bap_species')
     species_count             = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in GenusPoints list view
     species_override_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in GenusPoints list view
     created                   = models.DateTimeField(auto_now_add=True)
@@ -413,24 +413,24 @@ class BapGenusPoints (models.Model):
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
-        verbose_name_plural = "BapGenusPoints"
+        verbose_name_plural = "BapGenus"
 
     def __str__(self):
         return self.name    
 
-#TODO rename BapSpeciesPoints BapSpeciesConfig
-class BapSpeciesPoints (models.Model):
+#TODO rename BapSpecies BapSpeciesConfig
+class BapSpecies (models.Model):
 
     name                      = models.CharField (max_length=240)
-    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_bap_points') # deletes ALL instances referencing any deleted species
-    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_species_points') 
+    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='bap_species') # deletes ALL instances referencing any deleted species
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_species') 
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order    
-        verbose_name_plural = "BapSpeciesPoints"
+        verbose_name_plural = "BapSpecies"
 
     def __str__(self):
         return self.name            

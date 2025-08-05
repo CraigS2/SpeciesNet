@@ -2,20 +2,47 @@
 {% load static %}
 {% block content %}
 
-<!--context['bap_club'] + genus_points_list context_object -->
+<!--context['bap_club'] + bap_genus_list context_object -->
 
 <div class="container">
     <h3>{{ bap_club.name }}</h3>
-    <p>By default species are assigned BAP Points by genus.</p>
-    <p>You can optionally set individual species BAP Points using <b><i>species overrides</i></b>.</p>
-    <small>&nbsp;</small>    
+    <p>
+        By default species are assigned BAP Points by genus. &nbsp;
+        <i>You can optionally set individual species BAP Points using <b>species overrides</i></b>.
+    </p>
+    <small>&nbsp;</small>   
+    
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>BAP Genus Filter</h4>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filter-form">
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label for="category">Category:</label>
+                        <select name="category" id="category" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- All Categories --</option>
+                            {% for value, label in categories %}
+                                <option value="{{ value }}" {% if value == selected_category %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <!-- Hidden fields to preserve pagination when only clearing specific filters -->
+                <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
+            </form>
+        </div>
+    </div>    
+
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4>BAP Genus Points Configuration</h4>
             <span>Total: {{ page_obj.paginator.count }} BAP Genus entries found</span>
         </div>
         <div class="card-body">
-            {% if genus_points_list %}
+            {% if bap_genus_list %}
                 <div class="table-responsive">
                     <table class="table table-striped table-hover">                    
                         <thead>
@@ -29,13 +56,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for genus_entry in genus_points_list %}
+                            {% for genus_entry in bap_genus_list %}
                                 <tr>
                                     <td>{{ genus_entry.name }}</td>
                                     <td style='text-align:center'>{{ genus_entry.example_species.get_category_display }}</td>  
-                                    <td style='text-align:center'><a href="{% url 'editBapGenusPoints' genus_entry.id %}">{{ genus_entry.points }}</a></td>  
+                                    <td style='text-align:center'><a href="{% url 'editBapGenus' genus_entry.id %}">{{ genus_entry.points }}</a></td>  
                                     <td style='text-align:center'>{{ genus_entry.species_count }}</td>                                      
-                                    <td style='text-align:center'><a href="{% url 'bapGenusSpeciesPoints' genus_entry.id %}">{{ genus_entry.species_override_count }}</a></td>                                   
+                                    <td style='text-align:center'><a href="{% url 'bapGenusSpecies' genus_entry.id %}">{{ genus_entry.species_override_count }}</a></td>                                   
                                 </tr>
                             {% endfor %}
                         </tbody>
