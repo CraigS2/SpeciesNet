@@ -39,6 +39,7 @@ urlpatterns = [
     path('bapSubmissions/<str:pk>/', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
     path('createBapSubmission/<str:pk>/', views.createBapSubmission, name="createBapSubmission"),
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
+    path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
     path('bapGenus/<str:pk>/', views.BapGenusView.as_view(), name="bapGenus"),
     path('bapSpecies/<str:pk>/', views.BapSpeciesView.as_view(), name="bapSpecies"),
     path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    

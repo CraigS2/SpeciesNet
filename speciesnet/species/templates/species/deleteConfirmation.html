@@ -2,11 +2,11 @@
 
 {% block content %}
 <div class="container">
-<h3>Delete {{object_name}}</h3>
+<h4><b>Delete:</b> {{object_name}}</h4>
     <div>
         <form method="POST" action="">
             {% csrf_token %}
-            <p>Are you sure you want to delete {{object_name}}?</p>
+            <p>Are you sure you want to delete <i>{{object_name}}</i>?</p>
             <p><a href="{{request.META.HTTP_REFERER}}">Cancel</a></p>
             <p><input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Delete"></p>  
         </form>

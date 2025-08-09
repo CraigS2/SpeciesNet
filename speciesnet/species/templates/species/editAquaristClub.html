@@ -2,7 +2,7 @@
 <!--context = {'form': form, 'aquaristClub': aquaristClub}-->
 {% block content %}
 <div class="container">
-    <h3>Edit Club: {{ aquaristClub.name }}</h3>
+    <h3><b>Edit:</b> {{ aquaristClub.name }}</h3>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data">
@@ -12,12 +12,21 @@
                     <td></td>
                     <td style="text-align: left; padding-top: 1em;">
                         <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            value="Apply Changes"></td>  
+                            value="Save Changes">
+                    </td>  
                 </tr>
+                <tr>
+                    <td></td>
+                    <td style="text-align:left; padding-top:1em;">
+                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            onclick="window.location.href='{% url 'deleteAquaristClub' aquaristClub.id %}';" 
+                            type="button">&nbsp;Delete Club&nbsp;
+                        </button>
+                    </td>   
+                </tr>                
             </form>
         </table>
     </div>
     <p><small>&nbsp;</small></p>
-    <p><a class="btn btn-secondary" href="{% url 'deleteAquaristClub' aquaristClub.id  %}" role="button">&nbsp;Delete Club&nbsp;</a></p>
 </div>
 {% endblock content %}

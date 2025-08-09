@@ -4,7 +4,7 @@
 <!-- context = {species, speciesComments, speciesReferenceLinks, speciesInstances, renderCares, userCanEdit, cform, rlform, userCanEdit} -->
 {% block content %}
 <div class="container">
-    <div class="div-line-below">
+    <div class="div-line-below" style="padding: 1rem;">
         <h3>{{species.name}}</h3>
         {% if species.alt_name %}
             <p><b>Alternate Name:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
@@ -26,21 +26,18 @@
         {% if renderCares %}
             <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
         {% endif %}
-        <!--small>&nbsp;</small-->
         {% if userCanEdit %}
             <p><a class="btn btn-secondary" href="{% url 'editSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a></p>
         {% endif %}        
     </div>
 
-    <div>
-        <h3>Aquarists keeping this Species</h3>
+    <div style="padding-left: 1rem;">
+        <h4>Aquarists keeping this Species</h4>
         {% if species.species_instances.all.count > 0  %}
             {% for speciesInstance in speciesInstances %}
                 {% if speciesInstance.currently_keep %}
-                <div>
                     <p><b>{{speciesInstance.user.get_display_name}}</b>:       
                     <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-                </div>
                 {% endif %}
             {% endfor %}    
         {% else %}
@@ -52,18 +49,16 @@
     </div>
 
     {% if request.user.is_authenticated %}
-        <div class="div-line-above">
-            <h3>Reference Links</h3>
+        <div class="div-line-above" style="padding-left: 1rem;">
+            <h4>Reference Links</h4>
             {% if speciesReferenceLinks.all.count > 0  %}
                 {% for speciesReferenceLink in speciesReferenceLinks %}
-                    <div>
-                        <p style = "display: flex; justify-content: space-between;">
-                            <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank">{{speciesReferenceLink.name}}</a></span>
-                            {% if speciesComment.user == request.user or userCanEdit %}
-                                <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
-                            {% endif %}  
-                        </p>  
-                    </div>
+                    <p style = "display: flex; justify-content: space-between;">
+                        <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank">{{speciesReferenceLink.name}}</a></span>
+                        {% if speciesComment.user == request.user or userCanEdit %}
+                            <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
+                        {% endif %}  
+                    </p>  
                 {% endfor %}  
             {% else %}    
                     <p>None</p>
@@ -72,8 +67,8 @@
                 <p><a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
             {% endif %}
         </div>
-        <div class="div-line-above">
-            <h3>Comments</h3>
+        <div class="div-line-above" style="padding-left: 1rem;">
+            <h4>Comments</h4>
             {% if speciesComments.all.count > 0  %}
                 {% for speciesComment in speciesComments %}
                     <div>

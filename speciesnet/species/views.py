@@ -18,7 +18,7 @@ from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, Speci
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
 from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm
-from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm
+from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFormAdminEdit, BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
@@ -83,14 +83,33 @@ def speciesInstance(request, pk):
         for sml in speciesMaintenanceLogs:
             if speciesInstance in sml.speciesInstances.all():
                 speciesMaintenanceLog = sml
+    # manage bap submissions - if club member bap_participant and no current submission allow new submission
     bapClubMemberships = AquaristClubMember.objects.filter(user=speciesInstance.user)
+    bapEligibleMemberships = []
+    bapSubmissions = []    
     if bapClubMemberships.count() > 0:
         request.session['species_instance_id'] = speciesInstance.id
-    #TODO filter out and special case feedback on existing current bap submissions
+        for membership in bapClubMemberships:
+            #TODO filter on current year
+            try:
+                print ('BAP Submission check: ' + membership.name)
+                bapSubmission = BapSubmission.objects.get(club=membership.club, aquarist=speciesInstance.user, speciesInstance=speciesInstance)
+                bapSubmissions.append (bapSubmission)
+                print ('BAP Submission found: ' + bapSubmission.name)
+            except ObjectDoesNotExist:
+                #pass # user is eligible for BAP submission 
+                bapEligibleMemberships.append(membership) 
+                print ('BAP Eligibility list appended: ' + membership.name)
+                print ('Elibibility list: ' + str(bapEligibleMemberships))
+            except MultipleObjectsReturned:
+                error_msg = "BAP Submission: duplicate BAP Submissions found!"
+                print ('Error multiple objects found BAP Eligibility list decremented: ' + membership.name)
+                messages.error (request, error_msg)        
+
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
     context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 
-               'bapClubMemberships': bapClubMemberships, 'renderCares': renderCares, 'userCanEdit': userCanEdit }
+               'bapEligibleMemberships': bapEligibleMemberships, 'bapSubmissions': bapSubmissions, 'renderCares': renderCares, 'userCanEdit': userCanEdit }
     return render (request, 'species/speciesInstance.html', context)
 
 def speciesInstanceLog(request, pk):
@@ -924,7 +943,7 @@ def createBapSubmission (request, pk):
             if form.is_valid():
                 bap_submission = form.save(commit=False)
                 bap_submission.name = name
-                bap_submission.aquarist = aquarist
+                bap_submission.aquarist = speciesInstance.user
                 bap_submission.club = club
                 bap_submission.speciesInstance = speciesInstance
                 bap_submission.points = bap_points
@@ -936,15 +955,25 @@ def createBapSubmission (request, pk):
 
 @login_required(login_url='login')
 def editBapSubmission (request, pk):
+    #TODO userCanEdit - two cases bap_submitter and bap_admin
+    #TODO permission denied scenario
+    userIsBapAdmin = True
     bap_submission = BapSubmission.objects.get(id=pk)
     name = bap_submission.name
     aquarist = bap_submission.aquarist
     bapClub  = bap_submission.club
     speciesInstance = bap_submission.speciesInstance
     print ('bap_submission edit - points before edit: ' + str(bap_submission.points))
-    form = BapSubmissionFormEdit (instance=bap_submission)
+    form = None
+    if userIsBapAdmin:
+        form = BapSubmissionFormAdminEdit (instance=bap_submission)
+    else:
+        form = BapSubmissionFormEdit (instance=bap_submission)
     if (request.method == 'POST'):
-        form = BapSubmissionForm(request.POST, instance=bap_submission)
+        if userIsBapAdmin:
+            form = BapSubmissionFormAdminEdit (request.POST, instance=bap_submission)
+        else:
+            form = BapSubmissionFormEdit (request.POST, instance=bap_submission)
         print('editBapSubmission post value points: ' + str(request.POST.get('points')))
         if form.is_valid():
             bap_submission = form.save(commit=True)
@@ -956,7 +985,7 @@ def editBapSubmission (request, pk):
             print('editBapSubmission cleaned_data points: ' + str(form.cleaned_data.get('points')))
             print ('bap_submission edit - points after edit: ' + str(bap_submission.points))
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
-    context = {'form': form, 'bap_submission': bap_submission}
+    context = {'form': form, 'bap_submission': bap_submission, 'userIsBapAdmin': userIsBapAdmin}
     return render (request, 'species/editBapSubmission.html', context)
 
 @login_required(login_url='login')
@@ -969,7 +998,7 @@ def deleteBapSubmission (request, pk):
         bap_submission.delete()
         return redirect('aquaristClubs')
     object_type = 'BAP Submission'
-    object_name = bap_submission.name
+    object_name = bap_submission.speciesInstance.name + ' BAP Submission'
     context = {'object_type': object_type, 'object_name': object_name}
     return render (request, 'species/deleteConfirmation.html', context)
 
@@ -1449,21 +1478,26 @@ def aquaristClubMember (request, pk):
 
 @login_required(login_url='login')
 def createAquaristClubMember (request, pk):
-    aquaristClub = AquaristClub.objects.get(id=pk)
+    club = AquaristClub.objects.get(id=pk)
     user = request.user 
     #TODO trap duplicates - do not let users request membership if they already joined
-    form = AquaristClubMemberJoinForm(initial={"name":aquaristClub, "user":user, "bap_participant":True})
+    form = AquaristClubMemberJoinForm()
     if (request.method == 'POST'):
-        form2 = AquaristClubMemberForm(request.POST)
-        form2.instance.name = aquaristClub.name + ': ' + user.username       
-        form2.instance.user = request.user
-        form2.instance.club = aquaristClub
-        if form2.is_valid():
-            aquaristClubMember = form2.save(commit=False)
-            aquaristClubMember.bap_participant = True
-            aquaristClubMember.save()
-            return HttpResponseRedirect(reverse("aquaristClubMember", args=[aquaristClubMember.id]))
-    context = {'form': form, 'aquaristClub': aquaristClub}
+        form = AquaristClubMemberForm(request.POST)
+        form.instance.name = club.acronym + ': ' + user.username       
+        form.instance.user = request.user
+        form.instance.club = club
+        if form.is_valid():
+            member = form.save(commit=False)
+            if not member.club.require_member_approval:
+                print ("Auto-accepting Club Membership")
+                member.membership_approved = True
+            else:
+                print ("New Club Membership request - needs admin approval")
+            member.bap_participant = True
+            member.save()
+            return HttpResponseRedirect(reverse("aquaristClubMember", args=[member.id]))
+    context = {'form': form, 'aquaristClub': club}
     return render (request, 'species/createAquaristClubMember.html', context)
 
 @login_required(login_url='login')

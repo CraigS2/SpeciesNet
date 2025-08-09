@@ -1,15 +1,14 @@
 {% extends 'main.html' %}
-<!-- context = speciesInstance, species, speciesMaintenanceLog, bapClubMemberships, renderCares, userCanEdit -->
+<!-- context = speciesInstance, species, speciesMaintenanceLog, bapEligibleMemberships, renderCares, userCanEdit -->
 
 {% block content %}
 <div class="container">
-    <div class="div-line-below">
+    <div style="padding: 1rem;">
         <h3>{{speciesInstance.name}}</h3>
         <h4>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h4>
-        <small>&nbsp;</small>
     </div> 
-    <div class="div-line-below">
-        <h3>Species Overview: <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
+    <div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;">
+        <h3><b>Species Profile:</b> <a href="{% url 'species' species.id %}">{{species.name}}</a></h3>
         {% if species.common_name %}
             <p><b>Common Name: &nbsp;&nbsp;</b>{{species.common_name}}</p>
         {% endif %}
@@ -28,9 +27,8 @@
         {% if renderCares %}
             <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
         {% endif %}
-        <small>&nbsp;</small>
     </div>
-    <div>
+    <div style="padding-top: 1rem; padding-left: 1rem; padding-right: 1rem;">
         <h3>Aquarist Notes</h3>
         {% if speciesInstance.instance_image %}
             <p><i>Photo of aquarist's species:</i></p>
@@ -57,7 +55,6 @@
                 {% endif %}
             {% endif %}
         {% endif %}
-        <!--small>&nbsp;</small-->
         {% if request.user.is_authenticated %}
             {% if speciesInstance.enable_species_log %}
                 {% if userCanEdit %}
@@ -70,7 +67,6 @@
             {% endif %} 
             {% if userCanEdit %} 
                 <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
-                <small>&nbsp;</small>
             {% endif %} 
         {% endif %} 
     </div>
@@ -78,21 +74,33 @@
     {% if request.user.is_authenticated %}
         {% if speciesMaintenanceLog %}
             {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
-            <div class="div-line-above">
+            <div class="div-line-above" style="padding-left: 1rem;">
                 <h4>Species Maintenance Collaboration</h4>
                 <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
             </div>
             {% endif %}
         {% endif %}
 
-        {% if bapClubMemberships.count > 0 and userCanEdit %}
-            <div class="div-line-above">
+        {% if bapEligibleMemberships|length > 0 and userCanEdit %}
+            <div class="div-line-above" style="padding-left: 1rem;">
             <h4>BAP Programs</h4>
-            {% for bapClubMember in bapClubMemberships %}
-                <p><a class="btn btn-secondary" href="{% url 'createBapSubmission' bapClubMember.club.id %}" role="button">&nbsp;&nbsp;{{bapClubMember.club.name}} BAP Request&nbsp;&nbsp;</a></p>
+            {% for bapClubMember in bapEligibleMemberships %}
+                <p><a class="btn btn-secondary" href="{% url 'createBapSubmission' bapClubMember.club.id %}" role="button">&nbsp;&nbsp;Submit {{bapClubMember.club.acronym}} BAP Request&nbsp;&nbsp;</a></p>
             {% endfor %}    
             </div>
         {% endif %}
+        {% if bapSubmissions|length > 0 %}
+            <div class="div-line-above" style="padding-left: 1rem;">
+            <h4>BAP Programs</h4>
+            {% for bapSubmission in bapSubmissions %}
+                <p><a class="btn btn-secondary" href="{% url 'bapSubmission' bapSubmission.id %}" role="button">&nbsp;{{bapClubMember.club.acronym}}View BAP Request&nbsp;</a></p>
+            {% endfor %}    
+            </div>
+        {% endif %}        
+
+
+
+
     {% endif %} 
 </div>
 {% endblock content %}

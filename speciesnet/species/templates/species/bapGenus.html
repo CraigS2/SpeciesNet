@@ -7,7 +7,7 @@
 <div class="container">
     <h3>{{ bap_club.name }}</h3>
     <p>
-        By default species are assigned BAP Points by genus. &nbsp;
+        All species are assigned BAP Points by genus. &nbsp;
         <i>You can optionally set individual species BAP Points using <b>species overrides</i></b>.
     </p>
     <small>&nbsp;</small>   
@@ -38,7 +38,7 @@
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4>BAP Genus Points Configuration</h4>
+            <h4>BAP Genus Configurations</h4>
             <span>Total: {{ page_obj.paginator.count }} BAP Genus entries found</span>
         </div>
         <div class="card-body">
@@ -51,8 +51,8 @@
                                 <th>Genus</th>
                                 <th style='text-align:center'>Category</th>                                
                                 <th style='text-align:center'>Points</th>
-                                <th style='text-align:center'>Species</th>
-                                <th style='text-align:center'>Overrides</th>
+                                <th style='text-align:center'>Species Count</th>
+                                <th style='text-align:center'>Species Overrides</th>
                             </tr>
                         </thead>
                         <tbody>

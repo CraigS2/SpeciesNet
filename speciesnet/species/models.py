@@ -320,12 +320,14 @@ class SpeciesInstanceComment (models.Model):
 
 class AquaristClub (models.Model):
     name                      = models.CharField (max_length=240)
+    acronym                   = models.CharField (max_length=10, blank=True)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
     website                   = models.URLField ()
     city                      = models.CharField (max_length=100, blank=True)
     state                     = models.CharField (max_length=100, blank=True)
     country                   = models.CharField (max_length=100, blank=True)
+    require_member_approval   = models.BooleanField (default=True)
     bap_guidelines            = models.TextField (null=True, blank=True)
     bap_notes_template        = models.TextField (null=True, blank=True)
     bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
@@ -366,8 +368,7 @@ class BapSubmission (models.Model):
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
-    notes                     = models.TextField(null=True, blank=True)
-
+    
     class BapSubmissionStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
         APPROVED = 'APRV', _('Approved')
@@ -377,6 +378,10 @@ class BapSubmission (models.Model):
 
     status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
     points                    = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
+    request_points_review     = models.BooleanField(default=False)    
+    notes                     = models.TextField(null=True, blank=True)
+    breeder_comments          = models.TextField(null=True, blank=True)
+    admin_comments            = models.TextField(null=True, blank=True)
     active                    = models.BooleanField(default=True)
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)    

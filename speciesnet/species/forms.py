@@ -145,17 +145,6 @@ class SpeciesSearchFilterForm (forms.Form):
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
 
-    # GLOBAL_REGION_CHOICES = [
-    #     ('SAM', 'Africa'),
-    #     ('CAM', 'South America'),
-    #     ('NAM', 'Central America'),
-    #     ('AFR', 'North America'),
-    #     ('SEA', 'Southeast Asia'),
-    #     ('AUS', 'Australia'),
-    #     ('',    'All Regions'),
-    # ]   
-    # region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)    
-
 
 class BapSubmissionFilterForm (forms.Form):
     STATUS_CHOICES = [
@@ -189,8 +178,18 @@ class BapSubmissionFormEdit (ModelForm):
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'aquarist', 'club', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),}            
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'points', 'admin_comments', 'active' ]
+        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
+                    'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),}   
+
+class BapSubmissionFormAdminEdit (ModelForm):
+    class Meta:
+        model = BapSubmission
+        fields = '__all__'
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'active' ]
+        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
+                    'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'admin_comments': forms.Textarea(attrs={'rows':2,'cols':50}),}                   
 
 class BapGenusForm (ModelForm):
     class Meta:
@@ -221,7 +220,7 @@ class AquaristClubMemberJoinForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'membership_approved', 'membership_admin']
+        exclude = ['name', 'club', 'membership_approved', 'membership_admin', 'bap_participant']
 
 class AquaristClubMemberForm (ModelForm):
     class Meta:

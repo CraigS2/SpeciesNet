@@ -3,36 +3,30 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 
 <div class="div-line-below">
-    <!--nav class="navbar navbar-expand-lg navbar-dark bg-primary"-->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: rgb(152, 199, 231);">
         <div class="container">
-        <!--div class="container-fluid"-->
-            <div class="collapse navbar-collapse" style="background-color: rgb(152, 199, 231); id="navbarMain" >
+            <!-- Brand is used when menu collapses on mobile devices -->
+            <a class="navbar-brand" style="font-size: 1rem;" href="{% url 'home' %}">Home</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarMain" style="background-color: rgb(152, 199, 231);">        
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <!-- Home (Direct Link) -->
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" 
-                        href="{% url 'home' %}">Home&nbsp;</a>
-                    </li>
-                    
                     <!-- About (Direct Link) -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'about_us' %}active{% endif %}" 
                         href="{% url 'about_us' %}">&nbsp;About Us&nbsp;</a>
                     </li>
-
                     <!-- Species Search (Direct Link) -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'speciesSearch' %}active{% endif %}" 
                         href="{% url 'speciesSearch' %}">&nbsp;Species Search&nbsp;</a>
                     </li> 
-                    
                     <!-- Aquarists (Direct Link) -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'aquarists' %}active{% endif %}" 
                         href="{% url 'aquarists' %}">&nbsp;Aquarists&nbsp;</a>
                     </li> 
-                    
                     {% if user.is_authenticated %}
                         <!-- Clubs (Dropdown) -->
                         <li class="nav-item dropdown">
