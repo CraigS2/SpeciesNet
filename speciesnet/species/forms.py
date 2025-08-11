@@ -213,6 +213,7 @@ class AquaristClubForm (ModelForm):
                    'city':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'state':              forms.Textarea(attrs={'rows':1,'cols':50}),
                    'country':            forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'about':              forms.Textarea(attrs={'rows':2,'cols':50}),
                    'bap_guidelines':     forms.Textarea(attrs={'rows':8,'cols':50}),
                    'bap_notes_template': forms.Textarea(attrs={'rows':8,'cols':50}),}
         
@@ -220,13 +221,13 @@ class AquaristClubMemberJoinForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'membership_approved', 'membership_admin', 'bap_participant']
+        exclude = ['name', 'club', 'membership_approved', 'is_club_admin', 'bap_participant']
 
 class AquaristClubMemberForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'membership_admin']
+        exclude = ['name', 'club']
 
 class UserProfileForm (ModelForm):
     class Meta:

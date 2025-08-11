@@ -7,7 +7,7 @@
 <div class="container">
     <h3>{{ bap_club.name }}</h3>
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <p>The following BAP <b><i>species overrides</i></b> have been set.</p>
+        <p>The following BAP <b><i>species exceptions</i></b> have been set. &nbsp;&nbsp;<i>Species not listed use default Genus points.</i></p>
         <span><a class="btn btn-secondary" href="{% url 'bapGenus' bap_club.id %}" role="button">&nbsp;BAP Genus List&nbsp;</a></span>
     </div>
     <small>&nbsp;</small> 
@@ -39,7 +39,7 @@
     <!-- bap_species_list -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4>BAP Species Overrides</h4>
+            <h4>BAP Species Exceptions</h4>
             <span>Total: {{ page_obj.paginator.count }} BAP Genus entries found</span>
         </div>
         <div class="card-body">
@@ -58,15 +58,21 @@
                         <tbody>
                             {% for species_entry in bap_species_list %}
                                 <tr>
-                                    <td>{{ species_entry.name }}</td>
-                                    <td style='text-align:center'>{{ species_entry.species.get_category_display }}</td>  
+                                    <td><a href="{% url 'speciesInstance' species_entry.id %}">{{species_entry.name}}</a></td>
+                                    <td style='text-align:center'>{{ species_entry.species.get_category_display }}</td> 
+
                                     {% if species_entry.species.render_cares %}
                                         <td style='text-align:center'>Yes</td>  
-                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a> x {{bap_club.cares_muliplier}}</td>  
                                     {% else %}
                                         <td></td>  
-                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a></td>  
                                     {% endif %}
+
+                                    {% if userCanEdit %}
+                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a> x {{bap_club.cares_muliplier}}</td>  
+                                    {% else %}
+                                        <td style='text-align:center'>{{ species_entry.points }}</td>  
+                                    {% endif %}
+
                             {% endfor %}
                         </tbody>
                     </table>

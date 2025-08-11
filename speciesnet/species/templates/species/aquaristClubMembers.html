@@ -5,7 +5,6 @@
 
 <div class="container">
     <h2>{{ club.name }}</h2>
-    <p><small>&nbsp;</small></p>
     <!-- Membership List -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -18,11 +17,14 @@
                     <table class="table table-striped table-hover">                    
                         <thead>
                             <tr>
-                                <th>Aquarist</th> 
+                                <th>Member</th> 
                                 <th>Username</th>
                                 <th style='text-align:center'>Member since</th>
                                 {% if member.club.require_member_approval %}                                    
                                     <th style='text-align:center'>Status</th>
+                                {% endif %}
+                                {% if userCanEdit %}                                    
+                                    <th style='text-align:center'>Admin</th>
                                 {% endif %}
                                 <th style='text-align:center'>BAP Particpant</th>
                             </tr>
@@ -42,11 +44,18 @@
                                             {% endif %}
                                         </td>
                                     {% endif %}
+                                    {% if userCanEdit %}                                    
+                                        <td style='text-align:center'>
+                                            {% if member.is_club_admin %}
+                                                Yes
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}  
                                     <td style='text-align:center'>
                                         {% if member.bap_participant %}
                                             Yes
                                         {% endif %}
-                                    </td>
+                                    </td>                                                                    
                                 </tr>
                             {% endfor %}
                         </tbody>

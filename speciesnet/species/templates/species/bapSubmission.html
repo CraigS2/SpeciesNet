@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
     <div>
-        <h3><b>{{bap_submission.club.name}}</b></h3>
+        <h3>{{bap_submission.club.name}}</h3>
         <h5>
             <b>Aquarist: &nbsp;</b><a href="{% url 'aquarist' bap_submission.aquarist.id %}">{{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</a>
             &nbsp;({{bap_submission.aquarist.get_display_name}})

@@ -2,15 +2,30 @@
 
 {% block content %}
 <div class="container">
-    <h3>{{aquaristClubMember.club.name}}</h3>
-    <h4>{{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}} Membership Status:</h4>
-    <p>Username: {{aquaristClubMember.user.get_display_name}} </p>
+    <h3><a href="{% url 'aquaristClub' aquaristClubMember.club.id %}">{{aquaristClubMember.club.name}}</a></h3>
+    <h4>Member: <a href="{% url 'aquarist' aquaristClubMember.user.id %}">{{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}}</a></h4>
+    <p><b>Username:</b> &nbsp;&nbsp;{{aquaristClubMember.user.get_display_name}}</p>
+
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 {{form.as_table}}
-                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+                <tr>
+                    <td style="text-align: left; padding-top: 1em;">
+                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            value="Save Changes">
+                    </td>  
+                    <td></td>
+                </tr>
+                <tr>
+                    <td style="text-align:left; padding-top:1em;">
+                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            onclick="window.location.href='{% url 'deleteAquaristClubMember' aquaristClubMember.id %}';" 
+                            type="button">&nbsp;Delete Member&nbsp;
+                        </button>
+                    <td></td>
+                </tr>     
             </form>
         </table>
     </div>

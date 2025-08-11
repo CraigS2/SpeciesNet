@@ -10,13 +10,13 @@
     <h3>{{ bap_club.name }}</h3>
     <p>By default species are assigned BAP Points by genus.</p>
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <p>You can optionally set individual species BAP Points using <b><i>species overrides</i></b>.</p>
+        <p>You can optionally set individual species BAP Points using <b><i>species exceptions</i></b>.</p>
         <span><a class="btn btn-secondary" href="{% url 'bapGenus' bap_club.id %}" role="button">&nbsp;BAP Genus List&nbsp;</a></span>
     </div>
     <small>&nbsp;</small> 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4><b>{{ bgp.name }}</b> Species using Overrides</h4>
+            <h4><b>{{ bgp.name }}</b> Species Exceptions</h4>
         </div>
         <div class="card-body">
             {% if genus_bap_species_list %}
@@ -34,15 +34,21 @@
                         <tbody>
                             {% for species_entry in genus_bap_species_list %}
                                 <tr>
-                                    <td>{{ species_entry.name }}</td>
+                                    <td><a href="{% url 'speciesInstance' species_entry.id %}">{{species_entry.name}}</a></td>
                                     <td style='text-align:center'>{{ species_entry.species.get_category_display }}</td>  
+
                                     {% if species_entry.species.render_cares %}
                                         <td style='text-align:center'>Yes</td>  
-                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a> x {{bap_club.cares_muliplier}}</td>  
                                     {% else %}
                                         <td style='text-align:center'>No</td>  
-                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a></td>  
-                                    {% endif %}                                    
+                                    {% endif %}
+
+                                    {% if userCanEdit %}
+                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a> x {{bap_club.cares_muliplier}}</td>  
+                                    {% else %}
+                                        <td style='text-align:center'>{{species_entry.points}}</td>  
+                                    {% endif %}
+
                             {% endfor %}
                         </tbody>
                     </table>
@@ -54,7 +60,7 @@
     </div>
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4><b>{{ bgp.name }}</b> Species without Overrides</h4>
+            <h4><b>{{ bgp.name }}</b> Species without exceptions <i>(Genus default points applied)</i></h4>
         </div>
         <div class="card-body">
             {% if available_species %}
@@ -73,13 +79,19 @@
                                 <tr>
                                     <td>{{ species.name }}</td>
                                     <td style='text-align:center'>{{ species.get_category_display }}</td> 
-                                    {% if species.render_cares %}
+
+                                    {% if species_entry.species.render_cares %}
                                         <td style='text-align:center'>Yes</td>  
-                                        <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{ bgp.points }}</a> x {{bap_club.cares_muliplier}}</td>                                   
                                     {% else %}
                                         <td style='text-align:center'>No</td>  
-                                        <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{ bgp.points }}</a></td>                                   
                                     {% endif %}
+
+                                    {% if userCanEdit %}
+                                        <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{ bgp.points }}</a> x {{bap_club.cares_muliplier}}</td>                                   
+                                    {% else %}
+                                        <td style='text-align:center'>{{ bgp.points }}</td>                                   
+                                    {% endif %}
+
                             {% endfor %}
                         </tbody>
                     </table>

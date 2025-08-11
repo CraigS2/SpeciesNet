@@ -321,6 +321,7 @@ class SpeciesInstanceComment (models.Model):
 class AquaristClub (models.Model):
     name                      = models.CharField (max_length=240)
     acronym                   = models.CharField (max_length=10, blank=True)
+    about                     = models.TextField (null=True, blank=True)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
     website                   = models.URLField ()
@@ -350,7 +351,7 @@ class AquaristClubMember (models.Model):
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_club_members') # deletes species instances if user deleted
     bap_participant           = models.BooleanField(default=False)
     membership_approved       = models.BooleanField(default=False)
-    membership_admin          = models.BooleanField(default=False)
+    is_club_admin             = models.BooleanField(default=False)
     date_requested            = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     last_updated              = models.DateTimeField(auto_now=True)      # updated every save
 

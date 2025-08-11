@@ -3,18 +3,17 @@
 {% block content %}
 <div class="container">
     <div>
-        <h2>Club: <a href="{% url 'aquaristClub' aquaristClubMember.club.id %}">{{aquaristClubMember.club.name}}</a></h2>
+        <h3><a href="{% url 'aquaristClub' aquaristClubMember.club.id %}">{{aquaristClubMember.club.name}}</a></h3>
         <h4>Member: <a href="{% url 'aquarist' aquaristClubMember.user.id %}">{{aquaristClubMember.user.first_name}} {{aquaristClubMember.user.last_name}}</a></h4>
         <p><b>Username:</b> &nbsp;&nbsp;{{aquaristClubMember.user.get_display_name}}</p>
-        <p><b>Membership Approved:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_approved}}</p>
-    </div>
 
-    {% if userCanEdit %}
-    <small>&nbsp;</small>
-    <div class="div-line-above">
-        <h3>Edit</h3>
-        <p><a class="btn btn-secondary" href="{% url 'editAquaristClubMember' aquaristClubMember.id  %}" role="button">&nbsp;&nbsp;Edit Membership&nbsp;&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'deleteAquaristClubMember' aquaristClubMember.id  %}" role="button">&nbsp;&nbsp;&nbsp;Delete Member&nbsp;&nbsp;&nbsp;</a></p>
-    {% endif %}
+        {% if aquaristClubMember.club.require_member_approval %}                                    
+            <p><b>Membership Approved:</b> &nbsp;&nbsp;{{aquaristClubMember.membership_approved}}</p>
+        {% endif %}
+
+        {% if userCanEdit %}
+            <p><a class="btn btn-secondary" href="{% url 'editAquaristClubMember' aquaristClubMember.id  %}" role="button">&nbsp;&nbsp;Edit Member&nbsp;&nbsp;</a></p>
+            <p><a class="btn btn-secondary" href="{% url 'deleteAquaristClubMember' aquaristClubMember.id  %}" role="button">&nbsp;&nbsp;&nbsp;Delete Member&nbsp;&nbsp;&nbsp;</a></p>
+        {% endif %}
 </div>
 {% endblock content %}

@@ -13,6 +13,9 @@
         {% else %}
             <p><a href="{{aquaristClub.website}}" target="_blank">{{aquaristClub.name}} website</a></p>
         {% endif %}
+        {% if aquaristClub.about %}
+            <p>{{aquaristClub.about|linebreaks}}</p>
+        {% endif %}
         <p>
             {% if aquaristClub.city %}
                 {{aquaristClub.city}},&nbsp;
@@ -30,34 +33,30 @@
                 <h5><a href="{% url 'aquarist' admin.id %}">{{admin.get_display_name}}</a></h5>
             {% endfor %} 
         {% endif %}
-        <p><a class="btn btn-secondary" href="{% url 'createAquaristClubMember' aquaristClub.id %}" role="button">Join</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' aquaristClub.id %}" role="button">Club Members</a></p>
-         <small>&nbsp;</small> 
     </div>
+        {% if userIsMember %}
 
-    <div class="div-line-above">
-        <h3>2025-2026 Breeder Award Program</h3>
-        <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' aquaristClub.id  %}" role="button">&nbsp;BAP Submissions&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Leaderboard&nbsp;&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'bapGenus' aquaristClub.id  %}" role="button">&nbsp;BAP Points Configuration&nbsp;</a></p>
-    </div>
+            <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' aquaristClub.id %}" role="button">Club Members</a></p>
+            <small>&nbsp;</small> 
 
-    {% if userCanEdit %}
-    <small>&nbsp;</small>
-    <div class="div-line-above">
-        <h3>Club Admin</h3>
-        <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
-        <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Overrides&nbsp;&nbsp;</a></p>
-    </div>
-    {% endif %}
-
-    <div class="div-line-above">
-        <h3>Club Members</h3>
-        {% for member in aquaristClubMembers %}
-            <div>
-                <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.get_display_name}}</a></h5>
+            <div class="div-line-above">
+                <h3>2025-2026 Breeder Award Program</h3>
+                <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' aquaristClub.id  %}" role="button">&nbsp;BAP Submissions&nbsp;</a></p>
+                <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Leaderboard&nbsp;&nbsp;</a></p>
+                <p><a class="btn btn-secondary" href="{% url 'bapGenus' aquaristClub.id  %}" role="button">&nbsp;BAP Points Configuration&nbsp;</a></p>
             </div>
-        {% endfor %} 
-    </div>
+
+            {% if userCanEdit %}
+            <small>&nbsp;</small>
+            <div class="div-line-above">
+                <h3>Club Admin</h3>
+                <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
+                <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Exceptions&nbsp;&nbsp;</a></p>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <p><a class="btn btn-secondary" href="{% url 'createAquaristClubMember' aquaristClub.id %}" role="button">Join</a></p>
+        {% endif %}
 </div>
 {% endblock content %}

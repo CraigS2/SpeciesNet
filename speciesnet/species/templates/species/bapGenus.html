@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 
-<!--context['bap_club'] + bap_genus_list context_object -->
+<!--context['bap_club', 'bpp', 'userCanEdit'] + bap_genus_list context_object -->
 
 <div class="container">
     <h3>{{ bap_club.name }}</h3>
@@ -60,7 +60,11 @@
                                 <tr>
                                     <td>{{ genus_entry.name }}</td>
                                     <td style='text-align:center'>{{ genus_entry.example_species.get_category_display }}</td>  
-                                    <td style='text-align:center'><a href="{% url 'editBapGenus' genus_entry.id %}">{{ genus_entry.points }}</a></td>  
+                                    {% if userCanEdit %}
+                                        <td style='text-align:center'><a href="{% url 'editBapGenus' genus_entry.id %}">{{ genus_entry.points }}</a></td>  
+                                    {% else %}
+                                        <td style='text-align:center'>{{ genus_entry.points }}</td>  
+                                    {% endif %}
                                     <td style='text-align:center'>{{ genus_entry.species_count }}</td>                                      
                                     <td style='text-align:center'><a href="{% url 'bapGenusSpecies' genus_entry.id %}">{{ genus_entry.species_override_count }}</a></td>                                   
                                 </tr>

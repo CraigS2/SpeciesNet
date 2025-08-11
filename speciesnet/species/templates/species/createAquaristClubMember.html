@@ -4,10 +4,18 @@
 <div class="container">
     <h3>{{aquaristClub.name}}</h3>
         <div>
-            <p>Submit a request to join {{aquaristClub.name}}'s BAP program </p>
-            <p>A club admin will need to approve your membership.</p>
+
+            {% if club.require_member_approval %}
+                <p>Submit a request to join {{aquaristClub.name}}.</p>
+                <p>A club admin will need to approve your {{aquaristClub.acronym}} membership.</p>            
+            {% else %} 
+                <p>Submit your request to join {{aquaristClub.name}}.</p>
+                <p>Once you have joined, you will be able to participate in the {{aquaristClub.acronym}} BAP Program.</p>  
+            {% endif %}  
+
             <p><b>Name:</b> {{request.user.first_name}} {{request.user.last_name}}</p>
             <p><b>Username:</b> {{request.user.username}}</p>
+
             <table>
                 <form method="POST" enctype="multipart/form-data" action="">
                     {% csrf_token %}

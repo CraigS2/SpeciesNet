@@ -1,4 +1,7 @@
-from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
+from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember
 from species.models import BapSubmission
 from datetime import datetime
 from django.utils import timezone
@@ -64,6 +67,44 @@ def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenance
             if speciesInstance.user == cur_user:
                 userCanEdit = True;                   # allow all contributors to edit/delete
     return userCanEdit
+
+def user_can_edit_club (cur_user: User, club: AquaristClub):
+    userCanEdit = False
+    if cur_user.is_staff:
+         userCanEdit = True
+    else:
+        print ('user_can_edit_club: seeing if member exists')
+        try:
+            member = AquaristClubMember.objects.get(user=cur_user, club=club) 
+            userCanEdit = member.is_club_admin
+            print ('Club Member is club admin: ' + cur_user.username)
+        except ObjectDoesNotExist:
+            pass # user is not a member 
+            print ('Club Member not found: ' + cur_user.username + ' can join')
+        except MultipleObjectsReturned:
+            error_msg = "Club Members: duplicate members found!"
+            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+            #TODO logging
+    return userCanEdit
+
+
+def user_is_club_member (cur_user: User, club: AquaristClub):
+    user_is_member = False
+    if cur_user.is_staff:
+         user_is_member = True
+    else:
+        print ('user_is_club_member: seeing if member exists')
+        try:
+            member = AquaristClubMember.objects.get(user=cur_user, club=club) 
+            user_is_member = True
+            print ('Club Member found: ' + cur_user.username)
+        except ObjectDoesNotExist:
+            pass # user is not a member 
+        except MultipleObjectsReturned:
+            error_msg = "Club Members: duplicate members found!"
+            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+            #TODO logging
+    return user_is_member
 
 def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLog):
     species = speciesMaintenanceLog.species
