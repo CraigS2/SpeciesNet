@@ -16,8 +16,6 @@ urlpatterns = [
     path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
 
     path('aquarists/', views.AquaristListView.as_view(), name="aquarists"),
-
-    path('aquarists2/', views.aquarists2, name="aquarists2"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
     path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
     path('exportAquarists/', views.exportAquarists, name="exportAquarists"),

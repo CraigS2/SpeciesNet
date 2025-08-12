@@ -25,7 +25,7 @@
                         <thead>
                             <tr>
                                 <!-- th style="width: 40%">Species</th-->
-                                <th>Species</th>
+                                <th style="width: 40%">Species</th>
                                 <th style='text-align:center'>Category</th> 
                                 <th style='text-align:center'>CARES</th> 
                                 <th style='text-align:center'>Points</th> 
@@ -34,21 +34,25 @@
                         <tbody>
                             {% for species_entry in genus_bap_species_list %}
                                 <tr>
-                                    <td><a href="{% url 'speciesInstance' species_entry.id %}">{{species_entry.name}}</a></td>
+                                    <td><a href="{% url 'species' species_entry.species.id %}">{{species_entry.name}}</a></td>
                                     <td style='text-align:center'>{{ species_entry.species.get_category_display }}</td>  
-
-                                    {% if species_entry.species.render_cares %}
-                                        <td style='text-align:center'>Yes</td>  
-                                    {% else %}
-                                        <td style='text-align:center'>No</td>  
-                                    {% endif %}
-
                                     {% if userCanEdit %}
-                                        <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a> x {{bap_club.cares_muliplier}}</td>  
+                                        {% if species_entry.species.render_cares %}
+                                            <td style='text-align:center'>Yes</td>  
+                                            <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a> x {{bap_club.cares_muliplier}}</td>  
+                                        {% else %}
+                                            <td style='text-align:center'>No</td>  
+                                            <td style='text-align:center'><a href="{% url 'editBapSpecies' species_entry.id %}">{{species_entry.points}}</a></td>  
+                                        {% endif %}
                                     {% else %}
-                                        <td style='text-align:center'>{{species_entry.points}}</td>  
+                                        <td></td>  
+                                        {% if species_entry.species.render_cares %}
+                                            <td style='text-align:center'>{{species_entry.points}} x {{bap_club.cares_muliplier}}</td>  
+                                        {% else %}
+                                            <td style='text-align:center'>{{ species_entry.points }}</td>  
+                                        {% endif %}
                                     {% endif %}
-
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -60,7 +64,7 @@
     </div>
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4><b>{{ bgp.name }}</b> Species without exceptions <i>(Genus default points applied)</i></h4>
+            <h4><b>{{ bgp.name }}</b> Species without exceptions <i>(Genus points applied)</i></h4>
         </div>
         <div class="card-body">
             {% if available_species %}
@@ -77,21 +81,26 @@
                         <tbody>
                             {% for species in available_species %}
                                 <tr>
-                                    <td>{{ species.name }}</td>
+                                    <td><a href="{% url 'species' species.id %}">{{species.name}}</a></td>
                                     <td style='text-align:center'>{{ species.get_category_display }}</td> 
-
-                                    {% if species_entry.species.render_cares %}
-                                        <td style='text-align:center'>Yes</td>  
-                                    {% else %}
-                                        <td style='text-align:center'>No</td>  
-                                    {% endif %}
-
                                     {% if userCanEdit %}
-                                        <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{ bgp.points }}</a> x {{bap_club.cares_muliplier}}</td>                                   
+                                        {% if species.render_cares %}
+                                            <td style='text-align:center'>Yes</td>  
+                                            <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{bgp.points}} x {{bap_club.cares_muliplier}}</a> x {{bap_club.cares_muliplier}}</td>  
+                                        {% else %}
+                                            <td style='text-align:center'>No</td>
+                                            <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{bgp.points}}</a></td>  
+                                        {% endif %}
                                     {% else %}
-                                        <td style='text-align:center'>{{ bgp.points }}</td>                                   
+                                        {% if species.render_cares %}
+                                            <td style='text-align:center'>Yes</td>  
+                                            <td style='text-align:center'>{{ bgp.points }} x {{ bap_club.cares_muliplier }}</td>  
+                                        {% else %}
+                                            <td></td>  
+                                            <td style='text-align:center'>{{ bgp.points }}</td>  
+                                        {% endif %}
                                     {% endif %}
-
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>

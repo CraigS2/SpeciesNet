@@ -12,7 +12,6 @@
         <small>&nbsp;</small>
     </div>
     <div class="div-line-above">
-        <small>&nbsp;</small>
         <h4><b>BAP Submission:</b></h4>
         <p><b>Status:</b> &nbsp;&nbsp;{{bap_submission.get_status_display}}</p>
         <p><b>Year:</b>&nbsp;&nbsp;{{bap_submission.year}}</p>
@@ -24,15 +23,21 @@
         {% endif %}  
         
         <p><b>Submission:</b> &nbsp;&nbsp;{{bap_submission.created | date:'Y-m-d'}}</p>
-        <p><b>Notes:</b></p>
-        </p>{{bap_submission.notes|linebreaks }}</p>
 
-        {% if bap_submission.comments %}
-            <p><b>Comments:</b></p>
-            </p>{{bap_submission.comments|linebreaks }}</p>
+        <div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;">
+            <p><b>Submission Notes:</b></p>
+            </p>{{bap_submission.notes|linebreaks }}</p>
+        </div>
+
+        <small>&nbsp;</small>
+        {% if bap_submission.breeder_comments %}
+            <p><b>Breeder Comments:</b> &nbsp;&nbsp;{{bap_submission.breeder_comments}}</p>
         {% endif %} 
 
         {% if userCanEdit %}
+            {% if bap_submission.admin_comments %}
+                <p><b>Admin Comments:</b> &nbsp;&nbsp;{{bap_submission.admin_comments}}</p>
+            {% endif %} 
             <p><a class="btn btn-secondary" href="{% url 'editBapSubmission' bap_submission.id  %}" role="button">&nbsp;Edit BAP Submission&nbsp;</a></p>
         {% endif %}
         <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' bap_submission.club.id  %}" role="button">&nbsp;{{bap_submission.club.acronym}} BAP Submissions&nbsp;</a></p>

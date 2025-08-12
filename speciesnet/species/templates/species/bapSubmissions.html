@@ -78,7 +78,7 @@
                                         <td style='text-align:center'></td>
                                     {% endif %}  
                                     
-                                    {% if bap_submission.request_points_review %}
+                                    {% if userCanEdit and bap_submission.request_points_review %}
                                      <td style='text-align:center'><a href="{% url 'bapSubmission' bap_submission.id %}">{{ bap_submission.points }}</a></td>
                                     {% else %} 
                                         <td style='text-align:center'>{{ bap_submission.points }}</td>

@@ -37,7 +37,13 @@ import logging
 
 ### Home page
 
+logger = logging.getLogger(__name__)
+
 def home(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited ASN home page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited ASN home page.')
     return render(request, 'species/home.html')
 
 ### View the basic elements of ASN: Aquarist, Species, and SpeciesInstance
@@ -48,6 +54,10 @@ def aquarist(request, pk):
     speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).order_by('name')
     speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).order_by('name')
     speciesComments = SpeciesComment.objects.filter(user=aquarist)
+    if request.user.is_authenticated:
+        logger.info('User %s visited aquarist page for %s.', request.user.username, aquarist.username)
+    else:
+        logger.info('Anonymous user visited aquarist page for %s.', aquarist.username)
     context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept, 'speciesComments': speciesComments, 'userCanEdit': userCanEdit }
     return render (request, 'species/aquarist.html', context)
 
@@ -69,7 +79,10 @@ def species(request, pk):
             speciesComment.species = species
             speciesComment.name = cur_user.get_display_name() + " - " + species.name
             speciesComment.save()
-
+    if request.user.is_authenticated:
+        logger.info('User %s visited species page: %s.', request.user.username, species.name)
+    else:
+        logger.info('Anonymous user visited species page: %s.', species.name)
     context = {'species': species, 'speciesInstances': speciesInstances, 'speciesComments': speciesComments, 'speciesReferenceLinks': speciesReferenceLinks,
                'renderCares': renderCares, 'userCanEdit': userCanEdit, 'cform': cform, 'userCanEdit': userCanEdit }
     return render (request, 'species/species.html', context)
@@ -90,25 +103,28 @@ def speciesInstance(request, pk):
     bapSubmissions = []    
     if bapClubMemberships.count() > 0:
         request.session['species_instance_id'] = speciesInstance.id
+        logger.info("request.session['species_instance_id'] set for bapSubmission by speciesInstance: %s", str(speciesInstance.id))
         for membership in bapClubMemberships:
             #TODO filter on current year
             try:
-                print ('BAP Submission check: ' + membership.name)
+                #TODO manage year
                 bapSubmission = BapSubmission.objects.get(club=membership.club, aquarist=speciesInstance.user, speciesInstance=speciesInstance)
                 bapSubmissions.append (bapSubmission)
-                print ('BAP Submission found: ' + bapSubmission.name)
+                print ('User is NOT eligible to join ' + membership.club.name)
             except ObjectDoesNotExist:
                 #pass # user is eligible for BAP submission 
                 bapEligibleMemberships.append(membership) 
-                print ('BAP Eligibility list appended: ' + membership.name)
-                print ('Elibibility list: ' + str(bapEligibleMemberships))
+                print ('User is eligible to join ' + membership.club.name)
             except MultipleObjectsReturned:
                 error_msg = "BAP Submission: duplicate BAP Submissions found!"
                 print ('Error multiple objects found BAP Eligibility list decremented: ' + membership.name)
                 messages.error (request, error_msg)        
-
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
+    if request.user.is_authenticated:
+        logger.info('User %s visited aquarist species page: %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
+    else:
+        logger.info('Annonymous user visited aquarist species page: %s (%s).', speciesInstance.name, speciesInstance.user.username)
     context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 
                'bapEligibleMemberships': bapEligibleMemberships, 'bapSubmissions': bapSubmissions, 'renderCares': renderCares, 'userCanEdit': userCanEdit }
     return render (request, 'species/speciesInstance.html', context)
@@ -117,6 +133,10 @@ def speciesInstanceLog(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     speciesInstanceLogEntries = SpeciesInstanceLogEntry.objects.filter(speciesInstance=speciesInstance)
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
+    if request.user.is_authenticated:
+        logger.info('User %s visited aquarist species log: %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
+    else:
+        logger.info('Annonymous user visited aquarist species log: %s (%s).', speciesInstance.name, speciesInstance.user.username)
     context = {'speciesInstance': speciesInstance, 'speciesInstanceLogEntries': speciesInstanceLogEntries, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstanceLog.html', context)
 
@@ -124,6 +144,10 @@ def speciesMaintenanceLog(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     speciesMaintenanceLogEntries = SpeciesMaintenanceLogEntry.objects.filter(speciesInstance=speciesInstance)
     userCanEdit = user_can_edit_sml (request.user, speciesInstance)
+    if request.user.is_authenticated:
+        logger.info('User %s visited aquarist species maintenance log: %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
+    else:
+        logger.info('Annonymous user visited aquarist species maintenance log: %s (%s).', speciesInstance.name, speciesInstance.user.username)
     context = {'speciesInstance': speciesInstance, 'speciesMaintenanceLogEntries': speciesMaintenanceLogEntries, 'userCanEdit': userCanEdit}
     return render (request, 'species/speciesInstanceLog.html', context)
 
@@ -133,6 +157,7 @@ def speciesMaintenanceLog(request, pk):
 def userProfile(request):
     aquarist = request.user
     context = {'aquarist': aquarist}
+    logger.info('User %s visited their profile page', request.user.username)
     return render (request, 'species/userProfile.html', context)
 
 @login_required(login_url='login')
@@ -140,17 +165,19 @@ def editUserProfile(request):
     cur_user = request.user
     form = UserProfileForm(instance=cur_user)
     if (request.method == 'POST'):
-        form2 = UserProfileForm(request.POST, instance=cur_user)
-        if form2.is_valid: 
-            form2.save(commit=False)
-            cur_user.first_name          = form2.instance.first_name
-            cur_user.last_name           = form2.instance.last_name
-            cur_user.state               = form2.instance.state
-            cur_user.country             = form2.instance.country
-            cur_user.is_private_name     = form2.instance.is_private_name
-            cur_user.is_private_email    = form2.instance.is_private_email
-            cur_user.is_private_location = form2.instance.is_private_location
+        form = UserProfileForm(request.POST, instance=cur_user)
+        if form.is_valid: 
+            #TODO clean this up should be managed by form save
+            form.save(commit=False)
+            cur_user.first_name          = form.instance.first_name
+            cur_user.last_name           = form.instance.last_name
+            cur_user.state               = form.instance.state
+            cur_user.country             = form.instance.country
+            cur_user.is_private_name     = form.instance.is_private_name
+            cur_user.is_private_email    = form.instance.is_private_email
+            cur_user.is_private_location = form.instance.is_private_location
             cur_user.save()
+            logger.info('User %s edited their profile page', request.user.username)
         else:
             error_msg = ("Error saving User Profile changes")
             messages.error (request, error_msg)
@@ -187,6 +214,10 @@ class SpeciesListView(ListView):
         return queryset
     
     def get_context_data(self, **kwargs):
+        if self.request.user.is_authenticated:
+            logger.info('User %s visited speciesSearch page.', self.request.user.username)
+        else:
+            logger.info('Annonymous user visited speciesSearch page.')            
         context = super().get_context_data(**kwargs)
         context['categories'] = Species.Category.choices
         context['global_regions'] = Species.GlobalRegion.choices
@@ -199,6 +230,10 @@ class SpeciesListView(ListView):
 
 def addSpeciesInstanceWizard1 (request):
     # wizard style workflow helping users search/find/add species to add their speciesInstance
+    if request.user.is_authenticated:
+        logger.info('User %s visited addSpeciesInstanceWizard1 page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited addSpeciesInstanceWizard1 page.')    
     return render(request, 'species/addSpeciesInstanceWizard1.html')
 
 def addSpeciesInstanceWizard2 (request):
@@ -208,6 +243,10 @@ def addSpeciesInstanceWizard2 (request):
     speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q))[:10]
     searchActive = len(q) > 0
     resultsCount = len(speciesFilter)
+    if request.user.is_authenticated:
+        logger.info('User %s visited addSpeciesInstanceWizard2 page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited addSpeciesInstanceWizard2 page.')        
     context = {'speciesFilter': speciesFilter, 'searchActive': searchActive, 'resultsCount': resultsCount}
     return render(request, 'species/addSpeciesInstanceWizard2.html', context)
 
@@ -231,15 +270,14 @@ class AquaristListView(ListView):
         return queryset
     
     def get_context_data(self, **kwargs):
+        if self.request.user.is_authenticated:
+            logger.info('User %s visited aquarists page.', self.request.user.username)
+        else:
+            logger.info('Annonymous user visited aquarists page.')    
         context = super().get_context_data(**kwargs)
         context['query_text'] = self.request.GET.get('q', '')
         context['recent_speciesInstances'] = SpeciesInstance.objects.all()[:36] # limit recent update list to 36 items
         return context
-
-def aquarists2 (request):
-    aquarists = User.objects.all()
-    context = {'aquarists': aquarists}
-    return render(request, 'species/aquarists.html', context)
 
 def emailAquarist(request, pk):
     aquarist = User.objects.get(id=pk)
@@ -280,10 +318,13 @@ def emailAquarist(request, pk):
                 #send_mail (email.email_subject, email.email_text, email.send_from.email, [email.send_to.email], fail_silently=False,)
                 email_message.send(fail_silently=False)
                 mailed = True
+                logger.info('User %s sent email to %s', request.user.username, aquarist.username)
             except SMTPException as e:         
                 mailed_msg = ("An error occurred sending your email to " + aquarist.username + ". SMTP Exception: " + str(e))
+                logger.error ('User %s email falied to send to %s: SMTPException ', request.user.username, aquarist.username, str(e))
             except Exception as e:
                 mailed_msg = ("An error occurred sending your email to " + aquarist.username + ". Exception: " + str(e))
+                logger.error ('User %s email falied to send to %s: ', request.user.username, aquarist.username, str(e))
         if not mailed:
             messages.error (request, mailed_msg) 
         else:
@@ -298,9 +339,9 @@ def createSpecies (request):
     register_heif_opener() # register heic images so form accepts these files
     form = SpeciesForm()
     if (request.method == 'POST'):
-        form2 = SpeciesForm(request.POST, request.FILES)
-        if form2.is_valid():
-            species = form2.save(commit=False)
+        form = SpeciesForm(request.POST, request.FILES)
+        if form.is_valid():
+            species = form.save(commit=False)
             species_name = species.name
             # assure unique species names - prevent duplicates
             if not Species.objects.filter(name=species_name).exists():
@@ -309,11 +350,13 @@ def createSpecies (request):
                 species.save()
                 if (species.species_image):
                     processUploadedImageFile (species.species_image, species.name, request)
+                    logger.info ('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
                 return HttpResponseRedirect(reverse("species", args=[species.id]))
             else:
                 dupe_msg = (species_name + " already exists. Please use this Species entry.")
                 messages.info (request, dupe_msg)
                 species = Species.objects.get(name=species_name)
+                logger.info ('User %s attempted to create duplicate species. Redirected to : %s', request.user.username, species.name)
                 return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
     return render (request, 'species/createSpecies.html', context)
@@ -335,6 +378,7 @@ def editSpecies (request, pk):
             species.save()
             if (species.species_image):
                 processUploadedImageFile (species.species_image, species.name, request)
+            logger.info ('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form, 'species': species}
     return render (request, 'species/editSpecies.html', context)
@@ -346,7 +390,14 @@ def deleteSpecies (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     species = Species.objects.get(id=pk)
+    speciesInstances = SpeciesInstance.objects.filter(species=species)
+    if speciesInstances.count() > 0:
+        msg = species.name + ' has ' + str(speciesInstances.count()) + ' aquarist entries and cannot be deleted.'
+        messages.info (request, msg)
+        logger.warning ('User %s attempted to delete species: %s with speciesInstance dependencies. Deletion blocked.', request.user.username, species.name)
+        return HttpResponseRedirect(reverse("species", args=[species.id]))
     if (request.method == 'POST'):
+        logger.info ('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
         return redirect('speciesSearch')
     context = {'species': species}
@@ -358,14 +409,15 @@ def createSpeciesInstance (request, pk):
     species = Species.objects.get(id=pk)
     form = SpeciesInstanceForm(initial={"name":species.name, "species":species.id })
     if (request.method == 'POST'):
-        form2 = SpeciesInstanceForm(request.POST, request.FILES)
-        if form2.is_valid():
-            form2.instance.user = request.user
-            form2.instance.species = species
-            speciesInstance = form2.save()
+        form = SpeciesInstanceForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.instance.user = request.user
+            form.instance.species = species
+            speciesInstance = form.save()
             if (speciesInstance.instance_image):
                 processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name, request)
-        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
+            logger.info ('User %s added speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
+            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
     context = {'form': form}
     return render (request, 'species/createSpeciesInstance.html', context)
 
@@ -383,7 +435,8 @@ def editSpeciesInstance (request, pk):
             form2.save()
             if (speciesInstance.instance_image):
                 processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name, request)
-        return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
+            logger.info ('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
+            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
     context = {'form': form, 'speciesInstance': speciesInstance }
     return render (request, 'species/editSpeciesInstance.html', context)
 
@@ -394,6 +447,7 @@ def deleteSpeciesInstance (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info ('User %s deleted speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
         speciesInstance.delete()
         return redirect('speciesSearch')
     context = {'speciesInstance': speciesInstance}
@@ -427,6 +481,8 @@ def chooseSpeciesInstancesForLabels(request, pk):
                 #speciesChosen.add(speciesInstance)
                 speciesChosen.append(speciesInstance)
             request.session['species_choices'] = user_choices
+            logger.info("request.session['species_choices'] for labels set")
+            logger.info ('User %s selected speciesInstances for labels', request.user.username)
             return HttpResponseRedirect(reverse("editSpeciesInstanceLabels"))
     context = {'form': form}
     return render(request, 'chooseSpeciesInstancesForLabels.html', context)
@@ -434,6 +490,7 @@ def chooseSpeciesInstancesForLabels(request, pk):
 @login_required(login_url='login')
 def editSpeciesInstanceLabels (request):
     species_choices = request.session['species_choices']
+    logger.info("request.session['species_choices'] retrieved to edit labels")
     label_set = []
     for choice in species_choices:
         speciesInstance = SpeciesInstance.objects.get(id=choice)
@@ -447,6 +504,7 @@ def editSpeciesInstanceLabels (request):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="AquaristSpecies_Labels.pdf"'
         if formset.is_valid():
+            logger.info ('User %s generated labels pdf', request.user.username)
             response = generatePdfLabels(formset, label_set, request, response)
             return response
     else:
@@ -549,12 +607,14 @@ def speciesMaintenanceLogs (request):
     context = {'speciesMaintenanceLogs': speciesMaintenanceLogs}
     return render (request, 'species/speciesMaintenanceLogs.html', context)
 
+@login_required(login_url='login')
 def speciesMaintenanceLog (request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     speciesMaintenanceLogEntries = SpeciesMaintenanceLogEntry.objects.filter(speciesMaintenanceLog=speciesMaintenanceLog)
     speciesInstances = speciesMaintenanceLog.speciesInstances.all()
     collaborators = speciesMaintenanceLog.collaborators.all()
     userCanEdit = user_can_edit_sml (request.user, speciesMaintenanceLog)
+    logger.info('User %s visited speciesMaintenanceLog %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
     context = {'speciesMaintenanceLog': speciesMaintenanceLog, 'speciesMaintenanceLogEntries': speciesMaintenanceLogEntries, 
                'speciesInstances': speciesInstances, 'collaborators': collaborators, 'userCanEdit': userCanEdit}
     return render(request, 'species/speciesMaintenanceLog.html', context)
@@ -573,6 +633,7 @@ def createSpeciesMaintenanceLog (request, pk):
             speciesMaintenanceLog.speciesInstances.add (speciesInstance)       # many to many fields independent of object save
             speciesMaintenanceLog.collaborators.add (speciesInstance.user)     # many to many fields independent of object save
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
+    logger.info('User %s created speciesMaintenanceLog %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))    
     context = {'form': form, 'speciesInstance': speciesInstance}
     return render (request, 'species/createSpeciesMaintenanceLog.html', context)
 
@@ -597,6 +658,7 @@ def editSpeciesMaintenanceLog (request, pk):
         if form.is_valid: 
             speciesMaintenanceLog = form.save()
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
+    logger.info('User %s edited speciesMaintenanceLog %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))            
     context = {'form': form, 'speciesMaintenanceLog': speciesMaintenanceLog, 'collaborators': collaborators, 'speciesInstances': speciesInstances,
                'num_avail_collaborators': num_avail_collaborators, 'num_avail_speciesInstances': num_avail_speciesInstances}
     return render (request, 'species/editSpeciesMaintenanceLog.html',context)
@@ -619,6 +681,7 @@ def addMaintenanceGroupCollaborator(request, pk):
             return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
     edit_action = 'Add'
     object_name = 'Species Maintenance Group Collaborator'
+    logger.info('User %s added speciesMaintenanceLog collaborator %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))        
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
     return render(request, 'maintenanceGroupCollaborator.html', context)
 
@@ -664,7 +727,8 @@ def addMaintenanceGroupSpecies (request, pk):
                 speciesMaintenanceLog.speciesInstances.add(speciesInstance)
             return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
         context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
-        return render(request, 'addMaintenanceGroupSpecies.html', context)        
+        return render(request, 'addMaintenanceGroupSpecies.html', context)       
+    logger.info('User %s added speciesMaintenanceLog speciesInstance %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))     
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
     return render(request, 'maintenanceGroupCollaborator.html', context)
 
@@ -700,6 +764,7 @@ def deleteSpeciesMaintenanceLog (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info('User %s deleted speciesMaintenanceLog %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))    
         speciesMaintenanceLog.delete()
         return HttpResponseRedirect(reverse("species", args=[species.id])) 
     context = {'speciesMaintenanceLog': speciesMaintenanceLog}
@@ -726,6 +791,7 @@ def createSpeciesMaintenanceLogEntry (request, pk):
         else:
             context = {'form': form }
             return render (request, 'species/createSpeciesMaintenanceLogEntry.html', context)
+    logger.info('User %s created speciesMaintenanceLog entry %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))            
     context = {'form': form }
     return render (request, 'species/createSpeciesMaintenanceLogEntry.html', context)
 
@@ -750,6 +816,7 @@ def editSpeciesMaintenanceLogEntry (request, pk):
         else:
             context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
             return render (request, 'species/editSpeciesMaintenanceLogEntry.html', context)
+    logger.info('User %s edited speciesMaintenanceLog entry %s (%s)', request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))                
     context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
     return render (request, 'species/editSpeciesMaintenanceLogEntry.html', context)
 
@@ -760,6 +827,7 @@ def deleteSpeciesMaintenanceLogEntry (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info('User %s deleted speciesMaintenanceLog entry %s (%s)', request.user.username, speciesMaintenanceLogEntry.speciesMaintenanceLog.name, str(speciesMaintenanceLogEntry.speciesMaintenanceLog.id))
         speciesMaintenanceLogEntry.delete()
         return redirect ('/speciesMaintenanceLog/' + str(speciesMaintenanceLogEntry.speciesMaintenanceLog.id))
     object_type = 'Species Maintenance Log Entry'
@@ -827,6 +895,7 @@ def createSpeciesReferenceLink (request, pk):
         form.instance.species = species 
         if form.is_valid():
             form.save()
+            logger.info('User %s created speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
             return HttpResponseRedirect(reverse("species", args=[species.id])) 
         context = {'form': form }
         return render (request, 'species/createSpeciesReferenceLink.html', context)   
@@ -842,9 +911,10 @@ def editSpeciesReferenceLink (request, pk):
         raise PermissionDenied()
     form = SpeciesReferenceLinkForm(instance=speciesReferenceLink)
     if (request.method == 'POST'):
-        form2 = SpeciesReferenceLinkForm(request.POST, request.FILES, instance=speciesReferenceLink)
-        if form2.is_valid: 
-            form2.save()
+        form = SpeciesReferenceLinkForm(request.POST, request.FILES, instance=speciesReferenceLink)
+        if form.is_valid: 
+            form.save()
+            logger.info('User %s edited speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
             return HttpResponseRedirect(reverse("species", args=[species.id]))
         context = {'form': form, 'speciesReferenceLink': speciesReferenceLink}
         return render (request, 'species/editSpeciesReferenceLink.html', context)        
@@ -859,6 +929,7 @@ def deleteSpeciesReferenceLink (request, pk):
         raise PermissionDenied()
     if (request.method == 'POST'):
         species = speciesReferenceLink.species
+        logger.info('User %s deleted speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
         speciesReferenceLink.delete()
         return redirect ('/species/' + str(species.id))
     object_type = 'Reference Link'
@@ -876,6 +947,7 @@ def aquaristClubAdmin(request, pk):
     userCanEdit = user_can_edit_club (cur_user, club)
     if not userCanEdit:
         raise PermissionDenied()
+    logger.info('User %s aquaristClubAdmin for club: %s (%s)', request.user.username, club.name, str(club.id))
     context = {'club': club, 'clubMembers': clubMembers }
     return render(request, 'species/aquaristClubAdmin.html', context)
 
@@ -888,6 +960,7 @@ def bapSubmission (request, pk):
     userCanEdit = user_can_edit_club (request.user, bap_submission.club)
     if not userCanEdit:
         userCanEdit = bap_submission.aquarist == request.user
+    logger.info('User %s viewed bapSubmission: %s (%s)', request.user.username, bap_submission.name, str(bap_submission.id))
     context = {'bap_submission': bap_submission, 'userCanEdit': userCanEdit }
     return render (request, 'species/bapSubmission.html', context)
 
@@ -898,6 +971,7 @@ def createBapSubmission (request, pk):
         raise PermissionDenied
     print ('BAP Submission club name: ' + club.name)
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
+    logger.info("request.session['species_instance_id'] retrieved for bapSubmission: %s", str(request.session['species_instance_id']))
     bapClubMember = AquaristClubMember.objects.get(user=speciesInstance.user, club=club)
     bapClubMember.bap_participant = True
     species_name = speciesInstance.species.name
@@ -915,6 +989,7 @@ def createBapSubmission (request, pk):
     except MultipleObjectsReturned:
         error_msg = "BAP Submission: multiple entries for BAP Species Points found!"
         messages.error (request, error_msg)        
+        logger.error('User %s creating bapSubmission for club %s: multiple BapGenus entries found', request.user.username, club.name)            
 
     if bap_points == 0:
         genus_name = None
@@ -928,21 +1003,22 @@ def createBapSubmission (request, pk):
                 warning_msg = "Create BAP Submission: no entry found for BAP Genus. Using club default."
                 messages.warning (request, warning_msg)
                 bap_points = club.bap_default_points
-                print ('WARNING: BAP Submission points unresolved, default points set: ' + (str(bap_points)))
-                pass
+                logger.error('User %s creating bapSubmission for club %s: No BapGenus entry found. Club default points used.', request.user.username, club.name)            
             except MultipleObjectsReturned:
                 error_msg = "Create BAP Submission: multiple entries for BAP Species found!"
                 messages.error (request, error_msg)
+                logger.error('User %s creating bapSubmission for club %s: Multiple BapGenus entries found.', request.user.username, club.name)            
         else:
             error_msg = "Create BAP Submission: species failed to resolve genus name."
             messages.error (request, error_msg)
+            logger.error('User %s creating bapSubmission for club %s: species %s failed to resolve genus name.', request.user.username, club.name, species_name) 
     
     if bap_points > 0:
         if speciesInstance.species.render_cares:
             bap_points = bap_points * club.cares_muliplier
         name = speciesInstance.user.username + ' - ' + club.name + ' - ' + speciesInstance.name  
         notes = club.bap_notes_template
-        form = BapSubmissionForm(initial={'name':name, 'aquarist': aquarist, 'club': club, 'notes': notes, 'speciesInstance': speciesInstance})
+        form = BapSubmissionForm(initial={'name':name, 'aquarist': speciesInstance.user, 'club': club, 'notes': notes, 'speciesInstance': speciesInstance})
         if (request.method == 'POST'):
             form = BapSubmissionForm(request.POST)
             if form.is_valid():
@@ -955,6 +1031,7 @@ def createBapSubmission (request, pk):
                 bap_submission.save()
                 bapClubMember.save()
                 return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
+    logger.info('User %s created bapSubmission for club: %s (%s)', request.user.username, club.name, str(club.id))            
     context = {'form': form, 'club': club, 'speciesInstance': speciesInstance}
     return render (request, 'species/createBapSubmission.html', context)
 
@@ -993,6 +1070,7 @@ def editBapSubmission (request, pk):
             bap_submission.save()         
             print('editBapSubmission cleaned_data points: ' + str(form.cleaned_data.get('points')))
             print ('bap_submission edit - points after edit: ' + str(bap_submission.points))
+            logger.info('User %s edited bapSubmission: %s (%s)', request.user.username, bap_submission.name, str(bap_submission.id))            
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
     context = {'form': form, 'bap_submission': bap_submission, 'userIsBapAdmin': userIsBapAdmin}
     return render (request, 'species/editBapSubmission.html', context)
@@ -1007,6 +1085,7 @@ def deleteBapSubmission (request, pk):
     else:
         raise PermissionDenied() 
     if (request.method == 'POST'):
+        logger.info('User %s deleted bapSubmission: %s (%s)', request.user.username, bap_submission.name, str(bap_submission.id))            
         bap_submission.delete()
         return redirect ('/bapSubmissions/' + str(club.id))
     object_type = 'BAP Submission'
@@ -1041,12 +1120,15 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
         context['status'] = BapSubmission.BapSubmissionStatus.choices
         context['selected_status'] = self.request.GET.get('status', '')
         # Manage Participant list and associated Filtering 
-        # Note that the BapSubmission 'aquarist' is a foreign key integer id
-        aquarist_ids = self.get_queryset().values_list('aquarist', flat=True).distinct()
+        # aquarist_ids = self.get_queryset().values_list('aquarist', flat=True).distinct() # result includes duplicate ids
+        aquarist_ids = set(self.get_queryset().values_list('aquarist', flat=True))  # sets do not allow duplicate entries
         bap_participants = User.objects.filter(id__in=aquarist_ids)
+        print ('aquarist_ids=' + str(aquarist_ids))
         context['bap_participants'] = bap_participants
         selected_bap_particpant_id = self.request.GET.get('bap_participants', 'all')
         context['selected_bap_particpant_id'] = selected_bap_particpant_id
+        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())
+        logger.info('User %s viewed bapSubmissions', self.request.user.username)            
         if selected_bap_particpant_id != 'all' and selected_bap_particpant_id.isdigit():
             aquarist_id = int(selected_bap_particpant_id)
             context['bap_submissions'] = self.get_queryset().filter(aquarist=aquarist_id)
@@ -1071,10 +1153,18 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
             raise PermissionDenied        
         # TODO manage year - for now hard code 2025
         year = 2025
-        # query BapSubmissions filter current year and bap_club
-        bap_submissions = BapSubmission.objects.filter(club=bap_club, year=year)
+
+        # regenerate full list each time - change this to only if users can edit? #TODO optimization - currently a very brute force solution
+        bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year)
+        for entry in bap_leaderboard:
+            entry.species_count = 0
+            entry.cares_species_count = 0
+            entry.points =0
+            entry.save()
+
+        #bap_submissions = BapSubmission.objects.filter(club=bap_club, year=year, status=BapSubmission.BapSubmissionStatus.APPROVED)
+        bap_submissions = BapSubmission.objects.filter(club=bap_club, year=year, status=BapSubmission.BapSubmissionStatus.APPROVED)
         aquarist_ids = bap_submissions.values_list('aquarist', flat=True).distinct()
-        #print ('Leaderboard aquarists count: ' + str(aquarist_ids.count()))
         for aquarist_id in aquarist_ids:
             bap_leaderboard_entry, created = BapLeaderboard.objects.get_or_create(aquarist_id=aquarist_id)
             if created:
@@ -1082,25 +1172,28 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
                 bap_leaderboard_entry.club = bap_club
                 bap_leaderboard_entry.year = year
             cur_aquarist_submissions = bap_submissions.filter(aquarist_id=aquarist_id)
-            #print ('bap_leaderboard_entry updated: ' + bap_leaderboard_entry.name)
             bap_leaderboard_entry.species_count = 0
             bap_leaderboard_entry.cares_species_count = 0
             bap_leaderboard_entry.points = 0
             for bap_submission in cur_aquarist_submissions:
-                #print ('Leaderboard refresh for aquarist: ' + bap_submission.aquarist.get_display_name())
                 bap_leaderboard_entry.species_count = bap_leaderboard_entry.species_count + 1
-                #print ('Leaderboard refresh species count: ' + str(bap_leaderboard_entry.species_count))
                 if bap_submission.speciesInstance.species.render_cares:
                     bap_leaderboard_entry.cares_species_count = bap_leaderboard_entry.cares_species_count + 1
-                    #print ('Leaderboard refresh cares count: ' + str(bap_leaderboard_entry.cares_species_count))
                 bap_leaderboard_entry.points = bap_leaderboard_entry.points + bap_submission.points
-                #print ('Leaderboard refresh for ' + bap_submission.aquarist.get_display_name() + ' complete')
             bap_leaderboard_entry.save()
+
+        # clear out any zero value entries - not common but an edge case if admins change approval
+        bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year)
+        for entry in bap_leaderboard:
+            if entry.points == 0:
+                entry.delete()
+
         # Now there should be a clean updated match for the list query
         bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year).order_by('-points')
         return bap_leaderboard
 
     def get_context_data(self, **kwargs):
+        logger.info('User %s viewed bapLeaderboard', self.request.user.username)            
         context = super().get_context_data(**kwargs)
         context['bap_club'] = self.get_bap_club()
         return context    
@@ -1144,14 +1237,16 @@ class BapGenusView(LoginRequiredMixin, ListView):
                         print ('initialize_bap_genus_list - ObjectDoesNotExist exception for ' + genus_name)
                         error_msg = "Initialization error: BapGenus object not found: " + genus_name
                         messages.error (self.request, error_msg)  
+                        logger.error('Initializing bapGenus list: entry not found for genus: %s', genus_name)            
                     except MultipleObjectsReturned:
                         print ('initialize_bap_genus_list - MultipleObjectsReturned exception for ' + genus_name)
                         error_msg = "Initialization error: Multiple BapGenus objects found for Genus: " + genus_name
                         messages.error (self.request, error_msg)  
-                # if genus_name == 'Altolamprologus':
-                #     break; #TODO remove hack to test one case
+                        logger.error('Initializing bapGenus list: multiple entries found for genus: %s', genus_name) 
+
         print ('BapGenus initialized - genus count: ', (str(len(genus_names))))
-        
+        logger.info('Initialization of bapGenus list complete for %s: Genus count: %s', club.name, (str(len(genus_names))))
+
     def get_queryset(self):
         club = self.get_bap_club()
         if not user_is_club_member(self.request.user, club):
@@ -1171,7 +1266,8 @@ class BapGenusView(LoginRequiredMixin, ListView):
         context['categories'] = Species.Category.choices
         context['selected_category'] = self.request.GET.get('category', '')        
         context['bap_club'] = self.get_bap_club()   
-        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())        
+        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())    
+        logger.info('User %s viewed bapGenusView', self.request.user.username)            
         return context
     
 class BapSpeciesView(LoginRequiredMixin, ListView):
@@ -1202,7 +1298,9 @@ class BapSpeciesView(LoginRequiredMixin, ListView):
         context['categories'] = Species.Category.choices
         context['selected_category'] = self.request.GET.get('category', '')
         context['bap_club'] = self.get_bap_club()
-        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())        
+        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())
+        self.request.session['BSRT'] = 'BSV' # return page for BapSpecies create/edit/del
+        logger.info('User %s viewed bapSpeciesView', self.request.user.username)            
         return context
     
 class BapGenusSpeciesView(LoginRequiredMixin, ListView):
@@ -1226,12 +1324,13 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
     
     def get_species_without_bsp_overrides(self):
         bgp = self.get_bgp()
-        # store bgp for use in createBapSpecies
+        # store bgp for use in createBapSpecies and editBapSpecies
+        self.request.session['BSRT'] = 'BGSV' # return page for BapSpecies edit/del
         self.request.session['bap_genus_id'] = bgp.id
-        print ("Setting request.session['bap_genus_id']")
-
+        logger.info("request.session['bap_genus_id'] set for create/edit/delete BapSpecies by BapGenusSpeciesView: %s", str(bgp.id))
         club = self.get_bap_club()
         genus_name = self.get_genus_name()
+
         try:
             # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
             #bapGP = BapGenus.objects.get(name__regex=r'^' + genus_name + r'\s')
@@ -1240,11 +1339,14 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
             bapGP.species_count = bapGP.species_count + 1
             print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
         except ObjectDoesNotExist:
-            error_msg = "Initialization error: BapGenus object not found!"
+            error_msg = "BapGenus entry not found! Genus: " + genus_name
             messages.error (self.request, error_msg)  
+            logger.error('BapGenus entry not found for genus: %s', genus_name)            
         except MultipleObjectsReturned:
-            error_msg = "Initialization error: Multiple BapGenus objects found for Genus: " + genus_name
+            error_msg = "Multiple BapGenus entries found for Genus: " + genus_name
             messages.error (self.request, error_msg)  
+            logger.error('Multiple BapGenus entries found for genus: %s', genus_name)   
+
         species_set = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')
         bsp_set = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
         bsp_species_ids = []
@@ -1281,6 +1383,7 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
         context['bap_club'] = self.get_bap_club()   
         context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())        
         context['available_species'] = self.get_species_without_bsp_overrides()
+        logger.info('User %s viewed bapGenusSpeciesView', self.request.user.username)            
         return context 
 
     
@@ -1301,14 +1404,17 @@ def editBapGenus (request, pk):
             # bapGP.club = club
             # bapGP.save()         
             return HttpResponseRedirect(reverse("bapGenus", args=[club.id]))
+    logger.info('User %s edited bapGenus: %s (%s)', request.user.username, bapGP.name, str(bapGP.id))                    
     context = {'form': form, 'bapGP': bapGP, 'club': club}
     return render (request, 'species/editBapGenus.html', context)
 
 @login_required(login_url='login')
 def createBapSpecies (request, pk):
-    #TODO try-except
     #TODO remove 'edit' from shared url
     bapGP = BapGenus.objects.get(id=request.session['bap_genus_id'])
+    bSPRT = request.session['BSRT']             # BapSpecies Return Target for create/edit/del (BSV or BGSV)
+    bgp_id = request.session['bap_genus_id']    # BapGenus id for Return Target url
+    logger.info("request.session['bap_genus_id'] retrieved for createBapSpecies: %s", str(request.session['bap_genus_id']))
     species = Species.objects.get(id=pk)
     club = bapGP.club
     userCanEdit = user_can_edit_club (request.user, club)
@@ -1322,8 +1428,11 @@ def createBapSpecies (request, pk):
             bapSP.name = species.name
             bapSP.species = species
             bapSP.club = club
-            bapSP.save()      
-            return HttpResponseRedirect(reverse("bapGenusSpecies", args=[bapGP.id]))
+            bapSP.save()
+            if bSPRT and bSPRT=='BGSV':
+                return HttpResponseRedirect(reverse("bapGenusSpecies", args=[bgp_id]))
+            return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
+    logger.info('User %s created bapSpecies for species: %s (%s)', request.user.username, species.name, str(species.id))                            
     context = {'form': form, 'club': club, 'species': species, 'bapSP': False}
     return render (request, 'species/editBapSpecies.html', context)
 
@@ -1332,6 +1441,9 @@ def editBapSpecies (request, pk):
     bapSP = BapSpecies.objects.get(id=pk)
     species = bapSP.species
     club = bapSP.club
+    bSPRT = request.session['BSRT']             # BapSpecies Return Target for create/edit/del (BSV or BGSV)
+    bgp_id = request.session['bap_genus_id']
+    logger.info("request.session['bap_genus_id'] retrieved by editBapSpecies: %s", str(request.session['bap_genus_id']))
     userCanEdit = user_can_edit_club (request.user, club)
     if not userCanEdit:
         raise PermissionDenied()
@@ -1339,10 +1451,12 @@ def editBapSpecies (request, pk):
     if (request.method == 'POST'):
         form = BapSpeciesForm(request.POST, instance=bapSP)
         if form.is_valid():
-            bapSP = form.save()       
-            return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
+            bapSP = form.save()
+            if bSPRT and bSPRT=='BGSV':
+                return HttpResponseRedirect(reverse("bapGenusSpecies", args=[bgp_id]))
+            return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))               
+    logger.info('User %s edited bapSpecies: %s (%s)', request.user.username, bapSP.name, str(bapSP.id))                            
     context = {'form': form, 'club': club, 'species': species, 'bapSP': bapSP}
-
     return render (request, 'species/editBapSpecies.html', context)
 
 @login_required(login_url='login')
@@ -1353,8 +1467,9 @@ def deleteBapGenus (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info('User %s deleted bapGenus: %s (%s)', request.user.username, bapGP.name, str(bapGP.id))                    
         bapGP.delete()
-        return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
+        return HttpResponseRedirect(reverse("bapGenus", args=[club.id]))
     object_type = 'BapGenus'
     object_name = 'BAP Genus Points'
     context = {'object_type': object_type, 'object_name': object_name}
@@ -1364,12 +1479,18 @@ def deleteBapGenus (request, pk):
 def deleteBapSpecies (request, pk):
     bapSP = BapSpecies.objects.get(id=pk)
     club = bapSP.club
+    bSPRT = request.session['BSRT']             # BapSpecies Return Target for create/edit/del (BSV or BGSV)
+    bgp_id = request.session['bap_genus_id']
+    logger.info("request.session['bap_genus_id'] retrieved by deleteBapSpecies: %s", str(request.session['bap_genus_id']))
     userCanEdit = user_can_edit_club (request.user, club)
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info('User %s deleted bapSpecies: %s (%s)', request.user.username, bapSP.name, str(bapSP.id))                    
         bapSP.delete()
-        return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))
+        if bSPRT and bSPRT=='BGSV':
+            return HttpResponseRedirect(reverse("bapGenusSpecies", args=[bgp_id]))
+        return HttpResponseRedirect(reverse("bapSpecies", args=[club.id]))  
     object_type = 'BapSpecies'
     object_name = 'BAP Species Points'
     context = {'object_type': object_type, 'object_name': object_name}
@@ -1382,16 +1503,19 @@ def aquaristClubs (request):
     aquaristClubs = AquaristClub.objects.all()
     userCanEdit = user_can_edit(request.user)    #TODO open to allow anyone to create a club - not during beta
     context = {'aquaristClubs': aquaristClubs, 'userCanEdit': userCanEdit}
+    logger.info('User %s visited aquaristClubs', request.user.username)                    
     return render (request, 'species/aquaristClubs.html', context)
 
 @login_required(login_url='login')
 def aquaristClub (request, pk):
-    aquaristClub = get_object_or_404(AquaristClub, id=pk) 
+    club = get_object_or_404(AquaristClub, id=pk) 
     aquaristClubMembers = None
     cur_user = request.user
-    userCanEdit = user_can_edit_club (cur_user, aquaristClub)
-    userIsMember = user_is_club_member (cur_user, aquaristClub)
-    context = {'aquaristClub': aquaristClub, 'aquaristClubMembers': aquaristClubMembers, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember}
+    userCanEdit = user_can_edit_club (cur_user, club)
+    userIsMember = user_is_club_member (cur_user, club)
+    print ('User is member: ' + str(userIsMember))
+    logger.info('User %s visited club: %s (%s)', request.user.username, club.name, str(club.id))                            
+    context = {'aquaristClub': club, 'aquaristClubMembers': aquaristClubMembers, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember}
     return render (request, 'species/aquaristClub.html', context)
 
 @login_required(login_url='login')
@@ -1423,6 +1547,7 @@ def editAquaristClub (request, pk):
                 processUploadedImageFile (aquaristClub.logo_image, aquaristClub.name, request)            
             form2.save()
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
+    logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))                                
     context = {'form': form, 'aquaristClub': aquaristClub}
     return render (request, 'species/editAquaristClub.html', context)
 
@@ -1433,6 +1558,7 @@ def deleteAquaristClub (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info('User %s deleted club: %s', request.user.username, aquaristClub.name)                            
         aquaristClub.delete()
         return redirect('aquaristClubs')
     object_type = 'Aquarist Club'
@@ -1474,9 +1600,9 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['club'] = self.club
+        context['club'] = self.get_club()
         context['userCanEdit'] = self.get_userCanEdit()
-        print ("AquaristClubMemberListView get_context_data called")   
+        logger.info('User %s viewed AquaristClubMemberListView for club: %s', self.request.user.username, self.get_club().name)                            
         return context
 
 @login_required(login_url='login')
@@ -1486,6 +1612,7 @@ def aquaristClubMember (request, pk):
         raise PermissionDenied
     userCanEdit = user_can_edit_club (request.user, aquaristClubMember.club)
     context = {'aquaristClubMember': aquaristClubMember, 'userCanEdit': userCanEdit }
+    logger.info('User %s viewed Club Member: %s (%s)', request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))                            
     return render (request, 'species/aquaristClubMember.html', context)
 
 @login_required(login_url='login')
@@ -1507,6 +1634,7 @@ def createAquaristClubMember (request, pk):
                 print ("New Club Membership request - needs admin approval")
             member.bap_participant = True
             member.save()
+            logger.info('User %s joined club: %s (%s)', request.user.username, club.name, str(club.id))                            
             return HttpResponseRedirect(reverse("aquaristClub", args=[club.id]))
     context = {'form': form, 'aquaristClub': club}
     return render (request, 'species/createAquaristClubMember.html', context)
@@ -1523,6 +1651,7 @@ def editAquaristClubMember (request, pk):
         form2 = AquaristClubMemberForm(request.POST, instance=aquaristClubMember)
         if form2.is_valid: 
             form2.save()
+            logger.info('User %s edited club member: %s (%s)', request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))                                
         return HttpResponseRedirect(reverse("aquaristClubMembers", args=[club.id]))
     context = {'form': form, 'aquaristClubMember': aquaristClubMember}
     return render (request, 'species/editAquaristClubMember.html', context)
@@ -1535,6 +1664,7 @@ def deleteAquaristClubMember (request, pk):
     if not userCanEdit:
         raise PermissionDenied()
     if (request.method == 'POST'):
+        logger.info('User %s deleted club member: %s (%s)', request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))                                
         aquaristClubMember.delete()
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
     context = {'aquaristClubMember': aquaristClubMember, 'aquaristClub': aquaristClub}
@@ -1596,17 +1726,33 @@ def importArchiveResults (request, pk):
 
 def about_us(request):
     # aquarists = User.objects.all()[16].order_by('-date_joined') # index out of range error if < 16 users
-    aquarists = User.objects.all();
+    aquarists = User.objects.all()
+    if request.user.is_authenticated:
+        logger.info('User %s visited about_us page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited about_us page.')
     context = {'aquarists': aquarists}
     return render(request, 'species/about_us.html', context)
 
 def howItWorks(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited howItWorks page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited howItWorks page.')    
     return render(request, 'species/howItWorks.html')
 
 def bap_overview (request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited bap_overview page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited bap_overview page.')    
     return render(request, 'species/bap_overview.html')
 
 def cares_overview (request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited cares_overview page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited cares_overview page.')    
     return render(request, 'species/cares_overview.html')
 
 # Admin tools Page - collection of views useful for csv import/export and reviewing db changes
