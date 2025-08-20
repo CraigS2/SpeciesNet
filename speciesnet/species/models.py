@@ -179,7 +179,7 @@ class SpeciesComment (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_comments') 
-    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_comments') 
+    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_comments') 
     comment                   = models.TextField(null=False, blank=False) 
     created                   = models.DateTimeField(auto_now_add=True)
 
@@ -193,7 +193,7 @@ class SpeciesReferenceLink (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_links') 
-    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_links') 
+    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_links') 
     reference_url             = models.URLField ()
     created                   = models.DateTimeField(auto_now_add=True)
 
@@ -207,7 +207,7 @@ class SpeciesInstance (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instances')  # delestes species instances if user deleted
-    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_instances')         # deletes ALL instances referencing any deleted species
+    species                   = models.ForeignKey(Species, on_delete=models.PROTECT, null=False, related_name='species_instances')
     unique_traits             = models.CharField (max_length=200, null=True, blank=True)                                                  # e.g. long-finned, color, etc. May be empty
     instance_image            = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
 
@@ -247,7 +247,7 @@ class SpeciesInstance (models.Model):
     
 class SpeciesInstanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='species_instance_log_entries') # deletes ALL log entries referencing any deleted species instance
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.PROTECT, null=False, related_name='species_instance_log_entries') 
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     log_entry_notes           = models.TextField(null=False, blank=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
@@ -261,7 +261,7 @@ class SpeciesInstanceLogEntry (models.Model):
     
 class SpeciesInstanceLabel (models.Model):
     name                      = models.CharField(max_length=200)
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='species_instance_label') # deletes ALL log entries referencing any deleted species instance
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=False, related_name='species_instance_labels') # deletes ALL log entries referencing any deleted species instance
     qr_code                   = models.ImageField(upload_to='qr_codes/', blank=True)
     text_line1                = models.CharField(null=False, blank=False, max_length=100)
     text_line2                = models.CharField(null=False, blank=False, max_length=100)
@@ -290,7 +290,7 @@ class SpeciesMaintenanceLog (models.Model):
 
 class SpeciesMaintenanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
-    speciesMaintenanceLog     = models.ForeignKey(SpeciesMaintenanceLog, on_delete=models.CASCADE, null=True, related_name='species_maintenence_log_entries')  
+    speciesMaintenanceLog     = models.ForeignKey(SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')  
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     log_entry_notes           = models.TextField(null=False, blank=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
@@ -307,7 +307,7 @@ class SpeciesInstanceComment (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instance_comments') # delestes species instances if user deleted
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=True, related_name='user_species_instance_comments')   # deletes ALL instances referencing any deleted species
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=False, related_name='species_instance_comments')   # deletes ALL instances referencing any deleted species
     comment                   = models.TextField(null=False, blank=False) 
     created                   = models.DateTimeField(auto_now_add=True)
 

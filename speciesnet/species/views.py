@@ -989,8 +989,10 @@ def createBapSubmission (request, pk):
     except MultipleObjectsReturned:
         error_msg = "BAP Submission: multiple entries for BAP Species Points found!"
         messages.error (request, error_msg)        
-        logger.error('User %s creating bapSubmission for club %s: multiple BapGenus entries found', request.user.username, club.name)            
+        logger.error('User %s creating bapSubmission for club %s: multiple BapGenus entries found', request.user.username, club.name) 
 
+    # lookup genus if species points unassigned
+    bapGenusFound = False
     if bap_points == 0:
         genus_name = None
         if species_name and ' ' in species_name:
@@ -998,16 +1000,17 @@ def createBapSubmission (request, pk):
             try:
                 bapGenus = BapGenus.objects.get(name=genus_name, club=club)
                 bap_points = bapGenus.points
+                bapGenusFound = True
                 print ('BAP Submission genus points set: ' + (str(bap_points)))
             except ObjectDoesNotExist:
-                warning_msg = "Create BAP Submission: no entry found for BAP Genus. Using club default."
+                warning_msg = "Create BAP Submission: no entry found for BAP Genus: " + genus_name + ". Using club default."
                 messages.warning (request, warning_msg)
                 bap_points = club.bap_default_points
-                logger.error('User %s creating bapSubmission for club %s: No BapGenus entry found. Club default points used.', request.user.username, club.name)            
+                logger.warning('User %s creating bapSubmission for club %s: No BapGenus entry found: %s. Club default points used.', request.user.username, genus_name, club.name)
             except MultipleObjectsReturned:
                 error_msg = "Create BAP Submission: multiple entries for BAP Species found!"
                 messages.error (request, error_msg)
-                logger.error('User %s creating bapSubmission for club %s: Multiple BapGenus entries found.', request.user.username, club.name)            
+                logger.error('User %s creating bapSubmission for club %s: Multiple BapGenus entries found: %s.', request.user.username, genus_name, club.name)            
         else:
             error_msg = "Create BAP Submission: species failed to resolve genus name."
             messages.error (request, error_msg)
@@ -1028,6 +1031,12 @@ def createBapSubmission (request, pk):
                 bap_submission.club = club
                 bap_submission.speciesInstance = speciesInstance
                 bap_submission.points = bap_points
+                print ('bapGenusFound is ' + str(bapGenusFound))
+                if not bapGenusFound:
+                    bapGenus = BapGenus(name=genus_name, club=club, example_species=speciesInstance.species, points=club.bap_default_points)
+                    bapGenus.save()
+                    bap_submission.request_points_review = True
+                    bap_submission.admin_comments = 'Genus points not configured. Default club points applied. Please review.'
                 bap_submission.save()
                 bapClubMember.save()
                 return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
@@ -1037,7 +1046,6 @@ def createBapSubmission (request, pk):
 
 @login_required(login_url='login')
 def editBapSubmission (request, pk):
-    #userIsBapAdmin = True
     bap_submission = BapSubmission.objects.get(id=pk)
     name = bap_submission.name
     aquarist = bap_submission.aquarist
@@ -1079,11 +1087,10 @@ def editBapSubmission (request, pk):
 def deleteBapSubmission (request, pk):
     bap_submission = BapSubmission.objects.get(id=pk)
     club = bap_submission.club
-    userCanEdit = user_can_edit_club (request.user, bap_submission.club)
-    if not userCanEdit:
-        userCanEdit = request.user == bap_submission.aquarist
-    else:
-        raise PermissionDenied() 
+    userIsBapAdmin = user_can_edit_club (request.user, bap_submission.club)
+    if not userIsBapAdmin:
+        if not bap_submission.aquarist == request.user:
+            raise PermissionDenied() 
     if (request.method == 'POST'):
         logger.info('User %s deleted bapSubmission: %s (%s)', request.user.username, bap_submission.name, str(bap_submission.id))            
         bap_submission.delete()
