@@ -1229,7 +1229,7 @@ class BapGenusView(LoginRequiredMixin, ListView):
                     print ('BapGenus initialization genus name: ' + genus_name)
                     genus_names.add(genus_name)
                     bapGP = BapGenus(name=genus_name, club=club, example_species=species, points=10)
-                    bapGP.species_count = 1
+                    #bapGP.species_count = 1
                     bapGP.save()  
                     # should only be a single entry but this is fragile due to heavy dependency on crowd-sourced strings
                     try:
@@ -1239,7 +1239,7 @@ class BapGenusView(LoginRequiredMixin, ListView):
                         genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s') #TODO optimize remove N+1 query
                         bapGP.species_count = len(genus_species)
                         bapGP.save()
-                        print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+                        print ('BapGenus object ' + bapGP.name + ' species count set: ' + str(bapGP.species_count))
                     except ObjectDoesNotExist:
                         print ('initialize_bap_genus_list - ObjectDoesNotExist exception for ' + genus_name)
                         error_msg = "Initialization error: BapGenus object not found: " + genus_name
@@ -1342,9 +1342,9 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
             # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
             #bapGP = BapGenus.objects.get(name__regex=r'^' + genus_name + r'\s')
             bapGP = BapGenus.objects.get(name=genus_name)
-            print ('BapGenus object ' + bapGP.name + ' species count: ' + str(bapGP.species_count))
-            bapGP.species_count = bapGP.species_count + 1
-            print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+            #print ('BapGenus object ' + bapGP.name + ' species count: ' + str(bapGP.species_count))
+            #bapGP.species_count = bapGP.species_count + 1
+            #print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
         except ObjectDoesNotExist:
             error_msg = "BapGenus entry not found! Genus: " + genus_name
             messages.error (self.request, error_msg)  
@@ -1362,7 +1362,7 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
         #species_set = Species.objects.filter(id=club_id, name__icontains=self.get_genus_name)
         #results_set = Species.objects.filter(id=club_id, name__icontains=self.get_genus_name).exclude(id__in=bsp_ids)
         results_set = species_set.exclude(id__in=bsp_species_ids)
-        print ('Comparing species count (' + str(species_set.count()) + ') to bgp count (' + str(bgp.species_count))
+        print ('Comparing species count (' + str(species_set.count()) + ') to bgp count (' + str(bgp.species_count) + ')')
         if species_set.count != bgp.species_count:
             bgp.species_count = int (species_set.count())
             bgp.save()
@@ -1377,7 +1377,7 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
         genus_name = self.get_genus_name()
         #queryset = BapSpecies.objects.filter(club=club, name__icontains=self.get_genus_name)
         queryset = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
-        print ('BapGenusSpeciesView query BapSpecies count: ' + str(queryset.count()))
+        print ('BapGenusSpeciesView query BapSpecies override count: ' + str(queryset.count()))
         if bgp.species_override_count != queryset.count:
             bgp.species_override_count = int(queryset.count())
             bgp.save() #cache species_override_count for optimization of BapGenusView

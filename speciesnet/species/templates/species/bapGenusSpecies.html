@@ -86,7 +86,7 @@
                                     {% if userCanEdit %}
                                         {% if species.render_cares %}
                                             <td style='text-align:center'>Yes</td>  
-                                            <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{bgp.points}} x {{bap_club.cares_muliplier}}</a> x {{bap_club.cares_muliplier}}</td>  
+                                            <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{bgp.points}}</a> x {{bap_club.cares_muliplier}}</td>  
                                         {% else %}
                                             <td style='text-align:center'>No</td>
                                             <td style='text-align:center'><a href="{% url 'createBapSpecies' species.id %}">{{bgp.points}}</a></td>  
