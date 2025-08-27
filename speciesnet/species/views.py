@@ -955,11 +955,11 @@ def aquaristClubAdmin(request, pk):
 def bapSubmission (request, pk):
     bap_submission = BapSubmission.objects.get(id=pk)
     cur_user = request.user
-    if not user_is_club_member(cur_user, bap_submission.club):
-        raise PermissionDenied
     userCanEdit = user_can_edit_club (request.user, bap_submission.club)
     if not userCanEdit:
-        userCanEdit = bap_submission.aquarist == request.user
+        userCanEdit = bap_submission.aquarist == request.user    
+    if not (user_is_club_member(cur_user, bap_submission.club) or userCanEdit):
+        raise PermissionDenied
     logger.info('User %s viewed bapSubmission: %s (%s)', request.user.username, bap_submission.name, str(bap_submission.id))
     context = {'bap_submission': bap_submission, 'userCanEdit': userCanEdit }
     return render (request, 'species/bapSubmission.html', context)
@@ -967,7 +967,7 @@ def bapSubmission (request, pk):
 @login_required(login_url='login')
 def createBapSubmission (request, pk):
     club = AquaristClub.objects.get(id=pk)
-    if not user_is_club_member(request.user, club):
+    if not (user_is_club_member(request.user, club) or request.user.is_staff):
         raise PermissionDenied
     print ('BAP Submission club name: ' + club.name)
     speciesInstance = SpeciesInstance.objects.get (id=request.session['species_instance_id'])
@@ -1053,7 +1053,7 @@ def editBapSubmission (request, pk):
     speciesInstance = bap_submission.speciesInstance
 
     userIsBapAdmin = user_can_edit_club (request.user, bap_submission.club)
-    if not userIsBapAdmin:
+    if not (userIsBapAdmin or request.user.is_staff):
         if not bap_submission.aquarist == request.user:
             raise PermissionDenied() 
         
@@ -1088,7 +1088,7 @@ def deleteBapSubmission (request, pk):
     bap_submission = BapSubmission.objects.get(id=pk)
     club = bap_submission.club
     userIsBapAdmin = user_can_edit_club (request.user, bap_submission.club)
-    if not userIsBapAdmin:
+    if not (userIsBapAdmin or request.user.is_staff):
         if not bap_submission.aquarist == request.user:
             raise PermissionDenied() 
     if (request.method == 'POST'):
@@ -1113,7 +1113,7 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         bap_club = self.get_bap_club()
-        if not user_is_club_member(self.request.user, bap_club):
+        if not (user_is_club_member(self.request.user, bap_club) or self.request.user.is_staff):
             raise PermissionDenied
         queryset = BapSubmission.objects.filter(club=bap_club).order_by('-created')
         status = self.request.GET.get('status', '')
@@ -1134,7 +1134,7 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
         context['bap_participants'] = bap_participants
         selected_bap_particpant_id = self.request.GET.get('bap_participants', 'all')
         context['selected_bap_particpant_id'] = selected_bap_particpant_id
-        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())
+        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club()) or self.request.user.is_staff
         logger.info('User %s viewed bapSubmissions', self.request.user.username)            
         if selected_bap_particpant_id != 'all' and selected_bap_particpant_id.isdigit():
             aquarist_id = int(selected_bap_particpant_id)
@@ -1156,7 +1156,7 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         bap_club = self.get_bap_club()
-        if not user_is_club_member(self.request.user, bap_club):
+        if not (user_is_club_member(self.request.user, bap_club) or self.request.user.is_staff):
             raise PermissionDenied        
         # TODO manage year - for now hard code 2025
         year = 2025
@@ -1256,7 +1256,7 @@ class BapGenusView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         club = self.get_bap_club()
-        if not user_is_club_member(self.request.user, club):
+        if not (user_is_club_member(self.request.user, club) or self.request.user.is_staff):
             raise PermissionDenied            
         category = self.request.GET.get('category', '')
         if not BapGenus.objects.filter(club=club).exists():
@@ -1290,7 +1290,7 @@ class BapSpeciesView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         club = self.get_bap_club()
-        if not user_is_club_member(self.request.user, club):
+        if not (user_is_club_member(self.request.user, club) or self.request.user.is_staff):
             raise PermissionDenied           
         category = self.request.GET.get('category', '')
         queryset = None
@@ -1305,7 +1305,7 @@ class BapSpeciesView(LoginRequiredMixin, ListView):
         context['categories'] = Species.Category.choices
         context['selected_category'] = self.request.GET.get('category', '')
         context['bap_club'] = self.get_bap_club()
-        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club())
+        context['userCanEdit'] = user_can_edit_club (self.request.user, self.get_bap_club() or self.request.user.is_staff)
         self.request.session['BSRT'] = 'BSV' # return page for BapSpecies create/edit/del
         logger.info('User %s viewed bapSpeciesView', self.request.user.username)            
         return context
@@ -1372,7 +1372,7 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         bgp = self.get_bgp()
         club = self.get_bap_club()
-        if not user_is_club_member(self.request.user, club):
+        if not (user_is_club_member(self.request.user, club) or self.request.user.is_staff):
             raise PermissionDenied            
         genus_name = self.get_genus_name()
         #queryset = BapSpecies.objects.filter(club=club, name__icontains=self.get_genus_name)
@@ -1580,8 +1580,6 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
     template_name = "species/aquaristClubMembers.html"
     context_object_name = "member_list"
     paginate_by = 100  
-    #club = AquaristClub.objects.get(id=1)
-    #club = None
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
@@ -1601,7 +1599,7 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
     def get_userCanEdit(self):
         club = self.get_club()
         user = self.request.user
-        if not user_is_club_member(user, club):
+        if not (user_is_club_member(user, club) or user.is_staff):
             raise PermissionDenied
         return user_can_edit_club (user, club)
     
@@ -1615,9 +1613,9 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
 @login_required(login_url='login')
 def aquaristClubMember (request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
-    if not user_is_club_member(request.user, aquaristClubMember.club):
-        raise PermissionDenied
     userCanEdit = user_can_edit_club (request.user, aquaristClubMember.club)
+    if not (user_is_club_member(request.user, aquaristClubMember.club) or userCanEdit):
+        raise PermissionDenied
     context = {'aquaristClubMember': aquaristClubMember, 'userCanEdit': userCanEdit }
     logger.info('User %s viewed Club Member: %s (%s)', request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))                            
     return render (request, 'species/aquaristClubMember.html', context)

@@ -90,20 +90,16 @@ def user_can_edit_club (cur_user: User, club: AquaristClub):
 
 def user_is_club_member (cur_user: User, club: AquaristClub):
     user_is_member = False
-    if cur_user.is_staff:
-         user_is_member = True
-    else:
-        print ('user_is_club_member: seeing if member exists')
-        try:
-            member = AquaristClubMember.objects.get(user=cur_user, club=club) 
-            user_is_member = True
-            print ('Club Member found: ' + cur_user.username)
-        except ObjectDoesNotExist:
-            pass # user is not a member 
-        except MultipleObjectsReturned:
-            error_msg = "Club Members: duplicate members found!"
-            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-            #TODO logging
+    try:
+        member = AquaristClubMember.objects.get(user=cur_user, club=club) 
+        user_is_member = True
+        print ('Club Member found: ' + cur_user.username)
+    except ObjectDoesNotExist:
+        pass # user is not a member 
+    except MultipleObjectsReturned:
+        error_msg = "Club Members: duplicate members found!"
+        print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+        logger.error('Club member check: multiple entries found for %s', cur_user.username)
     return user_is_member
 
 def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLog):

@@ -34,8 +34,7 @@
             {% endfor %} 
         {% endif %}
     </div>
-        {% if userIsMember %}
-
+        {% if userIsMember or userCanEdit %}
             <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' aquaristClub.id %}" role="button">Club Members</a></p>
             <small>&nbsp;</small> 
 
@@ -45,17 +44,17 @@
                 <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Leaderboard&nbsp;&nbsp;</a></p>
                 <p><a class="btn btn-secondary" href="{% url 'bapGenus' aquaristClub.id  %}" role="button">&nbsp;BAP Points Configuration&nbsp;</a></p>
             </div>
-
             {% if userCanEdit %}
-            <small>&nbsp;</small>
-            <div class="div-line-above">
-                <h3>Club Admin</h3>
-                <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
-                <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Exceptions&nbsp;&nbsp;</a></p>
-            </div>
+                <small>&nbsp;</small>
+                <div class="div-line-above">
+                    <h3>Club Admin</h3>
+                    <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
+                    <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Exceptions&nbsp;&nbsp;</a></p>
+                </div>
             {% endif %}
+        {% endif %}
 
-        {% else %}
+        {% if not userIsMember %}
             <p><a class="btn btn-secondary" href="{% url 'createAquaristClubMember' aquaristClub.id %}" role="button">Join</a></p>
         {% endif %}
 </div>
