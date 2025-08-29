@@ -601,9 +601,6 @@ def deleteSpeciesInstanceLogEntry (request, pk):
 @login_required(login_url='login')
 def speciesMaintenanceLogs (request):
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.all()
-    cur_user = request.user
-    if not cur_user.is_staff:      # admin view to review all links
-        raise PermissionDenied()
     context = {'speciesMaintenanceLogs': speciesMaintenanceLogs}
     return render (request, 'species/speciesMaintenanceLogs.html', context)
 
@@ -1752,6 +1749,13 @@ def bap_overview (request):
     else:
         logger.info('Annonymous user visited bap_overview page.')    
     return render(request, 'species/bap_overview.html')
+
+def bap_submissions_overview (request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited bap_submissions_overview page.', request.user.username)
+    else:
+        logger.info('Annonymous user visited bap_submissions_overview page.')    
+    return render(request, 'species/bap_submissions_overview.html')
 
 def cares_overview (request):
     if request.user.is_authenticated:

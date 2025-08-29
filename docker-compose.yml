@@ -1,7 +1,7 @@
 services:
 
     db:
-      container_name: ASN_DB 
+      container_name: ASN_DB2 
       image: mariadb:11.4.2
       restart: unless-stopped
       environment:
@@ -12,7 +12,7 @@ services:
       expose:
         - ${DATABASE_PORT-3306}
       volumes:
-        - asn_data:/var/lib/mysql
+        - asn_data2:/var/lib/mysql
 
     django_gunicorn:
       container_name: ASN_DJANGO
@@ -51,5 +51,5 @@ services:
 volumes:
   static:
   media:
-  asn_data:
+  asn_data2:
 

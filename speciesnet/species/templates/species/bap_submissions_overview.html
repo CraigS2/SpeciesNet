@@ -1,0 +1,43 @@
+{% extends 'main.html' %}
+{% block content %}
+{% load static %}
+<div class="container">
+    <h3>BAP Submissions Overview</h3>
+    <h4>** Beta Feature **</h4>
+    <div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;">
+        <h4><b>Submitting BAP Requests</b></h4>
+        <large>
+        <p>AquaristSpecies.net provides a <i>Fishroom</i> page for each user. This page lists all the species you keep.</p>
+
+        <p>
+            Once you've joined a club, you submit BAP requests from any of your Aquarist Species pages listed in your Fishroom. 
+            Your Fishroom is always available from the top-right menu showing your <i>username</i>. You must be logged in to see this menu. 
+        </p>
+            <p><img src={% static 'images\spark_user_fishroom_menu.jpg' %} style="border: 2px solid lightgray;"></p>
+        <p>
+            Go to your Aquarist Species page for the species you have bred to create a BAP Submission for that species.
+            Here's an example for user <i>Hooligan1</i> who is a member of the <i>SPARK</i> BAP Club. The <b>Submit BAP Request</b> 
+            button is shown at the bottom of the Aquarist Species page. 
+        </p>
+        <p><img src={% static 'images\spark_bap_example_6.jpg' %} style="border: 2px solid lightgray;"></p>            
+            
+        <p>
+            Clicking the <b>Submit BAP Request</b> button brings up your club's BAP Submission template. Fill in the text to provide
+            your Club BAP Admin the details they would like to see and press the <b>Submit</b> button. Here's an example:
+        </p>
+
+        <p><img src={% static 'images\spark_bap_example_7.jpg' %} style="border: 2px solid lightgray;"></p>            
+            
+        <p>
+            You may edit the submission if you choose. This includes an option to <i>Request Points Review</i> if you feel the species
+            you have bred should be awarded more points. You can add <i>Breeder Comments</i> to explain your reasoning. 
+        </p>
+
+        <p>
+            Click on the <b>BAP Submissions</b> button to see your club's BAP Submissions. Your entry will appear in the list. 
+        </p>
+
+        </large>
+    </div>
+</div>
+{% endblock content %}

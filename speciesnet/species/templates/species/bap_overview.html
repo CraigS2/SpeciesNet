@@ -1,11 +1,13 @@
 {% extends 'main.html' %}
 {% block content %}
+{% load static %}
 <div class="container">
     <h2>Breeder Award Program</h2>
     <h4>** Beta Feature **</h4>
     <large>
-        <p><b>AquaristSpecies.net</b> supports now local club Breeder Award Programs (BAP) with improved recognition for breeding CARES species.</p>
-        <p>Site-hosted BAP Programs feature traditional 1st time species breeder points while also supporting <b>CARES Species Multipliers</b> and
+        <p><b>AquaristSpecies.net</b> now supports local club Breeder Award Programs (BAP) with improved recognition for breeding <b>CARES species</b>.</p>
+        <p>
+            Site-hosted BAP Programs feature traditional 1st time species breeder points while also supporting <b>CARES Species Multipliers</b> and
            <b>CARES Species Maintenance</b> points which multiply each year encouraging long-term maintenance of endangered or rare species. 
         </p>
         <p>To enable this feature:</p>
@@ -15,15 +17,49 @@
         </ul>
         <p>Once you have joined your club on AquaristSpecies.net you can participate in your club's BAP program:</a></p>
         <ul>
-                <li><font style="color:black;">List your breeding species on your 'Fishroom Page' by Searching Species and choosing <i>I keep this fish!</i></font></li>
-                <li><font style="color:black;">As a best practice, add a photo of the parents for each of your breeding species.</li>
-                <li><font style="color:black;">Edit your Aquarist Species and check the <i>'have spawned'</i> and <i>'have reared fry'</i> options</font></li>
-                <li><font style="color:black;">Click the <b>'BAP Submission'</b> button that appears at the bottom of each of these Aquarist Species pages.</font></li>
+                <li><font style="color:black;">Add your breeding species to your 'Fishroom Page' by Searching Species and choosing <i>I keep this fish!</i></font></li>
+                <li><font style="color:black;">You can also use the <i><b>Add My Species</b> Guided Tutorial on the home page.</i></font></li>
+                <li><font style="color:black;">Click the <b>'BAP Submission'</b> button that appears at the bottom of your Aquarist Species pages.</font></li>
         </ul>
-        <p>Note that the BAP Submission button appears for species you mark as having 'fry available'. Once you submit your BAP request, 
-            it must be approved by your Club BAP Admin. Only a single request may be submitted per species each year. </p>
-        <p>The BAP feature will evolve as clubs are added based on feedback from Aquarists and Admins. In its current form your club may choose to support <b>CARES Species</b> point multipliers for first time breeding submissions 
-            and enable <b>Species Maintenance</b> points for long term maintenance of CARES species or other rare or hard to find species.</p>
+        <p>
+            The BAP feature will evolve as clubs are added based on feedback from Aquarists and Admins. In its current form your club may choose to support <b>CARES Species</b> point multipliers for first time breeding submissions 
+            and enable <b>Species Maintenance</b> points for long term maintenance of CARES species or other rare or hard to find species.
+        </p>
+        <!--div class="div-line-above"-->
+        <div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;">
+
+            <h3>BAP Feature Overview</h3>
+
+            <p>Once you join your club, you will see a Club page similar to the 'SPARK' club below.</p>
+            <p><img src={% static 'images\spark_bap_example_1.jpg' %} style="border: 2px solid lightgray;"></p>
+            
+            <p><b>Club members</b> can be viewed to see who is participating in your BAP program.</p>
+            <p><img src={% static 'images\spark_bap_example_2.jpg' %} style="border: 2px solid lightgray;"></p>            
+              
+            <p>Choose <b>BAP Points Configuration</b> to see how your club has assigned points at the <i>genus level</i>.</p>
+            <p>
+                Species matching a genus are assigned genus point values set by your Club BAP Admin. You can filter categories. 
+                For example you can filter on <i>Rainbowfish</i> to see only the genus list for that category. 
+            </p>
+
+            <p><img src={% static 'images\spark_bap_example_3.jpg' %} style="border: 2px solid lightgray;"></p>
+              
+            <p><b>Species Exceptions</b> can also be set by your Club BAP Admin. To see them click on the <i>Species Exceptions</i> column.</p>
+            <p>To encourage keeping and breeding <i><b>CARES species</b></i>, your Club BAP Admin can set a <i><b>CARES Multiplier</b></i> to 
+                increase the value of breeding CARES species. For example a multiplier of 2 will double points for all CARES species.
+            </p>
+
+            <p><img src={% static 'images\spark_bap_example_4.jpg' %} style="border: 2px solid lightgray;"></p>
+
+            <p>
+                <b>BAP Submissions</b> may be viewed by all club members. New entries will be marked <i>Open</i> and must be approved by 
+                your Club BAP Admin before appearing in the leaderboard.</p>
+            <p><img src={% static 'images\spark_bap_example_5.jpg' %} style="border: 2px solid lightgray;"></p>  
+
+            <p>You add <b>BAP Submissions</b> from your Aquarist Species pages. Click the button below for more details.</p>
+            <p><a class="btn btn-secondary" href="{% url 'bap_submissions_overview' %}" role="button">How To Create BAP Submissions</a></p>
+            
+        </div>
     </large>
 </div>
 {% endblock content %}

@@ -20,12 +20,7 @@
                                 <th>Member</th> 
                                 <th>Username</th>
                                 <th style='text-align:center'>Member since</th>
-                                {% if member.club.require_member_approval %}                                    
-                                    <th style='text-align:center'>Status</th>
-                                {% endif %}
-                                {% if userCanEdit %}                                    
-                                    <th style='text-align:center'>Admin</th>
-                                {% endif %}
+                                <th style='text-align:center'>Status</th>
                                 <th style='text-align:center'>BAP Participant</th>
                             </tr>
                         </thead>
@@ -35,26 +30,19 @@
                                     <td><a href="{% url 'aquaristClubMember' member.id %}">{{ member.user.first_name }} {{ member.user.last_name }}</a></td>
                                     <td><a href="{% url 'aquarist' member.user.id %}">{{member.user.get_display_name}} </td>  
                                     <td style='text-align:center'>{{ member.date_requested | date:'M-Y' }} </td>
-                                    {% if member.club.require_member_approval %}                                    
-                                        <td style='text-align:center'>
-                                            {% if member.membership_approved %}
-                                                Approved
-                                            {% else %}
-                                                <font style="color:#860404;" >Pending</font>
-                                            {% endif %}
-                                        </td>
-                                    {% endif %}
-                                    {% if userCanEdit %}                                    
-                                        <td style='text-align:center'>
-                                            {% if member.is_club_admin %}
-                                                Yes
-                                            {% endif %}
-                                        </td>
-                                    {% endif %}  
                                     <td style='text-align:center'>
-                                        {% if member.bap_participant %}
-                                            Yes
-                                        {% endif %}
+                                    {% if member.is_club_admin %}
+                                        Admin
+                                    {% elif member.membership_approved %}
+                                        Member
+                                    {% else %}
+                                        <font style="color:#860404;" >Pending</font>
+                                    {% endif %}
+                                    </td>
+                                    <td style='text-align:center'>
+                                    {% if member.bap_participant %}
+                                        Yes
+                                    {% endif %}
                                     </td>                                                                    
                                 </tr>
                             {% endfor %}
