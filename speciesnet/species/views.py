@@ -22,12 +22,12 @@ from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapSubmissio
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.asn_tools.asn_img_tools import generate_qr_code
-from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances, export_csv_aquarists
-from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances
+from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances, export_csv_aquarists, export_csv_bap_genus
+from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances, import_csv_bap_genus
 from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si
 from species.asn_tools.asn_utils import user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club, user_is_club_member
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
-from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances
+from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances, sanitize_text, validate_url
 from species.asn_tools.asn_pdf_tools import generatePdfLabels
 #from datetime import datetime
 from django.utils import timezone
@@ -35,9 +35,10 @@ from csv import DictReader
 from django.views.generic import ListView
 import logging
 
-### Home page
 
 logger = logging.getLogger(__name__)
+
+### Home page
 
 def home(request):
     if request.user.is_authenticated:
@@ -72,13 +73,15 @@ def species(request, pk):
     # enable comments on species page
     cform = SpeciesCommentForm()
     if (request.method == 'POST'):
-        form2 = SpeciesCommentForm(request.POST)
-        if form2.is_valid: 
-            speciesComment = form2.save(commit=False)
+        form = SpeciesCommentForm(request.POST)
+        if form.is_valid: 
+            speciesComment = form.save(commit=False)
             speciesComment.user = cur_user
             speciesComment.species = species
+            speciesComment.comment = sanitize_text(speciesComment.comment)
             speciesComment.name = cur_user.get_display_name() + " - " + species.name
             speciesComment.save()
+            logger.info('User %s commented on species page: %s.', request.user.username, species.name)
     if request.user.is_authenticated:
         logger.info('User %s visited species page: %s.', request.user.username, species.name)
     else:
@@ -852,9 +855,12 @@ def editSpeciesComment (request, pk):
         raise PermissionDenied()
     form = SpeciesCommentForm(instance=speciesComment)
     if (request.method == 'POST'):
-        form2 = SpeciesCommentForm(request.POST, request.FILES, instance=speciesComment)
-        if form2.is_valid: 
-            form2.save()
+        form = SpeciesCommentForm(request.POST, request.FILES, instance=speciesComment)
+        if form.is_valid: 
+            speciesComment = form.save(commit=False)
+            speciesComment.comment = sanitize_text(speciesComment.comment)
+            speciesComment.save()
+            logger.info('User %s edited comment on species page: %s.', request.user.username, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form, 'speciesComment': speciesComment}
     return render (request, 'species/editSpeciesComment.html', context)
@@ -887,10 +893,10 @@ def createSpeciesReferenceLink (request, pk):
     form = SpeciesReferenceLinkForm (initial={"user": request.user, "species":species })
     if (request.method == 'POST'):
         form = SpeciesReferenceLinkForm(request.POST)
-        #speciesReferenceLink = form.save(commit=False)
         form.instance.user = request.user 
         form.instance.species = species 
         if form.is_valid():
+            validate_url(str(form.instance.reference_url))
             form.save()
             logger.info('User %s created speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
             return HttpResponseRedirect(reverse("species", args=[species.id])) 
@@ -910,6 +916,7 @@ def editSpeciesReferenceLink (request, pk):
     if (request.method == 'POST'):
         form = SpeciesReferenceLinkForm(request.POST, request.FILES, instance=speciesReferenceLink)
         if form.is_valid: 
+            validate_url(str(form.instance.reference_url))
             form.save()
             logger.info('User %s edited speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
             return HttpResponseRedirect(reverse("species", args=[species.id]))
@@ -1000,8 +1007,8 @@ def createBapSubmission (request, pk):
                 bapGenusFound = True
                 print ('BAP Submission genus points set: ' + (str(bap_points)))
             except ObjectDoesNotExist:
-                warning_msg = "Create BAP Submission: no entry found for BAP Genus: " + genus_name + ". Using club default."
-                messages.warning (request, warning_msg)
+                warning_msg = genus_name + " points not yet configured.  Default points valule applied and genus is marked for review by your BAP Admin.  Please proceed with your BAP Submission."
+                messages.info (request, warning_msg)
                 bap_points = club.bap_default_points
                 logger.warning('User %s creating bapSubmission for club %s: No BapGenus entry found: %s. Club default points used.', request.user.username, genus_name, club.name)
             except MultipleObjectsReturned:
@@ -1338,10 +1345,7 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
         try:
             # regex db query feature performs queries based on regular cases sensitive expressions (iregex is case insensitive)
             #bapGP = BapGenus.objects.get(name__regex=r'^' + genus_name + r'\s')
-            bapGP = BapGenus.objects.get(name=genus_name)
-            #print ('BapGenus object ' + bapGP.name + ' species count: ' + str(bapGP.species_count))
-            #bapGP.species_count = bapGP.species_count + 1
-            #print ('BapGenus object ' + bapGP.name + ' species count incremented to: ' + str(bapGP.species_count))
+            bapGP = BapGenus.objects.get(name=genus_name, club=club)
         except ObjectDoesNotExist:
             error_msg = "BapGenus entry not found! Genus: " + genus_name
             messages.error (self.request, error_msg)  
@@ -1672,7 +1676,7 @@ def deleteAquaristClubMember (request, pk):
     context = {'aquaristClubMember': aquaristClubMember, 'aquaristClub': aquaristClub}
     return render (request, 'species/deleteAquaristClubMember.html', context)
 
-### Import and Export of Species & SpeciesInstances
+### Import and Export of Species, SpeciesInstances, Club BapGenus Lists
 
 @login_required(login_url='login')
 def exportSpecies (request): 
@@ -1709,6 +1713,26 @@ def importSpeciesInstances (request):
             import_csv_speciesInstances (import_archive, current_user)
             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
     return render(request, "species/importSpecies.html", {"form": form})
+
+
+@login_required(login_url='login')
+def importClubBapGenus (request, pk):
+    bap_club = AquaristClub.objects.get(id=pk)
+    current_user = request.user
+    form = ImportCsvForm()
+    if (request.method == 'POST'):
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid(): 
+            import_archive = form.save() 
+            import_csv_bap_genus (import_archive, current_user, bap_club)
+            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+    return render(request, "species/importClubBapGenus.html", {"form": form})
+
+@login_required(login_url='login')
+def exportClubBapGenus (request, pk):
+    club = AquaristClub.objects.get(id=pk)
+    return export_csv_bap_genus(club.id)
+
 
 @login_required(login_url='login')
 def importArchiveResults (request, pk): 

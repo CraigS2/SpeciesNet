@@ -54,7 +54,7 @@
             {% if speciesReferenceLinks.all.count > 0  %}
                 {% for speciesReferenceLink in speciesReferenceLinks %}
                     <p style = "display: flex; justify-content: space-between;">
-                        <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank">{{speciesReferenceLink.name}}</a></span>
+                        <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>
                         {% if speciesComment.user == request.user or userCanEdit %}
                             <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
                         {% endif %}  

@@ -52,6 +52,9 @@ urlpatterns = [
     path('bap_submissions_overview/', views.bap_submissions_overview, name="bap_submissions_overview"),
     path('cares_overview/', views.cares_overview, name="cares_overview"),
 
+    path('importClubBapGenus/<str:pk>/', views.importClubBapGenus, name="importClubBapGenus"),
+    path('exportClubBapGenus/<str:pk>/', views.exportClubBapGenus, name="exportClubBapGenus"),
+
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),

@@ -1,5 +1,5 @@
-from species.models import Species, SpeciesInstance, ImportArchive, User
-from species.forms import SpeciesForm, SpeciesInstanceForm
+from species.models import Species, SpeciesInstance, AquaristClub, BapGenus, ImportArchive, User
+from species.forms import SpeciesForm, SpeciesInstanceForm, BapGenusForm
 from django.db.models import FileField
 #from django.contrib.auth.models import User
 from django.shortcuts import render
@@ -8,9 +8,13 @@ from django.http import HttpResponse
 from django.core.files import File
 from io import BytesIO
 import csv
+import logging
 from csv import DictReader
 from io import StringIO, TextIOWrapper
 from django.core.files.base import ContentFile
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+
+logger = logging.getLogger(__name__)
 
 # Import Species List
 # iterate through csv rows add only valid and non-duplicate species to DB
@@ -21,7 +25,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         # create results csv file
         csv_report_buffer = StringIO()
         csv_report_writer = csv.writer(csv_report_buffer)
-        report_row = ["Species", "Import Status"]
+        report_row = ["Species", "Import_Status"]
         csv_report_writer.writerow(report_row)
 
         # batch process import one species per row
@@ -86,7 +90,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         # create results csv file
         csv_report_buffer = StringIO()
         csv_report_writer = csv.writer(csv_report_buffer)
-        report_row = ["Species Instance Name", "Import Status"]
+        report_row = ["Species Instance Name", "Import_Status"]
         csv_report_writer.writerow(report_row)
 
         # batch process import one species per row
@@ -158,7 +162,148 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
     return
 
 
+# Import BAP Genus List
+# iterate through csv rows check if example species exists, and add or update BAP Genus entries. Supports club import/update workflow
+
+def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap_club: AquaristClub):
+    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+
+        # create results csv file
+        csv_report_buffer = StringIO()
+        csv_report_writer = csv.writer(csv_report_buffer)
+        report_row = ["Genus", "Import_Status"]
+        csv_report_writer.writerow(report_row)
+
+        # batch process import one genus per row
+        row_count = 0
+        import_count = 0
+        for import_row in DictReader(import_file):
+            row_count = row_count + 1
+            genus_name = import_row['name']
+            bap_points = int(import_row['points'])
+            example_species_name = import_row['example_species']
+            
+            print ('BAP Points import started for row ' + str(row_count))
+
+            if BapGenus.objects.filter(club=bap_club, name=genus_name).exists():
+                print ('  Genus exists: ' + genus_name)
+                try:
+                    bap_genus = BapGenus.objects.get(club=bap_club, name=genus_name)
+                    
+                    print ('  Points comparison current value: ' + str(bap_genus.points) + ' and new value: ' + str(bap_points))
+
+                    if (bap_points != bap_genus.points):
+                        bap_genus.points = bap_points        # no other update needed
+                        bap_genus.save()
+
+                        print ('  BAP Points updated for ' + genus_name + ': ' + (str(bap_genus.points)))
+
+                        logger.info ('User %s imported BapGenus list for club %s: Genus points updated for: %s.', current_user.username, bap_club.acronym, genus_name)
+                        status_txt = 'SUCCESS: ' + bap_club.acronym + ' BapGenus points updated for ' + genus_name + ': ' + str(bap_genus.points)
+                        report_row = [genus_name, status_txt]                       
+                        import_count = import_count + 1
+                    else:
+                        print ('  BAP Points not updated they are the same for ' + genus_name + ': ' + (str(bap_points)))
+
+                        logger.info ('User %s imported BapGenus list for club %s: Genus points unchanged for: %s.', current_user.username, bap_club.acronym, genus_name)
+                        status_txt = 'VERIFIED: ' + bap_club.acronym + ' BapGenus import points match existing points for : ' + genus_name
+                        report_row = [genus_name, status_txt]                       
+                except ObjectDoesNotExist:
+                    report_row = [genus_name, ""]
+                    status_txt = 'ERROR: ' + bap_club.acronym + ' BapGenus lookup exception - object does not exist for: ' + genus_name
+                    report_row = [genus_name, status_txt]                       
+                    logger.error ('User %s importing BapGenus list for club %s: BapGenus lookup error for genus: %s.', current_user.username, bap_club.acronym, genus_name)
+                except MultipleObjectsReturned:
+                    status_txt = 'ERROR: ' + bap_club.acronym + ' BapGenus lookup exception - multiple objects found for: ' + genus_name
+                    report_row = [genus_name, status_txt]                       
+                    logger.error ('User %s importing BapGenus list for club %s: BapGenus lookup multiple objects found for genus: %s.', current_user.username, bap_club.acronym, genus_name)
+            else: 
+                
+                print ('  BapGenus points not found for ' + genus_name + ' adding and setting points value: ' + str(bap_points))
+
+                bap_genus = BapGenus()
+                bap_genus.name = genus_name
+                bap_genus.points = bap_points
+                bap_genus.club = bap_club
+                
+                # set current species count for genus - will be zero but may be non-zero if species got added after BapGenus initialization
+
+                genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')          # TODO optimize remove N+1 query
+                bap_genus.species_count = len(genus_species)         
+                bap_genus.species_override_count = 0
+
+                # now see if example species exists - add it if it does not
+
+                print ('  BapGenus added now checking to see if example species exists or needs to be added: ' + example_species_name)
+
+                try:
+                    print ('  BapGenus import - query on example species: ' + example_species_name )
+                    example_species = Species.objects.get(name=example_species_name)
+                    bap_genus.example_species = example_species
+                    import_count = import_count + 1
+
+                    print ('  BapGenus import - example_species found: ' + example_species.name )
+                    logger.info ('User %s imported BapGenus for club %s new BapGenus entry with example species found: %s.', current_user.username, bap_club.acronym, example_species_name )
+                    status_txt = 'SUCCESS: New ' + bap_club.acronym + ' BapGenus added with example species found: ' + example_species_name
+                    report_row = [genus_name, status_txt]                       
+
+                except ObjectDoesNotExist:
+                    print ('  BapGenus import - example_species not found - adding: ' + example_species_name )
+                    example_species = Species()
+                    example_species.name = example_species_name
+                    example_species.category = import_row['category']
+                    example_species.global_region = import_row['global_region']
+                    example_species.description = import_row['description']
+                    example_species.save()
+                    
+                    bap_genus.example_species = example_species
+                    bap_genus.species_count = bap_genus.species_count + 1
+                    import_count = import_count + 1  
+
+                    logger.info ('User %s imported BapGenus for club %s new BapGenus entry with example species added: %s.', current_user.username, bap_club.acronym, example_species_name )
+                    status_txt = 'SUCCESS: New ' + bap_club.acronym + ' BapGenus added with example species: ' + example_species_name
+                    report_row = [genus_name, status_txt]                                              
+                except MultipleObjectsReturned:
+                    report_row = [genus_name, "ERROR: BapGenus example_species failed to import: ", example_species_name]
+                    logger.error ('User %s importing BapGenus for club %s: BapGenus add example_species multiple objects found for: %s.', current_user.username, bap_club.acronym, example_species_name)
+                
+                bap_genus.save()
+                
+                print ('  BapGenus added finished processing Genus : ' + genus_name)
+                
+            csv_report_writer.writerow(report_row)
+
+        # persist import report
+        csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+        csv_report_filename = current_user.username + '_' + bap_club.acronym + "_bap_genus_import_log.csv"
+        import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+        # persist import archive
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+        if import_count == 0:
+            import_archive.import_status = ImportArchive.ImportStatus.FAIL
+        else:
+            if import_count == row_count:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+        import_archive.name = current_user.username + '_' + bap_club.acronym + '_species_import'
+        import_archive.save()
+    return
+
+
 #Export Species List, SpeciesInstances, Aquarists
+
+def export_csv_bap_genus(bap_club: AquaristClub):
+    bapGenusSet = BapGenus.objects.filter(club=bap_club)
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="bap_genus_points_export.csv"'},
+    )
+    writer = csv.writer(response)
+    writer.writerow(['club', 'name', 'category', 'global_region', 'example_species', 'example_species_description'])
+    for bapGenus in bapGenusSet:
+        writer.writerow([bapGenus.club.acronym, bapGenus.name, bapGenus.example_species.category, bapGenus.example_species.global_region, 
+                         bapGenus.example_species.name, bapGenus.example_species.description])
+    return response
 
 
 def export_csv_aquarists():

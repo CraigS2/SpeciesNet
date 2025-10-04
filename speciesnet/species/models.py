@@ -125,6 +125,7 @@ class Species (models.Model):
         CYPRINIDS       = 'CYP', _('Cyprinids')
         ANABATIDS       = 'ANA', _('Anabantids')
         LOACHES         = 'LCH', _('Loaches')
+        INVERTEBRATES   = 'INV', _('Invertebrates')
         OTHER           = 'OTH', _('All Others')
 
     category                  = models.CharField (max_length=3, choices=Category.choices, default=Category.CICHLIDS)
@@ -136,6 +137,7 @@ class Species (models.Model):
         AFRICA          = 'AFR', _('Africa')
         SOUTHEAST_ASIA  = 'SEA', _('Southeast Asia')
         AUSTRALIA       = 'AUS', _('Australia')
+        EUROPE          = 'EUR', _('Europe')
         OTHER           = 'OTH', _('Other Region')
         
     global_region             = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)

@@ -27,6 +27,18 @@ class SpeciesForm (ModelForm):
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
+class SpeciesImportMinimumForm (ModelForm):
+    class Meta:
+        model = Species
+        fields = '__all__'
+        exclude = ['render_cares', 'species_instance_count']
+        widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
+                    'description':        forms.Textarea(attrs={'rows':6,'cols':50}),
+                    'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
+        
 class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance

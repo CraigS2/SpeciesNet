@@ -1,11 +1,12 @@
 from django.shortcuts import get_object_or_404
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
 from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember
 from species.models import BapSubmission
 from datetime import datetime
 from django.utils import timezone
-import logging
+from urllib.parse import urlparse
+import logging, bleach
 
 # user_can_edit
 
@@ -150,3 +151,21 @@ def get_sml_speciesInstance_choices (speciesMaintenanceLog: SpeciesMaintenanceLo
 def validate_sml_collection (speciesMaintenanceLog: SpeciesMaintenanceLog):
     return True
 
+### security checks on text and url importing ###
+
+ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'a']
+ALLOWED_ATTRIBUTES = { 'a': ['href', 'title', 'rel'], }
+
+def sanitize_text(input_text):
+    safe_text = bleach.clean(input_text, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, strip=True )
+    return safe_text      # prevents XSS injection
+
+
+def validate_url(url):
+    url = str(url).strip()
+    parsed = urlparse(url)
+    if parsed.scheme not in ['http', 'https']:
+        raise ValidationError('Only http and https URLs are allowed.')
+    if not parsed.netloc:
+        raise ValidationError('Invalid URL!')
+    return None
