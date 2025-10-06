@@ -54,8 +54,10 @@
             {% endif %}
         {% endif %}
 
-        {% if userCanEdit %}
+        {% if userIsAdmin %}
             <p><a class="btn btn-secondary" href="{% url 'importClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Import BAP Genus Points&nbsp;</a></p>
+        {% endif %}
+        {% if userCanEdit %}
             <p><a class="btn btn-secondary" href="{% url 'exportClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Export BAP Genus Points&nbsp;</a></p>
         {% endif %}
 

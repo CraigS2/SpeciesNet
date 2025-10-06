@@ -1519,15 +1519,21 @@ def aquaristClub (request, pk):
     club = get_object_or_404(AquaristClub, id=pk) 
     aquaristClubMembers = None
     cur_user = request.user
+    userIsAdmin = cur_user.is_admin
     userCanEdit = user_can_edit_club (cur_user, club)
     userIsMember = user_is_club_member (cur_user, club)
+    if not (userCanEdit or userIsMember):
+        raise PermissionDenied()
     print ('User is member: ' + str(userIsMember))
     logger.info('User %s visited club: %s (%s)', request.user.username, club.name, str(club.id))                            
-    context = {'aquaristClub': club, 'aquaristClubMembers': aquaristClubMembers, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember}
+    context = {'aquaristClub': club, 'aquaristClubMembers': aquaristClubMembers, 'userIsAdmin': userIsAdmin, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember}
     return render (request, 'species/aquaristClub.html', context)
 
 @login_required(login_url='login')
 def createAquaristClub (request):
+    # while in beta restrict creation of clubs to admin only
+    if not request.user.is_admin:
+        raise PermissionDenied()
     form = AquaristClubForm()
     if (request.method == 'POST'):
         form2 = AquaristClubForm(request.POST, request.FILES)
@@ -1717,6 +1723,8 @@ def importSpeciesInstances (request):
 
 @login_required(login_url='login')
 def importClubBapGenus (request, pk):
+    if not request.user.is_admin:
+        raise PermissionDenied()
     bap_club = AquaristClub.objects.get(id=pk)
     current_user = request.user
     form = ImportCsvForm()

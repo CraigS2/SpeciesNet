@@ -229,7 +229,8 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
                 # set current species count for genus - will be zero but may be non-zero if species got added after BapGenus initialization
 
                 genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')          # TODO optimize remove N+1 query
-                bap_genus.species_count = len(genus_species)         
+                bap_genus.species_count = len(genus_species)  
+                print ('  BapGenus added: ' + bap_genus.name + ' current species count: ' + str(bap_genus.species_count))       
                 bap_genus.species_override_count = 0
 
                 # now see if example species exists - add it if it does not
@@ -241,6 +242,7 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
                     example_species = Species.objects.get(name=example_species_name)
                     bap_genus.example_species = example_species
                     import_count = import_count + 1
+                    bap_genus.save()
 
                     print ('  BapGenus import - example_species found: ' + example_species.name )
                     logger.info ('User %s imported BapGenus for club %s new BapGenus entry with example species found: %s.', current_user.username, bap_club.acronym, example_species_name )
@@ -255,10 +257,11 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
                     example_species.global_region = import_row['global_region']
                     example_species.description = import_row['description']
                     example_species.save()
-                    
+
                     bap_genus.example_species = example_species
                     bap_genus.species_count = bap_genus.species_count + 1
                     import_count = import_count + 1  
+                    bap_genus.save()
 
                     logger.info ('User %s imported BapGenus for club %s new BapGenus entry with example species added: %s.', current_user.username, bap_club.acronym, example_species_name )
                     status_txt = 'SUCCESS: New ' + bap_club.acronym + ' BapGenus added with example species: ' + example_species_name
@@ -299,10 +302,13 @@ def export_csv_bap_genus(bap_club: AquaristClub):
         headers={"Content-Disposition": 'attachment; filename="bap_genus_points_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['club', 'name', 'category', 'global_region', 'example_species', 'example_species_description'])
+    writer.writerow(['club', 'name', 'points', 'category', 'global_region', 'example_species', 'example_species_description'])
     for bapGenus in bapGenusSet:
-        writer.writerow([bapGenus.club.acronym, bapGenus.name, bapGenus.example_species.category, bapGenus.example_species.global_region, 
-                         bapGenus.example_species.name, bapGenus.example_species.description])
+        if bapGenus.example_species:
+            writer.writerow([bapGenus.club.acronym, bapGenus.name, bapGenus.points, bapGenus.example_species.category, bapGenus.example_species.global_region, 
+                            bapGenus.example_species.name, bapGenus.example_species.description])
+        else:
+            logger.error ('BAP Export error for club %s: BapGenus %s. has null example_species', bap_club.acronym, bapGenus.name)
     return response
 
 
