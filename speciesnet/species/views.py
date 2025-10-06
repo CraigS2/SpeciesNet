@@ -1522,8 +1522,8 @@ def aquaristClub (request, pk):
     userIsAdmin = cur_user.is_admin
     userCanEdit = user_can_edit_club (cur_user, club)
     userIsMember = user_is_club_member (cur_user, club)
-    if not (userCanEdit or userIsMember):
-        raise PermissionDenied()
+    # if not (userCanEdit or userIsMember):
+    #     raise PermissionDenied()
     print ('User is member: ' + str(userIsMember))
     logger.info('User %s visited club: %s (%s)', request.user.username, club.name, str(club.id))                            
     context = {'aquaristClub': club, 'aquaristClubMembers': aquaristClubMembers, 'userIsAdmin': userIsAdmin, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember}
