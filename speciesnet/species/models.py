@@ -196,7 +196,8 @@ class SpeciesReferenceLink (models.Model):
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_links') 
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_links') 
-    reference_url             = models.URLField ()
+    reference_url             = models.URLField(max_length=500)  # help_text="Reference link URL - copy from browser"
+
     created                   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -211,7 +212,8 @@ class SpeciesInstance (models.Model):
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instances')  # delestes species instances if user deleted
     species                   = models.ForeignKey(Species, on_delete=models.PROTECT, null=False, related_name='species_instances')
     unique_traits             = models.CharField (max_length=200, null=True, blank=True)                                                  # e.g. long-finned, color, etc. May be empty
-    instance_image            = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
+    aquarist_species_image    = models.ImageField(upload_to='images/%Y/%m/%d', null=True, blank=True)
+    aquarist_species_video_url= models.URLField (max_length=500, null=True, blank=True)                                                    # help_text="YouTube video link"
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
@@ -235,8 +237,7 @@ class SpeciesInstance (models.Model):
     currently_keep            = models.BooleanField(default=True)
     enable_species_log        = models.BooleanField(default=False)
     log_is_private            = models.BooleanField(default=False)
-
-    cares_validated           = models.BooleanField(default=False)       #TODO rename to cares_registered
+    cares_registered          = models.BooleanField(default=False)
 
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every DB FSpec save
@@ -251,6 +252,7 @@ class SpeciesInstanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.PROTECT, null=False, related_name='species_instance_log_entries') 
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
+    log_entry_video_url       = models.URLField(max_length=500, null=True, blank=True)                     # help_text="YouTube video link"
     log_entry_notes           = models.TextField(null=False, blank=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
@@ -294,6 +296,7 @@ class SpeciesMaintenanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
     speciesMaintenanceLog     = models.ForeignKey(SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')  
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
+    log_entry_video_url       = models.URLField(max_length=500, null=True, blank=True)                     # help_text="YouTube video link"
     log_entry_notes           = models.TextField(null=False, blank=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save

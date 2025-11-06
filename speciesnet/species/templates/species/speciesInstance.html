@@ -19,7 +19,7 @@
             {% else %}
                 <p><i>General species photo</i></p>
             {% endif %}            
-        {% endif %}            
+        {% endif %}        
         <p><b>Description: &nbsp;&nbsp;</b>{{species.description}}</p>
         <p><b>Category:</b>  &nbsp;&nbsp;{{species.get_category_display}}</p>
         <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
@@ -30,10 +30,10 @@
     </div>
     <div style="padding-top: 1rem; padding-left: 1rem; padding-right: 1rem;">
         <h3>Aquarist Notes</h3>
-        {% if speciesInstance.instance_image %}
+        {% if speciesInstance.aquarist_species_image %}
             <p><i>Photo of aquarist's species:</i></p>
-            <p><img src={{speciesInstance.instance_image.url}}></p>
-        {% endif %}
+            <p><img src={{speciesInstance.aquarist_species_image.url}}></p>
+        {% endif %}   
         {% if speciesInstance.collection_point %}
             <p><b>Collection Point:</b> &nbsp;&nbsp;{{speciesInstance.collection_point}}</p>
         {% endif %}   
@@ -43,8 +43,23 @@
         {% endif %}  
         <p><b>Year Acquired:</b> &nbsp;&nbsp;{{speciesInstance.year_acquired}}</p>
         <p>{{speciesInstance.aquarist_notes}}</p>
-
+       
+        {% if speciesInstance.aquarist_species_video_url %}
+            <p><i>Video of aquarist's species:</i></p>
+            <div class="ratio ratio-16x9" style="max-width: 720px; margin-bottom: 1rem;">
+                <iframe 
+                    src="{{ speciesInstance.aquarist_species_video_url }}"
+                    title="Video for {{ speciesInstance.name }}"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    loading="lazy">
+                </iframe>
+            </div>
+        {% endif %}        
+          
         {% if speciesInstance.have_spawned %}
+            <p><i>Spawning notes:</i></p>
             <p><b>Species Spawned:</b> &nbsp;&nbsp;Yes</p>
             <p>{{speciesInstance.spawning_notes}}</p>
             {% if speciesInstance.have_reared_fry %}

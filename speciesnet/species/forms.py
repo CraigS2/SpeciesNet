@@ -43,21 +43,23 @@ class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from', 'cares_validated']
-        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'unique_traits':      forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'collection_point':   forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'aquarist_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
-                   'spawning_notes':     forms.Textarea(attrs={'rows':6,'cols':50}),
-                   'fry_rearing_notes':  forms.Textarea(attrs={'rows':6,'cols':50}),}
+        exclude = ['user', 'species', 'acquired_from', 'cares_registered']
+        widgets = {'name':                       forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'unique_traits':              forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'aquarist_species_video_url': forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'collection_point':           forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'aquarist_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
+                   'spawning_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
+                   'fry_rearing_notes':          forms.Textarea(attrs={'rows':6,'cols':50}),}
         
 class SpeciesInstanceLogEntryForm (ModelForm):
     class Meta:
         model = SpeciesInstanceLogEntry
         fields = '__all__'
         exclude = ['speciesInstance']
-        widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':60}),
-                   'log_entry_notes':    forms.Textarea(attrs={'rows':6,'cols':60}),}
+        widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':60}),
+                   'log_entry_video_url': forms.Textarea(attrs={'rows':1,'cols':60}),
+                   'log_entry_notes':     forms.Textarea(attrs={'rows':6,'cols':60}),}
 
 class SpeciesCommentForm (ModelForm):
     class Meta:
@@ -87,7 +89,8 @@ class SpeciesMaintenanceLogEntryForm (ModelForm):
         model = SpeciesMaintenanceLogEntry
         fields = '__all__'
         exclude = ['speciesMaintenanceLog']
-        widgets = { 'name':                forms.Textarea(attrs={'rows':1,'cols':60}),               
+        widgets = { 'name':                forms.Textarea(attrs={'rows':1,'cols':60}),  
+                    'log_entry_video_url': forms.Textarea(attrs={'rows':1,'cols':60}),                                
                      'log_entry_notes':    forms.Textarea(attrs={'rows':6,'cols':60}),}
             
 class MaintenanceGroupCollaboratorForm (forms.Form):

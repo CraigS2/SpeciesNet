@@ -41,7 +41,22 @@
                     </h5>  
                     {% if logEntry.log_entry_image %}
                         <p><img src={{logEntry.log_entry_image.url}}></p>
-                    {% endif %}   
+                    {% endif %}  
+                    
+                    {% if logEntry.log_entry_video_url %}
+                        <p><i>Video of aquarist's species:</i></p>
+                        <div class="ratio ratio-16x9" style="max-width: 720px; margin-bottom: 1rem;">
+                            <iframe 
+                                src="{{ logEntry.log_entry_video_url }}"
+                                title="Video for {{ speciesInstance.name }}"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                    {% endif %} 
+                    
                     <p>{{logEntry.log_entry_notes}}</p>
                 </div>
             {% endfor %} 

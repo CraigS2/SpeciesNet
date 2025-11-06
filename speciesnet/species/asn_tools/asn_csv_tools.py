@@ -124,15 +124,6 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                             report_row = [speciesInstance_name, "Validated: species instance is unique and new for this user, import successful"]
                             import_count = import_count + 1
                             speciesInstance_form.save() # commits to DB
-
-                            # special case: re-importing previous species may have media images - try to restore them
-                            instance_image = import_row['instance_image']
-                            if instance_image != '':
-                                if SpeciesInstance.objects.filter(name=speciesInstance_name).exists():
-                                    newly_added_speciesInstance = SpeciesInstance.objects.get(name=speciesInstance_name, user=current_user)
-                                    # seems like the following very simple 2 lines of code should happen via the species_form but it does not
-                                    newly_added_speciesInstance.instance_image = instance_image
-                                    newly_added_speciesInstance.save()
                         else:
                             report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
                     else:
@@ -345,10 +336,10 @@ def export_csv_speciesInstances():
         headers={"Content-Disposition": 'attachment; filename="species_instance_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['aquarist', 'name', 'species', 'unique_traits', 'instance_image', 'collection_point', 'genetic_traits', 'currently_keep', 
+    writer.writerow(['aquarist', 'name', 'species', 'unique_traits', 'aquarist_species_image', 'collection_point', 'genetic_traits', 'currently_keep', 
                     'approx_date_acquired', 'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'created'])
     for speciesInstance in speciesInstances:
-        writer.writerow([speciesInstance.user.username, speciesInstance.name, speciesInstance.species, speciesInstance.unique_traits, speciesInstance.instance_image.name, 
+        writer.writerow([speciesInstance.user.username, speciesInstance.name, speciesInstance.species, speciesInstance.unique_traits, speciesInstance.aquarist_species_image.name, 
                          speciesInstance.collection_point, speciesInstance.genetic_traits, speciesInstance.currently_keep, speciesInstance.year_acquired,
                          speciesInstance.aquarist_notes, speciesInstance.have_spawned, speciesInstance.spawning_notes, speciesInstance.have_reared_fry, 
                          speciesInstance.fry_rearing_notes, speciesInstance.young_available, speciesInstance.created])

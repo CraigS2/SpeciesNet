@@ -3,10 +3,11 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
 from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember
 from species.models import BapSubmission
+from django.db.models import URLField
 from datetime import datetime
 from django.utils import timezone
 from urllib.parse import urlparse
-import logging, bleach
+import logging, bleach, re
 
 # user_can_edit
 
@@ -169,3 +170,36 @@ def validate_url(url):
     if not parsed.netloc:
         raise ValidationError('Invalid URL!')
     return None
+
+
+def get_youtube_embedded_id(video_url):
+    # Find matching url pattern - YouTube ID is alwasy 11 chars
+    patterns = [
+        r'(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})',
+        r'(?:youtu\.be\/)([a-zA-Z0-9_-]{11})',
+        r'(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, video_url)
+        if match:
+            return match.group(1)
+    return None
+
+def get_youtube_embedded_url_from_id(video_id):
+    if video_id:
+        #video_url = 'https://www.youtube.com/embed/' + video_id
+        video_url = f"https://www.youtube.com/embed/{video_id}"
+        return video_url
+    return None
+
+def processVideoURL (video_url_field: URLField):
+    print ('Processing video url: ' + str(video_url_field))
+    video_id = get_youtube_embedded_id(video_url_field)
+    print ('YouTube video ID: ' + str(video_id))
+    video_url = None
+    if (video_id):
+        video_url = get_youtube_embedded_url_from_id (video_id)
+        print ('Revised video URL: ' + str(video_url))
+    return video_url
+ 
+    

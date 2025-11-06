@@ -28,6 +28,7 @@ from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can
 from species.asn_tools.asn_utils import user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club, user_is_club_member
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances, sanitize_text, validate_url
+from species.asn_tools.asn_utils import processVideoURL
 from species.asn_tools.asn_pdf_tools import generatePdfLabels
 #from datetime import datetime
 from django.utils import timezone
@@ -128,7 +129,7 @@ def speciesInstance(request, pk):
         logger.info('User %s visited aquarist species page: %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
     else:
         logger.info('Annonymous user visited aquarist species page: %s (%s).', speciesInstance.name, speciesInstance.user.username)
-    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 
+    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog,
                'bapEligibleMemberships': bapEligibleMemberships, 'bapSubmissions': bapSubmissions, 'renderCares': renderCares, 'userCanEdit': userCanEdit }
     return render (request, 'species/speciesInstance.html', context)
 
@@ -417,8 +418,11 @@ def createSpeciesInstance (request, pk):
             form.instance.user = request.user
             form.instance.species = species
             speciesInstance = form.save()
-            if (speciesInstance.instance_image):
-                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name, request)
+            if (speciesInstance.aquarist_species_image):
+                processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
+            if (speciesInstance.aquarist_species_video_url):
+                speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
+                speciesInstance.save()
             logger.info ('User %s added speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
             return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
     context = {'form': form}
@@ -436,8 +440,11 @@ def editSpeciesInstance (request, pk):
         form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
         if form2.is_valid():
             form2.save()
-            if (speciesInstance.instance_image):
-                processUploadedImageFile (speciesInstance.instance_image, speciesInstance.name, request)
+            if (speciesInstance.aquarist_species_image):
+                processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
+            if (speciesInstance.aquarist_species_video_url):
+                speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
+                speciesInstance.save()              
             logger.info ('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
             return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
     context = {'form': form, 'speciesInstance': speciesInstance }
@@ -554,13 +561,16 @@ def createSpeciesInstanceLogEntry (request, pk):
     name = now.strftime("%Y-%m-%d ") + speciesInstance.name       # Formats date as YYYY-MM-DD prefix
     form = SpeciesInstanceLogEntryForm(initial={"name":name, "speciesInstance":speciesInstance })
     if (request.method == 'POST'):
-        form2 = SpeciesInstanceLogEntryForm(request.POST, request.FILES)
-        if form2.is_valid():
-            speciesInstanceLogEntry = form2.save(commit=False)
+        form = SpeciesInstanceLogEntryForm(request.POST, request.FILES)
+        if form.is_valid():
+            speciesInstanceLogEntry = form.save(commit=False)
             speciesInstanceLogEntry.speciesInstance = speciesInstance
             speciesInstanceLogEntry.save()
             if (speciesInstanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesInstanceLogEntry.log_entry_image, speciesInstance.name, request)
+            if (speciesInstanceLogEntry.log_entry_video_url):
+                speciesInstanceLogEntry.log_entry_video_url = processVideoURL (speciesInstanceLogEntry.log_entry_video_url)
+            speciesInstanceLogEntry.save()
             speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances
         return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))    
     context = {'form': form}
@@ -576,11 +586,14 @@ def editSpeciesInstanceLogEntry (request, pk):
         raise PermissionDenied()
     form = SpeciesInstanceLogEntryForm(instance=speciesInstanceLogEntry)
     if (request.method == 'POST'):
-        form2 = SpeciesInstanceLogEntryForm(request.POST, request.FILES, instance=speciesInstanceLogEntry)
-        if form2.is_valid():
-            speciesInstanceLogEntry = form2.save()
+        form = SpeciesInstanceLogEntryForm(request.POST, request.FILES, instance=speciesInstanceLogEntry)
+        if form.is_valid():
+            speciesInstanceLogEntry = form.save()
             if (speciesInstanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesInstanceLogEntry.log_entry_image, speciesInstance.name, request)
+            if (speciesInstanceLogEntry.log_entry_video_url):
+                speciesInstanceLogEntry.log_entry_video_url = processVideoURL (speciesInstanceLogEntry.log_entry_video_url)
+            speciesInstanceLogEntry.save()                
             speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances        
             return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))
     context = {'form': form, 'speciesInstanceLogEntry': speciesInstanceLogEntry}
@@ -784,9 +797,13 @@ def createSpeciesMaintenanceLogEntry (request, pk):
             speciesMaintenanceLogEntry = form.save()
             if (speciesMaintenanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesMaintenanceLogEntry.log_entry_image, species.name, request)
+            if (speciesMaintenanceLogEntry.log_entry_video_url):
+                speciesMaintenanceLogEntry.log_entry_video_url = processVideoURL (speciesMaintenanceLogEntry.log_entry_video_url)
+            speciesMaintenanceLogEntry.save()  
             speciesInstances = speciesMaintenanceLog.speciesInstances.all()
             for speciesInstance in speciesInstances:
-                speciesInstance.save()                                                     # update time stamps
+                if (speciesInstance.user == request.user):
+                    speciesInstance.save()   # update time stamp
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))    
         else:
             context = {'form': form }
@@ -809,9 +826,13 @@ def editSpeciesMaintenanceLogEntry (request, pk):
             speciesMaintenanceLogEntry = form.save()
             if (speciesMaintenanceLogEntry.log_entry_image):
                 processUploadedImageFile (speciesMaintenanceLogEntry.log_entry_image, speciesMaintenanceLogEntry.speciesMaintenanceLog.species.name, request)
+            if (speciesMaintenanceLogEntry.log_entry_video_url):
+                speciesMaintenanceLogEntry.log_entry_video_url = processVideoURL (speciesMaintenanceLogEntry.log_entry_video_url)
+            speciesMaintenanceLogEntry.save()              
             speciesInstances = speciesMaintenanceLog.speciesInstances.all()
             for speciesInstance in speciesInstances:
-                speciesInstance.save()  # update time stamps    
+                if (speciesInstance.user == request.user):
+                    speciesInstance.save()   # update time stamp
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLogEntry.speciesMaintenanceLog.id]))
         else:
             context = {'form': form, 'speciesMaintenanceLogEntry': speciesMaintenanceLogEntry}
