@@ -156,9 +156,9 @@ class Species (models.Model):
     species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in searchSpecies list view
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
-    created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') # delestes species instances if user deleted
+    created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
     lastUpdated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
-    last_edited_by            = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_last_edited_species') # delestes species instances if user deleted
+    last_edited_by            = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_last_edited_species') 
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order

@@ -1,0 +1,42 @@
+{% extends "main.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background-color: #dee2e6;">
+                    <h4 class="my-0">
+                        {% if form.instance.pk %}
+                            Edit Species: <i>{{ form.instance.name }}</i>
+                        {% else %}
+                            Add New Species
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body px-4 py-3">
+                    {% crispy form %}
+                </div>
+            </div>
+            
+            <!-- preview current image -->
+            {% if form.instance.species_image %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    Current Image
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ form.instance.species_image.url }}" 
+                         alt="{{ form.instance.name }}" 
+                         class="img-fluid" 
+                         style="max-height: 300px;">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

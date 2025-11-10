@@ -79,3 +79,25 @@ li
     color: darkslategray !important; 
 }
 
+.btn-primary {
+    background-color: #7ca38d !important;  
+    border-color:#7ca38d !important;
+}
+
+.btn-primary:hover {
+    background-color: #6a8aa1 !important;  
+    border-color:#6a8aa1 !important;
+}
+
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: #638296!important;  
+    border-color: #638296!important;
+}
+/* Placeholder styling for all forms */
+::placeholder {
+    color: #adb5bd !important;        /* Medium-light gray */
+    font-style: italic !important;      /* Italic to distinguish from real data */
+    opacity: 1 !important;
+}
+

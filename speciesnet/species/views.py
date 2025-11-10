@@ -8,6 +8,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, MultipleObjectsReturned
+from django.db.utils import IntegrityError
 #from django.core.mail import send_mail
 from django.core.mail import EmailMessage
 from smtplib import SMTPException
@@ -15,9 +16,12 @@ from species.models import User, AquaristClub, AquaristClubMember, Species, Spec
 from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from species.models import BapSubmission, BapLeaderboard, BapGenus, BapSpecies
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
+
+from species.forms import SpeciesForm2, SpeciesInstanceForm2
+
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
-from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet, SpeciesSearchFilterForm
+from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet
 from species.forms import BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFormAdminEdit, BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm
 from pillow_heif import register_heif_opener
 from species.asn_tools.asn_img_tools import processUploadedImageFile
@@ -341,9 +345,9 @@ def emailAquarist(request, pk):
 @login_required(login_url='login')
 def createSpecies (request):
     register_heif_opener() # register heic images so form accepts these files
-    form = SpeciesForm()
+    form = SpeciesForm2()
     if (request.method == 'POST'):
-        form = SpeciesForm(request.POST, request.FILES)
+        form = SpeciesForm2(request.POST, request.FILES)
         if form.is_valid():
             species = form.save(commit=False)
             species_name = species.name
@@ -363,29 +367,86 @@ def createSpecies (request):
                 logger.info ('User %s attempted to create duplicate species. Redirected to : %s', request.user.username, species.name)
                 return HttpResponseRedirect(reverse("species", args=[species.id]))
     context = {'form': form}
-    return render (request, 'species/createSpecies.html', context)
+    #return render (request, 'species/createSpecies.html', context)
+    return render (request, 'species/editSpecies2.html', context)
+
+# @login_required(login_url='login')
+# def editSpecies (request, pk): 
+#     register_heif_opener()
+#     #species = Species.objects.get(id=pk)
+#     species = get_object_or_404(Species, pk=pk)
+#     userCanEdit = user_can_edit_s (request.user, species)
+#     if not userCanEdit:
+#         raise PermissionDenied()
+#     form = SpeciesForm2(instance=species)
+#     if (request.method == 'POST'):
+#         form = SpeciesForm2(request.POST, request.FILES, instance=species)
+#         if form.is_valid(): 
+#             try:
+#                 species = form.save()
+#                 species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+#                 species.last_edited_by = request.user
+#                 if (species.species_image):
+#                     processUploadedImageFile (species.species_image, species.name, request)
+#                 species.save()
+#                 logger.info ('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
+#             except IntegrityError as e:
+#                 logger.error(f"Species edit failure integrity error: {str(e)}", exc_info=True)
+#                 messages.error(request, 'A Species Edit error occured. There is a problem with the data submitted.')
+#             except Exception as e:
+#                 logger.error(f"Species edit unexpected error: {str(e)}", exc_info=True)
+#                 messages.error(request, f'An unexpected error occurred: {str(e)}')
+#                 return HttpResponseRedirect(reverse("species", args=[species.id]))                
+#         else:
+#             logger.warning(f"Species form validation failed: {form.errors.as_text()}")
+#             messages.error(request, 'Invalid data submitted. Please correct the errors in the form.')
+#             context = {'form': form, 'species': species}
+#             return render(request, 'species/editSpeciesXX.html', context)
+#     context = {'form': form, 'species': species}
+#     return render (request, 'species/editSpeciesXX.html', context)
 
 @login_required(login_url='login')
-def editSpecies (request, pk): 
+def editSpecies(request, pk): 
     register_heif_opener()
-    species = Species.objects.get(id=pk)
-    userCanEdit = user_can_edit_s (request.user, species)
+    species = get_object_or_404(Species, pk=pk)
+    userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
         raise PermissionDenied()
-    form = SpeciesForm(instance=species)
-    if (request.method == 'POST'):
-        form2 = SpeciesForm(request.POST, request.FILES, instance=species)
-        if form2.is_valid: 
-            form2.save()
-            species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-            species.last_edited_by = request.user
-            species.save()
-            if (species.species_image):
-                processUploadedImageFile (species.species_image, species.name, request)
-            logger.info ('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
-        return HttpResponseRedirect(reverse("species", args=[species.id]))
+    
+    if request.method == 'POST':
+        form = SpeciesForm2(request.POST, request.FILES, instance=species)
+        if form.is_valid():
+            try:
+                species = form.save(commit=False)
+                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.last_edited_by = request.user
+                species.save()
+                if species.species_image:
+                    processUploadedImageFile(species.species_image, species.name, request)
+                logger.info('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
+                messages.success(request, f'Species "{species.name}" updated successfully!')
+                return HttpResponseRedirect(reverse("species", args=[species.id]))
+            except IntegrityError as e:
+                logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
+                messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
+                context = {'form': form, 'species': species}
+                return render(request, 'species/editSpecies2.html', context)
+            except Exception as e:
+                logger.error(f"Unexpected error editing species: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                context = {'form': form, 'species': species}
+                return render(request, 'species/editSpecies2.html', context)
+        else:
+            logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+            context = {'form': form, 'species': species}
+            return render(request, 'species/editSpecies2.html', context)
+
+    form = SpeciesForm2(instance=species)
     context = {'form': form, 'species': species}
-    return render (request, 'species/editSpecies.html', context)
+    return render(request, 'species/editSpecies2.html', context)
+
+
 
 @login_required(login_url='login')
 def deleteSpecies (request, pk):
@@ -411,9 +472,9 @@ def deleteSpecies (request, pk):
 def createSpeciesInstance (request, pk):
     register_heif_opener()
     species = Species.objects.get(id=pk)
-    form = SpeciesInstanceForm(initial={"name":species.name, "species":species.id })
+    form = SpeciesInstanceForm2(initial={"name":species.name, "species":species.id })
     if (request.method == 'POST'):
-        form = SpeciesInstanceForm(request.POST, request.FILES)
+        form = SpeciesInstanceForm2(request.POST, request.FILES)
         if form.is_valid():
             form.instance.user = request.user
             form.instance.species = species

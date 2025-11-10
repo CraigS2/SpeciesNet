@@ -1,19 +1,124 @@
-from django.forms import ModelForm, Form
+from django.forms import ModelForm
 from django import forms
 from django.forms import formset_factory
 from django.forms.formsets import formset_factory
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field
-from .models import SpeciesInstanceLabel
-#from django.contrib.auth.forms import UserCreationForm
+from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
+from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
 from django.core.validators import MinValueValidator
-from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry
+from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
+
+class SpeciesForm2(ModelForm):
+    class Meta:
+        model = Species
+        fields = '__all__'
+        exclude = ['render_cares', 'species_instance_count', 'created_by', 'last_edited_by']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+
+        # Enable horizontal layout
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
+        self.helper.field_class = 'col-md-10'                          # 83% of row
+
+        # Add Bootstrap classes and placeholders
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'e.g., Aulonocara jacobfreibergi',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['alt_name'].widget.attrs.update({
+            'placeholder': 'Alternative scientific name (if any)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['common_name'].widget.attrs.update({
+            'placeholder': 'e.g., Butterfly Peacock',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['description'].widget.attrs.update({
+            'rows': 2,
+            'placeholder': 'Summary description of the species...',
+            'class': 'form-control'
+        })
+        self.fields['photo_credit'].widget.attrs.update({
+            'placeholder': 'Name of the person or organization providing the photo',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['local_distribution'].widget.attrs.update({
+            'style': 'max-width: 750px;',
+            'placeholder': 'e.g., Lake Malawi, Otter Point',
+            'class': 'form-control'
+        })
+        self.fields['category'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['global_region'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['cares_status'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+                                
+        # Custom layout
+        self.helper.layout = Layout(
+            Fieldset(
+                '📋 Species Declaration',
+                Field('name', css_class='mb-1'),              # tight spacing between field rows
+                Field('alt_name', css_class='mb-1'),
+                Field('common_name', css_class='mb-1'),
+                Field('category', css_class='mb-1'),
+                Field('description', css_class='mb-1'),
+                css_class='mb-2'
+            ),
+            Fieldset(
+                '🌍 Geographic Distribution',
+                Field('global_region', css_class='mb-1'),
+                Field('local_distribution', css_class='mb-1'),
+                css_class='mb-2'
+            ),
+            Fieldset(
+                '🛡️ Conservation Status',
+                HTML("""
+                    <div class="alert alert-info mb-3">
+                        <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species in their home aquariums. </strong><br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Please consult the IUCN Red List for a more complete Conservation Status overview of all fishes worldwide</small>
+                    </div>
+                """),                
+                Field('cares_status', css_class='mb-1'),
+                css_class='mb-2'
+            ),
+            Fieldset(
+                '📸 Media',
+                HTML("""
+                    <div class="alert alert-info mb-1">
+                        <small>💡 <strong>Please use your photos or photos with permission and include photo credit</strong></small>
+                    </div>
+                """),                
+                Field('species_image', css_class='mb-1'),
+                Field('photo_credit', css_class='mb-1'),
+                css_class='mb-2'
+            ),
+            FormActions(
+                Submit('submit', 'Save Species', css_class='btn btn-primary btn-lg'),
+                HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )
 
 class SpeciesForm (ModelForm):
     class Meta:
@@ -39,6 +144,144 @@ class SpeciesImportMinimumForm (ModelForm):
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
+
+class SpeciesInstanceForm2(ModelForm):
+    class Meta:
+        model = SpeciesInstance
+        fields = '__all__'
+        exclude = ['user', 'species', 'acquired_from']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-lg-3 fw-bold'
+        self.helper.field_class = 'col-lg-9'
+        
+        # Customize field widgets
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'Name for this instance',
+            'class': 'form-control'
+        })
+        self.fields['unique_traits'].widget.attrs.update({
+            'placeholder': 'e.g., Long-finned, albino, special coloration',
+            'class': 'form-control'
+        })
+        self.fields['collection_point'].widget.attrs.update({
+            'placeholder': 'Specific collection location',
+            'class': 'form-control'
+        })
+        
+        # Add IDs to checkboxes for JavaScript targeting
+        self.fields['have_spawned'].widget.attrs.update({'id': 'id_have_spawned'})
+        self.fields['have_reared_fry'].widget.attrs.update({'id': 'id_have_reared_fry'})
+        self.fields['young_available'].widget.attrs.update({'id': 'id_young_available'})
+        
+        self.helper.layout = Layout(
+            # Basic Instance Info
+            Fieldset(
+                '🐟 Instance Information',
+                Field('name', css_class='mb-3'),
+                Row(
+                    Column('unique_traits', css_class='form-group col-md-6 mb-3'),
+                    Column('genetic_traits', css_class='form-group col-md-6 mb-3'),
+                    css_class='form-row'
+                ),
+                Row(
+                    Column('collection_point', css_class='form-group col-md-6 mb-3'),
+                    Column('year_acquired', css_class='form-group col-md-6 mb-3'),
+                    css_class='form-row'
+                ),
+                Field('instance_image', css_class='mb-3'),
+                css_class='mb-4'
+            ),
+            
+            # Breeding Information with Conditional Fields
+            Fieldset(
+                '🥚 Breeding & Rearing',
+                Row(
+                    Column(
+                        Field('have_spawned', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('have_reared_fry', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('young_available', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    css_class='form-row'
+                ),
+                
+                # Conditional: Show only if have_spawned is checked
+                Div(
+                    HTML('<hr class="my-3">'),
+                    HTML('<h6 class="text-primary mb-3">📋 Spawning Details</h6>'),
+                    Field('spawning_notes', rows=4, css_class='mb-3', 
+                          placeholder='Describe spawning behavior, conditions, dates, etc.'),
+                    css_class='spawning-details-section',
+                    css_id='spawning_details'
+                ),
+                
+                # Conditional: Show only if have_reared_fry is checked
+                Div(
+                    HTML('<hr class="my-3">'),
+                    HTML('<h6 class="text-success mb-3">🐠 Fry Rearing Details</h6>'),
+                    Field('fry_rearing_notes', rows=4, css_class='mb-3',
+                          placeholder='Describe feeding schedule, growth rates, survival rates, etc.'),
+                    css_class='fry-rearing-section',
+                    css_id='fry_rearing_details'
+                ),
+                
+                # Conditional: Show only if young_available is checked
+                Div(
+                    HTML('<hr class="my-3">'),
+                    HTML('''
+                        <div class="alert alert-success mb-3">
+                            <h6 class="alert-heading mb-2">🎉 Young Fish Available!</h6>
+                            <p class="mb-2"><strong>Great!</strong> Other aquarists will be notified that you have young available.</p>
+                            <small>Make sure your contact preferences allow messages from other users.</small>
+                        </div>
+                    '''),
+                    css_class='young-available-section',
+                    css_id='young_available_details'
+                ),
+                
+                css_class='mb-4'
+            ),
+            
+            # Aquarist Notes
+            Fieldset(
+                '📝 Notes & Status',
+                Field('aquarist_notes', rows=4, css_class='mb-3',
+                      placeholder='General notes about keeping this species...'),
+                Row(
+                    Column(
+                        Field('currently_keep'),
+                        css_class='form-group col-md-6 mb-3'
+                    ),
+                    Column(
+                        Field('enable_species_log'),
+                        Field('log_is_private'),
+                        css_class='form-group col-md-6 mb-3'
+                    ),
+                    css_class='form-row'
+                ),
+                css_class='mb-4'
+            ),
+            
+            # Submit Buttons
+            FormActions(
+                Submit('submit', 'Save Aquarist Species', css_class='btn btn-primary btn-lg'),
+                HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-4'
+            )
+        )
+
+
 class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
