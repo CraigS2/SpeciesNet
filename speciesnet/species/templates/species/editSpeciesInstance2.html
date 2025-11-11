@@ -1,0 +1,132 @@
+{% extends "main.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<!--style>
+    .species-instance-form {
+        background-color: rgb(168, 220, 255);
+        background-color: rgb(156, 204, 231);
+        background-color: rgb(165, 204, 231);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+    }
+    
+    .section-bordered {
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 2px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .section-bordered legend {
+        background-color: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        border: 1px solid #dee2e6;
+        font-weight: 600;
+        width: auto;
+    }
+</style-->
+
+<style>
+    /* Override Bootstrap card colors */
+    .species-instance-card .card {
+        background-color: rgb(189, 219, 241);
+        border: 2px solid rgb(132, 179, 211);
+    }
+    
+    .species-instance-card .card-header {
+        background-color: rgb(132, 179, 211) !important;
+        color:lightslategrey !important;
+        border-bottom: 2px solid rgb(112, 159, 191);
+    }
+    
+    .species-instance-card .card-body {
+        background-color: rgb(189, 219, 241);
+    }
+    
+    /* Bordered sections within form */
+    .section-bordered {
+        background-color: rgb(212, 231, 247);
+        border: 2px solid rgb(162, 189, 221);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .section-bordered legend {
+        background-color: rgb(212, 231, 247) !important;
+        color: #2c3e50;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        border: none !important;
+        font-weight: 600;
+        width: auto;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* General Info section (no border) */
+    .general-info-section {
+        background-color: transparent;
+        padding: 0;
+    }
+
+    /* All fieldset legends */
+    fieldset legend,
+    .section-bordered legend {
+        color: #495057 !important;  /* Match General Info gray */
+        font-weight: 500;
+    }
+
+/* Override label/field widths for Media section only */
+.media-fields-custom .col-md-2 {
+    flex: 0 0 25%;  /* Make label wider (was ~17%) */
+    max-width: 25%;
+}
+
+.media-fields-custom .col-md-10 {
+    flex: 0 0 75%;  /* Make field narrower (was ~83%) */
+    max-width: 75%;
+}    
+        
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background-color: #e9ebee;" >
+                    <h4 class="my-0">
+                        {% if form.instance.pk %}
+                            Edit Aquarist Species: <i>{{ form.instance.name }}</i>
+                        {% else %}
+                            Add Aquarist Species
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    {% crispy form %}
+                </div>
+            </div>
+            <!-- preview current image -->
+            {% if form.instance.species_image %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    Current Image
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ form.instance.aquarist_species_image.url }}" 
+                         alt="{{ form.instance.name }}" 
+                         class="img-fluid" 
+                         style="max-height: 300px;">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

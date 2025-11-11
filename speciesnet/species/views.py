@@ -446,8 +446,6 @@ def editSpecies(request, pk):
     context = {'form': form, 'species': species}
     return render(request, 'species/editSpecies2.html', context)
 
-
-
 @login_required(login_url='login')
 def deleteSpecies (request, pk):
     species = Species.objects.get(id=pk)
@@ -472,44 +470,95 @@ def deleteSpecies (request, pk):
 def createSpeciesInstance (request, pk):
     register_heif_opener()
     species = Species.objects.get(id=pk)
-    form = SpeciesInstanceForm2(initial={"name":species.name, "species":species.id })
+
     if (request.method == 'POST'):
         form = SpeciesInstanceForm2(request.POST, request.FILES)
         if form.is_valid():
-            form.instance.user = request.user
-            form.instance.species = species
-            speciesInstance = form.save()
-            if (speciesInstance.aquarist_species_image):
-                processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
-            if (speciesInstance.aquarist_species_video_url):
-                speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
-                speciesInstance.save()
-            logger.info ('User %s added speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
-            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))    
+            try:
+                form.instance.user = request.user
+                form.instance.species = species
+                speciesInstance = form.save()
+                if (speciesInstance.aquarist_species_image):
+                    processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
+                if (speciesInstance.aquarist_species_video_url):
+                    speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
+                    speciesInstance.save()
+                logger.info ('User %s added speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
+                return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
+            except Exception as e:
+                logger.error(f"Unexpected error editing speciesInstance: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                context = {'form': form, 'speciesInstance': speciesInstance}
+                return render(request, 'species/editSpeciesInstance2.html', context)
+        else:
+            logger.warning(f"SpeciesInstance form validation failed for species_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+            context = {'form': form, 'speciesInstance': speciesInstance}
+            return render(request, 'species/editSpeciesInstance2.html', context)        
+    
+    form = SpeciesInstanceForm2(initial={"name":species.name, "species":species.id })
     context = {'form': form}
-    return render (request, 'species/createSpeciesInstance.html', context)
+    print ('Render species/editSpeciesInstance2.html')
+    return render (request, 'species/editSpeciesInstance2.html', context)
+
+# @login_required(login_url='login')
+# def editSpeciesInstance (request, pk): 
+#     register_heif_opener() # must be done before form use or rejects heic files
+#     speciesInstance = SpeciesInstance.objects.get(id=pk)
+#     userCanEdit = user_can_edit_si (request.user, speciesInstance)
+#     if not userCanEdit:
+#         raise PermissionDenied()
+#     form = SpeciesInstanceForm(instance=speciesInstance)
+#     if (request.method == 'POST'):
+#         form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
+#         if form2.is_valid():
+#             form2.save()
+#             if (speciesInstance.aquarist_species_image):
+#                 processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
+#             if (speciesInstance.aquarist_species_video_url):
+#                 speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
+#                 speciesInstance.save()              
+#             logger.info ('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
+#             return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
+#     context = {'form': form, 'speciesInstance': speciesInstance }
+#     return render (request, 'species/editSpeciesInstance.html', context)
 
 @login_required(login_url='login')
-def editSpeciesInstance (request, pk): 
-    register_heif_opener() # must be done before form use or rejects heic files
-    speciesInstance = SpeciesInstance.objects.get(id=pk)
-    userCanEdit = user_can_edit_si (request.user, speciesInstance)
+def editSpeciesInstance(request, pk): 
+    register_heif_opener()
+    speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
+    userCanEdit = user_can_edit_si(request.user, species)
     if not userCanEdit:
         raise PermissionDenied()
-    form = SpeciesInstanceForm(instance=speciesInstance)
-    if (request.method == 'POST'):
-        form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
-        if form2.is_valid():
-            form2.save()
-            if (speciesInstance.aquarist_species_image):
-                processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
-            if (speciesInstance.aquarist_species_video_url):
-                speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
-                speciesInstance.save()              
-            logger.info ('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
-            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
-    context = {'form': form, 'speciesInstance': speciesInstance }
-    return render (request, 'species/editSpeciesInstance.html', context)
+    if request.method == 'POST':
+        form = SpeciesInstanceForm2(request.POST, request.FILES, instance=speciesInstance)
+        if form.is_valid():
+            try:
+                speciesInstance = form.save(commit=False) # TODO remove commit=False and next line after confirming no further non-gui changes to SI needed
+                speciesInstance.save()
+                if (speciesInstance.aquarist_species_image):
+                    processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
+                if (speciesInstance.aquarist_species_video_url):
+                    speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
+                    speciesInstance.save()
+                logger.info('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
+                messages.success(request, f'Species "{speciesInstance.name}" updated successfully!')
+                return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
+            except Exception as e:
+                logger.error(f"Unexpected error editing speciesInstance: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                context = {'form': form, 'speciesInstance': speciesInstance}
+                return render(request, 'species/editSpeciesInstance2.html', context)
+        else:
+            logger.warning(f"SpeciesInstance form validation failed for species_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+            context = {'form': form, 'speciesInstance': speciesInstance}
+            return render(request, 'species/editSpeciesInstance2.html', context)
+
+    form = SpeciesInstanceForm2(instance=speciesInstance)
+    context = {'form': form, 'speciesInstance': speciesInstance}
+    print ('Render species/editSpeciesInstanceXX.html')
+    return render(request, 'species/editSpeciesInstance2.html', context)
 
 @login_required(login_url='login')
 def deleteSpeciesInstance (request, pk):
