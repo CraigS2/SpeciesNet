@@ -349,23 +349,40 @@ def createSpecies (request):
     if (request.method == 'POST'):
         form = SpeciesForm2(request.POST, request.FILES)
         if form.is_valid():
-            species = form.save(commit=False)
-            species_name = species.name
-            # assure unique species names - prevent duplicates
-            if not Species.objects.filter(name=species_name).exists():
-                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-                species.created_by = request.user
-                species.save()
-                if (species.species_image):
-                    processUploadedImageFile (species.species_image, species.name, request)
-                    logger.info ('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
-                return HttpResponseRedirect(reverse("species", args=[species.id]))
-            else:
-                dupe_msg = (species_name + " already exists. Please use this Species entry.")
-                messages.info (request, dupe_msg)
-                species = Species.objects.get(name=species_name)
-                logger.info ('User %s attempted to create duplicate species. Redirected to : %s', request.user.username, species.name)
-                return HttpResponseRedirect(reverse("species", args=[species.id]))
+            try:
+                species = form.save(commit=False)
+                species_name = species.name
+                # assure unique species names - prevent duplicates
+                if not Species.objects.filter(name=species_name).exists():
+                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.created_by = request.user
+                    species.save()
+                    if (species.species_image):
+                        processUploadedImageFile (species.species_image, species.name, request)
+                        logger.info ('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
+                    return HttpResponseRedirect(reverse("species", args=[species.id]))
+                else:
+                    dupe_msg = (species_name + " already exists. Please use this Species entry.")
+                    messages.info (request, dupe_msg)
+                    species = Species.objects.get(name=species_name)
+                    logger.info ('User %s attempted to create duplicate species. Redirected to : %s', request.user.username, species.name)
+                    return HttpResponseRedirect(reverse("species", args=[species.id]))
+            except IntegrityError as e:
+                logger.error(f"IntegrityError creating species: {str(e)}", exc_info=True)
+                messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
+                context = {'form': form, 'species': species}
+                return render(request, 'species/editSpecies2.html', context)
+            except Exception as e:
+                logger.error(f"Unexpected error creating species: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                context = {'form': form, 'species': species}
+                return render(request, 'species/editSpecies2.html', context)
+        else:
+            logger.warning(f"Species form validation failed for create species: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+            context = {'form': form, 'species': species}
+            return render(request, 'species/editSpecies2.html', context)
+        
     context = {'form': form}
     #return render (request, 'species/createSpecies.html', context)
     return render (request, 'species/editSpecies2.html', context)

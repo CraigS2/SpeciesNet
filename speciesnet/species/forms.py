@@ -24,10 +24,10 @@ class SpeciesForm2(ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = 'post'
-        self.helper.form_class = 'form-horizontal'
+        self.helper.form_class = 'form-horizontal species-form'
         self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
         self.helper.field_class = 'col-md-10'                          # 83% of row
-
+        
         # Add Bootstrap classes and placeholders
         self.fields['name'].widget.attrs.update({
             'placeholder': 'e.g., Aulonocara jacobfreibergi',
@@ -55,7 +55,7 @@ class SpeciesForm2(ModelForm):
             'class': 'form-control'
         })
         self.fields['local_distribution'].widget.attrs.update({
-            'style': 'max-width: 750px;',
+            'style': 'max-width: 500px;',
             'placeholder': 'e.g., Lake Malawi, Otter Point',
             'class': 'form-control'
         })
@@ -72,44 +72,40 @@ class SpeciesForm2(ModelForm):
             'style': 'max-width: 500px;'
         })
                                 
-        # Custom layout
         self.helper.layout = Layout(
             Fieldset(
-                '📋 Species Declaration',
+                '🐟 Species Declaration',
                 Field('name', css_class='mb-1'),              # tight spacing between field rows
                 Field('alt_name', css_class='mb-1'),
                 Field('common_name', css_class='mb-1'),
                 Field('category', css_class='mb-1'),
                 Field('description', css_class='mb-1'),
-                css_class='mb-1'
-            ),
-            Fieldset(
-                '🌍 Geographic Distribution',
                 Field('global_region', css_class='mb-1'),
                 Field('local_distribution', css_class='mb-1'),
-                css_class='mb-1'
-            ),
-            Fieldset(
-                '🛡️ Conservation Status',
-                HTML("""
-                    <div class="alert alert-info mb-3">
-                        <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species in their home aquariums. </strong><br>
-                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Please consult the IUCN Red List for a more complete Conservation Status overview of all fishes worldwide</small>
-                    </div>
-                """),                
                 Field('cares_status', css_class='mb-1'),
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species in their home aquariums. </strong><br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Please consult the IUCN Red List for a more complete Conservation Status overview of all fishes worldwide</small>
+                        </div>
+                    """),      
+                ),     
                 css_class='mb-1'
             ),
             Fieldset(
                 '📸 Media',
-                HTML("""
-                    <div class="alert alert-info mb-1">
-                        <small>💡 <strong>Please use your photos or photos with permission and include photo credit</strong></small>
-                    </div>
-                """),                
-                Field('species_image', css_class='mb-1'),
-                Field('photo_credit', css_class='mb-1'),
-                css_class='mb-1'
+                Div(
+                    Field('species_image', css_class='mb-1'),
+                    Field('photo_credit', css_class='mb-1'),                    
+                    HTML("""
+                        <div class="alert alert-info mb-1">
+                            <small>💡 <strong>Please use your photos or photos with permission and include photo credit</strong></small>
+                        </div>
+                    """),                
+                    css_class='media-fields-custom'
+                ),
+                css_class='mb-3 section-bordered'
             ),
             FormActions(
                 Submit('submit', 'Save Species', css_class='btn btn-primary btn-lg'),
@@ -142,142 +138,6 @@ class SpeciesImportMinimumForm (ModelForm):
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
-
-# class SpeciesInstanceForm2(ModelForm):
-#     class Meta:
-#         model = SpeciesInstance
-#         fields = '__all__'
-#         exclude = ['user', 'species', 'acquired_from']
-        
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.helper = FormHelper()
-#         self.helper.form_method = 'post'
-#         self.helper.form_class = 'form-horizontal'
-#         self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
-#         self.helper.field_class = 'col-md-10'                          # 83% of row
-        
-#         # Customize field widgets
-#         self.fields['name'].widget.attrs.update({
-#             'placeholder': 'standard or extended species name',
-#             'style': 'max-width: 500px;',
-#             'class': 'form-control'
-#         })
-#         self.fields['unique_traits'].widget.attrs.update({
-#             'placeholder': 'e.g. special coloration, albino, long finned, etc.',
-#             'style': 'max-width: 500px;',
-#             'class': 'form-control'
-#         })
-#         self.fields['genetic_traits'].widget.attrs.update({
-#             'style': 'max-width: 500px;',
-#             'class': 'form-control'
-#         })
-#         self.fields['year_acquired'].widget.attrs.update({
-#             'style': 'max-width: 500px;',
-#             'class': 'form-control'
-#         })                
-#         self.fields['collection_point'].widget.attrs.update({
-#             'placeholder': 'specific collection location - if known',
-#             'style': 'max-width: 700px;',
-#             'class': 'form-control'
-#         })
-#         self.fields['aquarist_species_video_url'].widget.attrs.update({
-#             'placeholder': 'YouTube video URL for your fish',
-#             'class': 'form-control'
-#         })
-        
-#         # Add IDs to checkboxes for JavaScript targeting
-#         self.fields['have_spawned'].widget.attrs.update({'id': 'id_have_spawned'})
-#         self.fields['have_reared_fry'].widget.attrs.update({'id': 'id_have_reared_fry'})
-#         self.fields['young_available'].widget.attrs.update({'id': 'id_young_available'})
-        
-#         self.helper.layout = Layout(
-#             Fieldset(
-#                 '🐟 General Info',
-#                 Field('name', css_class='mb-1'),              # tight spacing between field rows
-#                 Field('collection_point', css_class='mb-1'),
-#                 Field('unique_traits', css_class='mb-1'),
-#                 Field('genetic_traits', css_class='mb-1'),
-#                 Field('year_acquired', css_class='mb-1'),
-#                 Field('aquarist_notes', rows=3, css_class='mb-1',
-#                       placeholder='Describe where you acquired the fish ... and optionally water and tank conditions, etc.'),                
-#                 Field('currently_keep', css_class='mb-1'),
-#                 css_class='mb-1'
-#             ),
-#             Fieldset(
-#                 '📷 Media',             
-#                 Field('aquarist_species_image', css_class='mb-1'),
-#                 Field('aquarist_species_video_url', css_class='mb-1'),
-#                 css_class='mb-1'
-#             ),
-#             # Breeding Information with Conditional Fields
-#             Fieldset(
-#                 '🐟🐟🐟 Breeding',
-#                 Row(
-#                     Column(
-#                         Field('have_spawned', css_class='form-check'),
-#                         css_class='form-group col-md-4 mb-3'
-#                     ),
-#                     Column(
-#                         Field('have_reared_fry', css_class='form-check'),
-#                         css_class='form-group col-md-4 mb-3'
-#                     ),
-#                     Column(
-#                         Field('young_available', css_class='form-check'),
-#                         css_class='form-group col-md-4 mb-3'
-#                     ),                
-#                     css_class='form-row'
-#                 ),
-#                 # Conditional: Show only if have_spawned is checked
-#                 Div(
-#                     HTML('<hr class="my-3">'),
-#                     HTML('<h6 class="text-primary mb-3">Spawning Details</h6>'),
-#                     Field('spawning_notes', rows=4, css_class='mb-1', 
-#                           placeholder='Describe spawning behavior, tank setup, feeding, etc.'),
-#                     css_class='spawning-details-section',
-#                     css_id='spawning_details'
-#                 ),
-#                 # Conditional: Show only if have_reared_fry is checked
-#                 Div(
-#                     HTML('<hr class="my-3">'),
-#                     HTML('<h6 class="text-success mb-3">Fry Rearing Details</h6>'),
-#                     Field('fry_rearing_notes', rows=4, css_class='mb-1',
-#                           placeholder='Describe feeding and water change patterns, growth rates, survival rates, etc.'),
-#                     css_class='fry-rearing-section',
-#                     css_id='fry_rearing_details'
-#                 ),
-#                 # Conditional: Show only if young_available is checked
-#                 Div(
-#                     HTML('<hr class="my-3">'),
-#                     css_class='young-available-section',
-#                     css_id='young_available_details'
-#                 ),
-#                 css_class='mb-1'
-#             ),
-            
-#             Fieldset(
-#                 '📝 Species Log',
-#                 Row(
-#                     Column(
-#                         Field('enable_species_log', css_class='form-check'),
-#                         css_class='form-group col-md-4 mb-3'
-#                     ),
-#                     Column(
-#                         Field('log_is_private', css_class='form-check'),
-#                         css_class='form-group col-md-4 mb-3'
-#                     ),               
-#                     css_class='form-row'
-#                 ),
-#                 css_class='mb-2'
-#             ),
-            
-#             # Submit Buttons
-#             FormActions(
-#                 Submit('submit', 'Save Aquarist Species', css_class='btn btn-primary btn-lg'),
-#                 HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
-#                 css_class='mt-2'
-#             )
-#         )
 
 class SpeciesInstanceForm2(ModelForm):
     class Meta:
@@ -314,9 +174,13 @@ class SpeciesInstanceForm2(ModelForm):
         })                
         self.fields['collection_point'].widget.attrs.update({
             'placeholder': 'specific collection location - if known',
-            'style': 'max-width: 700px;',
+            'style': 'max-width: 500px;',
             'class': 'form-control'
         })
+        self.fields['aquarist_notes'].widget.attrs.update({
+            'placeholder': 'Describe where you acquired the fish ... and optionally water and tank conditions, etc.',
+            'class': 'form-control'
+        })             
         self.fields['aquarist_species_video_url'].widget.attrs.update({
             'placeholder': 'YouTube video URL for your fish',
             'class': 'form-control'
@@ -336,8 +200,7 @@ class SpeciesInstanceForm2(ModelForm):
                 Field('unique_traits', css_class='mb-1'),
                 Field('genetic_traits', css_class='mb-1'),
                 Field('year_acquired', css_class='mb-1'),
-                Field('aquarist_notes', rows=3, css_class='mb-1',
-                      placeholder='Describe where you acquired the fish ... and optionally water and tank conditions, etc.'),                
+                Field('aquarist_notes', rows=3, css_class='mb-1'),
                 Field('currently_keep', css_class='mb-1'),
                 css_class='mb-3'
             ),          
@@ -410,7 +273,7 @@ class SpeciesInstanceForm2(ModelForm):
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
-                            <small>💡 <strong>Species Logs</strong> provide an additional linked page where you can add additional notes, photos, and vidoes.</small>
+                            <small>💡 <strong>Species Logs</strong> provide an additional linked page where you can add log entries including notes, photos, and vidoes.</small>
                         </div>
                     """),   
                     css_class='young-available-section',
