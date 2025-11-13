@@ -1,0 +1,103 @@
+{% extends 'main.html' %}
+{% load static %}
+<!-- context = {species, speciesComments, speciesReferenceLinks, speciesInstances, renderCares, userCanEdit, cform, rlform, userCanEdit} -->
+{% block content %}
+
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3>Species Profile: &nbsp;<i>{{species.name}}</i></h3>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    {% if species.alt_name %}
+                        <p><b>Alternate Name:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
+                    {% endif %}
+                    {% if species.common_name %}
+                        <p><b>Common Name:</b>&nbsp;&nbsp;{{species.common_name}}</p>
+                    {% endif %}
+                    {% if species.species_image %}
+                        <p><img src={{species.species_image.url}}></p>
+                    {% endif %}
+                    {% if species.photo_credit %}
+                        <p>Photo by:<i> &nbsp;{{species.photo_credit}}</i> </p>
+                    {% endif %}
+                    <h4>Description</h4>
+                    <p>{{species.description|linebreaks}}</p>
+                    <p><b>Category:</b> &nbsp;&nbsp;{{species.get_category_display}}</p>
+                    <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
+                    <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
+                    {% if renderCares %}
+                        <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+                    {% endif %}
+
+                    {% if speciesReferenceLinks.all.count > 0  %}
+                    <h4>Reference Links</h4>
+                        {% for speciesReferenceLink in speciesReferenceLinks %}
+                            <p style = "display: flex; justify-content: space-between;">
+                                <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>
+                                {% if speciesComment.user == request.user or userCanEdit %}
+                                    <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
+                                    <!--a class="btn btn-secondary" href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id  %}" role="button">&nbsp;Edit Link&nbsp;</a-->
+                                {% endif %}  
+                            </p>  
+                        {% endfor %}  
+                    {% endif %}
+
+                    <h4>Aquarists keeping this Species</h4>
+                    {% if species.species_instances.all.count > 0  %}
+                        {% for speciesInstance in speciesInstances %}
+                            {% if speciesInstance.currently_keep %}
+                                <p><b>{{speciesInstance.user.get_display_name}}</b>:       
+                                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+                            {% endif %}
+                        {% endfor %}    
+                    {% else %}
+                        <p><b>None</b></p>
+                    {% endif %}
+                    {% if request.user.is_authenticated %}
+                        <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this species!</i></a></p>
+                    {% endif %}  
+                    
+                    {% if userCanEdit %}
+                        <div class="css_class='mb-3 section-bordered">
+                            <h4>Edit Species</h4>
+                            <p><a class="btn btn-secondary" href="{% url 'editSpecies' species.id  %}" role="button">&nbsp;Edit Species Profile&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
+                            <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
+                        </div>
+                    {% endif %}                      
+
+                    {% if request.user.is_authenticated %}
+                        <div class="css_class='mb-3 section-bordered">
+                            <h4>Comments</h4>
+                            {% if speciesComments.all.count > 0  %}
+                                {% for speciesComment in speciesComments %}
+                                    <div>
+                                        <p style = "display: flex; justify-content: space-between;">
+                                                <span><a href="{% url 'aquarist' speciesComment.user.id %}">{{speciesComment.user.get_display_name}}</a>: {{speciesComment.comment}}&nbsp;&nbsp;</span>
+                                                {% if speciesComment.user == request.user or userCanEdit %}
+                                                    <a href="{% url 'editSpeciesComment' speciesComment.id  %}">Edit Comment</a>
+                                                {% endif %}  
+                                        </p>  
+                                    </div>
+                                {% endfor %}    
+                            {% endif %}
+
+                            <p><i>Add a new comment about this species:</i></p>
+                            <form method="POST" enctype="multipart/form-data" action="">
+                                {% csrf_token %}
+                                {{cform.as_p}}
+                                <!--input type="Submit" value="Add Comment"-->
+                                <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Add Comment"/> 
+                            </form>
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>     
+    </div>
+</div>
+
+{% endblock content %}

@@ -93,7 +93,7 @@ def species(request, pk):
         logger.info('Anonymous user visited species page: %s.', species.name)
     context = {'species': species, 'speciesInstances': speciesInstances, 'speciesComments': speciesComments, 'speciesReferenceLinks': speciesReferenceLinks,
                'renderCares': renderCares, 'userCanEdit': userCanEdit, 'cform': cform, 'userCanEdit': userCanEdit }
-    return render (request, 'species/species.html', context)
+    return render (request, 'species/species2.html', context)
 
 def speciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
@@ -108,8 +108,10 @@ def speciesInstance(request, pk):
     # manage bap submissions - if club member bap_participant and no current submission allow new submission
     bapClubMemberships = AquaristClubMember.objects.filter(user=speciesInstance.user)
     bapEligibleMemberships = []
-    bapSubmissions = []    
+    bapSubmissions = []  
+    isBapParticipant = False;  
     if bapClubMemberships.count() > 0:
+        isBapParticipant = True;  
         request.session['species_instance_id'] = speciesInstance.id
         logger.info("request.session['species_instance_id'] set for bapSubmission by speciesInstance: %s", str(speciesInstance.id))
         for membership in bapClubMemberships:
@@ -133,9 +135,9 @@ def speciesInstance(request, pk):
         logger.info('User %s visited aquarist species page: %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
     else:
         logger.info('Annonymous user visited aquarist species page: %s (%s).', speciesInstance.name, speciesInstance.user.username)
-    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog,
+    context = {'speciesInstance': speciesInstance, 'species': species, 'speciesMaintenanceLog': speciesMaintenanceLog, 'isBapParticipant': isBapParticipant,
                'bapEligibleMemberships': bapEligibleMemberships, 'bapSubmissions': bapSubmissions, 'renderCares': renderCares, 'userCanEdit': userCanEdit }
-    return render (request, 'species/speciesInstance.html', context)
+    return render (request, 'species/speciesInstance2.html', context)
 
 def speciesInstanceLog(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)

@@ -3,77 +3,11 @@
 
 {% block content %}
 
-<style>
-    /* Card background - 25% lighter than ASN Blue */
-    .species-form-card .card {
-        background-color: rgb(189, 219, 241);
-        border: 2px solid rgb(132, 179, 211);
-    }
-    
-    .species-form-card .card-body {
-        background-color: rgb(189, 219, 241);
-    }
-    
-    .species-form-card .card-header {
-        background-color: rgb(132, 179, 211); /* !important */
-        color:lightslategrey !important;
-        border-bottom: 2px solid rgb(112, 159, 191);
-    }
-    
-    /* Bordered sections (e.g. Media) */
-    .section-bordered {
-        background-color: rgb(212, 231, 247);
-        border: 2px solid rgb(162, 189, 221);
-        border-radius: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        margin-bottom: 1rem;
-    }
-    
-     .section-bordered legend {
-        background-color: rgb(212, 231, 247) !important;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        border: none !important;
-        font-weight: 600;
-        width: auto;
-        font-size: 1.1rem;
-        margin-bottom: 1rem;
-    }
-
-    /* All fieldset legends */
-    fieldset legend,
-    .section-bordered legend {
-        color: #495057 !important;  /* Match General Info gray */
-        font-weight: 400;
-    }
-        
-    /*
-    .species-form-card .form-control,
-    .species-form-card .form-select {
-        background-color: white;
-        border: 1px solid rgb(152, 199, 231);
-    }
-    
-    .species-form-card .form-control:focus,
-    .species-form-card .form-select:focus {
-        border-color: rgb(112, 159, 191);
-        box-shadow: 0 0 0 0.2rem rgba(152, 199, 231, 0.25);
-    }
-    */
-        
-    /* Alert boxes within sections */
-    /* .section-bordered .alert-info {
-        background-color: rgba(13, 202, 240, 0.1);
-        border-color: rgb(162, 189, 221);
-    } */
-
-</style>
-
 <div class="container mt-4">
     <div class="row">
         <div class="col-lg-10 mx-auto">
             <div class="card shadow-sm">
-                <div class="card-header" style="background-color: #e9ebee">
+                <div class="card-header">
                     <h4 class="my-0">
                         {% if form.instance.pk %}
                             Edit Species: <i>{{ form.instance.name }}</i>
@@ -102,6 +36,26 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Delete button (only show when editing existing object) -->
+            {% if form.instance.pk %}
+            <div><p>&nbsp;</p></div>
+            <div class="card shadow-sm">
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    <h4>Delete Species</h4>
+                    <p class="text-muted mb-3">
+                        This action cannot be undone. All associated data will be permanently removed.
+                    </p>
+                    <a href="{% url 'deleteSpecies' form.instance.pk %}" 
+                        class="btn btn-secondary"
+                    style="color: darkred !important; margin-left: 14%;">
+                        Delete Species
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+
         </div>
     </div>
 </div>

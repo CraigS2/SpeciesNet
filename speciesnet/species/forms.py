@@ -108,7 +108,7 @@ class SpeciesForm2(ModelForm):
                 css_class='mb-3 section-bordered'
             ),
             FormActions(
-                Submit('submit', 'Save Species', css_class='btn btn-primary btn-lg'),
+                Submit('submit', 'Save Species', css_class='btn btn-success btn-lg'),
                 HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
                 css_class='mt-2'
             )
@@ -284,7 +284,7 @@ class SpeciesInstanceForm2(ModelForm):
             
             # Submit Buttons
             FormActions(
-                Submit('submit', 'Save Aquarist Species', css_class='btn btn-primary btn-lg'),
+                Submit('submit', 'Save Aquarist Species', css_class='btn btn-success btn-lg'),
                 HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
                 css_class='mt-2'
             )
