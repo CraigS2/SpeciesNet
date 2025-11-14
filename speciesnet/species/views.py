@@ -105,30 +105,34 @@ def speciesInstance(request, pk):
         for sml in speciesMaintenanceLogs:
             if speciesInstance in sml.speciesInstances.all():
                 speciesMaintenanceLog = sml
-    # manage bap submissions - if club member bap_participant and no current submission allow new submission
-    bapClubMemberships = AquaristClubMember.objects.filter(user=request.user)
+    # manage bap submissions - if cur_user is speciesInstance.user and club member bap_participant with no current submission allow new submission
+    isBapParticipant = request.user == speciesInstance.user   # only this user can create BAP submissions
     bapEligibleMemberships = []
-    bapSubmissions = []  
-    isBapParticipant = False;  
-    if bapClubMemberships.count() > 0:
-        isBapParticipant = True;  
-        request.session['species_instance_id'] = speciesInstance.id
-        logger.info("request.session['species_instance_id'] set for bapSubmission by speciesInstance: %s", str(speciesInstance.id))
-        for membership in bapClubMemberships:
-            #TODO filter on current year
-            try:
-                #TODO manage year
-                bapSubmission = BapSubmission.objects.get(club=membership.club, aquarist=request.user, speciesInstance=speciesInstance)
-                bapSubmissions.append (bapSubmission)
-                print ('User is NOT eligible to join ' + membership.club.name)
-            except ObjectDoesNotExist:
-                #pass # user is eligible for BAP submission 
-                bapEligibleMemberships.append(membership) 
-                print ('User is eligible to join ' + membership.club.name)
-            except MultipleObjectsReturned:
-                error_msg = "BAP Submission: duplicate BAP Submissions found!"
-                print ('Error multiple objects found BAP Eligibility list decremented: ' + membership.name)
-                messages.error (request, error_msg)        
+    bapSubmissions = [] 
+
+    if isBapParticipant:
+        bapClubMemberships = AquaristClubMember.objects.filter(user=request.user)
+        if bapClubMemberships.count() > 0:
+            request.session['species_instance_id'] = speciesInstance.id
+            logger.info("request.session['species_instance_id'] set for bapSubmission by speciesInstance: %s", str(speciesInstance.id))
+            for membership in bapClubMemberships:
+                #TODO filter on current year
+                try:
+                    #TODO manage year
+                    bapSubmission = BapSubmission.objects.get(club=membership.club, aquarist=speciesInstance.user, speciesInstance=speciesInstance)
+                    bapSubmissions.append (bapSubmission)
+                    print ('User is NOT eligible to join ' + membership.club.name)
+                except ObjectDoesNotExist:
+                    #pass # user is eligible for BAP submission 
+                    bapEligibleMemberships.append(membership) 
+                    print ('User is eligible to join ' + membership.club.name)
+                except MultipleObjectsReturned:
+                    error_msg = "BAP Submission: duplicate BAP Submissions found!"
+                    print ('Error multiple objects found BAP Eligibility list decremented: ' + membership.name)
+                    messages.error (request, error_msg)   
+        else:  
+            isBapParticipant = False;    
+     
     renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si (request.user, speciesInstance)
     if request.user.is_authenticated:

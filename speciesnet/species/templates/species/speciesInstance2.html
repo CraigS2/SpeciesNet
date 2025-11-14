@@ -93,17 +93,13 @@
                         {% endif %} 
 
                         {% if speciesMaintenanceLog %}
-                            <div class="css_class='mb-3 section-bordered">
-                                <h5><b>Species Maintenance Programs</b></h5>
-                                <p>Species Maintenance Logs are collaborations among aquarists working together to maintain a species.</p> 
-                                <p>Collaborators list the species they have and together add notes, images, and embed YouTube videos to share their maintenance journey.</p>
-                                {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
-                                <div class="div-line-above" style="padding-left: 1rem;">
-                                    <h4>Species Maintenance Collaboration</h4>
+                            {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
+                                <div class="css_class='mb-3 section-bordered">
+                                    <h5>Species Maintenance Collaboration</h5>
+                                    <p>Species Maintenance Logs enable collaborations among aquarists working together to maintain a species.</p> 
                                     <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
                                 </div>
-                                {% endif %}
-                            </div>
+                            {% endif %}
                         {% endif %}
 
                         {% if isBapParticipant %}
