@@ -86,8 +86,8 @@ class SpeciesForm2(ModelForm):
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
-                            <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species in their home aquariums. </strong><br>
-                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Please consult the IUCN Red List for a more complete Conservation Status overview of all fishes worldwide</small>
+                            <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species and distribute their offspring throughout the hobby. </strong><br>
+                                    For more information about the CARES Preservation Program and how you can participate see the <a href="{% url 'cares_overview' %}">CARES Preservation Program Overview</a></small>
                         </div>
                     """),      
                 ),     

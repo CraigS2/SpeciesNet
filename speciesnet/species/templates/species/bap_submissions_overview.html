@@ -7,10 +7,15 @@
     <div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;">
         <h4><b>Submitting BAP Requests</b></h4>
         <large>
-        <p>AquaristSpecies.net provides a <i>Fishroom</i> page for each user. This page lists all the species you keep.</p>
-
         <p>
-            Once you've joined a club, you submit BAP requests from any of your Aquarist Species pages listed in your Fishroom. 
+            AquaristSpecies.net provides a <i>Fishroom</i> page for each user. This page lists all the species you keep. 
+        </p>
+        <p>
+            Once you join a club, you create BAP submissions from any of the species listed in your fishroom. 
+            You can add your species using the <a href="{% url 'addSpeciesInstanceWizard1'%}">Add My Species - Guided Tutorial</a> 
+            or by simply searching for the species and clicking <i><b>'I keep this species!'</i></b> from that species page. 
+        </p>
+        <p>
             Your Fishroom is always available from the top-right menu showing your <i>username</i>. You must be logged in to see this menu. 
         </p>
             <p><img src={% static 'images\spark_user_fishroom_menu.jpg' %} style="border: 2px solid lightgray;"></p>

@@ -44,7 +44,7 @@
             <p><b>None</b></p>
         {% endif %}
         {% if request.user.is_authenticated %}
-            <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this fish!</i></a></p>
+            <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this species!</i></a></p>
         {% endif %}
     </div>
 

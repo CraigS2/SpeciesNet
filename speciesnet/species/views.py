@@ -106,7 +106,7 @@ def speciesInstance(request, pk):
             if speciesInstance in sml.speciesInstances.all():
                 speciesMaintenanceLog = sml
     # manage bap submissions - if club member bap_participant and no current submission allow new submission
-    bapClubMemberships = AquaristClubMember.objects.filter(user=speciesInstance.user)
+    bapClubMemberships = AquaristClubMember.objects.filter(user=request.user)
     bapEligibleMemberships = []
     bapSubmissions = []  
     isBapParticipant = False;  
@@ -118,7 +118,7 @@ def speciesInstance(request, pk):
             #TODO filter on current year
             try:
                 #TODO manage year
-                bapSubmission = BapSubmission.objects.get(club=membership.club, aquarist=speciesInstance.user, speciesInstance=speciesInstance)
+                bapSubmission = BapSubmission.objects.get(club=membership.club, aquarist=request.user, speciesInstance=speciesInstance)
                 bapSubmissions.append (bapSubmission)
                 print ('User is NOT eligible to join ' + membership.club.name)
             except ObjectDoesNotExist:
@@ -546,7 +546,7 @@ def createSpeciesInstance (request, pk):
 def editSpeciesInstance(request, pk): 
     register_heif_opener()
     speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
-    userCanEdit = user_can_edit_si(request.user, species)
+    userCanEdit = user_can_edit_si(request.user, speciesInstance)
     if not userCanEdit:
         raise PermissionDenied()
     if request.method == 'POST':
@@ -1137,6 +1137,7 @@ def createBapSubmission (request, pk):
     try:
         bapSpecies = BapSpecies.objects.get(name=species_name, club=club)
         bap_points = bapSpecies.points
+        bapGenus   = genus_name = species_name.split(' ')[0]
         print ('Create BAP Submission species points set: ' + (str(bap_points)))
     except ObjectDoesNotExist:
         pass # this is a valid case override at species level not found                 
@@ -1170,6 +1171,7 @@ def createBapSubmission (request, pk):
             messages.error (request, error_msg)
             logger.error('User %s creating bapSubmission for club %s: species %s failed to resolve genus name.', request.user.username, club.name, species_name) 
     
+    print ()
     if bap_points > 0:
         if speciesInstance.species.render_cares:
             bap_points = bap_points * club.cares_muliplier
@@ -1185,7 +1187,6 @@ def createBapSubmission (request, pk):
                 bap_submission.club = club
                 bap_submission.speciesInstance = speciesInstance
                 bap_submission.points = bap_points
-                print ('bapGenusFound is ' + str(bapGenusFound))
                 if not bapGenusFound:
                     bapGenus = BapGenus(name=genus_name, club=club, example_species=speciesInstance.species, points=club.bap_default_points)
                     bapGenus.save()

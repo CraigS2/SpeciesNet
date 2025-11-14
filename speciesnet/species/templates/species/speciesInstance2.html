@@ -85,7 +85,7 @@
                         {% if speciesInstance.enable_species_log %}
                             <div class="css_class='mb-3 section-bordered">
                                 <h5><b>Species Logs</b></h5>
-                                <p>Aquarist Species Logs are additional pages aquarists can use to add additional notes, images, and embed YouTube videos.</p>
+                                <p>Aquarist Species Logs are linked pages aquarists can use to add additional notes, images, and embed YouTube videos.</p>
                                 {% if userCanEdit or not speciesInstance.log_is_private %}
                                     <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
                                 {% endif %}
@@ -108,7 +108,7 @@
 
                         {% if isBapParticipant %}
                            <div class="css_class='mb-3 section-bordered">
-                                <h5><b>BAP Programs</b></h5>
+                                <h5>BAP Programs</h5>
                                 {% if bapEligibleMemberships|length > 0 %}
                                     <p>Breeder Award Programs (BAP) are hosted by Aquarium Clubs. 
                                     If you have spawned this species and reared fry, you may be eligible to submit the species for BAP Points.</p>
