@@ -3,8 +3,8 @@
 {% block content %}
 
 <div class="container">
-    <h2>Species Reference Links</h2>
-     {% if speciesReferenceLinks.all.count > 0  %}
+    <h2>Species Reference Links ({{speciesReferenceLinks|length}})</h2>
+     {% if speciesReferenceLinks|length > 0  %}
         {% for speciesReferenceLink in speciesReferenceLinks %}
         <div class="div-line-below">
             <p>

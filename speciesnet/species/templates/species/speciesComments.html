@@ -2,8 +2,8 @@
 <!-- context = {'speciesComments': speciesComments } -->
 {% block content %}
 <div class="container">
-    <h3>Species Comments</h3>
-     {% if speciesComments.all.count > 0  %}
+    <h3>Species Comments ({{speciesComments|length}})</h3>
+     {% if speciesComments|length > 0  %}
         {% for speciesComment in speciesComments %}
         <div class="div-line-below">
             <p>

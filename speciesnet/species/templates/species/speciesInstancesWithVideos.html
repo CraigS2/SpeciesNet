@@ -2,12 +2,12 @@
 
 {% block content %}
 <div class="container">
-    <h3>Species Instances with Logs ({{speciesInstances|length}})</h3>
-    {% if speciesInstances|length > 0 %}
+    <h3>Species Instances with Embedded YouTube Videos ({{speciesInstances|length}})</h3>
+    {% if speciesInstances|length > 0%}    
         {% for speciesInstance in speciesInstances %}
             <div>
                 <p>
-                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> 
+                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>  
                 </p>
             </div>
         {% endfor %}

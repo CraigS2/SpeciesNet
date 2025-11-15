@@ -1,6 +1,6 @@
 {% extends 'main.html' %}
 {% load static %}
-
+<!-- context = club, aquaristClubMembers, userIsAdmin, userCanEdit, userIsMember,userIsPending -->
 {% block content %}
 <div class="container">
     <div>
@@ -61,8 +61,13 @@
             <p><a class="btn btn-secondary" href="{% url 'exportClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Export BAP Genus Points&nbsp;</a></p>
         {% endif %}
 
-        {% if not userIsMember %}
+        {% if not userIsMember and not userIsPending %}
             <p><a class="btn btn-secondary" href="{% url 'createAquaristClubMember' aquaristClub.id %}" role="button">Join</a></p>
         {% endif %}
+
+        {% if userIsPending %}
+        <p></p>
+        <p><em style="color: darkred">Membership request is pending approval </em>  </p>
+        {% endif %}        
 </div>
 {% endblock content %}

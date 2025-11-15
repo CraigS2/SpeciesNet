@@ -3,8 +3,8 @@
 {% block content %}
 
 <div class="container">
-    <h3>Species Maintenance Logs</h3>
-     {% if speciesMaintenanceLogs.all.count > 0  %}
+    <h3>Species Maintenance Logs ({{speciesMaintenanceLogs|length}})</h3>
+     {% if speciesMaintenanceLogs|length > 0  %}
         {% for speciesMaintenanceLog in speciesMaintenanceLogs %}
         <p><a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a></p>
         {% endfor %}

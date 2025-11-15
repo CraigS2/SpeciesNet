@@ -59,9 +59,11 @@ urlpatterns = [
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
+
     path('speciesComments/', views.speciesComments, name="speciesComments"),
     path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"), 
     path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"), 
+
     path('speciesReferenceLinks/', views.speciesReferenceLinks, name="speciesReferenceLinks"),
     path('createSpeciesReferenceLink/<str:pk>/', views.createSpeciesReferenceLink, name="createSpeciesReferenceLink"),     
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
@@ -80,7 +82,10 @@ urlpatterns = [
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
 
+    path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
     path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
+    path('speciesInstancesWithEmptyLogs/', views.speciesInstancesWithEmptyLogs, name="speciesInstancesWithEmptyLogs"),
+
     path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
     path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
     path('editSpeciesInstanceLogEntry/<str:pk>/', views.editSpeciesInstanceLogEntry, name="editSpeciesInstanceLogEntry"),

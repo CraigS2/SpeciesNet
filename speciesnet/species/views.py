@@ -29,7 +29,8 @@ from species.asn_tools.asn_img_tools import generate_qr_code
 from species.asn_tools.asn_csv_tools import export_csv_species, export_csv_speciesInstances, export_csv_aquarists, export_csv_bap_genus
 from species.asn_tools.asn_csv_tools import import_csv_species, import_csv_speciesInstances, import_csv_bap_genus
 from species.asn_tools.asn_utils import user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si
-from species.asn_tools.asn_utils import user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club, user_is_club_member
+from species.asn_tools.asn_utils import user_can_edit_srl, user_can_edit_sc, user_can_edit_sml
+from species.asn_tools.asn_utils import user_can_edit_club, user_is_club_member, user_is_pending_club_member
 from species.asn_tools.asn_utils import get_sml_collaborator_choices, get_sml_speciesInstance_choices, validate_sml_collection
 from species.asn_tools.asn_utils import get_sml_available_collaborators, get_sml_available_speciesInstances, sanitize_text, validate_url
 from species.asn_tools.asn_utils import processVideoURL
@@ -672,7 +673,17 @@ def editSpeciesInstanceLabels (request):
 
     return render(request, 'editSpeciesInstanceLabels.html', {'formset': formset})
 
-### Create Edit Delete Species Log Entries
+### YouTube Video enabled SpeciesInstance
+
+@login_required(login_url='login')
+def speciesInstancesWithVideos (request):
+    # need to filter on both null and empty string cases - so use an exclude set
+    # speciesInstances = SpeciesInstance.objects.exclude(aquarist_species_video_url__in=[None, ''])  
+    speciesInstances = SpeciesInstance.objects.exclude(Q(aquarist_species_video_url__isnull=True) | Q(aquarist_species_video_url=''))
+    context = {'speciesInstances': speciesInstances}
+    return render (request, 'species/speciesInstancesWithVideos.html', context)
+
+### Species Instance Log Entries
 
 @login_required(login_url='login')
 def speciesInstancesWithLogs (request):
@@ -685,6 +696,13 @@ def speciesInstancesWithLogs (request):
     speciesInstancesEmpty = len(speciesInstances) == 0
     context = {'speciesInstances': speciesInstances, 'speciesInstancesEmpty': speciesInstancesEmpty}
     return render (request, 'species/speciesInstancesWithLogs.html', context)
+
+@login_required(login_url='login')
+def speciesInstancesWithEmptyLogs (request):
+    # leverage a single query utilizing the reverse lookup related_name - filtering on the null (no matches found) case
+    speciesInstances = SpeciesInstance.objects.filter(enable_species_log=True, species_instance_log_entries__isnull=True)
+    context = {'speciesInstances': speciesInstances}
+    return render (request, 'species/speciesInstancesWithEmptyLogs.html', context)
 
 @login_required(login_url='login')
 def createSpeciesInstanceLogEntry (request, pk):
@@ -1674,14 +1692,12 @@ def aquaristClub (request, pk):
     club = get_object_or_404(AquaristClub, id=pk) 
     aquaristClubMembers = None
     cur_user = request.user
-    userIsAdmin = cur_user.is_admin
-    userCanEdit = user_can_edit_club (cur_user, club)
-    userIsMember = user_is_club_member (cur_user, club)
-    # if not (userCanEdit or userIsMember):
-    #     raise PermissionDenied()
-    print ('User is member: ' + str(userIsMember))
+    userIsAdmin   = cur_user.is_admin
+    userCanEdit   = user_can_edit_club (cur_user, club)
+    userIsMember  = user_is_club_member (cur_user, club)
+    userIsPending = user_is_pending_club_member (cur_user, club)
     logger.info('User %s visited club: %s (%s)', request.user.username, club.name, str(club.id))                            
-    context = {'aquaristClub': club, 'aquaristClubMembers': aquaristClubMembers, 'userIsAdmin': userIsAdmin, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember}
+    context = {'aquaristClub': club, 'aquaristClubMembers': aquaristClubMembers, 'userIsAdmin': userIsAdmin, 'userCanEdit': userCanEdit, 'userIsMember': userIsMember, 'userIsPending': userIsPending}
     return render (request, 'species/aquaristClub.html', context)
 
 @login_required(login_url='login')

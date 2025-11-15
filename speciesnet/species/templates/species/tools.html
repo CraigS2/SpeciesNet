@@ -12,8 +12,13 @@
     <div>
         <h3>Aquarist Species Tools</h3>
         <p><a href="{% url 'speciesInstancesWithLogs' %}">View all Aquarist Species with Logs</a></p>
+        <p><a href="{% url 'speciesInstancesWithEmptyLogs' %}">View all Aquarist Species with Empty Logs</a></p>
+        <p><a href="{% url 'speciesInstancesWithVideos' %}">View all Aquarist Species with Videos</a></p>
         <p><a href="{% url 'speciesInstanceLabels' %}">View all Aquarist Species with Labels</a></p>
-        <p><a href="{% url 'speciesMaintenanceLogs' %}">View all Aquarist Species Maintenance Logs</a></p>   
     </div>
+    <div>
+        <h3>Aquarist Maintenance Log Tools</h3>
+        <p><a href="{% url 'speciesMaintenanceLogs' %}">View all Aquarist Species Maintenance Logs</a></p>   
+    </div>    
 </div>
 {% endblock content %}
