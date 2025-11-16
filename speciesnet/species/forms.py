@@ -143,7 +143,7 @@ class SpeciesInstanceForm2(ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from']
+        exclude = ['user', 'species', 'acquired_from', 'young_available_image']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -243,7 +243,7 @@ class SpeciesInstanceForm2(ModelForm):
                           placeholder='Describe feeding and water change patterns, growth rates, survival rates, etc.'),
                     css_class='fry-rearing-section',
                     css_id='fry_rearing_details'
-                ),
+                ),               
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">

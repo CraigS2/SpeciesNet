@@ -697,12 +697,33 @@ def speciesInstancesWithLogs (request):
     context = {'speciesInstances': speciesInstances, 'speciesInstancesEmpty': speciesInstancesEmpty}
     return render (request, 'species/speciesInstancesWithLogs.html', context)
 
+# @login_required(login_url='login')
+# def speciesInstancesWithEmptyLogs (request):
+#     context = {'speciesInstances': speciesInstances}
+#     return render (request, 'species/speciesInstancesWithEmptyLogs.html', context)
+
 @login_required(login_url='login')
 def speciesInstancesWithEmptyLogs (request):
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
     # leverage a single query utilizing the reverse lookup related_name - filtering on the null (no matches found) case
     speciesInstances = SpeciesInstance.objects.filter(enable_species_log=True, species_instance_log_entries__isnull=True)
+    # optional action to clear all empty log speciesInstance.enable_species_log flags
+    if request.method == 'POST':
+        print ('Clearing empty speciesInstance logs ...')
+        if request.POST.get('action') == 'clear_flags':
+            # speciesInstances.update(enable_species_log=False)    # update all in single line of code - most efficient
+            si_list = list(speciesInstances)                       # triggers django's lazy querysets
+            count = len(si_list)                                   # gets length without query being executed twice
+            for speciesInstance in si_list:
+                speciesInstance.enable_species_log = False
+                speciesInstance.save() 
+                logger.info('Cleanup: speciesInstance %s (%s) has empty log, enable_species_log reset to False', speciesInstance.name, speciesInstance.id)       
+            logger.info('Admin user %s cleared %d empty speciesInstanceLogs', request.user.username, count)       
+            messages.success(request, f'Successfully disabled logging for {count} species instances.')
+            return redirect('speciesInstancesWithEmptyLogs')
     context = {'speciesInstances': speciesInstances}
-    return render (request, 'species/speciesInstancesWithEmptyLogs.html', context)
+    return render(request, 'species/speciesInstancesWithEmptyLogs.html', context)
 
 @login_required(login_url='login')
 def createSpeciesInstanceLogEntry (request, pk):
@@ -723,6 +744,7 @@ def createSpeciesInstanceLogEntry (request, pk):
                 speciesInstanceLogEntry.log_entry_video_url = processVideoURL (speciesInstanceLogEntry.log_entry_video_url)
             speciesInstanceLogEntry.save()
             speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances
+            logger.info('User %s created new speciesInstanceLogEntry for %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))       
         return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))    
     context = {'form': form}
     return render (request, 'species/createSpeciesInstanceLogEntry.html', context)
@@ -745,7 +767,8 @@ def editSpeciesInstanceLogEntry (request, pk):
             if (speciesInstanceLogEntry.log_entry_video_url):
                 speciesInstanceLogEntry.log_entry_video_url = processVideoURL (speciesInstanceLogEntry.log_entry_video_url)
             speciesInstanceLogEntry.save()                
-            speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances        
+            speciesInstanceLogEntry.speciesInstance.save() # update time stamp to show in recent updated speciesInstances 
+            logger.info('User %s edited speciesInstanceLog for %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))       
             return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))
     context = {'form': form, 'speciesInstanceLogEntry': speciesInstanceLogEntry}
     return render (request, 'species/editSpeciesInstanceLogEntry.html', context)
