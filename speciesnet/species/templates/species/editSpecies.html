@@ -1,10 +1,10 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h1>Edit Species:</h1>
-<p><b>Required Fields:  &nbsp;&nbsp;<i>Name</i></b>, a brief <b><i>Description</i></b>, and <b><i>Local distribution</i></b>.<br/>
-    It's okay to leave any of the remaining text fields blank. They won't show on the Species page.</p>
+<div class="container">
+    <h3>Edit Species:</h3>
+    <p><b>Required Fields:  &nbsp;&nbsp;<i>Name</i></b>, a brief <b><i>Description</i></b>, and <b><i>Local distribution</i></b>.<br/>
+        It's okay to leave any of the remaining text fields blank. They won't show on the Species page.</p>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data">
@@ -14,7 +14,7 @@
                     <td></td>
                     <td style="text-align: left; padding-top: 1em;">
                         <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            value="Apply Changes"></td>  
+                            value="Save Changes"></td>  
                 </tr>
                 <tr>
                     <td></td>
@@ -27,5 +27,5 @@
             </form>
         </table>
     </div>
-
+</div>
 {% endblock content %}

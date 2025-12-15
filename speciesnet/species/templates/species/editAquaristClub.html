@@ -1,23 +1,32 @@
 {% extends 'main.html' %}
-
+<!--context = {'form': form, 'aquaristClub': aquaristClub}-->
 {% block content %}
-
-<h2>Edit Club:</h2>
-<p><small>&nbsp;</small></p>
-<div>
-    <table>
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{form.as_table}}
-            <tr>
-                <td></td>
-                <td style="text-align: left; padding-top: 1em;">
-                    <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                        value="Apply Changes"></td>  
-            </tr>
-        </form>
-    </table>
+<div class="container">
+    <h3><b>Edit:</b> {{ aquaristClub.name }}</h3>
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{form.as_table}}
+                <tr>
+                    <td></td>
+                    <td style="text-align: left; padding-top: 1em;">
+                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            value="Save Changes">
+                    </td>  
+                </tr>
+                <tr>
+                    <td></td>
+                    <td style="text-align:left; padding-top:1em;">
+                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            onclick="window.location.href='{% url 'deleteAquaristClub' aquaristClub.id %}';" 
+                            type="button">&nbsp;Delete Club&nbsp;
+                        </button>
+                    </td>   
+                </tr>                
+            </form>
+        </table>
+    </div>
+    <p><small>&nbsp;</small></p>
 </div>
-<p><small>&nbsp;</small></p>
-
 {% endblock content %}

@@ -3,8 +3,8 @@
 {% block content %}
 
 
-<div>
-    <h2 style="text-align:center;"><i><b>Find your Species</b></i></h2>
+<div class="container">
+    <h3 style="text-align:center;"><i><b>Find your Species</b></i></h3>
     <h4 style="text-align:center;">Search to see if your Species exists in the database.</h4>
     <h4 style="text-align:center;">Spelling matters. If you don't know the exact spelling, type what you do know.</h4>
     <h4 style="text-align:center;"><i>For example, searching 'Apisto' will bring up a list of all Apistogramma species.</i></h4>
@@ -13,7 +13,7 @@
         <h4 style="text-align:center;"><b>Step 1:</b> Start by entering all or part of your species name in the search box below.</h4>
         <p style="text-align:center;">
             <form style="text-align:center;" method="GET" action="{% url 'addSpeciesInstanceWizard2' %}">
-                <input type="text" size="30" style="text-align:center;" name="q" placeholder="Search Species ..."/>
+                <input type="text" size="50" style="text-align:center;" name="q" placeholder="Enter all or part of Species name ... press <Enter> to search"/>
             </form>
         </p>
     </div>   
@@ -42,14 +42,14 @@
     <div class="div-line-above">
         <small>&nbsp;</small>
         <h4 style="text-align:center;"><b>Species found?</b> Great!</h4>
-        <h4 style="text-align:center;"><b>Step 2:</b> Click on the species link, then scroll down and choose 'I keep this fish!'</h4>
+        <h4 style="text-align:center;"><b>Step 2:</b> Click on the species link, then scroll down and choose <i>'I keep this species!'</i></h4>
     </div>
     <small>&nbsp;</small>
     <div class="div-line-above">
         <small>&nbsp;</small>
         <h4 style="text-align:center;"><b>Species not found?</b> No problem! </h4>
-        <h4 style="text-align:center;"><b>Step 2:</b> Click on the button below and we'll help you add it.</h4>
-        <h4 style="text-align:center;"><a class="btn btn-secondary" href="{% url 'createSpecies'%}" role="button">&nbsp;Add New Species &nbsp;</a></h4>
+        <h4 style="text-align:center;"><b>Step 2:</b> Click on the button below and we'll help you add your aquarist species with a new species profile.</h4>
+        <p style="text-align:center;"><a class="btn btn-secondary" href="{% url 'createSpeciesAndInstance'%}" role="button">&nbsp;Add New Species &nbsp;</a></p>
     </div>
 
 </div>

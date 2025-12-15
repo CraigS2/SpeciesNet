@@ -1,0 +1,38 @@
+{% extends 'main.html' %}
+<!-- context = {'form': form, 'bap_submission': bap_submission, 'userIsBapAdmin': userIsBapAdmin} -->
+{% block content %}
+<div class="container">
+    <h3>{{bap_submission.club.name}} </h3>
+    <h4><b>BAP Submission</b></h4>
+    <h5><b>Aquarist:</b> {{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</a></h5>
+    <h5><b>Species:</b> &nbsp;&nbsp;{{bap_submission.speciesInstance.name}}</h4>
+    {% if not userIsBapAdmin %}
+        <h5><b>Points:</b> &nbsp;&nbsp;{{bap_submission.points}}</h5>
+    {% endif %}
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data" action="">
+                {% csrf_token %}
+                {{form.as_table}}
+                <!--td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td-->
+                <tr>
+                    <td></td>
+                    <td style="text-align: left; padding-top: 1em;">
+                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            value="Save Changes">
+                    </td>  
+                </tr>
+                <tr>
+                    <td></td>
+                    <td style="text-align:left; padding-top:1em;">
+                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            onclick="window.location.href='{% url 'deleteBapSubmission' bap_submission.id  %}';" 
+                            type="button">&nbsp;Delete Submission&nbsp;
+                        </button></td>    
+                </tr>                
+            </form>
+        </table>
+    </div>
+    <p><small>&nbsp;</small></p>
+</div>
+{% endblock content %}

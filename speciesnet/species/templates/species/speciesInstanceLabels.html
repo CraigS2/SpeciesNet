@@ -1,10 +1,11 @@
 {% extends 'main.html' %}
+<!-- context = si_labels -->
 
 {% block content %}
+<div class="container">
+    <h2>Species Instances with Labels ({{si_labels|length}})</h2>
 
-<div>
-    <h2>Species Instances with Labels</h2>
-    {% if not speciesInstancesEmpty%}
+    {% if si_labels|length > 0  %}
         {% for si_label in si_labels %}
             <div class="div-line-below">
                 <p><a href="{% url 'speciesInstance' si_label.speciesInstance.id %}">{{si_label.speciesInstance.name}}</a> ({{si_label.speciesInstance.user.get_display_name}})</p>

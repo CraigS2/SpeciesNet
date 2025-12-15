@@ -2,41 +2,57 @@
 <!-- context = {'speciesInstance': speciesInstance, 'speciesInstanceLogEntries': speciesInstanceLogEntries, 'userCanEdit': userCanEdit} -->
 {% block content %}
 
-<div class="div-line-below">
-    <h2>Species Log </a></h2>
-    <h3><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></h3>
-    <h3>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h3>
-    {% if userCanEdit %}
-        <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a></p>
-    {% endif %}
-</div>
-{% if speciesInstance.enable_species_log %}
-    <div>
-        {% if speciesInstanceLogEntries.all.count > 0 %}
-            {% for logEntry in speciesInstanceLogEntries %}
-                <div class="div-line-above">
-                    <small>&nbsp;</small>
-                    <h5 style = "display: flex; justify-content: space-between;">
-                        <span>{{logEntry.name}}&nbsp;&nbsp;</span>
-                        {% if userCanEdit %}
-                            <a href="{% url 'editSpeciesInstanceLogEntry' logEntry.id  %}">Edit Log Entry</a>
-                        {% endif %}  
-                    </h5>  
-                    {% if logEntry.log_entry_image %}
-                        <p><img src={{logEntry.log_entry_image.url}}></p>
-                    {% endif %}   
-                    <p>{{logEntry.log_entry_notes}}</p>
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>Species Log:</b> &nbsp;<i>{{speciesInstance.species.name}}</i></h4>
                 </div>
-            {% endfor %} 
-        {% else %}
-            <div class="div-line-above">
-                <small>&nbsp;</small>
-                <p>No Species Logs Found</p>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    <p><b>Aquarist:</b> <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></p>
+                    <p style = "display: flex; justify-content: space-between;">
+                        <span><b>Aquarist Species:</b> <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></span>
+                        {% if userCanEdit %}
+                            <a class="btn btn-secondary" href="{% url 'createSpeciesInstanceLogEntry' speciesInstance.id  %}" role="button">&nbsp;&nbsp;Add Species Log Entry&nbsp;&nbsp;</a>
+                            </p>                      
+                        {% endif %}                            
+                    </p>                     
+                    {% if speciesInstanceLogEntries.all.count > 0 %}
+                        {% for logEntry in speciesInstanceLogEntries %}
+                            <div class="css_class='mb-3 section-bordered">
+                                <p style = "display: flex; justify-content: space-between;">
+                                    <span><b>Log Entry:</b> &nbsp;{{logEntry.name}}&nbsp;&nbsp;</span>
+                                    {% if userCanEdit %}
+                                        <a href="{% url 'editSpeciesInstanceLogEntry' logEntry.id  %}">Edit Log Entry</a>
+                                    {% endif %}  
+                                </p>  
+                                {% if logEntry.log_entry_image %}
+                                    <p><img src={{logEntry.log_entry_image.url}}></p>
+                                {% endif %}  
+                                {% if logEntry.log_entry_video_url %}
+                                    <p><i>Video of aquarist's species:</i></p>
+                                    <div class="ratio ratio-16x9" style="max-width: 720px; margin-bottom: 1rem;">
+                                        <iframe 
+                                            src="{{ logEntry.log_entry_video_url }}"
+                                            title="Video for {{ speciesInstance.name }}"
+                                            frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen
+                                            loading="lazy">
+                                        </iframe>
+                                    </div>
+                                {% endif %} 
+                                <p>{{logEntry.log_entry_notes|linebreaks}}</p>  
+                            </div> 
+                        {% endfor %} 
+                    {% else %}
+                        <p>No Species Logs Found</p>
+                    {% endif %}
+                    <p><a class="btn btn-secondary" href="{% url 'speciesInstance' speciesInstance.id %}" role="button">Back to Aquarist Species</a></p>
             </div>
-        {% endif %}
+        </div>
     </div>
-{% endif %}
-<small>&nbsp;</small>
-<p><a class="btn btn-secondary" href="{% url 'speciesInstance' speciesInstance.id %}" role="button">Back to Aquarist Species</a></p>
+</div>
 
 {% endblock content %}

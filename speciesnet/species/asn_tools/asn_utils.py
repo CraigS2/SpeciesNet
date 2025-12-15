@@ -1,7 +1,13 @@
-from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
+from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
+from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember
+from species.models import BapSubmission
+from django.db.models import URLField
 from datetime import datetime
 from django.utils import timezone
-import logging
+from urllib.parse import urlparse
+import logging, bleach, re
 
 # user_can_edit
 
@@ -64,6 +70,55 @@ def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenance
                 userCanEdit = True;                   # allow all contributors to edit/delete
     return userCanEdit
 
+def user_can_edit_club (cur_user: User, club: AquaristClub):
+    userCanEdit = False
+    if cur_user.is_staff:
+         userCanEdit = True
+    else:
+        print ('user_can_edit_club: seeing if member exists')
+        try:
+            member = AquaristClubMember.objects.get(user=cur_user, club=club) 
+            userCanEdit = member.is_club_admin
+            print ('Club Member is club admin: ' + cur_user.username)
+        except ObjectDoesNotExist:
+            pass # user is not a member 
+            print ('Club Member not found: ' + cur_user.username + ' can join')
+        except MultipleObjectsReturned:
+            error_msg = "Club Members: duplicate members found!"
+            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+            #TODO logging
+    return userCanEdit
+
+
+def user_is_club_member (cur_user: User, club: AquaristClub):
+    user_is_member = False
+    try:
+        member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=True) 
+        user_is_member = True
+        print ('Club Member found: ' + cur_user.username)
+    except ObjectDoesNotExist:
+        pass # user is not a member 
+    except MultipleObjectsReturned:
+        error_msg = "Club Members: duplicate members found!"
+        print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+        logger.error('Club member check: multiple entries found for %s', cur_user.username)
+    return user_is_member
+
+def user_is_pending_club_member (cur_user: User, club: AquaristClub):
+    user_is_pending = False
+    try:
+        member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=False) 
+        user_is_pending = True
+        print ('Club Member found: ' + cur_user.username)
+    except ObjectDoesNotExist:
+        pass # user is not a pending member 
+    except MultipleObjectsReturned:
+        error_msg = "Club Members: duplicate members found!"
+        print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+        logger.error('Club member check: multiple entries found for %s', cur_user.username)
+    return user_is_pending
+
+
 def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLog):
     species = speciesMaintenanceLog.species
     collaborators = speciesMaintenanceLog.collaborators.all()
@@ -109,10 +164,57 @@ def get_sml_speciesInstance_choices (speciesMaintenanceLog: SpeciesMaintenanceLo
             choices.append(choice)
     return choices
 
-
-    
-
-
 def validate_sml_collection (speciesMaintenanceLog: SpeciesMaintenanceLog):
     return True
 
+### security checks on text and url importing ###
+
+ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'a']
+ALLOWED_ATTRIBUTES = { 'a': ['href', 'title', 'rel'], }
+
+def sanitize_text(input_text):
+    safe_text = bleach.clean(input_text, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, strip=True )
+    return safe_text      # prevents XSS injection
+
+
+def validate_url(url):
+    url = str(url).strip()
+    parsed = urlparse(url)
+    if parsed.scheme not in ['http', 'https']:
+        raise ValidationError('Only http and https URLs are allowed.')
+    if not parsed.netloc:
+        raise ValidationError('Invalid URL!')
+    return None
+
+
+def get_youtube_embedded_id(video_url):
+    # Find matching url pattern - YouTube ID is alwasy 11 chars
+    patterns = [
+        r'(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})',
+        r'(?:youtu\.be\/)([a-zA-Z0-9_-]{11})',
+        r'(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, video_url)
+        if match:
+            return match.group(1)
+    return None
+
+def get_youtube_embedded_url_from_id(video_id):
+    if video_id:
+        #video_url = 'https://www.youtube.com/embed/' + video_id
+        video_url = f"https://www.youtube.com/embed/{video_id}"
+        return video_url
+    return None
+
+def processVideoURL (video_url_field: URLField):
+    print ('Processing video url: ' + str(video_url_field))
+    video_id = get_youtube_embedded_id(video_url_field)
+    print ('YouTube video ID: ' + str(video_id))
+    video_url = None
+    if (video_id):
+        video_url = get_youtube_embedded_url_from_id (video_id)
+        print ('Revised video URL: ' + str(video_url))
+    return video_url
+ 
+    

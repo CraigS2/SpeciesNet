@@ -1,0 +1,130 @@
+{% extends 'main.html' %}
+<!-- context = speciesInstance, species, speciesMaintenanceLog, isBapParticipant, bapEligibleMemberships, renderCares, userCanEdit -->
+{% block content %}
+
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background-color: #e9ebee;">
+                    <h3>Aquarist Species: &nbsp;<i>{{speciesInstance.name}}</i></h3>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    <h4>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h4>
+                    
+                    <!-- Species Profile -->
+                    <div class="css_class='mb-3 section-bordered">
+                        <h3>Species Profile: <a href="{% url 'species' species.id %}"><i>{{species.name}}</i></a></h3>
+                        {% if species.common_name %}
+                            <p><b>Common Name: &nbsp;&nbsp;</b>{{species.common_name}}</p>
+                        {% endif %}
+                        {% if species.species_image %}
+                            <p><img src={{species.species_image.url}}></p>
+                            {% if species.photo_credit %}
+                                <p>Species Photo by:<i>&nbsp;{{species.photo_credit}}</i> </p>
+                            {% else %}
+                                <p><i>General species photo</i></p>
+                            {% endif %}            
+                        {% endif %}        
+                        <p><b>Description: &nbsp;&nbsp;</b>{{species.description}}</p>
+                        <p><b>Category:</b>  &nbsp;&nbsp;{{species.get_category_display}}</p>
+                        <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
+                        <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
+                        {% if renderCares %}
+                            <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+                        {% endif %}                        
+                    </div>
+
+                    <h3>Aquarist Notes</h3>
+                    {% if speciesInstance.aquarist_species_image %}
+                        <p><i>Photo of aquarist's species:</i></p>
+                        <p><img src={{speciesInstance.aquarist_species_image.url}}></p>
+                    {% endif %}   
+                    {% if speciesInstance.collection_point %}
+                        <p><b>Collection Point:</b> &nbsp;&nbsp;{{speciesInstance.collection_point}}</p>
+                    {% endif %}   
+                    <p><b>Genetic Line:</b> &nbsp;&nbsp;{{speciesInstance.get_genetic_traits_display}}</p>
+                    {% if speciesInstance.unique_traits %}
+                        <p><b>Line Traits:</b> &nbsp;&nbsp;{{speciesInstance.unique_traits}}</p>
+                    {% endif %}  
+                    <p><b>Year Acquired:</b> &nbsp;&nbsp;{{speciesInstance.year_acquired}}</p>
+                    <p>{{speciesInstance.aquarist_notes|linebreaks}}</p>
+                
+                    {% if speciesInstance.aquarist_species_video_url %}
+                        <p><i>Video of aquarist's species:</i></p>
+                        <div class="ratio ratio-16x9" style="max-width: 720px; margin-bottom: 1rem;">
+                            <iframe 
+                                src="{{ speciesInstance.aquarist_species_video_url }}"
+                                title="Video for {{ speciesInstance.name }}"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                    {% endif %}        
+                    
+                    {% if speciesInstance.have_spawned %}
+                        <p><i>Spawning notes:</i></p>
+                        <p><b>Species Spawned:</b> &nbsp;&nbsp;Yes</p>
+                        <p>{{speciesInstance.spawning_notes|linebreaks}}</p>
+                        {% if speciesInstance.have_reared_fry %}
+                            <p><b>Have Reared Fry?</b> &nbsp;&nbsp;Yes</p>
+                            <p>{{speciesInstance.fry_rearing_notes|linebreaks}}</p>
+                            {% if speciesInstance.young_available %}
+                                <p><b>Young fish available?</b> &nbsp;&nbsp;Yes</p>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                    {% if request.user.is_authenticated %}
+
+                        {% if userCanEdit %} 
+                            <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
+                        {% endif %} 
+
+                        {% if speciesInstance.enable_species_log %}
+                            <div class="css_class='mb-3 section-bordered">
+                                <h5><b>Species Logs</b></h5>
+                                <p>Aquarist Species Logs are linked pages aquarists can use to add additional notes, images, and embed YouTube videos.</p>
+                                {% if userCanEdit or not speciesInstance.log_is_private %}
+                                    <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
+                                {% endif %}
+                            </div>
+                        {% endif %} 
+
+                        {% if speciesMaintenanceLog %}
+                            {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
+                                <div class="css_class='mb-3 section-bordered">
+                                    <h5>Species Maintenance Collaboration</h5>
+                                    <p>Species Maintenance Logs enable collaborations among aquarists working together to maintain a species.</p> 
+                                    <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if isBapParticipant %}
+                           <div class="css_class='mb-3 section-bordered">
+                                <h5>BAP Programs</h5>
+                                {% if bapEligibleMemberships|length > 0 %}
+                                    <p>Breeder Award Programs (BAP) are hosted by Aquarium Clubs. 
+                                    If you have spawned this species and reared fry, you may be eligible to submit the species for BAP Points.</p>
+                                    {% for bapClubMember in bapEligibleMemberships %}
+                                        <p><a class="btn btn-secondary" href="{% url 'createBapSubmission' bapClubMember.club.id %}" role="button">&nbsp;&nbsp;Submit {{bapClubMember.club.acronym}} BAP Request&nbsp;&nbsp;</a></p>
+                                    {% endfor %}    
+                                {% endif %}
+
+                                {% if bapSubmissions|length > 0 %}
+                                    {% for bapSubmission in bapSubmissions %}
+                                        <p><a class="btn btn-secondary" href="{% url 'bapSubmission' bapSubmission.id %}" role="button">&nbsp;{{bapClubMember.club.acronym}}View BAP Request&nbsp;</a></p>
+                                    {% endfor %}    
+                                    </div>
+                                {% endif %} 
+                            </div>  
+                        {% endif %}    
+                    {% endif %} 
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

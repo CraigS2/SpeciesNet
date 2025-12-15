@@ -4,9 +4,6 @@ from django.views.static import serve
 #from django.conf.urls import url - deprecated
 from django.conf import settings
 from . import views
-from species.views import SpeciesListView
-
-
 
 urlpatterns = [
     path('login/', views.loginUser, name="login"),
@@ -19,16 +16,15 @@ urlpatterns = [
     path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
 
     path('aquarists/', views.AquaristListView.as_view(), name="aquarists"),
-
-    path('aquarists2/', views.aquarists2, name="aquarists2"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
     path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
     path('exportAquarists/', views.exportAquarists, name="exportAquarists"),
 
     path('aquaristClubs/', views.aquaristClubs, name="aquaristClubs"),
     path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"), 
-    path('aquaristClubMembers/<str:pk>/', views.aquaristClubMembers, name="aquaristClubMembers"), 
-    path('aquaristClubMember/<str:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
+    path('aquaristClubMembers/<str:pk>/', views.AquaristClubMemberListView.as_view(), name="aquaristClubMembers"), 
+
+    path('aquaristClubMember/<int:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
     path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
     path('createAquaristClubMember/<str:pk>', views.createAquaristClubMember, name="createAquaristClubMember"),
     path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
@@ -36,13 +32,38 @@ urlpatterns = [
     path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
 
+    path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
+    path('bapSubmission/<str:pk>/', views.bapSubmission, name="bapSubmission"),
+    path('bapSubmissions/<str:pk>/', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
+    path('createBapSubmission/<str:pk>/', views.createBapSubmission, name="createBapSubmission"),
+    path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
+    path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
+    path('bapGenus/<str:pk>/', views.BapGenusView.as_view(), name="bapGenus"),
+    path('bapSpecies/<str:pk>/', views.BapSpeciesView.as_view(), name="bapSpecies"),
+    path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    
+    path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
+    path('editBapGenus/<str:pk>/', views.editBapGenus, name="editBapGenus"),
+    path('createBapSpecies/<str:pk>/', views.createBapSpecies, name="createBapSpecies"),
+    path('editBapSpecies/<str:pk>/', views.editBapSpecies, name="editBapSpecies"),
+    path('deleteBapGenus/<str:pk>/', views.deleteBapGenus, name="deleteBapGenus"),
+    path('deleteBapSpecies/<str:pk>/', views.deleteBapSpecies, name="deleteBapSpecies"),
+    path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
+    path('bap_verview/', views.bap_overview, name="bap_overview"),
+    path('bap_submissions_overview/', views.bap_submissions_overview, name="bap_submissions_overview"),
+    path('cares_overview/', views.cares_overview, name="cares_overview"),
+
+    path('importClubBapGenus/<str:pk>/', views.importClubBapGenus, name="importClubBapGenus"),
+    path('exportClubBapGenus/<str:pk>/', views.exportClubBapGenus, name="exportClubBapGenus"),
+
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
+
     path('speciesComments/', views.speciesComments, name="speciesComments"),
     path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"), 
     path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"), 
+
     path('speciesReferenceLinks/', views.speciesReferenceLinks, name="speciesReferenceLinks"),
     path('createSpeciesReferenceLink/<str:pk>/', views.createSpeciesReferenceLink, name="createSpeciesReferenceLink"),     
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
@@ -53,9 +74,6 @@ urlpatterns = [
     path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
-    #path('', SpeciesListView.as_view(), name='species_list'),
-
-    path('searchSpecies/', views.searchSpecies, name="searchSpecies"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),
 
@@ -64,7 +82,12 @@ urlpatterns = [
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
 
+    path('createSpeciesAndInstance/', views.createSpeciesAndInstance, name="createSpeciesAndInstance"), 
+
+    path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
     path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
+    path('speciesInstancesWithEmptyLogs/', views.speciesInstancesWithEmptyLogs, name="speciesInstancesWithEmptyLogs"),
+
     path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
     path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
     path('editSpeciesInstanceLogEntry/<str:pk>/', views.editSpeciesInstanceLogEntry, name="editSpeciesInstanceLogEntry"),
@@ -93,6 +116,8 @@ urlpatterns = [
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),
     path('tools/', views.tools, name="tools"),
+    path('tools2/', views.tools2, name="tools2"),
+    path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),
 
     path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
 

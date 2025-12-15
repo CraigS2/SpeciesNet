@@ -1,45 +1,44 @@
 {% extends 'main.html' %}
 
 {% block content %}
+<div class="container">
+    <h3>Login</h3>
+    {% if page == 'login' %}
+        <div>
+            <form method="POST" action="">
+                {% csrf_token %}
+                {{form.as_table}}
+                <table>
+                    <tr>
+                        <td><label>Email:</label></td>
+                        <td><input type="text" name="email", placeholder="Enter email ..."></td>
+                    </tr>
+                    <tr>
+                        <td><label>Password:</label></td>
+                        <td><input type="password" name="password", placeholder="Enter Password ..."></td>
+                    </tr>
+                    <tr>
+                        <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
+                    </tr>
+                </table>
+            </form>
 
-<h1>Login</h1>
+            <p>Not a registered user?</p>
+            <a href="{% url 'register' %}">Register</a>
+        </div>
+    {% else %}
+        <div>
+            <form method="POST" action="">
+                {% csrf_token %}
+                {{form.as_p}}
+                <p style="margin-left: 15px;"><input type="Submit" value="Register"></p>
+            </form>
 
-{% if page == 'login' %}
-    <div>
-        <form method="POST" action="">
-            {% csrf_token %}
-            {{form.as_table}}
-            <table>
-                <tr>
-                    <td><label>Email:</label></td>
-                    <td><input type="text" name="email", placeholder="Enter email ..."></td>
-                </tr>
-                <tr>
-                    <td><label>Password:</label></td>
-                    <td><input type="password" name="password", placeholder="Enter Password ..."></td>
-                </tr>
-                <tr>
-                    <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
-                </tr>
-            </table>
-        </form>
-
-        <p>Not a registered user?</p>
-        <a href="{% url 'register' %}">Register</a>
-    </div>
-{% else %}
-    <div>
-        <form method="POST" action="">
-            {% csrf_token %}
-            {{form.as_p}}
-            <p style="margin-left: 15px;"><input type="Submit" value="Register"></p>
-        </form>
-
-        <hr>
-        
-        <p>Already registered?</p>
-        <a href="{% url 'login' %}">Login</a>
-    </div>
-{% endif %}
-
+            <hr>
+            
+            <p>Already registered?</p>
+            <a href="{% url 'login' %}">Login</a>
+        </div>
+    {% endif %}
+</div>
 {% endblock content %} 

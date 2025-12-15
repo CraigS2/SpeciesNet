@@ -1,13 +1,13 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h1>Edit {{aquarist.get_display_name}} Profile: </h1>
-<small>&nbsp;</small>
-<p>Configure your Name, location (State, Country) and privacy settings below. </p>
-<p>Choosing <b>private name</b> hides your first and last name on all shared pages. Your username will be displayed.<br>
-   Choosing <b>private email</b> hides your email on your Aquarist page. Users will still be able to contact you using the <b>Contact</b> option.<br>
-   Choosing <b>private location</b> hides your State and Country location on your Aquarist page.</p>
+<div class="container">
+    <h3>Edit {{aquarist.get_display_name}} Profile: </h3>
+    <small>&nbsp;</small>
+    <p>Configure your Name, location (State, Country) and privacy settings below. </p>
+    <p>Choosing <b>private name</b> hides your first and last name on all shared pages. Your username will be displayed.<br>
+    Choosing <b>private email</b> hides your email on your Aquarist page. Users will still be able to contact you using the <b>Contact</b> option.<br>
+    Choosing <b>private location</b> hides your State and Country location on your Aquarist page.</p>
 
     <div>
         <table>
@@ -18,5 +18,5 @@
             </form>
         </table>
     </div>
-
+</div>
 {% endblock content %}

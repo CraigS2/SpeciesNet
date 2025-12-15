@@ -1,13 +1,30 @@
 {% extends 'main.html' %}
 <!-- context = {'import_archive': import_archive, 'report_row': report_row, 'dict_reader': dict_reader} -->
 {% block content %}
-
-<h1>Import Results</h1>
-<div>
-    <h2>{{report_row}} {{import_archive.get_import_status_display}}</h2>
-    {% for report_row in dict_reader %}
-        <p>{{report_row}}</p>     
-    {% endfor %} 
-<div>
-
+<div class="container">
+    <h3>Import Results</h3>
+    <div>
+        <h4><b>{{report_row}}</b> {{import_archive.get_import_status_display}}</h4>
+        {% for report_row in dict_reader %}
+            {% if forloop.first %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Genus</th>
+                        <th>Import Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {% endif %}
+                    <tr>
+                        <td>{{ report_row.Genus }}</td>
+                        <td>{{ report_row.Import_Status }}</td>
+                    </tr>
+            {% if forloop.last %}
+                </tbody>
+            </table>
+            {% endif %}
+        {% endfor %}        
+    <div>
+</div>
 {% endblock content %}

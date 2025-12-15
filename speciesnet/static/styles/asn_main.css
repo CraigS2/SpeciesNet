@@ -27,6 +27,38 @@ a:active {color:rgb(90, 90, 230) !important;}
     border-top: 1px solid slategray;
 }
 
+.card-header {
+    background-color: rgb(232, 243, 251) !important;
+    border-bottom: 1px solid slategray !important;
+}
+
+/* Bordered sections (e.g. Media) */
+.section-bordered {
+    background-color: rgb(212, 231, 247);
+    border: 2px solid rgb(162, 189, 221);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.section-bordered legend {
+    background-color: rgb(212, 231, 247) !important;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: none !important;
+    font-weight: 600;
+    width: auto;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+/* All fieldset legends */
+fieldset legend,
+.section-bordered legend {
+    color: #495057 !important;  /* Match General Info gray */
+    font-weight: 400;
+}
+
 hr 
 {
     color:slategrey !important;
@@ -77,5 +109,27 @@ p
 li
 {
     color: darkslategray !important; 
+}
+
+.btn-primary {
+    background-color: #7ca38d !important;  
+    border-color:#7ca38d !important;
+}
+
+.btn-primary:hover {
+    background-color: #6a8aa1 !important;  
+    border-color:#6a8aa1 !important;
+}
+
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: #638296!important;  
+    border-color: #638296!important;
+}
+/* Placeholder styling for all forms */
+::placeholder {
+    color: #adb5bd !important;        /* Medium-light gray */
+    font-style: italic !important;      /* Italic to distinguish from real data */
+    opacity: 1 !important;
 }
 

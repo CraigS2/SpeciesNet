@@ -1,62 +1,63 @@
 {% extends 'main.html' %}
 <!---- context = {form, speciesMaintenanceLog, collaborators, speciesInstances, num_avail_collaborators, num_avail_speciesInstances} ---->
 {% block content %}
-
-<h2>Edit Species Maintenance Log</h2>
-<h4><a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a></h4>
-    <table>
-        <td>Species:</td><td>{{speciesMaintenanceLog.species.name}}</td>
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{form.as_table}}
-            <td></td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>                
-        </form>
-    </table>
-    <p><small>&nbsp;</small></p>
+<div class="container">
+    <div>
+        <h3>Edit Species Maintenance Log</h3>
+        <h4><a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a></h4>
+        <table>
+            <td>Species:</td><td>{{speciesMaintenanceLog.species.name}}</td>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{form.as_table}}
+                <td></td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>                
+            </form>
+        </table>
+        <p><small>&nbsp;</small></p>
+    </div>
+    <div class="div-line-above">
+        <h3>Group Collaborators:</h3>
+        {% if collaborators.all.count > 0  %}
+            {% for collaborator in collaborators %}
+                <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <b>{{collaborator.get_display_name}}</b>
+                    {% if not collaborators.is_private_name  %}
+                    &nbsp;&nbsp;({{collaborator.first_name}}&nbsp;{{collaborator.last_name}})
+                    {% endif %}
+                </p>
+            {% endfor %}
+        {% else %}
+            <h5>None</h5>
+        {% endif %}  
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Add Collaborator</a>
+            <small>&nbsp;&nbsp;</small>
+            <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Remove Collaborator</a>
+        </p>
+        <p>There are {{num_avail_collaborators}} more aquarists keeping {{speciesMaintenanceLog.species.name}} who may be added as collaborators</p>
+    </div>
+    <div class="div-line-above">
+        <h3>Aquarist Species in Group:</h3>
+        {% if speciesInstances.all.count > 0  %}
+            {% for speciesInstance in speciesInstances %}
+                <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    {{speciesInstance.name}}&nbsp;(<b>{{speciesInstance.user.get_display_name}}</b>) 
+                </p>
+            {% endfor %}
+        {% endif %}  
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Add Aquarist Species</a>
+            <small>&nbsp;&nbsp;</small>
+            <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Remove Aquarist Species</a>
+        </p>
+        <p>There are {{num_avail_speciesInstances}} aquarist species available from collaborators which may be added to the maintenance group.</p>
+    </div>
+    <div class="div-line-above">
+        <h3>Delete Species Maintenance Log:</h3>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <a class="btn btn-secondary" href="{% url 'deleteSpeciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;Delete Log&nbsp;</a>
+        </p>
+        <p>Warning! This will delete the log, all log entries, the Collaborator list, and Species list for this log.</p>
+    </div>
 </div>
-<div class="div-line-above">
-    <h2>Group Collaborators:</h2>
-    {% if collaborators.all.count > 0  %}
-        {% for collaborator in collaborators %}
-            <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <b>{{collaborator.get_display_name}}</b>
-                {% if not collaborators.is_private_name  %}
-                &nbsp;&nbsp;({{collaborator.first_name}}&nbsp;{{collaborator.last_name}})
-                {% endif %}
-            </p>
-        {% endfor %}
-    {% else %}
-        <h5>None</h5>
-    {% endif %}  
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-        <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Add Collaborator</a>
-        <small>&nbsp;&nbsp;</small>
-        <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Remove Collaborator</a>
-    </p>
-    <p>There are {{num_avail_collaborators}} more aquarists keeping {{speciesMaintenanceLog.species.name}} who may be added as collaborators</p>
-</div>
-<div class="div-line-above">
-    <h2>Aquarist Species in Group:</h2>
-    {% if speciesInstances.all.count > 0  %}
-        {% for speciesInstance in speciesInstances %}
-            <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                {{speciesInstance.name}}&nbsp;(<b>{{speciesInstance.user.get_display_name}}</b>) 
-            </p>
-        {% endfor %}
-    {% endif %}  
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Add Aquarist Species</a>
-        <small>&nbsp;&nbsp;</small>
-        <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Remove Aquarist Species</a>
-    </p>
-    <p>There are {{num_avail_speciesInstances}} aquarist species available from collaborators which may be added to the maintenance group.</p>
-</div>
-<div class="div-line-above">
-    <h2>Delete Species Maintenance Log:</h2>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <a class="btn btn-secondary" href="{% url 'deleteSpeciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;Delete Log&nbsp;</a>
-    </p>
-    <p>Warning! This will delete the log, all log entries, the Collaborator list, and Species list for this log.</p>
-</div>
-
 {% endblock content %}

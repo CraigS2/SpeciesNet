@@ -68,36 +68,55 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'default': {
-            'format': '[DJANGO] %(levelname)s %(asctime)s %(module)s '
-                        '%(name)s.%(funcName)s:%(lineno)s: %(message)s'
+        'standard': {
+            'format': '[%(asctime)s] [%(levelname)s] [%(name)s:%(lineno)s] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
         },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
+        'error': {
+            'format': '[%(asctime)s] [%(levelname)s] [%(name)s.%(funcName)s:%(lineno)s] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'default',
-        }
+            'formatter': 'standard',
+        },
+        'error_console': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'formatter': 'error',
+        },
     },
     'loggers': {
-        '*': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'django.request': {
+        'django': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'error_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'error_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    # root logger catches everything not specified above
+    'root': {
+        'handlers': ['console', 'error_console'],
+        'level': 'INFO',
     },
 }
-
 
 # Application definition
 

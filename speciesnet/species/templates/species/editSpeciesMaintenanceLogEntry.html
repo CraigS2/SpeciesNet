@@ -1,9 +1,9 @@
 {% extends 'main.html' %}
 
 {% block content %}
-
-<h2>Edit Species Maintenance Log Entry</h2>
-<p><small>&nbsp;</small></p>
+<div class="container">
+    <h3>Edit Species Maintenance Log Entry</h3>
+    <p><small>&nbsp;</small></p>
     <div>
         <table>
             <form method="POST" enctype="multipart/form-data">
@@ -14,7 +14,7 @@
                     <td></td>
                     <td style="text-align: left; padding-top: 1em;">
                         <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            value="Apply Changes"></td>  
+                            value="Save Changes"></td>  
                 </tr>
                 <tr>
                     <td></td>
@@ -27,5 +27,5 @@
             </form>
         </table>
     </div>
-
+</div>
 {% endblock content %}

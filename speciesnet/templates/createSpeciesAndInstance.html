@@ -1,0 +1,47 @@
+{% extends 'main.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background-color: #e9ebee;">
+                    <h3>Add <b>Species Profile</b> <i>and your</i> <b>Aquarist Species</b></h3>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% crispy form %}
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>
+                        <i class="fas fa-info-circle me-1">
+                            <b>Note:</b> You can add additional details such as photos later by editing the species profile or your aquarist species.
+                        </i>
+                    </small>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <a href="{% url 'addSpeciesInstanceWizard2' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Cancel & Return to Species Search
+                </a>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -70,9 +70,9 @@
                         <div class="card h-100 shadow-sm bg-secondary">
                             <!--p class="card-title fw fs-5">&nbsp;{{speciesInstance.name}}</p-->
                             <p class="card-title fw fs-6 p-2">&nbsp;{{speciesInstance.name}}</p>
-                            {% if speciesInstance.instance_image %}
+                            {% if speciesInstance.aquarist_species_image %}
                                 <!-- p-3 adds padding 1 rem or 16 px around the image-->
-                                <img src="{{ speciesInstance.instance_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
+                                <img src="{{ speciesInstance.aquarist_species_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 
                                     style="height: 200px; object-fit: cover;">
                             {% elif speciesInstance.species.species_image %}
                                 <img src="{{ speciesInstance.species.species_image.url }}" class="card-img-top p-3" alt="{{ speciesInstance.name }}" 

@@ -1,0 +1,27 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container">
+    <h3>Species Instances with Empty Logs ({{speciesInstances|length}})</h3>
+    {% if speciesInstances|length > 0%}
+        <p></p>
+        {% for speciesInstance in speciesInstances %}
+            <div>
+                <p>
+                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a>
+                </p>
+            </div>           
+        {% endfor %}
+        <div class="col-md-2">
+            <form method="post" onsubmit="return confirm('Are you sure you want to disable logging for {{ speciesInstances|length }} Aquarist Species?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="clear_flags">
+                <button type="submit" class="btn btn-warning">Clear All Empty Logs</button>
+            </form>        
+        </div>       
+    {% else %} 
+        <p>None</p>
+    {% endif %}  
+</div>
+
+{% endblock content %}

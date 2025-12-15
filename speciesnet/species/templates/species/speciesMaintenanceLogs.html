@@ -2,20 +2,15 @@
 <!-- context = {'speciesComments': speciesComments } -->
 {% block content %}
 
-<div>
-    <h2>Species Maintenance Logs</h2>
-     {% if speciesMaintenanceLogs.all.count > 0  %}
+<div class="container">
+    <h3>Species Maintenance Logs ({{speciesMaintenanceLogs|length}})</h3>
+     {% if speciesMaintenanceLogs|length > 0  %}
         {% for speciesMaintenanceLog in speciesMaintenanceLogs %}
-        <div class="div-line-below">
-            <p>
-                <a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a>
-            </p>
-        </div>
+        <p><a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a></p>
         {% endfor %}
     {% else %}
     <h5>None</h5>
     {% endif %}     
-
 </div>
 
 {% endblock content %}
