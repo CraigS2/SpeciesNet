@@ -45,21 +45,24 @@
                         {% endfor %}  
                     {% endif %}
 
-                    <h4>Aquarists keeping this Species</h4>
-                    {% if species.species_instances.all.count > 0  %}
-                        {% for speciesInstance in speciesInstances %}
-                            {% if speciesInstance.currently_keep %}
-                                <p><b>{{speciesInstance.user.get_display_name}}</b>:       
-                                <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-                            {% endif %}
-                        {% endfor %}    
-                    {% else %}
-                        <p><b>None</b></p>
-                    {% endif %}
-                    {% if request.user.is_authenticated %}
-                        <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this species!</i></a></p>
-                    {% endif %}  
-                    
+                    <small>&nbsp;</small>
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4>Aquarists keeping this Species</h4>
+                        {% if species.species_instances.all.count > 0  %}
+                            {% for speciesInstance in speciesInstances %}
+                                {% if speciesInstance.currently_keep %}
+                                    <p><b>{{speciesInstance.user.get_display_name}}</b>:       
+                                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+                                {% endif %}
+                            {% endfor %}    
+                        {% else %}
+                            <p><b>None</b></p>
+                        {% endif %}
+                        {% if request.user.is_authenticated %}
+                            <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this species!</i></a></p>
+                        {% endif %}  
+                    </div>
+                        
                     {% if userCanEdit %}
                         <div class="css_class='mb-3 section-bordered">
                             <h4>Edit Species</h4>

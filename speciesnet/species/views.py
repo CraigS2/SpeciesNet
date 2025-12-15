@@ -16,9 +16,7 @@ from species.models import User, AquaristClub, AquaristClubMember, Species, Spec
 from species.models import SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from species.models import BapSubmission, BapLeaderboard, BapGenus, BapSpecies
 from species.forms import UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm, SpeciesCommentForm, SpeciesReferenceLinkForm
-
-from species.forms import SpeciesForm2, SpeciesInstanceForm2
-
+from species.forms import SpeciesForm2, SpeciesInstanceForm2, CombinedSpeciesForm
 from species.forms import SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm
 from species.forms import SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm, MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm
 from species.forms import SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet
@@ -343,7 +341,7 @@ def emailAquarist(request, pk):
         if not mailed:
             messages.error (request, mailed_msg) 
         else:
-            messages.info (request, mailed_msg)
+            messages.success (request, mailed_msg)
         return HttpResponseRedirect(reverse("aquarist", args=[aquarist.id]))
     return render (request, 'species/emailAquarist.html', context)
     
@@ -366,7 +364,7 @@ def createSpecies (request):
                     species.save()
                     if (species.species_image):
                         processUploadedImageFile (species.species_image, species.name, request)
-                        logger.info ('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
+                    logger.info ('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
                     return HttpResponseRedirect(reverse("species", args=[species.id]))
                 else:
                     dupe_msg = (species_name + " already exists. Please use this Species entry.")
@@ -391,43 +389,7 @@ def createSpecies (request):
             return render(request, 'species/editSpecies2.html', context)
         
     context = {'form': form}
-    #return render (request, 'species/createSpecies.html', context)
     return render (request, 'species/editSpecies2.html', context)
-
-# @login_required(login_url='login')
-# def editSpecies (request, pk): 
-#     register_heif_opener()
-#     #species = Species.objects.get(id=pk)
-#     species = get_object_or_404(Species, pk=pk)
-#     userCanEdit = user_can_edit_s (request.user, species)
-#     if not userCanEdit:
-#         raise PermissionDenied()
-#     form = SpeciesForm2(instance=species)
-#     if (request.method == 'POST'):
-#         form = SpeciesForm2(request.POST, request.FILES, instance=species)
-#         if form.is_valid(): 
-#             try:
-#                 species = form.save()
-#                 species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-#                 species.last_edited_by = request.user
-#                 if (species.species_image):
-#                     processUploadedImageFile (species.species_image, species.name, request)
-#                 species.save()
-#                 logger.info ('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
-#             except IntegrityError as e:
-#                 logger.error(f"Species edit failure integrity error: {str(e)}", exc_info=True)
-#                 messages.error(request, 'A Species Edit error occured. There is a problem with the data submitted.')
-#             except Exception as e:
-#                 logger.error(f"Species edit unexpected error: {str(e)}", exc_info=True)
-#                 messages.error(request, f'An unexpected error occurred: {str(e)}')
-#                 return HttpResponseRedirect(reverse("species", args=[species.id]))                
-#         else:
-#             logger.warning(f"Species form validation failed: {form.errors.as_text()}")
-#             messages.error(request, 'Invalid data submitted. Please correct the errors in the form.')
-#             context = {'form': form, 'species': species}
-#             return render(request, 'species/editSpeciesXX.html', context)
-#     context = {'form': form, 'species': species}
-#     return render (request, 'species/editSpeciesXX.html', context)
 
 @login_required(login_url='login')
 def editSpecies(request, pk): 
@@ -522,30 +484,7 @@ def createSpeciesInstance (request, pk):
     
     form = SpeciesInstanceForm2(initial={"name":species.name, "species":species.id })
     context = {'form': form}
-    print ('Render species/editSpeciesInstance2.html')
     return render (request, 'species/editSpeciesInstance2.html', context)
-
-# @login_required(login_url='login')
-# def editSpeciesInstance (request, pk): 
-#     register_heif_opener() # must be done before form use or rejects heic files
-#     speciesInstance = SpeciesInstance.objects.get(id=pk)
-#     userCanEdit = user_can_edit_si (request.user, speciesInstance)
-#     if not userCanEdit:
-#         raise PermissionDenied()
-#     form = SpeciesInstanceForm(instance=speciesInstance)
-#     if (request.method == 'POST'):
-#         form2 = SpeciesInstanceForm(request.POST, request.FILES, instance=speciesInstance)
-#         if form2.is_valid():
-#             form2.save()
-#             if (speciesInstance.aquarist_species_image):
-#                 processUploadedImageFile (speciesInstance.aquarist_species_image, speciesInstance.name, request)
-#             if (speciesInstance.aquarist_species_video_url):
-#                 speciesInstance.aquarist_species_video_url = processVideoURL (speciesInstance.aquarist_species_video_url)
-#                 speciesInstance.save()              
-#             logger.info ('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
-#             return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))   
-#     context = {'form': form, 'speciesInstance': speciesInstance }
-#     return render (request, 'species/editSpeciesInstance.html', context)
 
 @login_required(login_url='login')
 def editSpeciesInstance(request, pk): 
@@ -581,7 +520,6 @@ def editSpeciesInstance(request, pk):
 
     form = SpeciesInstanceForm2(instance=speciesInstance)
     context = {'form': form, 'speciesInstance': speciesInstance}
-    print ('Render species/editSpeciesInstanceXX.html')
     return render(request, 'species/editSpeciesInstance2.html', context)
 
 @login_required(login_url='login')
@@ -596,6 +534,65 @@ def deleteSpeciesInstance (request, pk):
         return redirect('speciesSearch')
     context = {'speciesInstance': speciesInstance}
     return render (request, 'species/deleteSpeciesInstance.html', context)
+
+
+@login_required(login_url='login')
+def createSpeciesAndInstance(request):
+    """
+    Wizard helper for users to create both Species and SpeciesInstance in a single form. 
+    """
+    if request. method == 'POST': 
+        form = CombinedSpeciesForm(request.POST)
+        if form.is_valid():
+            try:
+                # create Species first - then SpeciesInstance
+                species = Species.objects.create(
+                    name           = form.cleaned_data['species_name'],
+                    description    = form.cleaned_data['species_description'],
+                    category       = form.cleaned_data['category'],
+                    global_region  = form.cleaned_data['global_region'],
+                    cares_status   = form.cleaned_data['cares_status'],
+                    created_by     = request.user,
+                    last_edited_by = request.user
+                )
+                # alt_name, common_name, local_distribution species_image, photo_credit remain null/blank
+                if species:
+                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.save()
+                
+                    # Create SpeciesInstance with Species as foreign key
+                    speciesInstance = SpeciesInstance.objects.create(
+                        name             = species.name,
+                        user             = request.user,
+                        species          = species,
+                        unique_traits    = form.cleaned_data['unique_traits'],
+                        genetic_traits   = form.cleaned_data['genetic_traits'],
+                        collection_point = form.cleaned_data['collection_point'],
+                        year_acquired    = form.cleaned_data['year_acquired'],
+                        aquarist_notes   = form.cleaned_data['aquarist_notes'],
+                        # all other fields to null/blank/default 
+                    )
+                    if speciesInstance:
+                        speciesInstance.save()
+                        species.species_instance_count = 1
+                        species.save()
+                
+                    messages.success(request, f'Successfully created species "{species.name}" and your Aquarist Species!')
+                    logger.info ('User %s added species: %s (%s) and speciesInstance: %s (%s)', request.user.username, 
+                                 species.name, str(species.id), speciesInstance.name, str(speciesInstance.id))
+                    return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
+                
+            except Exception as e:
+                logger.error(f"Unexpected error creating Species and Aquarist Species: {str(e)}", exc_info=True)
+                messages.error(request, f'Error creating species and instance: {str(e)}')
+        else:
+            logger.warning(f"CombinedSpeciesForm validation errors: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the following errors:')
+    else:
+        form = CombinedSpeciesForm()
+    
+    context = {'form': form}
+    return render(request, 'createSpeciesAndInstance.html', context)
 
 # SpeciesInstanceLabels
 

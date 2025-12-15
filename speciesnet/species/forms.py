@@ -303,6 +303,136 @@ class SpeciesInstanceForm (ModelForm):
                    'spawning_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
                    'fry_rearing_notes':          forms.Textarea(attrs={'rows':6,'cols':50}),}
         
+
+from django import forms
+from crispy_forms.helper import FormHelper
+from crispy_forms. layout import Layout, Fieldset, Submit, Row, Column, HTML
+from .models import Species, SpeciesInstance
+
+
+class CombinedSpeciesForm(forms.Form):
+    # Species fields
+    species_name = forms.CharField(
+        max_length=240,
+        label='Species Name',
+        help_text='<i>Scientific name of the species - please confirm spelling</i>'
+    )
+    species_description = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+        label='Species Description',
+        help_text='<i>Please add 1-2 sentences describing the species</i>'        
+    )
+    category = forms. ChoiceField(
+        choices=Species.Category.choices,
+        initial=Species.Category. CICHLIDS,
+        label='Category'
+    )
+    global_region = forms.ChoiceField(
+        choices=Species. GlobalRegion.choices,
+        initial=Species.GlobalRegion. AFRICA,
+        label='Global Region'
+    )
+    cares_status = forms.ChoiceField(
+        choices=Species.CaresStatus.choices,
+        initial=Species.CaresStatus.NOT_CARES_SPECIES,
+        label='CARES Status'
+    )
+    
+    # SpeciesInstance fields
+    aquarist_notes = forms.CharField(
+        widget=forms. Textarea(attrs={'rows': 3}),
+        required=False,
+        label='Aquarist Notes',
+        help_text='<i>Describe where you acquired these fish and any notes on the tank, tank mates, water conditions, etc ...</i>'
+    )
+    unique_traits = forms.CharField(
+        max_length=200,
+        required=False,
+        label='Unique Traits',
+        help_text='<i><b>Optional:</b> Description of special traits of your fish. For example unique color, fins, etc.</i>'
+    )
+    genetic_traits = forms.ChoiceField(
+        choices=SpeciesInstance.GeneticLine.choices,
+        initial=SpeciesInstance.GeneticLine.AQUARIUM_STRAIN,
+        label='Genetic Line'
+    )
+    collection_point = forms. CharField(
+        max_length=200,
+        required=False,
+        label='Collection Point',
+        help_text='<i><b>Optional:</b> Original collection location if known</i>'
+    )
+    year_acquired = forms.IntegerField(
+        initial=2025,
+        min_value=1900,
+        max_value=2100,
+        required=False,
+        label='Year Acquired'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper. form_method = 'post'
+
+        self.helper.layout = Layout(
+            HTML('<h3 class="mt-3 mb-1">Species Profile</h3> <p><i>Shared info used by all hobbyists keeping this species</i></p>' ),
+            Div(  
+                Fieldset(
+                    '',
+                    Row(
+                        Column('species_name', css_class='col-md-12 mb-3'),
+                    ),
+                    Row(
+                        Column('species_description', css_class='col-md-12 mb-3'),
+                    ),
+                    Row(
+                        Column('category', css_class='col-md-4 mb-3'),
+                        Column('global_region', css_class='col-md-4 mb-3'),
+                        Column('cares_status', css_class='col-md-4 mb-3'),
+                    ),
+                    css_class='mb-4'
+                ),
+                css_class='card-body px-4 py-3 section-bordered',
+                style='background-color: ##b6d7ef;;'
+            ),
+
+            HTML('<h3 class="mb-3 mt-4">Aquarist Species</h3>'),
+            Fieldset(
+                '',
+                Row(
+                    Column('aquarist_notes', css_class='col-md-12 mb-3'),
+                ),
+                Row(
+                    Column('unique_traits', css_class='col-md-6 mb-3'),
+                    Column('genetic_traits', css_class='col-md-6 mb-3'),
+                ),
+                Row(
+                    Column('collection_point', css_class='col-md-8 mb-3'),
+                    Column('year_acquired', css_class='col-md-4 mb-3'),
+                ),
+            ),
+            Submit('submit', 'Save', css_class='btn btn-primary btn-lg mt-3')
+        )
+    
+    def clean_species_name(self):
+        name = self. cleaned_data. get('species_name')
+        if Species.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError(
+                f'A species with the name "{name}" already exists.  '
+                'Please use the Search Species option to find this species.'
+            )
+        return name
+    
+    def clean_year_acquired(self):
+        from datetime import datetime
+        year = self.cleaned_data.get('year_acquired')
+        if year and year > datetime.now().year:
+            raise forms.ValidationError('Year acquired cannot be in the future.')
+        return year
+
+        
 class SpeciesInstanceLogEntryForm (ModelForm):
     class Meta:
         model = SpeciesInstanceLogEntry
