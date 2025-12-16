@@ -447,7 +447,7 @@ class SpeciesCommentForm (ModelForm):
         model = SpeciesComment
         fields = ['comment']
         exclude = ['user', 'species']
-        widgets = {'comment':            forms.Textarea(attrs={'rows':1,'cols':80}),}
+        widgets = {'comment':            forms.Textarea(attrs={'rows':1,'cols':60}),}
 
 class SpeciesReferenceLinkForm (ModelForm):
     class Meta:

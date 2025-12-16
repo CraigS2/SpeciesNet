@@ -1,63 +1,89 @@
 {% extends 'main.html' %}
 <!---- context = {form, speciesMaintenanceLog, collaborators, speciesInstances, num_avail_collaborators, num_avail_speciesInstances} ---->
 {% block content %}
-<div class="container">
-    <div>
-        <h3>Edit Species Maintenance Log</h3>
-        <h4><a href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id %}">{{speciesMaintenanceLog.name}}</a></h4>
-        <table>
-            <td>Species:</td><td>{{speciesMaintenanceLog.species.name}}</td>
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{form.as_table}}
-                <td></td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>                
-            </form>
-        </table>
-        <p><small>&nbsp;</small></p>
-    </div>
-    <div class="div-line-above">
-        <h3>Group Collaborators:</h3>
-        {% if collaborators.all.count > 0  %}
-            {% for collaborator in collaborators %}
-                <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                    <b>{{collaborator.get_display_name}}</b>
-                    {% if not collaborators.is_private_name  %}
-                    &nbsp;&nbsp;({{collaborator.first_name}}&nbsp;{{collaborator.last_name}})
-                    {% endif %}
-                </p>
-            {% endfor %}
-        {% else %}
-            <h5>None</h5>
-        {% endif %}  
-        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Add Collaborator</a>
-            <small>&nbsp;&nbsp;</small>
-            <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Remove Collaborator</a>
-        </p>
-        <p>There are {{num_avail_collaborators}} more aquarists keeping {{speciesMaintenanceLog.species.name}} who may be added as collaborators</p>
-    </div>
-    <div class="div-line-above">
-        <h3>Aquarist Species in Group:</h3>
-        {% if speciesInstances.all.count > 0  %}
-            {% for speciesInstance in speciesInstances %}
-                <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                    {{speciesInstance.name}}&nbsp;(<b>{{speciesInstance.user.get_display_name}}</b>) 
-                </p>
-            {% endfor %}
-        {% endif %}  
-        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Add Aquarist Species</a>
-            <small>&nbsp;&nbsp;</small>
-            <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Remove Aquarist Species</a>
-        </p>
-        <p>There are {{num_avail_speciesInstances}} aquarist species available from collaborators which may be added to the maintenance group.</p>
-    </div>
-    <div class="div-line-above">
-        <h3>Delete Species Maintenance Log:</h3>
-        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <a class="btn btn-secondary" href="{% url 'deleteSpeciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;Delete Log&nbsp;</a>
-        </p>
-        <p>Warning! This will delete the log, all log entries, the Collaborator list, and Species list for this log.</p>
+
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>Edit Species Maintenance Log: </b> &nbsp;<i>{{speciesMaintenanceLog.species.name}}</i></h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    <table>
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {{form.as_table}}
+                            <td></td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Save"></td>                
+                        </form>
+                    </table>
+                </div>
+            </div>
+            <p>&nbsp;</p> 
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>Group Collaborators</b></h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    <ul>
+                        {% for aquarist in collaborators %}
+                            {% if aquarist.is_private_name %}
+                                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}}</a></font></li>
+                            {% else %}
+                                <li><font style="color:black;"><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}}</a> ({{aquarist.first_name}} {{aquarist.last_name}})</font></li>
+                            {% endif %}        
+                        {% endfor %} 
+                    </ul>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                        <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Add Collaborator</a>
+                        <small>&nbsp;&nbsp;</small>
+                        <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupCollaborator' speciesMaintenanceLog.id  %}" role="button">Remove Collaborator</a>
+                    </p>
+                    <p>There are {{num_avail_collaborators}} more aquarists keeping {{speciesMaintenanceLog.species.name}} who may be added as collaborators</p>
+                   
+                </div>
+            </div>
+            <p>&nbsp;</p> 
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>Aquarist Species in Group</b></h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+
+                    <ul>
+                        {% for speciesInstance in speciesInstances %}
+                        <li><font style="color:black;">{{speciesInstance.user.get_display_name}} : <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></font></li>
+                        {% endfor %} 
+                    </ul>  
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <a class="btn btn-secondary" href="{% url 'addMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Add Aquarist Species</a>
+                        <small>&nbsp;&nbsp;</small>
+                        <a class="btn btn-secondary" href="{% url 'removeMaintenanceGroupSpecies' speciesMaintenanceLog.id  %}" role="button">Remove Aquarist Species</a>
+                    </p>
+                    <p>There are {{num_avail_speciesInstances}} aquarist species available from collaborators which may be added to the maintenance group.</p>
+                </div>
+            </div>
+            <p>&nbsp;</p>             
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>Delete Species Maintenance Log</b></h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                    <p><b style="color: darkred">Warning!</b>&nbsp;&nbsp; This will delete the log, all log entries, the Collaborator list, and Species list for this log.</p>
+                    <p>
+                        <a href="{% url 'deleteSpeciesMaintenanceLog' speciesMaintenanceLog.id %}" 
+                            class="btn btn-secondary"
+                            style="color: darkred !important; margin-left: 6%;">
+                            &nbsp;Delete Maintenance Log&nbsp;
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock content %}
