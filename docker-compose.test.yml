@@ -1,0 +1,43 @@
+services:  
+
+    test_db:
+      container_name: ASN_TEST_DB
+      image: mariadb:11.4.2
+      environment:
+        MYSQL_DATABASE: test_speciesnet
+        MYSQL_USER: test_user
+        MYSQL_PASSWORD: test_password
+        MYSQL_ROOT_PASSWORD: test_root_password
+      expose: 
+        - 3306
+      tmpfs: 
+        - /var/lib/mysql
+      command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+    test_django:
+      container_name: ASN_TEST_DJANGO
+      build: 
+        context: . 
+      #dockerfile: Dockerfile.test
+      depends_on:
+        - test_db
+      environment: 
+        DATABASE_HOST: test_db
+        DATABASE_NAME: test_speciesnet
+        DATABASE_USER: root
+        DATABASE_PASSWORD: test_root_password
+        DATABASE_PORT:  3306
+        DATABASE_ROOT_PASSWORD: test_root_password
+        DEBUG: "1"
+        DEBUG_TOOLBAR: "0"
+        SECRET_KEY: "test-secret-key-not-for-production"
+        ALLOWED_HOST1: "localhost"
+        ALLOWED_HOST2: "127.0.0.1"
+        ALLOWED_HOST3: "testserver"
+        CSRF_TRUSTED_ORIGIN1: "http://localhost"
+        CSRF_TRUSTED_ORIGIN2: "http://127.0.0.1"
+        CSRF_TRUSTED_ORIGIN3: "http://testserver"
+        EMAIL_BACKEND: "django.core. mail.backends.console.EmailBackend"
+      entrypoint: []
+      command: sh /entrypoint.test.sh        
+      #entrypoint:  ["sh", "/entrypoint.test.sh"]

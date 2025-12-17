@@ -168,7 +168,7 @@ class Species (models.Model):
     def genus_name (self):
         genus_name = self.name.lstrip()   # strips any leading space characters
         if ' ' in genus_name:
-            genus_name = self.name.split(' ')[0]
+            genus_name = genus_name.split(' ')[0] 
         else:
             print ('Species name failed to resolve to genus name for species: ' + self.name)
         return genus_name
