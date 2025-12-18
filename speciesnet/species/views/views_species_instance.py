@@ -9,7 +9,7 @@ from . base import *
 ### View Species Instance
 
 def speciesInstance(request, pk):
-    speciesInstance = SpeciesInstance.objects.get(id=pk)
+    speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
     species = speciesInstance.species
     
     # TODO improve finding and displaying optional speciesMaintenanceLog
