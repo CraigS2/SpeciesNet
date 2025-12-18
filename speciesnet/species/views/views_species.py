@@ -8,7 +8,7 @@ from . base import *
 ### View Species
 
 def species(request, pk):
-    species = Species.objects.get(id=pk)
+    species = get_object_or_404(Species, pk=pk)
     renderCares = species.cares_status != Species.CaresStatus. NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesComments = SpeciesComment. objects.filter(species=species)
@@ -174,7 +174,7 @@ def editSpecies(request, pk):
 
 @login_required(login_url='login')
 def deleteSpecies(request, pk):
-    species = Species.objects.get(id=pk)
+    species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit: 
         raise PermissionDenied()
@@ -209,7 +209,7 @@ def speciesComments(request):
 
 @login_required(login_url='login')
 def editSpeciesComment(request, pk):
-    speciesComment = SpeciesComment.objects.get(id=pk)
+    speciesComment = get_object_or_404(SpeciesComment, pk=pk)
     species = speciesComment.species
     userCanEdit = user_can_edit_sc(request.user, speciesComment)
     if not userCanEdit:
@@ -231,7 +231,7 @@ def editSpeciesComment(request, pk):
 
 @login_required(login_url='login')
 def deleteSpeciesComment(request, pk):
-    speciesComment = SpeciesComment.objects.get(id=pk)
+    speciesComment = get_object_or_404(SpeciesComment, pk=pk)
     userCanEdit = user_can_edit_sc(request.user, speciesComment)
     if not userCanEdit: 
         raise PermissionDenied()
@@ -257,7 +257,7 @@ def speciesReferenceLinks(request):
 
 
 def createSpeciesReferenceLink(request, pk):
-    species = Species. objects.get(id=pk)
+    species = get_object_or_404(Species, pk=pk)
     form = SpeciesReferenceLinkForm(initial={"user": request.user, "species":  species})
     
     if request.method == 'POST':
@@ -276,7 +276,7 @@ def createSpeciesReferenceLink(request, pk):
 
 @login_required(login_url='login')
 def editSpeciesReferenceLink(request, pk):
-    speciesReferenceLink = SpeciesReferenceLink.objects. get(id=pk)
+    speciesReferenceLink = get_object_or_404(SpeciesReferenceLink, pk=pk)
     species = speciesReferenceLink.species
     userCanEdit = user_can_edit_srl(request.user, speciesReferenceLink)
     if not userCanEdit:
@@ -297,7 +297,7 @@ def editSpeciesReferenceLink(request, pk):
 
 @login_required(login_url='login')
 def deleteSpeciesReferenceLink(request, pk):
-    speciesReferenceLink = SpeciesReferenceLink.objects.get(id=pk)
+    speciesReferenceLink = get_object_or_404(SpeciesReferenceLink, pk=pk)
     userCanEdit = user_can_edit_srl(request.user, speciesReferenceLink)
     if not userCanEdit: 
         raise PermissionDenied()

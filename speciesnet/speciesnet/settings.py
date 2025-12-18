@@ -25,16 +25,18 @@ ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'], os.en
 CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], os.environ['CSRF_TRUSTED_ORIGIN3']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
 
-# DEBUG SECURITY WARNING ------> do NOT run with debug turned on in production!
-
+# DEBUG environment variable shared with nginx-certbot will generally be set as 0 or 1
+DEBUG = False
 if (os.environ['DEBUG'] == 'True'):
     DEBUG = True
 elif (os.environ['DEBUG'] == '1'):
     DEBUG = True
-else:
-    DEBUG = False
+print ('DEBUG = ' + str(DEBUG))
 
-DEBUG_TOOLBAR = os.environ.get('DEBUG_TOOLBAR', 'False')
+DEBUG_TOOLBAR = False
+if (os.environ['DEBUG_TOOLBAR'] == 'True'):
+    DEBUG_TOOLBAR = True
+print ('DEBUG_TOOLBAR = ' + str(DEBUG_TOOLBAR))
 
 if DEBUG and DEBUG_TOOLBAR:
     def show_toolbar(request):
@@ -42,6 +44,7 @@ if DEBUG and DEBUG_TOOLBAR:
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK" : show_toolbar,
     }
+    print ('DEBUG_TOOLBAR is enabled!')
 
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

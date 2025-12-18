@@ -32,7 +32,8 @@ def user_can_edit_s (cur_user: User, species: Species):
     if cur_user.is_staff:
         userCanEdit = True
     elif created_date == today_date:
-        userCanEdit = True       # Allow everyone to edit newly created species on same day of creation
+        if species.created_by == cur_user:
+            userCanEdit = True       # Allow non-admin creator to edit species on same day of creation
     return userCanEdit
 
 def user_can_edit_si (cur_user: User, speciesInstance: SpeciesInstance):
