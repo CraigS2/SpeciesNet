@@ -3,15 +3,15 @@ AquaristClub-related views: club management, membership, admin functions
 Handles club profiles, member management, and club administration
 """
 
-from . base import *
+from .base import *
 
 
 ### View All Clubs
 
 @login_required(login_url='login')
 def aquaristClubs(request):
-    aquaristClubs = AquaristClub.objects. all()
-    userCanEdit = user_can_edit(request. user)
+    aquaristClubs = AquaristClub.objects.all()
+    userCanEdit = user_can_edit(request.user)
     context = {'aquaristClubs':  aquaristClubs, 'userCanEdit': userCanEdit}
     logger.info('User %s visited aquaristClubs', request.user.username)
     return render(request, 'species/aquaristClubs.html', context)
@@ -52,7 +52,7 @@ def createAquaristClub(request):
     
     form = AquaristClubForm()
     if request.method == 'POST': 
-        form2 = AquaristClubForm(request. POST, request.FILES)
+        form2 = AquaristClubForm(request.POST, request.FILES)
         if form2.is_valid():
             aquaristClub = form2.save(commit=True)
             if aquaristClub.logo_image:
@@ -68,7 +68,7 @@ def createAquaristClub(request):
 
 @login_required(login_url='login')
 def editAquaristClub(request, pk):
-    aquaristClub = AquaristClub.objects. get(id=pk)
+    aquaristClub = AquaristClub.objects.get(id=pk)
     userCanEdit = user_can_edit_club(request.user, aquaristClub)
     
     if not userCanEdit: 
@@ -77,15 +77,15 @@ def editAquaristClub(request, pk):
     form = AquaristClubForm(instance=aquaristClub)
     print('AquaristClub config file: ', str(aquaristClub))
     
-    if request. method == 'POST':
-        form2 = AquaristClubForm(request.POST, request. FILES, instance=aquaristClub)
+    if request.method == 'POST':
+        form2 = AquaristClubForm(request.POST, request.FILES, instance=aquaristClub)
         if form2.is_valid: 
             aquaristClub = form2.save()
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             form2.save()
             logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
-        return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub. id]))
+        return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
     
     context = {'form':  form, 'aquaristClub': aquaristClub}
     return render(request, 'species/editAquaristClub.html', context)
@@ -102,7 +102,7 @@ def deleteAquaristClub(request, pk):
         raise PermissionDenied()
     
     if request.method == 'POST':
-        logger.info('User %s deleted club: %s', request.user. username, aquaristClub. name)
+        logger.info('User %s deleted club: %s', request.user.username, aquaristClub.name)
         aquaristClub.delete()
         return redirect('aquaristClubs')
     
@@ -117,7 +117,7 @@ def deleteAquaristClub(request, pk):
 @login_required(login_url='login')
 def aquaristClubAdmin(request, pk):
     cur_user = request.user
-    club = AquaristClub. objects.get(id=pk)
+    club = AquaristClub.objects.get(id=pk)
     clubMembers = AquaristClubMember.objects.filter(club=club)
     userCanEdit = user_can_edit_club(cur_user, club)
     
@@ -143,7 +143,7 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
         print("AquaristClubMemberListView setup called")
 
     def get_club(self):
-        club_id = self.kwargs. get('pk')
+        club_id = self.kwargs.get('pk')
         club = AquaristClub.objects.get(id=club_id)
         return club
 
@@ -164,7 +164,7 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
         context['club'] = self.get_club()
         context['userCanEdit'] = self.get_userCanEdit()
         logger.info('User %s viewed AquaristClubMemberListView for club: %s', 
-                   self. request.user.username, self. get_club().name)
+                   self.request.user.username, self.get_club().name)
         return context
 
 
@@ -179,7 +179,7 @@ def aquaristClubMember(request, pk):
         raise PermissionDenied
     
     logger.info('User %s viewed Club Member: %s (%s)', 
-               request.user. username, aquaristClubMember.name, str(aquaristClubMember.id))
+               request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))
     context = {'aquaristClubMember': aquaristClubMember, 'userCanEdit': userCanEdit}
     return render(request, 'species/aquaristClubMember.html', context)
 
@@ -188,26 +188,26 @@ def aquaristClubMember(request, pk):
 
 @login_required(login_url='login')
 def createAquaristClubMember(request, pk):
-    club = AquaristClub.objects. get(id=pk)
+    club = AquaristClub.objects.get(id=pk)
     user = request.user
     form = AquaristClubMemberJoinForm()
     
     if request.method == 'POST':
         form = AquaristClubMemberJoinForm(request.POST)
-        form.instance.name = club. acronym + ': ' + user.username
-        form.instance. user = request.user
+        form.instance.name = club.acronym + ': ' + user.username
+        form.instance.user = request.user
         form.instance.club = club
         
         if form.is_valid():
             member = form.save(commit=False)
-            if not member.club. require_member_approval:
+            if not member.club.require_member_approval:
                 print("Auto-accepting Club Membership")
                 member.membership_approved = True
             else:
                 print("New Club Membership request - needs admin approval")
-            member. bap_participant = True
+            member.bap_participant = True
             member.save()
-            logger. info('User %s joined club:  %s (%s)', request.user.username, club.name, str(club.id))
+            logger.info('User %s joined club:  %s (%s)', request.user.username, club.name, str(club.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[club.id]))
     
     context = {'form':  form, 'aquaristClub': club}
@@ -220,7 +220,7 @@ def createAquaristClubMember(request, pk):
 def editAquaristClubMember(request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
     club = aquaristClubMember.club
-    userCanEdit = user_can_edit_club(request.user, aquaristClubMember. club)
+    userCanEdit = user_can_edit_club(request.user, aquaristClubMember.club)
     
     if not userCanEdit:
         raise PermissionDenied()
@@ -244,14 +244,14 @@ def editAquaristClubMember(request, pk):
 def deleteAquaristClubMember(request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
     aquaristClub = aquaristClubMember.club
-    userCanEdit = user_can_edit_club(request. user, aquaristClubMember.club)
+    userCanEdit = user_can_edit_club(requestuser, aquaristClubMember.club)
     
     if not userCanEdit:
         raise PermissionDenied()
     
     if request.method == 'POST':
         logger.info('User %s deleted club member: %s (%s)', 
-                   request.user. username, aquaristClubMember.name, str(aquaristClubMember.id))
+                   request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))
         aquaristClubMember.delete()
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
     

@@ -374,7 +374,7 @@ class BapGenusView(LoginRequiredMixin, ListView):
                         logger.error('Initializing bapGenus list: multiple entries found for genus: %s', genus_name)
 
         print(f'BapGenus initialized - genus count: {len(genus_names)}')
-        logger.info('Initialization of bapGenus list complete for %s:  Genus count: %s', club. name, len(genus_names))
+        logger.info('Initialization of bapGenus list complete for %s:  Genus count: %s', club.name, len(genus_names))
 
     def get_queryset(self):
         club = self.get_bap_club()

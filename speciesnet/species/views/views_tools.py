@@ -3,7 +3,7 @@ Admin tools views: database utilities, cleanup functions, admin dashboards
 Restricted to staff/admin users only
 """
 
-from .  base import *
+from .base import *
 
 
 ### Species Instance Reports
@@ -14,13 +14,13 @@ def speciesInstancesWithVideos(request):
     View all species instances that have YouTube videos
     """
     # Need to filter on both null and empty string cases - so use an exclude set
-    speciesInstances = SpeciesInstance.objects. exclude(
+    speciesInstances = SpeciesInstance.objects.exclude(
         Q(aquarist_species_video_url__isnull=True) | 
         Q(aquarist_species_video_url='')
     )
     
     if request.user.is_authenticated:
-        logger.info('User %s visited speciesInstancesWithVideos page.', request.user. username)
+        logger.info('User %s visited speciesInstancesWithVideos page.', request.user.username)
     else:
         logger.info('Anonymous user visited speciesInstancesWithVideos page.')
     
@@ -39,14 +39,14 @@ def speciesInstancesWithLogs(request):
     for log_entry in log_entries: 
         speciesInstance = log_entry.speciesInstance
         if speciesInstance not in speciesInstances:
-            speciesInstances. append(speciesInstance)
+            speciesInstances.append(speciesInstance)
     
     speciesInstancesEmpty = len(speciesInstances) == 0
     
-    if request. user.is_authenticated:
+    if request.user.is_authenticated:
         logger.info('User %s visited speciesInstancesWithLogs page.', request.user.username)
     else:
-        logger. info('Anonymous user visited speciesInstancesWithLogs page.')
+        logger.info('Anonymous user visited speciesInstancesWithLogs page.')
     
     context = {
         'speciesInstances':  speciesInstances,
@@ -70,10 +70,10 @@ def speciesInstancesWithEmptyLogs(request):
         species_instance_log_entries__isnull=True
     )
     
-    # Optional action to clear all empty log speciesInstance. enable_species_log flags
+    # Optional action to clear all empty log speciesInstance.enable_species_log flags
     if request.method == 'POST':
         print('Clearing empty speciesInstance logs .. .')
-        if request.POST. get('action') == 'clear_flags':
+        if request.POST.get('action') == 'clear_flags':
             si_list = list(speciesInstances)  # Triggers django's lazy querysets
             count = len(si_list)  # Gets length without query being executed twice
             
@@ -123,7 +123,7 @@ def tools2(request):
     if not userCanEdit:
         raise PermissionDenied()
     
-    logger.info('Admin user %s visited tools2 page', request. user.username)
+    logger.info('Admin user %s visited tools2 page', request.user.username)
     return render(request, 'species/tools2.html')
 
 
@@ -144,7 +144,7 @@ def dirtyDeed(request):
     # Dirty deed goes here ...  then return to tools2
     
     ######### Example:  Populate PVAS sample BapGenus table ########
-    # club = AquaristClub. objects.get(id=1)
+    # club = AquaristClub.objects.get(id=1)
     # species_set = Species.objects.all()
     # genus_names = set()  # prevents duplicate entries
     # for species in species_set:
@@ -157,16 +157,16 @@ def dirtyDeed(request):
     #     bapGP.save()
 
     ######## Example:  Populate PVAS sample BapSpecies table ########
-    # club = AquaristClub. objects.get(id=1)
+    # club = AquaristClub.objects.get(id=1)
     # species_set = Species.objects.all()
     # for species in species_set: 
     #     bapSP = BapSpecies(name=species.name, species=species, club=club, points=10)
-    #     bapSP. save()
+    #     bapSP.save()
 
     ######## Example:  Migrate aquarist species to new user ###############
     # old_user = User.objects.get(username='fehringerk')
     # new_user = User.objects.get(username='fehringer')
-    # si_set = SpeciesInstance.objects. filter(user=old_user)
+    # si_set = SpeciesInstance.objects.filter(user=old_user)
     # for si in si_set: 
     #     si.user = new_user
     #     si.save()

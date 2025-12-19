@@ -3,7 +3,7 @@ User Experience views: home page, informational pages, wizards, import results
 Public-facing and helper pages for users
 """
 
-from . base import *
+from .base import *
 
 
 ### Home Page
@@ -19,7 +19,7 @@ def home(request):
 ### About and Info Pages
 
 def about_us(request):
-    aquarists = User.objects. all()
+    aquarists = User.objects.all()
     if request.user.is_authenticated:
         logger.info('User %s visited about_us page.', request.user.username)
     else:
@@ -71,10 +71,10 @@ def addSpeciesInstanceWizard2(request):
     Wizard style workflow helping users search/find/add species to add their speciesInstance
     Step 2: Search for existing species
     """
-    speciesSet = Species.objects. all()
+    speciesSet = Species.objects.all()
     # Set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
     q = request.GET.get('q') if request.GET.get('q') is not None else ''
-    speciesFilter = Species.objects. filter(Q(name__icontains=q) | Q(alt_name__icontains=q))[:10]
+    speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q))[:10]
     searchActive = len(q) > 0
     resultsCount = len(speciesFilter)
     
@@ -101,7 +101,7 @@ def importArchiveResults(request, pk):
     import_archive = ImportArchive.objects.get(id=pk)
     
     try:
-        with open(import_archive. import_results_file. path, 'r', encoding="utf-8") as csv_file:
+        with open(import_archive.import_results_file.path, 'r', encoding="utf-8") as csv_file:
             dict_reader = DictReader(csv_file)
             report_row = "Status:  "
             context = {

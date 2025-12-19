@@ -2,16 +2,16 @@
 Species-related views: CRUD operations, search, comments, reference links
 """
 
-from . base import *
+from .base import *
 
 
 ### View Species
 
 def species(request, pk):
     species = get_object_or_404(Species, pk=pk)
-    renderCares = species.cares_status != Species.CaresStatus. NOT_CARES_SPECIES
+    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
-    speciesComments = SpeciesComment. objects.filter(species=species)
+    speciesComments = SpeciesComment.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
     cur_user = request.user
     userCanEdit = user_can_edit_s(request.user, species)
@@ -24,15 +24,15 @@ def species(request, pk):
             speciesComment = form.save(commit=False)
             speciesComment.user = cur_user
             speciesComment.species = species
-            speciesComment.comment = sanitize_text(speciesComment. comment)
-            speciesComment. name = cur_user.get_display_name() + " - " + species.name
-            speciesComment. save()
+            speciesComment.comment = sanitize_text(speciesComment.comment)
+            speciesComment.name = cur_user.get_display_name() + " - " + species.name
+            speciesComment.save()
             logger.info('User %s commented on species page: %s.', request.user.username, species.name)
     
     if request.user.is_authenticated:
-        logger.info('User %s visited species page: %s.', request.user.username, species. name)
+        logger.info('User %s visited species page: %s.', request.user.username, species.name)
     else:
-        logger.info('Anonymous user visited species page: %s.', species. name)
+        logger.info('Anonymous user visited species page: %s.', species.name)
     
     context = {
         'species': species,
@@ -56,7 +56,7 @@ class SpeciesListView(ListView):
 
     def get_queryset(self):
         queryset = Species.objects.all()
-        category = self.request. GET.get('category', '')
+        category = self.request.GET.get('category', '')
         global_region = self.request.GET.get('global_region', '')
         query_text = self.request.GET.get('q', '')
         
@@ -65,7 +65,7 @@ class SpeciesListView(ListView):
         if global_region: 
             queryset = queryset.filter(global_region=global_region)
         if query_text: 
-            queryset = queryset. filter(
+            queryset = queryset.filter(
                 Q(name__icontains=query_text) |
                 Q(alt_name__icontains=query_text) |
                 Q(common_name__icontains=query_text) |
@@ -82,9 +82,9 @@ class SpeciesListView(ListView):
         context = super().get_context_data(**kwargs)
         context['categories'] = Species.Category.choices
         context['global_regions'] = Species.GlobalRegion.choices
-        context['selected_category'] = self.request. GET.get('category', '')
+        context['selected_category'] = self.request.GET.get('category', '')
         context['selected_region'] = self.request.GET.get('global_region', '')
-        context['query_text'] = self. request.GET.get('q', '')
+        context['query_text'] = self.request.GET.get('q', '')
         return context
 
 
@@ -105,11 +105,11 @@ def createSpecies(request):
                 # Assure unique species names - prevent duplicates
                 if not Species.objects.filter(name=species_name).exists():
                     species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-                    species.created_by = request. user
+                    species.created_by = request.user
                     species.save()
                     if species.species_image:
-                        processUploadedImageFile(species.species_image, species. name, request)
-                    logger.info('User %s created new species: %s (%s)', request.user.username, species. name, str(species.id))
+                        processUploadedImageFile(species.species_image, species.name, request)
+                    logger.info('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
                     return HttpResponseRedirect(reverse("species", args=[species.id]))
                 else:
                     dupe_msg = f"{species_name} already exists.  Please use this Species entry."
@@ -142,27 +142,27 @@ def editSpecies(request, pk):
         raise PermissionDenied()
 
     if request.method == 'POST': 
-        form = SpeciesForm2(request.POST, request. FILES, instance=species)
+        form = SpeciesForm2(request.POST, request.FILES, instance=species)
         if form.is_valid():
             try:
                 species = form.save(commit=False)
-                species. render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
                 species.last_edited_by = request.user
                 species.save()
                 if species.species_image:
                     processUploadedImageFile(species.species_image, species.name, request)
                 logger.info('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
                 messages.success(request, f'Species "{species.name}" updated successfully!')
-                return HttpResponseRedirect(reverse("species", args=[species. id]))
+                return HttpResponseRedirect(reverse("species", args=[species.id]))
             except IntegrityError as e:
-                logger. error(f"IntegrityError editing species: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
                 logger.error(f"Unexpected error editing species: {str(e)}", exc_info=True)
                 messages.error(request, f'An unexpected error occurred: {str(e)}')
         else:
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
-            messages. error(request, 'Please correct the errors highlighted below.')
+            messages.error(request, 'Please correct the errors highlighted below.')
     else:
         form = SpeciesForm2(instance=species)
 
@@ -183,7 +183,7 @@ def deleteSpecies(request, pk):
     if speciesInstances.count() > 0:
         msg = f'{species.name} has {speciesInstances.count()} aquarist entries and cannot be deleted.'
         messages.info(request, msg)
-        logger.warning('User %s attempted to delete species:  %s with speciesInstance dependencies. Deletion blocked.', request. user.username, species.name)
+        logger.warning('User %s attempted to delete species:  %s with speciesInstance dependencies. Deletion blocked.', request.user.username, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
     
     if request.method == 'POST': 
@@ -236,7 +236,7 @@ def deleteSpeciesComment(request, pk):
     if not userCanEdit: 
         raise PermissionDenied()
     
-    if request. method == 'POST':
+    if request.method == 'POST':
         species = speciesComment.species
         speciesComment.delete()
         return redirect('/species/' + str(species.id))
@@ -255,7 +255,7 @@ def speciesReferenceLinks(request):
     context = {'speciesReferenceLinks': speciesReferenceLinks}
     return render(request, 'species/speciesReferenceLinks.html', context)
 
-
+@login_required(login_url='login')
 def createSpeciesReferenceLink(request, pk):
     species = get_object_or_404(Species, pk=pk)
     form = SpeciesReferenceLinkForm(initial={"user": request.user, "species":  species})
@@ -302,7 +302,7 @@ def deleteSpeciesReferenceLink(request, pk):
     if not userCanEdit: 
         raise PermissionDenied()
     
-    if request. method == 'POST':
+    if request.method == 'POST':
         species = speciesReferenceLink.species
         logger.info('User %s deleted speciesReferenceLink for species:  %s (%s)', request.user.username, species.name, str(species.id))
         speciesReferenceLink.delete()
@@ -326,7 +326,7 @@ def importSpecies(request):
     current_user = request.user
     form = ImportCsvForm()
     
-    if request. method == 'POST':
+    if request.method == 'POST':
         form2 = ImportCsvForm(request.POST, request.FILES)
         if form2.is_valid():
             import_archive = form2.save()

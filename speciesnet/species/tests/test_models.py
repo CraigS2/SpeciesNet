@@ -8,8 +8,8 @@ Test organization:
 """
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from django.db. utils import IntegrityError
-from django.db. models import ProtectedError
+from django.db.utils import IntegrityError
+from django.db.models import ProtectedError
 from species.models import (
     User, UserEmail, Species, SpeciesComment, SpeciesReferenceLink,
     SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel,
@@ -18,12 +18,8 @@ from species.models import (
     BapGenus, BapSpecies, ImportArchive
 )
 from datetime import date
-from .  import BaseTestCase, MinimalTestCase
+from . import BaseTestCase, MinimalTestCase
 
-
-# =============================================================================
-# USER MODEL TESTS
-# =============================================================================
 
 class UserModelCRUDTest(MinimalTestCase):
     """Test User model CRUD operations - uses clean database"""
@@ -38,7 +34,7 @@ class UserModelCRUDTest(MinimalTestCase):
     
     def test_create_user(self):
         """Test creating a regular user"""
-        user = User. objects.create_user(**self. user_data)
+        user = User.objects.create_user(**self.user_data)
         self.assertEqual(user.email, 'test@example.com')
         self.assertEqual(user.username, 'testuser')
         self.assertTrue(user.check_password('testpass123'))
@@ -55,14 +51,14 @@ class UserModelCRUDTest(MinimalTestCase):
     def test_create_user_missing_username(self):
         """Test user creation fails without username"""
         with self.assertRaises(ValueError) as context:
-            User.objects. create_user(email='test@example.com', username='', password='pass')
+            User.objects.create_user(email='test@example.com', username='', password='pass')
         self.assertIn('Username is required', str(context.exception))
     
     def test_create_user_missing_password(self):
         """Test user creation fails without password"""
         with self.assertRaises(ValueError) as context:
             User.objects.create_user(email='test@example.com', username='test', password='')
-        self.assertIn('Password is required', str(context. exception))
+        self.assertIn('Password is required', str(context.exception))
     
     def test_create_superuser(self):
         """Test creating a superuser"""
@@ -83,9 +79,9 @@ class UserModelCRUDTest(MinimalTestCase):
     
     def test_user_username_unique(self):
         """Test username uniqueness constraint"""
-        User. objects.create_user(**self. user_data)
+        User.objects.create_user(**self.user_data)
         with self.assertRaises(IntegrityError):
-            User.objects. create_user(
+            User.objects.create_user(
                 email='different@example.com',
                 username='testuser',
                 password='pass'
@@ -93,7 +89,7 @@ class UserModelCRUDTest(MinimalTestCase):
     
     def test_read_user(self):
         """Test reading user data"""
-        user = User. objects.create_user(**self. user_data)
+        user = User.objects.create_user(**self.user_data)
         retrieved_user = User.objects.get(email='test@example.com')
         self.assertEqual(user.id, retrieved_user.id)
         self.assertEqual(user.username, retrieved_user.username)
@@ -110,8 +106,8 @@ class UserModelCRUDTest(MinimalTestCase):
         updated_user = User.objects.get(pk=user.pk)
         self.assertEqual(updated_user.first_name, 'John')
         self.assertEqual(updated_user.last_name, 'Doe')
-        self.assertEqual(updated_user. state, 'California')
-        self.assertEqual(updated_user. country, 'USA')
+        self.assertEqual(updated_user.state, 'California')
+        self.assertEqual(updated_user.country, 'USA')
     
     def test_delete_user(self):
         """Test deleting a user"""
@@ -122,7 +118,7 @@ class UserModelCRUDTest(MinimalTestCase):
     
     def test_user_default_privacy_settings(self):
         """Test default privacy settings"""
-        user = User.objects. create_user(**self.user_data)
+        user = User.objects.create_user(**self.user_data)
         self.assertFalse(user.is_private_name)
         self.assertTrue(user.is_private_email)
         self.assertFalse(user.is_private_location)
@@ -173,10 +169,6 @@ class UserModelMethodsTest(MinimalTestCase):
         self.assertEqual(str(self.user), 'methoduser')
 
 
-# =============================================================================
-# SPECIES MODEL TESTS
-# =============================================================================
-
 class SpeciesModelCRUDTest(BaseTestCase):
     """Test Species model CRUD operations - uses pre-loaded users"""
     
@@ -225,18 +217,18 @@ class SpeciesModelCRUDTest(BaseTestCase):
             name='Temporary Species',
             created_by=self.basic_user
         )
-        species_id = species. id
+        species_id = species.id
         species.delete()
         self.assertEqual(Species.objects.filter(id=species_id).count(), 0)
     
     def test_species_default_values(self):
         """Test default field values"""
-        species = Species. objects.create(
+        species = Species.objects.create(
             name='Default Test',
-            created_by=self. basic_user
+            created_by=self.basic_user
         )
         self.assertEqual(species.category, 'CIC')  # Default to CICHLIDS
-        self.assertEqual(species. global_region, 'AFR')  # Default to AFRICA
+        self.assertEqual(species.global_region, 'AFR')  # Default to AFRICA
         self.assertEqual(species.cares_status, 'NOTC')  # Default NOT_CARES_SPECIES
         self.assertFalse(species.render_cares)
         self.assertEqual(species.species_instance_count, 0)
@@ -267,7 +259,7 @@ class SpeciesModelCRUDTest(BaseTestCase):
         """Test all CARES status choices are valid"""
         statuses = ['NOTC', 'NEAR', 'VULN', 'ENDA', 'CEND', 'EXCT']
         for status in statuses: 
-            species = Species.objects. create(
+            species = Species.objects.create(
                 name=f'Test Species {status}',
                 cares_status=status,
                 created_by=self.basic_user
@@ -298,12 +290,12 @@ class SpeciesModelMethodsTest(BaseTestCase):
     def test_species_ordering(self):
         """Test species are ordered by name"""
         Species.objects.create(name='Zebra Fish', created_by=self.basic_user)
-        Species.objects.create(name='Angel Fish', created_by=self. basic_user)
+        Species.objects.create(name='Angel Fish', created_by=self.basic_user)
         
         species_list = list(Species.objects.all())
         # Should be alphabetically sorted
         for i in range(len(species_list) - 1):
-            self.assertLessEqual(species_list[i]. name, species_list[i + 1].name)
+            self.assertLessEqual(species_list[i].name, species_list[i + 1].name)
     
     def test_species_created_by_deletion(self):
         """Test species handles user deletion (SET_NULL)"""
@@ -321,16 +313,12 @@ class SpeciesModelMethodsTest(BaseTestCase):
         self.assertIsNone(species.created_by)
 
 
-# =============================================================================
-# SPECIES INSTANCE MODEL TESTS
-# =============================================================================
-
 class SpeciesInstanceModelCRUDTest(BaseTestCase):
     """Test SpeciesInstance model CRUD operations"""
     
     def test_create_species_instance(self):
         """Test creating a species instance"""
-        instance = SpeciesInstance.objects. create(
+        instance = SpeciesInstance.objects.create(
             name='My Fish Colony',
             user=self.basic_user,
             species=self.cichlid
@@ -339,7 +327,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
         self.assertEqual(instance.user, self.basic_user)
         self.assertEqual(instance.species, self.cichlid)
         self.assertIsNotNone(instance.created)
-        self.assertIsNotNone(instance. lastUpdated)
+        self.assertIsNotNone(instance.lastUpdated)
     
     def test_read_species_instance(self):
         """Test reading species instance"""
@@ -353,7 +341,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
     
     def test_update_species_instance(self):
         """Test updating species instance"""
-        instance = SpeciesInstance.objects. create(
+        instance = SpeciesInstance.objects.create(
             name='Test Colony',
             user=self.basic_user,
             species=self.cichlid
@@ -366,7 +354,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
         
         updated = SpeciesInstance.objects.get(pk=instance.pk)
         self.assertTrue(updated.have_spawned)
-        self.assertEqual(updated. spawning_notes, 'Spawned successfully in cave')
+        self.assertEqual(updated.spawning_notes, 'Spawned successfully in cave')
         self.assertEqual(updated.genetic_traits, 'F1')
     
     def test_delete_species_instance(self):
@@ -388,7 +376,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
             species=self.cichlid
         )
         self.assertEqual(instance.genetic_traits, 'AS')  # Default AQUARIUM_STRAIN
-        self.assertEqual(instance. year_acquired, 2025)
+        self.assertEqual(instance.year_acquired, 2025)
         self.assertFalse(instance.have_spawned)
         self.assertFalse(instance.have_reared_fry)
         self.assertFalse(instance.young_available)
@@ -416,14 +404,14 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
             username='temp2',
             password='pass'
         )
-        instance = SpeciesInstance.objects. create(
+        instance = SpeciesInstance.objects.create(
             name='Temp Instance',
             user=temp_user,
-            species=self. cichlid
+            species=self.cichlid
         )
         instance_id = instance.id
         temp_user.delete()
-        self.assertEqual(SpeciesInstance. objects.filter(id=instance_id).count(), 0)
+        self.assertEqual(SpeciesInstance.objects.filter(id=instance_id).count(), 0)
     
     def test_species_instance_protect_on_species_delete(self):
         """Test instance prevents species deletion (PROTECT)"""
@@ -433,7 +421,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
         )
         SpeciesInstance.objects.create(
             name='Protecting Instance',
-            user=self. basic_user,
+            user=self.basic_user,
             species=species
         )
         with self.assertRaises(ProtectedError):
@@ -450,7 +438,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
     
     def test_species_instance_ordering(self):
         """Test ordering by lastUpdated and created (newest first)"""
-        instance1 = SpeciesInstance. objects.create(
+        instance1 = SpeciesInstance.objects.create(
             name='First',
             user=self.basic_user,
             species=self.cichlid
@@ -460,27 +448,23 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
             user=self.basic_user,
             species=self.cichlid
         )
-        instance3 = SpeciesInstance. objects.create(
+        instance3 = SpeciesInstance.objects.create(
             name='Third',
-            user=self. basic_user,
+            user=self.basic_user,
             species=self.cichlid
         )
         
-        instances = list(SpeciesInstance.objects. all())
+        instances = list(SpeciesInstance.objects.all())
         # Most recently created should be first
-        self. assertEqual(instances[0].name, 'Third')
+        self.assertEqual(instances[0].name, 'Third')
 
-
-# =============================================================================
-# SPECIES COMMENT MODEL TESTS
-# =============================================================================
 
 class SpeciesCommentModelTest(BaseTestCase):
     """Test SpeciesComment model"""
     
     def test_create_species_comment(self):
         """Test creating a species comment"""
-        comment = SpeciesComment.objects. create(
+        comment = SpeciesComment.objects.create(
             name='Great Species',
             user=self.basic_user,
             species=self.cichlid,
@@ -488,12 +472,12 @@ class SpeciesCommentModelTest(BaseTestCase):
         )
         self.assertEqual(comment.name, 'Great Species')
         self.assertEqual(comment.comment, 'This is an excellent species for beginners!')
-        self.assertEqual(comment.user, self. basic_user)
-        self.assertEqual(comment.species, self. cichlid)
+        self.assertEqual(comment.user, self.basic_user)
+        self.assertEqual(comment.species, self.cichlid)
     
     def test_species_comment_cascade_on_user_delete(self):
         """Test comment is deleted when user is deleted"""
-        temp_user = User. objects.create_user(
+        temp_user = User.objects.create_user(
             email='commenter@example.com',
             username='commenter',
             password='pass'
@@ -522,7 +506,7 @@ class SpeciesCommentModelTest(BaseTestCase):
         )
         comment_id = comment.id
         species.delete()
-        self.assertEqual(SpeciesComment.objects. filter(id=comment_id).count(), 0)
+        self.assertEqual(SpeciesComment.objects.filter(id=comment_id).count(), 0)
     
     def test_species_comment_ordering(self):
         """Test comments are ordered by created (newest first)"""
@@ -532,9 +516,9 @@ class SpeciesCommentModelTest(BaseTestCase):
             species=self.cichlid,
             comment='First comment'
         )
-        comment2 = SpeciesComment. objects.create(
+        comment2 = SpeciesComment.objects.create(
             name='Second',
-            user=self. basic_user,
+            user=self.basic_user,
             species=self.cichlid,
             comment='Second comment'
         )
@@ -552,10 +536,6 @@ class SpeciesCommentModelTest(BaseTestCase):
         )
         self.assertEqual(str(comment), 'Test Comment')
 
-
-# =============================================================================
-# SPECIES REFERENCE LINK MODEL TESTS
-# =============================================================================
 
 class SpeciesReferenceLinkModelTest(BaseTestCase):
     """Test SpeciesReferenceLink model"""
@@ -595,15 +575,11 @@ class SpeciesReferenceLinkModelTest(BaseTestCase):
         link = SpeciesReferenceLink.objects.create(
             name='Reference',
             user=self.basic_user,
-            species=self. cichlid,
+            species=self.cichlid,
             reference_url='https://example.com'
         )
         self.assertEqual(str(link), 'Reference')
 
-
-# =============================================================================
-# AQUARIST CLUB MODEL TESTS
-# =============================================================================
 
 class AquaristClubModelTest(BaseTestCase):
     """Test AquaristClub model"""
@@ -621,7 +597,7 @@ class AquaristClubModelTest(BaseTestCase):
         self.assertEqual(club.name, 'Pacific Aquarium Club')
         self.assertEqual(club.acronym, 'PAC')
         self.assertEqual(club.website, 'https://pacclub.com')
-        self.assertEqual(club. city, 'Seattle')
+        self.assertEqual(club.city, 'Seattle')
     
     def test_club_default_values(self):
         """Test default field values"""
@@ -644,15 +620,15 @@ class AquaristClubModelTest(BaseTestCase):
     
     def test_club_many_to_many_admins(self):
         """Test club can have multiple admins"""
-        club = AquaristClub.objects. create(
+        club = AquaristClub.objects.create(
             name='Multi Admin Club',
             website='https://example.com'
         )
-        club.club_admins.add(self. super_user, self.active_user)
+        club.club_admins.add(self.super_user, self.active_user)
         
         self.assertEqual(club.club_admins.count(), 2)
         self.assertIn(self.super_user, club.club_admins.all())
-        self.assertIn(self.active_user, club. club_admins.all())
+        self.assertIn(self.active_user, club.club_admins.all())
     
     def test_club_str_method(self):
         """Test __str__ method"""
@@ -661,7 +637,7 @@ class AquaristClubModelTest(BaseTestCase):
     
     def test_club_ordering(self):
         """Test clubs are ordered by name"""
-        AquaristClub.objects. create(name='Zebra Club', website='https://z.com')
+        AquaristClub.objects.create(name='Zebra Club', website='https://z.com')
         AquaristClub.objects.create(name='Alpha Club', website='https://a.com')
         
         clubs = list(AquaristClub.objects.all())
@@ -692,7 +668,7 @@ class AquaristClubMemberModelTest(BaseTestCase):
         member = AquaristClubMember.objects.create(
             name='Member',
             club=self.basic_club,
-            user=self. basic_user
+            user=self.basic_user
         )
         self.assertFalse(member.bap_participant)
         self.assertFalse(member.membership_approved)
@@ -700,7 +676,7 @@ class AquaristClubMemberModelTest(BaseTestCase):
     
     def test_club_member_cascade_on_club_delete(self):
         """Test member is deleted when club is deleted"""
-        temp_club = AquaristClub.objects. create(
+        temp_club = AquaristClub.objects.create(
             name='Temp Club',
             website='https://temp.com'
         )
@@ -710,7 +686,7 @@ class AquaristClubMemberModelTest(BaseTestCase):
             user=self.basic_user
         )
         member_id = member.id
-        temp_club. delete()
+        temp_club.delete()
         self.assertEqual(AquaristClubMember.objects.filter(id=member_id).count(), 0)
     
     def test_club_member_cascade_on_user_delete(self):
@@ -758,13 +734,13 @@ class BapSubmissionModelTest(BaseTestCase):
             notes='Successfully bred and raised fry'
         )
         self.assertEqual(submission.name, 'BAP Entry 2025')
-        self.assertEqual(submission. aquarist, self.active_user)
+        self.assertEqual(submission.aquarist, self.active_user)
         self.assertEqual(submission.year, 2025)
         self.assertEqual(submission.notes, 'Successfully bred and raised fry')
     
     def test_bap_submission_default_values(self):
         """Test default field values"""
-        submission = BapSubmission.objects. create(
+        submission = BapSubmission.objects.create(
             name='BAP Entry',
             aquarist=self.active_user,
             club=self.basic_club
@@ -790,7 +766,7 @@ class BapSubmissionModelTest(BaseTestCase):
         """Test __str__ method"""
         submission = BapSubmission.objects.create(
             name='Test BAP',
-            aquarist=self. active_user,
+            aquarist=self.active_user,
             club=self.basic_club
         )
         self.assertEqual(str(submission), 'Test BAP')
@@ -811,7 +787,7 @@ class BapGenusModelTest(BaseTestCase):
             points=15,
             example_species=self.cichlid
         )
-        self.assertEqual(genus. name, 'Aulonocara')
+        self.assertEqual(genus.name, 'Aulonocara')
         self.assertEqual(genus.points, 15)
         self.assertEqual(genus.example_species, self.cichlid)
     
@@ -838,7 +814,7 @@ class BapGenusModelTest(BaseTestCase):
         BapGenus.objects.create(name='Zebra', club=self.basic_club)
         BapGenus.objects.create(name='Alpha', club=self.basic_club)
         
-        genera = list(BapGenus.objects. all())
+        genera = list(BapGenus.objects.all())
         for i in range(len(genera) - 1):
             self.assertLessEqual(genera[i].name, genera[i + 1].name)
 
@@ -852,7 +828,7 @@ class BapSpeciesModelTest(BaseTestCase):
     
     def test_create_bap_species(self):
         """Test creating a BAP species configuration"""
-        bap_species = BapSpecies.objects. create(
+        bap_species = BapSpecies.objects.create(
             name='Special Points',
             species=self.cichlid,
             club=self.basic_club,
@@ -868,12 +844,12 @@ class BapSpeciesModelTest(BaseTestCase):
             name='Temp Species',
             created_by=self.basic_user
         )
-        bap_species = BapSpecies.objects. create(
+        bap_species = BapSpecies.objects.create(
             name='Config',
             species=temp_species,
             club=self.basic_club
         )
-        bap_species_id = bap_species. id
+        bap_species_id = bap_species.id
         temp_species.delete()
         self.assertEqual(BapSpecies.objects.filter(id=bap_species_id).count(), 0)
     
@@ -902,7 +878,7 @@ class ImportArchiveModelTest(BaseTestCase):
             import_csv_file='uploads/2025/01/15/data.csv'
         )
         self.assertEqual(archive.name, 'Import 2025-01-15')
-        self.assertEqual(archive. aquarist, self.basic_user)
+        self.assertEqual(archive.aquarist, self.basic_user)
     
     def test_import_archive_default_values(self):
         """Test default field values"""
@@ -919,8 +895,8 @@ class ImportArchiveModelTest(BaseTestCase):
         for status in statuses:
             archive = ImportArchive.objects.create(
                 name=f'Import {status}',
-                aquarist=self. basic_user,
-                import_csv_file=f'uploads/{status}. csv',
+                aquarist=self.basic_user,
+                import_csv_file=f'uploads/{status}.csv',
                 import_status=status
             )
             self.assertEqual(archive.import_status, status)
@@ -954,14 +930,14 @@ class RelationshipTest(BaseTestCase):
     
     def test_user_species_instances_relationship(self):
         """Test user can access their species instances"""
-        instance1 = SpeciesInstance. objects.create(
+        instance1 = SpeciesInstance.objects.create(
             name='Instance 1',
             user=self.basic_user,
             species=self.cichlid
         )
-        instance2 = SpeciesInstance.objects. create(
+        instance2 = SpeciesInstance.objects.create(
             name='Instance 2',
-            user=self. basic_user,
+            user=self.basic_user,
             species=self.killifish
         )
         
@@ -992,18 +968,18 @@ class RelationshipTest(BaseTestCase):
         """Test species can access its comments"""
         comment1 = SpeciesComment.objects.create(
             name='C1',
-            user=self. basic_user,
+            user=self.basic_user,
             species=self.cichlid,
             comment='Great!'
         )
-        comment2 = SpeciesComment.objects. create(
+        comment2 = SpeciesComment.objects.create(
             name='C2',
             user=self.active_user,
             species=self.cichlid,
             comment='Nice!'
         )
         
-        comments = self.cichlid. species_comments.all()
+        comments = self.cichlid.species_comments.all()
         self.assertEqual(comments.count(), 2)
         self.assertIn(comment1, comments)
         self.assertIn(comment2, comments)
@@ -1015,7 +991,7 @@ class RelationshipTest(BaseTestCase):
             club=self.basic_club,
             user=self.basic_user
         )
-        member2 = AquaristClubMember. objects.create(
+        member2 = AquaristClubMember.objects.create(
             name='Member 2',
             club=self.basic_club,
             user=self.active_user

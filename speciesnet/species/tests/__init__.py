@@ -14,7 +14,7 @@ Usage:
             instance = SpeciesInstance.objects.create(
                 name='Test',
                 user=self.regular_user,
-                species=self. cichlid
+                species=self.cichlid
             )
 """
 from django.test import TestCase

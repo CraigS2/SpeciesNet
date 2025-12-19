@@ -34,12 +34,12 @@ class SpeciesInstanceCreateViewTest(TestCase):
     def test_unauthenticated_user_redirected_to_login(self):
         """Test unauthenticated user is redirected to login"""
         response = self.client.get(reverse('createSpeciesInstance', args=[self.species.id]))
-        self.assertEqual(response. status_code, 302)
+        self.assertEqual(response.status_code, 302)
         self.assertIn('/login', response.url)
     
     def test_authenticated_user_can_access_create_form(self):
         """Test authenticated user can access the create species instance form"""
-        self.client. login(username='testuser', password='testpass123')
+        self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('createSpeciesInstance', args=[self.species.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'form')
@@ -47,7 +47,7 @@ class SpeciesInstanceCreateViewTest(TestCase):
     def test_create_species_instance_with_valid_optional_data(self):
         """Test creating species instance with valid optional data """
         self.client.login(username='testuser', password='testpass123')
-        self.client.post(reverse('createSpeciesInstance', args=[self. species.id]), {
+        self.client.post(reverse('createSpeciesInstance', args=[self.species.id]), {
             'name': 'Hoo Dunnit',
             'unique_traits':  'Long fin',
             'genetic_traits': 'WC',
@@ -61,7 +61,7 @@ class SpeciesInstanceCreateViewTest(TestCase):
             'fry_rearing_notes': 'Just feed them ... they grow like, well, ... rabbits.',
         })
         
-        si = SpeciesInstance. objects.first()
+        si = SpeciesInstance.objects.first()
         self.assertEqual(si.name, 'Hoo Dunnit')
         self.assertEqual(si.collection_point, 'Timbuk Too')
         self.assertEqual(si.genetic_traits, 'WC')
@@ -72,12 +72,12 @@ class SpeciesInstanceEditViewTest(TestCase):
     
     def setUp(self):
         """Set up test users, species, instance, and client"""
-        self. user = User.objects.create_user(
+        self.user = User.objects.create_user(
             username='testuser',
             email='test@test.com',
             password='testpass123'
         )
-        self.other_user = User. objects.create_user(
+        self.other_user = User.objects.create_user(
             username='otheruser',
             email='other@test.com',
             password='testpass123'
@@ -98,7 +98,7 @@ class SpeciesInstanceEditViewTest(TestCase):
         )
         
         # SpeciesInstance created by testuser
-        self.species_instance = SpeciesInstance. objects.create(
+        self.species_instance = SpeciesInstance.objects.create(
             name='My Auratus',
             user=self.user,
             species=self.species,
@@ -110,7 +110,7 @@ class SpeciesInstanceEditViewTest(TestCase):
     
     def test_unauthenticated_user_redirected_to_login(self):
         """Test unauthenticated user is redirected to login"""
-        response = self. client.get(reverse('editSpeciesInstance', args=[self.species_instance.id]))
+        response = self.client.get(reverse('editSpeciesInstance', args=[self.species_instance.id]))
         self.assertEqual(response.status_code, 302)
         self.assertIn('/login', response.url)
     
@@ -123,9 +123,9 @@ class SpeciesInstanceEditViewTest(TestCase):
     
     def test_admin_can_access_edit_form(self):
         """Test admin can edit any species instance"""
-        self.client. login(username='adminuser', password='testpass123')
+        self.client.login(username='adminuser', password='testpass123')
         response = self.client.get(reverse('editSpeciesInstance', args=[self.species_instance.id]))
-        self.assertEqual(response. status_code, 200)
+        self.assertEqual(response.status_code, 200)
     
     def test_non_owner_cannot_edit(self):
         """Test non-owner cannot edit species instance"""
@@ -137,7 +137,7 @@ class SpeciesInstanceEditViewTest(TestCase):
         """Test editing species instance with valid data"""
         self.client.login(username='testuser', password='testpass123')
         
-        response = self. client.post(reverse('editSpeciesInstance', args=[self.species_instance.id]), {
+        response = self.client.post(reverse('editSpeciesInstance', args=[self.species_instance.id]), {
             'name': 'Hoo Dunnit Again',
             'unique_traits': 'Longer fin',
             'genetic_traits': 'WC',
@@ -168,7 +168,7 @@ class SpeciesInstanceEditViewTest(TestCase):
         """Test that editing doesn't change the owner"""
         self.client.login(username='adminuser', password='testpass123')
         
-        self.client.post(reverse('editSpeciesInstance', args=[self. species_instance.id]), {
+        self.client.post(reverse('editSpeciesInstance', args=[self.species_instance.id]), {
             'name': 'Admin Edit',
             'unique_traits': 'Changed by admin',
         })
@@ -234,7 +234,7 @@ class SpeciesInstanceDeleteViewTest(TestCase):
             email='other@test.com',
             password='testpass123'
         )
-        self.admin_user = User. objects.create_user(
+        self.admin_user = User.objects.create_user(
             username='adminuser',
             email='admin@test.com',
             password='testpass123',
@@ -255,7 +255,7 @@ class SpeciesInstanceDeleteViewTest(TestCase):
             species=self.species
         )
         
-        self. client = Client()
+        self.client = Client()
     
     def test_unauthenticated_user_redirected_to_login(self):
         """Test unauthenticated user is redirected to login"""
@@ -280,14 +280,14 @@ class SpeciesInstanceDeleteViewTest(TestCase):
         """Test admin can delete any species instance"""
         self.client.login(username='adminuser', password='testpass123')
         
-        response = self.client.post(reverse('deleteSpeciesInstance', args=[self.species_instance. id]))
+        response = self.client.post(reverse('deleteSpeciesInstance', args=[self.species_instance.id]))
         
         # Should redirect on success
         self.assertEqual(response.status_code, 302)
         self.assertIn('/speciesSearch', response.url)
         
         # SpeciesInstance should be deleted
-        self.assertEqual(SpeciesInstance.objects. count(), 0)
+        self.assertEqual(SpeciesInstance.objects.count(), 0)
     
     def test_owner_can_delete_species_instance(self):
         """Test owner can delete their own species instance"""
@@ -296,17 +296,17 @@ class SpeciesInstanceDeleteViewTest(TestCase):
         response = self.client.post(reverse('deleteSpeciesInstance', args=[self.species_instance.id]))
         
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(SpeciesInstance.objects. count(), 0)
+        self.assertEqual(SpeciesInstance.objects.count(), 0)
     
     def test_deleting_instance_does_not_delete_species(self):
         """Test that deleting a species instance doesn't delete the species"""
         self.client.login(username='testuser', password='testpass123')
         
-        self.client.post(reverse('deleteSpeciesInstance', args=[self. species_instance.id]))
+        self.client.post(reverse('deleteSpeciesInstance', args=[self.species_instance.id]))
         
         # Species should still exist
         self.assertEqual(Species.objects.count(), 1)
-        self.assertTrue(Species.objects.filter(id=self.species. id).exists())
+        self.assertTrue(Species.objects.filter(id=self.species.id).exists())
 
 
 class SpeciesInstanceReadViewTest(TestCase):
@@ -328,7 +328,7 @@ class SpeciesInstanceReadViewTest(TestCase):
             created_by=self.user,
         )
         
-        self.species_instance = SpeciesInstance. objects.create(
+        self.species_instance = SpeciesInstance.objects.create(
             name='My Special Auratus',
             user=self.user,
             species=self.species,
@@ -349,7 +349,7 @@ class SpeciesInstanceReadViewTest(TestCase):
     
     def test_authenticated_user_can_view_species_instance(self):
         """Test authenticated user can view species instance detail page"""
-        self. client.login(username='testuser', password='testpass123')
+        self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('speciesInstance', args=[self.species_instance.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'My Special Auratus')

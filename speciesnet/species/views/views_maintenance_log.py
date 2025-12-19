@@ -3,7 +3,7 @@ SpeciesMaintenanceLog-related views: collaborative maintenance tracking
 Allows multiple aquarists to track maintenance of the same species together
 """
 
-from . base import *
+from .base import *
 
 
 ### View All Maintenance Logs
@@ -26,7 +26,7 @@ def speciesMaintenanceLog(request, pk):
     userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLog)
     
     logger.info('User %s visited speciesMaintenanceLog %s (%s)', 
-               request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog. id))
+               request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
     
     context = {
         'speciesMaintenanceLog': speciesMaintenanceLog,
@@ -42,13 +42,13 @@ def speciesMaintenanceLog(request, pk):
 
 @login_required(login_url='login')
 def createSpeciesMaintenanceLog(request, pk):
-    speciesInstance = SpeciesInstance.objects. get(id=pk)
+    speciesInstance = SpeciesInstance.objects.get(id=pk)
     species = speciesInstance.species
     name = speciesInstance.name + " - species maintenance collaboration"
     form = SpeciesMaintenanceLogForm(initial={'species': species, 'name': name})
     
     if request.method == 'POST':
-        form = SpeciesMaintenanceLogForm(request. POST)
+        form = SpeciesMaintenanceLogForm(request.POST)
         form.instance.species = species
         if form.is_valid():
             speciesMaintenanceLog = form.save()
@@ -68,7 +68,7 @@ def createSpeciesMaintenanceLog(request, pk):
 def editSpeciesMaintenanceLog(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     collaborators = speciesMaintenanceLog.collaborators.all()
-    speciesInstances = speciesMaintenanceLog.speciesInstances. all()
+    speciesInstances = speciesMaintenanceLog.speciesInstances.all()
     num_avail_collaborators = len(get_sml_available_collaborators(speciesMaintenanceLog))
     num_avail_speciesInstances = len(get_sml_available_speciesInstances(speciesMaintenanceLog))
     userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLog)
@@ -78,7 +78,7 @@ def editSpeciesMaintenanceLog(request, pk):
     
     form = SpeciesMaintenanceLogForm(instance=speciesMaintenanceLog)
     if request.method == 'POST':  
-        form = SpeciesMaintenanceLogForm(request. POST, instance=speciesMaintenanceLog)
+        form = SpeciesMaintenanceLogForm(request.POST, instance=speciesMaintenanceLog)
         if form.is_valid:  
             speciesMaintenanceLog = form.save()
             logger.info('User %s edited speciesMaintenanceLog %s (%s)', 
@@ -100,8 +100,8 @@ def editSpeciesMaintenanceLog(request, pk):
 
 @login_required(login_url='login')
 def deleteSpeciesMaintenanceLog(request, pk):
-    speciesMaintenanceLog = SpeciesMaintenanceLog.objects. get(id=pk)
-    species = speciesMaintenanceLog. species
+    speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
+    species = speciesMaintenanceLog.species
     userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLog)
     
     if not userCanEdit:
@@ -137,9 +137,9 @@ def addMaintenanceGroupCollaborator(request, pk):
             user_choices = form.cleaned_data['users']
             for choice in user_choices:
                 user = User.objects.get(id=choice)
-                speciesMaintenanceLog.collaborators. add(user)
-            logger. info('User %s added speciesMaintenanceLog collaborator %s (%s)', 
-                       request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog. id))
+                speciesMaintenanceLog.collaborators.add(user)
+            logger.info('User %s added speciesMaintenanceLog collaborator %s (%s)', 
+                       request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
             return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
     
     edit_action = 'Add'
@@ -151,13 +151,13 @@ def addMaintenanceGroupCollaborator(request, pk):
 @login_required(login_url='login')
 def removeMaintenanceGroupCollaborator(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
-    collaborators = speciesMaintenanceLog. collaborators.all()
+    collaborators = speciesMaintenanceLog.collaborators.all()
     choices = []
     
     for user in collaborators:
         if user != request.user:
             choice = (str(user.id), user.username)
-            choices. append(choice)
+            choices.append(choice)
     
     form = MaintenanceGroupCollaboratorForm(dynamic_choices=choices)
     
@@ -167,8 +167,8 @@ def removeMaintenanceGroupCollaborator(request, pk):
             user_choices = form.cleaned_data['users']
             for choice in user_choices:
                 user = User.objects.get(id=choice)
-                speciesMaintenanceLog. collaborators.remove(user)
-            return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog. id]))
+                speciesMaintenanceLog.collaborators.remove(user)
+            return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
     
     edit_action = 'Remove'
     object_name = 'Species Maintenance Group Collaborator'
@@ -180,7 +180,7 @@ def removeMaintenanceGroupCollaborator(request, pk):
 
 @login_required(login_url='login')
 def addMaintenanceGroupSpecies(request, pk):
-    speciesMaintenanceLog = SpeciesMaintenanceLog.objects. get(id=pk)
+    speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     available_instances = get_sml_available_speciesInstances(speciesMaintenanceLog)
     choices = []
     
@@ -194,14 +194,14 @@ def addMaintenanceGroupSpecies(request, pk):
     object_name = 'Maintenance Group Species'
     
     if request.method == 'POST':
-        form = MaintenanceGroupSpeciesForm(request. POST, dynamic_choices=choices)
+        form = MaintenanceGroupSpeciesForm(request.POST, dynamic_choices=choices)
         if form.is_valid():
             user_choices = form.cleaned_data['species']
             for choice in user_choices:
                 speciesInstance = SpeciesInstance.objects.get(id=choice)
                 speciesMaintenanceLog.speciesInstances.add(speciesInstance)
             logger.info('User %s added speciesMaintenanceLog speciesInstance %s (%s)', 
-                       request.user. username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
+                       request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
             return HttpResponseRedirect(reverse("editSpeciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
     
     context = {'form': form, 'edit_action': edit_action, 'object_name': object_name}
@@ -211,11 +211,11 @@ def addMaintenanceGroupSpecies(request, pk):
 @login_required(login_url='login')
 def removeMaintenanceGroupSpecies(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
-    speciesInstances = speciesMaintenanceLog. speciesInstances.all()
+    speciesInstances = speciesMaintenanceLog.speciesInstances.all()
     choices = []
     
     for speciesInstance in speciesInstances:
-        choice_txt = speciesInstance.name + ' (' + speciesInstance.user. username + ')'
+        choice_txt = speciesInstance.name + ' (' + speciesInstance.user.username + ')'
         choice = (speciesInstance.id, choice_txt)
         choices.append(choice)
     
@@ -226,7 +226,7 @@ def removeMaintenanceGroupSpecies(request, pk):
     if request.method == 'POST':
         form = MaintenanceGroupSpeciesForm(request.POST, dynamic_choices=choices)
         if form.is_valid():
-            user_choices = form. cleaned_data['species']
+            user_choices = form.cleaned_data['species']
             for choice in user_choices:  
                 speciesInstance = SpeciesInstance.objects.get(id=choice)
                 speciesMaintenanceLog.speciesInstances.remove(speciesInstance)
@@ -251,16 +251,16 @@ def createSpeciesMaintenanceLogEntry(request, pk):
         if form.is_valid():
             form.instance.speciesMaintenanceLog = speciesMaintenanceLog
             speciesMaintenanceLogEntry = form.save()
-            if speciesMaintenanceLogEntry. log_entry_image:
-                processUploadedImageFile(speciesMaintenanceLogEntry.log_entry_image, species. name, request)
-            if speciesMaintenanceLogEntry. log_entry_video_url:  
+            if speciesMaintenanceLogEntry.log_entry_image:
+                processUploadedImageFile(speciesMaintenanceLogEntry.log_entry_image, species.name, request)
+            if speciesMaintenanceLogEntry.log_entry_video_url:  
                 speciesMaintenanceLogEntry.log_entry_video_url = processVideoURL(speciesMaintenanceLogEntry.log_entry_video_url)
             speciesMaintenanceLogEntry.save()
             
             # Update timestamp for user's species instances
             speciesInstances = speciesMaintenanceLog.speciesInstances.all()
             for speciesInstance in speciesInstances:  
-                if speciesInstance.user == request. user:
+                if speciesInstance.user == request.user:
                     speciesInstance.save()
             
             logger.info('User %s created speciesMaintenanceLog entry %s (%s)', 
@@ -273,9 +273,9 @@ def createSpeciesMaintenanceLogEntry(request, pk):
 
 @login_required(login_url='login')
 def editSpeciesMaintenanceLogEntry(request, pk):
-    speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects. get(id=pk)
+    speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects.get(id=pk)
     speciesMaintenanceLog = speciesMaintenanceLogEntry.speciesMaintenanceLog
-    userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLogEntry. speciesMaintenanceLog)
+    userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLogEntry.speciesMaintenanceLog)
     
     if not userCanEdit:
         raise PermissionDenied()
@@ -285,7 +285,7 @@ def editSpeciesMaintenanceLogEntry(request, pk):
         form = SpeciesMaintenanceLogEntryForm(request.POST, request.FILES, instance=speciesMaintenanceLogEntry)
         if form.is_valid: 
             speciesMaintenanceLogEntry = form.save()
-            if speciesMaintenanceLogEntry. log_entry_image:
+            if speciesMaintenanceLogEntry.log_entry_image:
                 processUploadedImageFile(
                     speciesMaintenanceLogEntry.log_entry_image,
                     speciesMaintenanceLogEntry.speciesMaintenanceLog.species.name,
@@ -311,8 +311,8 @@ def editSpeciesMaintenanceLogEntry(request, pk):
 
 @login_required(login_url='login')
 def deleteSpeciesMaintenanceLogEntry(request, pk):
-    speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects. get(id=pk)
-    userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLogEntry. speciesMaintenanceLog)
+    speciesMaintenanceLogEntry = SpeciesMaintenanceLogEntry.objects.get(id=pk)
+    userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLogEntry.speciesMaintenanceLog)
     
     if not userCanEdit:
         raise PermissionDenied()
