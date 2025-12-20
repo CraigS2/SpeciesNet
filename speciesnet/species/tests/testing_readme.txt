@@ -32,17 +32,6 @@ Remaining Scope TODO Tests:
 
 High Priority (Common user workflows):
 
-SpeciesComment (views.py lines 1032-1071)
-✅ Create - Already in species view (inline POST)
-❌ Edit - editSpeciesComment (line 1042)
-❌ Delete - deleteSpeciesComment (line 1061)
-Read is part of species detail view
-
-SpeciesReferenceLink (views.py lines 1073-1134)
-❌ Create - createSpeciesReferenceLink (line 1083)
-❌ Edit - editSpeciesReferenceLink (line 1101)
-❌ Delete - deleteSpeciesReferenceLink (line 1121)
-
 SpeciesInstanceLogEntry (views.py lines 725-786)
 ❌ Create - createSpeciesInstanceLogEntry (line 726)
 ❌ Edit - editSpeciesInstanceLogEntry (line 750)
@@ -206,3 +195,6 @@ docker-compose -f docker-compose.test.yml run --rm test_django python manage.py 
 
 # To run just one test in a test class within a single python file ... whew that's a long command line string!
 docker-compose -f docker-compose.test.yml run --rm test_django python manage.py test species.tests.test_views_species_instance.SpeciesInstanceCreateViewTest.test_create_species_instance_with_valid_data -v 2
+
+#############################################################
+

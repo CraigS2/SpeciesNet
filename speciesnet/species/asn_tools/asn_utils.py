@@ -13,110 +13,120 @@ import logging, bleach, re
 
 def user_can_edit (cur_user: User):
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True
+    if cur_user.is_authenticated:
+        if cur_user.is_staff:
+            userCanEdit = True
     return userCanEdit
 
 def user_can_edit_a (cur_user: User, aquarist: User):
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True      
-    elif aquarist == cur_user:
-        userCanEdit = True
+    if cur_user.is_authenticated:
+        if cur_user.is_staff:
+            userCanEdit = True      
+        elif aquarist == cur_user:
+            userCanEdit = True
     return userCanEdit
 
 def user_can_edit_s (cur_user: User, species: Species):
     created_date = species.created.date()
     today_date = datetime.today().date()
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True
-    elif created_date == today_date:
-        if species.created_by == cur_user:
-            userCanEdit = True       # Allow non-admin creator to edit species on same day of creation
+    if cur_user.is_authenticated:
+        if cur_user.is_staff or cur_user.is_admin:   # is_admin have 'species edit' permissions, is_staff has full edit permissions
+            userCanEdit = True
+        elif created_date == today_date:
+            if species.created_by == cur_user:
+                userCanEdit = True                   # Allow non-admin creator to edit species on same day of creation
     return userCanEdit
 
 def user_can_edit_si (cur_user: User, speciesInstance: SpeciesInstance):
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True      
-    elif speciesInstance.user == cur_user:
-        userCanEdit = True
+    if cur_user.is_authenticated:
+        if cur_user.is_staff:
+            userCanEdit = True      
+        elif speciesInstance.user == cur_user:
+            userCanEdit = True
     return userCanEdit
 
 def user_can_edit_srl (cur_user: User, speciesReferenceLink: SpeciesReferenceLink):
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True
-    elif speciesReferenceLink.user == cur_user:
-        userCanEdit = True
+    if cur_user.is_authenticated:
+        if cur_user.is_staff:
+            userCanEdit = True
+        elif speciesReferenceLink.user == cur_user:
+            userCanEdit = True
     return userCanEdit
 
 def user_can_edit_sc (cur_user: User, speciesComment: SpeciesComment):
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True
-    elif speciesComment.user == cur_user:
-        userCanEdit = True
+    if cur_user.is_authenticated:
+        if cur_user.is_staff:
+            userCanEdit = True
+        elif speciesComment.user == cur_user:
+            userCanEdit = True
     return userCanEdit
 
 def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenanceLog):
     speciesInstances = speciesMaintenanceLog.speciesInstances
     userCanEdit = False
-    if cur_user.is_staff:
-        userCanEdit = True       
-    else:
-        for speciesInstance in speciesInstances.all():
-            if speciesInstance.user == cur_user:
-                userCanEdit = True;                   # allow all contributors to edit/delete
+    if cur_user.is_authenticated:
+        if cur_user.is_staff:
+            userCanEdit = True       
+        else:
+            for speciesInstance in speciesInstances.all():
+                if speciesInstance.user == cur_user:
+                    userCanEdit = True;                   # allow all contributors to edit/delete
     return userCanEdit
 
 def user_can_edit_club (cur_user: User, club: AquaristClub):
     userCanEdit = False
-    if cur_user.is_staff:
-         userCanEdit = True
-    else:
-        print ('user_can_edit_club: seeing if member exists')
-        try:
-            member = AquaristClubMember.objects.get(user=cur_user, club=club) 
-            userCanEdit = member.is_club_admin
-            print ('Club Member is club admin: ' + cur_user.username)
-        except ObjectDoesNotExist:
-            pass # user is not a member 
-            print ('Club Member not found: ' + cur_user.username + ' can join')
-        except MultipleObjectsReturned:
-            error_msg = "Club Members: duplicate members found!"
-            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-            #TODO logging
+    if cur_user.is_authenticated:    
+        if cur_user.is_staff:
+            userCanEdit = True
+        else:
+            print ('user_can_edit_club: seeing if member exists')
+            try:
+                member = AquaristClubMember.objects.get(user=cur_user, club=club) 
+                userCanEdit = member.is_club_admin
+                print ('Club Member is club admin: ' + cur_user.username)
+            except ObjectDoesNotExist:
+                pass # user is not a member 
+                print ('Club Member not found: ' + cur_user.username + ' can join')
+            except MultipleObjectsReturned:
+                error_msg = "Club Members: duplicate members found!"
+                print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+                logger.error('Club edit check: multiple entries found for %s', cur_user.username)
     return userCanEdit
 
 
 def user_is_club_member (cur_user: User, club: AquaristClub):
     user_is_member = False
-    try:
-        member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=True) 
-        user_is_member = True
-        print ('Club Member found: ' + cur_user.username)
-    except ObjectDoesNotExist:
-        pass # user is not a member 
-    except MultipleObjectsReturned:
-        error_msg = "Club Members: duplicate members found!"
-        print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-        logger.error('Club member check: multiple entries found for %s', cur_user.username)
+    if cur_user.is_authenticated:    
+        try:
+            member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=True) 
+            user_is_member = True
+            print ('Club Member found: ' + cur_user.username)
+        except ObjectDoesNotExist:
+            pass # user is not a member 
+        except MultipleObjectsReturned:
+            error_msg = "Club Members: duplicate members found!"
+            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+            logger.error('Club member check: multiple entries found for %s', cur_user.username)
     return user_is_member
 
 def user_is_pending_club_member (cur_user: User, club: AquaristClub):
     user_is_pending = False
-    try:
-        member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=False) 
-        user_is_pending = True
-        print ('Club Member found: ' + cur_user.username)
-    except ObjectDoesNotExist:
-        pass # user is not a pending member 
-    except MultipleObjectsReturned:
-        error_msg = "Club Members: duplicate members found!"
-        print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-        logger.error('Club member check: multiple entries found for %s', cur_user.username)
+    if cur_user.is_authenticated:    
+        try:
+            member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=False) 
+            user_is_pending = True
+            print ('Club Member found: ' + cur_user.username)
+        except ObjectDoesNotExist:
+            pass # user is not a pending member 
+        except MultipleObjectsReturned:
+            error_msg = "Club Members: duplicate members found!"
+            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
+            logger.error('Club member check: multiple entries found for %s', cur_user.username)
     return user_is_pending
 
 

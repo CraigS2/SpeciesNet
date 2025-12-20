@@ -97,7 +97,6 @@ class SpeciesInstanceEditViewTest(TestCase):
             created_by=self.user
         )
         
-        # SpeciesInstance created by testuser
         self.species_instance = SpeciesInstance.objects.create(
             name='My Auratus',
             user=self.user,
@@ -149,7 +148,7 @@ class SpeciesInstanceEditViewTest(TestCase):
         # Print statements don't work use self.fail() to force console output
         if response.status_code != 302:
             form_errors = response.context['form'].errors if response.context and 'form' in response.context else 'No form'
-            self.fail(f"Expected 302, got {response.status_code}. Form errors: {form_errors}")
+            self.fail(f"Expected 302, got {response.status_code}.Form errors: {form_errors}")
         
         # Should redirect on success
         self.assertEqual(response.status_code, 302)
