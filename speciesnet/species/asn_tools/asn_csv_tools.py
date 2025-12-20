@@ -38,7 +38,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
 
             # validate Species data using Form validation
             species_form = SpeciesForm (import_row) # reads expected fields by header name
-            if species_form.is_valid:
+            if species_form.is_valid():
                 species = species_form.save(commit=False)
                 
                 # validate input species name and verify non-duplicate
@@ -114,7 +114,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                     # will foreign key species resolve by name? TBD
                     
                     speciesInstance_form = SpeciesInstanceForm (import_row) # reads expected fields by header name
-                    if speciesInstance_form.is_valid:
+                    if speciesInstance_form.is_valid():
                         species_instance = speciesInstance_form.save(commit=False)
                         species_instance.species = species
                         species_instance.user = current_user

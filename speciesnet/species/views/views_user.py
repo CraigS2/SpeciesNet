@@ -2,8 +2,9 @@
 User-related views: profiles, authentication, email communication, aquarist directory
 """
 
-from .base import *
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
+from .base import *
 
 ### User Profile
 
@@ -21,7 +22,7 @@ def editUserProfile(request):
     form = UserProfileForm(instance=cur_user)
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=cur_user)
-        if form.is_valid:
+        if form.is_valid():
             form.save(commit=False)
             cur_user.first_name = form.instance.first_name
             cur_user.last_name = form.instance.last_name

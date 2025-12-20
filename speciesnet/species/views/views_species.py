@@ -2,8 +2,9 @@
 Species-related views: CRUD operations, search, comments, reference links
 """
 
-from .base import *
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
+from .base import *
 
 ### View Species
 

@@ -6,8 +6,9 @@ BAP (Breeder Award Program) related views:
 - Import/Export BAP data
 """
 
-from .base import *
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
+from .base import *
 
 ### BAP Submission Views
 

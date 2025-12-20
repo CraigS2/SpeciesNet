@@ -30,34 +30,7 @@
 
 Remaining Scope TODO Tests:
 
-High Priority (Common user workflows):
-
-SpeciesInstanceLogEntry (views.py lines 725-786)
-❌ Create - createSpeciesInstanceLogEntry (line 726)
-❌ Edit - editSpeciesInstanceLogEntry (line 750)
-❌ Delete - deleteSpeciesInstanceLogEntry (line 774)
-
-SpeciesMaintenanceLog (views.py lines 806-955)
-❌ Create - createSpeciesMaintenanceLog (line 807)
-❌ Edit - editSpeciesMaintenanceLog (line 829)
-❌ Delete - deleteSpeciesMaintenanceLog (line 944)
-
-SpeciesMaintenanceLogEntry (views.py lines 958-1028)
-❌ Create - createSpeciesMaintenanceLogEntry (line 958)
-❌ Edit - editSpeciesMaintenanceLogEntry (line 987)
-❌ Delete - deleteSpeciesMaintenanceLogEntry (line 1016)
-
 Medium Priority (Club/BAP features):
-
-AquaristClub (views.py lines 1724-1772)
-❌ Create - createAquaristClub (line 1724) - Admin only
-❌ Edit - editAquaristClub (line 1740)
-❌ Delete - deleteAquaristClub (line 1760)
-
-AquaristClubMember (views.py lines 1822-1874)
-❌ Create - createAquaristClubMember (line 1822)
-❌ Edit - editAquaristClubMember (line 1846)
-❌ Delete - deleteAquaristClubMember (line 1863)
 
 BapSubmission (views.py lines 1164-1298)
 ❌ Create - createBapSubmission (line 1164)

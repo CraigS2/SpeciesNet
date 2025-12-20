@@ -3,8 +3,9 @@ Admin tools views: database utilities, cleanup functions, admin dashboards
 Restricted to staff/admin users only
 """
 
-from .base import *
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
+from .base import *
 
 ### Species Instance Reports
 

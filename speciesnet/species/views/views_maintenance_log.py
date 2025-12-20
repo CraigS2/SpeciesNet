@@ -3,6 +3,8 @@ SpeciesMaintenanceLog-related views: collaborative maintenance tracking
 Allows multiple aquarists to track maintenance of the same species together
 """
 
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
+
 from .base import *
 
 

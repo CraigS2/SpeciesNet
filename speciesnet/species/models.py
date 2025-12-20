@@ -329,10 +329,10 @@ class AquaristClub (models.Model):
     about                     = models.TextField (null=True, blank=True)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
-    website                   = models.URLField ()
-    city                      = models.CharField (max_length=100, blank=True)
-    state                     = models.CharField (max_length=100, blank=True)
-    country                   = models.CharField (max_length=100, blank=True)
+    website                   = models.URLField ()                                 # TODO review required/optional and possible max length
+    city                      = models.CharField (max_length=100, blank=True)      # TODO review null usage
+    state                     = models.CharField (max_length=100, blank=True)      # TODO review null usage
+    country                   = models.CharField (max_length=100, blank=True)      # TODO review null usage
     require_member_approval   = models.BooleanField (default=True)
     bap_guidelines            = models.TextField (null=True, blank=True)
     bap_notes_template        = models.TextField (null=True, blank=True)

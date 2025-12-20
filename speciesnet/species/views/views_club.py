@@ -2,9 +2,9 @@
 AquaristClub-related views: club management, membership, admin functions
 Handles club profiles, member management, and club administration
 """
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
-
 
 ### View All Clubs
 
@@ -46,8 +46,8 @@ def aquaristClub(request, pk):
 
 @login_required(login_url='login')
 def createAquaristClub(request):
-    # While in beta restrict creation of clubs to admin only
-    if not request.user.is_admin:
+    # While in beta restrict creation of clubs to staff level admin only
+    if not request.user.is_staff:
         raise PermissionDenied()
     
     form = AquaristClubForm()
@@ -59,7 +59,7 @@ def createAquaristClub(request):
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             logger.info('User %s created club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-    
+
     context = {'form':  form}
     return render(request, 'species/createAquaristClub.html', context)
 
@@ -75,15 +75,13 @@ def editAquaristClub(request, pk):
         raise PermissionDenied()
     
     form = AquaristClubForm(instance=aquaristClub)
-    print('AquaristClub config file: ', str(aquaristClub))
-    
     if request.method == 'POST':
-        form2 = AquaristClubForm(request.POST, request.FILES, instance=aquaristClub)
-        if form2.is_valid: 
-            aquaristClub = form2.save()
+        form = AquaristClubForm(request.POST, request.FILES, instance=aquaristClub)
+        if form.is_valid(): 
+            aquaristClub = form.save()
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
-            form2.save()
+            form.save()
             logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
     
@@ -244,7 +242,7 @@ def editAquaristClubMember(request, pk):
 def deleteAquaristClubMember(request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
     aquaristClub = aquaristClubMember.club
-    userCanEdit = user_can_edit_club(requestuser, aquaristClubMember.club)
+    userCanEdit = user_can_edit_club(request.user, aquaristClubMember.club)
     
     if not userCanEdit:
         raise PermissionDenied()

@@ -3,8 +3,9 @@ User Experience views: home page, informational pages, wizards, import results
 Public-facing and helper pages for users
 """
 
-from .base import *
+## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
+from .base import *
 
 ### Home Page
 
