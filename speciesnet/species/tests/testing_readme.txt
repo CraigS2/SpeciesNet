@@ -28,36 +28,6 @@
 # 
 #############################################################################################################################################
 
-Remaining Scope TODO Tests:
-
-Medium Priority (Club/BAP features):
-
-BapSubmission (views.py lines 1164-1298)
-❌ Create - createBapSubmission (line 1164)
-❌ Edit - editBapSubmission (line 1245)
-❌ Delete - deleteBapSubmission (line 1284)
-
-BapGenus (views.py lines 1592-1677)
-❌ Edit - editBapGenus (line 1592)
-❌ Delete - deleteBapGenus (line 1664)
-Create is automated (lines 1417-1452)
-
-BapSpecies (views.py lines 1613-1698)
-❌ Create - createBapSpecies (line 1613)
-❌ Edit - editBapSpecies (line 1641)
-❌ Delete - deleteBapSpecies (line 1680)
-
-Lower Priority (Less critical/complex):
-
-SpeciesInstanceLabel (views.py lines 605-671)
-❌ Choose/Create workflow - chooseSpeciesInstancesForLabels (line 606)
-❌ Edit - editSpeciesInstanceLabels (line 632)
-
-UserProfile (views.py lines 177-200)
-❌ Edit - editUserProfile (line 177)
-Read is userProfile (line 170)
-
-#############################################################################################################################################
 
 Additional notes:
 
@@ -170,4 +140,5 @@ docker-compose -f docker-compose.test.yml run --rm test_django python manage.py 
 docker-compose -f docker-compose.test.yml run --rm test_django python manage.py test species.tests.test_views_species_instance.SpeciesInstanceCreateViewTest.test_create_species_instance_with_valid_data -v 2
 
 #############################################################
+
 
