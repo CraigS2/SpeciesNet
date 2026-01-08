@@ -2,6 +2,7 @@ from django.forms import ModelForm
 from django import forms
 from django.forms import formset_factory
 from django.forms.formsets import formset_factory
+from django.utils import timezone
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
@@ -364,7 +365,7 @@ class CombinedSpeciesForm(forms.Form):
         help_text='<i><b>Optional:</b> Original collection location if known</i>'
     )
     year_acquired = forms.IntegerField(
-        initial=2025,
+        initial=lambda: timezone.now().year,
         min_value=1900,
         max_value=2100,
         required=False,

@@ -20,8 +20,8 @@ from .views_species import (
 from .views_species_instance import (
     speciesInstance, createSpeciesInstance, editSpeciesInstance, deleteSpeciesInstance,
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
-    editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry,
-    speciesInstanceLabels, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
+    editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, speciesInstancesWithPhotos,
+    speciesInstancesWithLabels, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
     exportSpeciesInstances, importSpeciesInstances
 )
 
@@ -79,8 +79,8 @@ __all__ = [
     # Species Instances
     'speciesInstance', 'createSpeciesInstance', 'editSpeciesInstance', 'deleteSpeciesInstance',
     'createSpeciesAndInstance', 'speciesInstanceLog', 'createSpeciesInstanceLogEntry',
-    'editSpeciesInstanceLogEntry', 'deleteSpeciesInstanceLogEntry', 'speciesInstanceLabels', 
-    'chooseSpeciesInstancesForLabels', 'editSpeciesInstanceLabels',
+    'editSpeciesInstanceLogEntry', 'deleteSpeciesInstanceLogEntry', 'speciesInstancesWithLabels', 
+    'speciesInstancesWithPhotos','chooseSpeciesInstancesForLabels', 'editSpeciesInstanceLabels',
        
     # Maintenance Logs
     'speciesMaintenanceLogs', 'speciesMaintenanceLog', 'createSpeciesMaintenanceLog',

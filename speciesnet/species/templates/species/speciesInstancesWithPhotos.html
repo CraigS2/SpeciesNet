@@ -1,0 +1,20 @@
+{% extends 'main.html' %}
+<!-- context = si_with_photos -->
+
+{% block content %}
+<div class="container">
+    <h2>Species Instances with Photos ({{si_with_photos|length}})</h2>
+
+    {% if si_with_photos|length > 0  %}
+        {% for speciesInstance in si_with_photos %}
+            <div class="div-line-below">
+                <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> ({{speciesInstance.user.get_display_name}})</p>
+                <p>&nbsp;&nbsp;&nbsp;&nbsp;<img src={{speciesInstance.aquarist_species_image.url}}></p>
+            </div>
+        {% endfor %}
+    {% else %} 
+        <p>None</p>
+    {% endif %}  
+</div>
+
+{% endblock content %}

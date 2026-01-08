@@ -36,7 +36,6 @@ print ('DEBUG = ' + str(DEBUG))
 DEBUG_TOOLBAR = False
 if (os.environ['DEBUG_TOOLBAR'] == 'True'):
     DEBUG_TOOLBAR = True
-print ('DEBUG_TOOLBAR = ' + str(DEBUG_TOOLBAR))
 
 if DEBUG and DEBUG_TOOLBAR:
     def show_toolbar(request):

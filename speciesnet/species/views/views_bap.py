@@ -274,7 +274,7 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
         if not (user_is_club_member(self.request.user, bap_club) or self.request.user.is_staff):
             raise PermissionDenied
         
-        # TODO manage year - for now hard code 2025
+        # TODO manage 'BAP Year' which may be calendar year or school year
         year = 2025
 
         # Regenerate full list each time
@@ -284,6 +284,8 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
             entry.cares_species_count = 0
             entry.points = 0
             entry.save()
+
+        print ('BAP Leaderboard CLEARED')
 
         bap_submissions = BapSubmission.objects.filter(
             club=bap_club,
@@ -309,9 +311,11 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
                 if bap_submission.speciesInstance.species.render_cares:
                     bap_leaderboard_entry.cares_species_count += 1
                 bap_leaderboard_entry.points += bap_submission.points
+                print ('  BAP Leaderboard Entry updated: ' + bap_leaderboard_entry.name + ' (' + str(bap_leaderboard_entry.points) + ')')
             
             bap_leaderboard_entry.save()
-
+            print ('BAP Leaderboard Entry finalized: ' + bap_leaderboard_entry.name + ' (' + str(bap_leaderboard_entry.points) + ')')
+        
         # Clear out any zero value entries
         bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year)
         for entry in bap_leaderboard:
@@ -341,6 +345,59 @@ class BapGenusView(LoginRequiredMixin, ListView):
         club_id = self.kwargs.get('pk')
         bap_club = AquaristClub.objects.get(id=club_id)
         return bap_club
+    
+    def post(self, request, pk):
+        # update club BapGenus list with new genus names since last config
+        club = get_object_or_404(AquaristClub, pk=pk)
+        current_bap_genus_set = BapGenus.objects.filter(club=club)
+        current_genus_names = set()
+        for bapGenus in current_bap_genus_set:
+            current_genus_names.add (bapGenus.name)
+        print ('BapGenusSet update - current genus count: ' + str(len(current_genus_names)))
+        species_set = Species.objects.all()
+        new_genus_names = set()
+        for species in species_set:
+            genus_name = species.genus_name 
+            if genus_name not in current_genus_names: 
+                if genus_name not in new_genus_names: 
+                    print('BapGenus initialization of new genus name:  ' + genus_name)
+                    new_genus_names.add(genus_name)
+                    bapGP = BapGenus(name=genus_name, club=club, example_species=species, points=club.bap_default_points)
+                    bapGP.save()
+                    
+                    try:
+                        print('updateBapGenusSet - getting number of species for ' + genus_name)
+                        genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')
+                        bapGP.species_count = len(genus_species)
+                        bapGP.save()
+                        print(f'BapGenus object {bapGP.name} species count set:  {bapGP.species_count}')
+                    except ObjectDoesNotExist:
+                        print(f'updateBapGenusSet - ObjectDoesNotExist exception for {genus_name}')
+                        error_msg = f"Initialization error:  BapGenus object not found:  {genus_name}"
+                        messages.error(self.request, error_msg)
+                        logger.error('Initializing bapGenus list: entry not found for genus: %s', genus_name)
+                    except MultipleObjectsReturned:
+                        print(f'updateBapGenusSet - MultipleObjectsReturned exception for {genus_name}')
+                        error_msg = f"Initialization error: Multiple BapGenus objects found for Genus: {genus_name}"
+                        messages.error(self.request, error_msg)
+                        logger.error('Initializing bapGenus list: multiple entries found for genus: %s', genus_name)
+
+        if len(new_genus_names) > 0:
+            print(f'BapGenus set updated - new genus entry count: {len(new_genus_names)}')
+            logger.info('Update of bapGenus list complete for %s:  New genus count: %s', club.name, len(new_genus_names))
+            pop_name = new_genus_names.pop()
+            genus_update_msg = 'Successfully updated BAP Genus Config - added: ' + pop_name
+            for name in new_genus_names:
+                genus_update_msg = genus_update_msg + ', ' + name
+            messages.success(request, genus_update_msg)
+        else:
+            print(f'BapGenus set update - no new genus entries found')
+            logger.info('BAPGenus update requested - no new Genus names found. Club:  %s: ', club.name)
+            messages.success(request, 'No new genus names found.')
+
+        # Redirect back to the same page
+        next_url = request.POST.get('next', request.path)
+        return redirect(next_url)
 
     def initialize_bap_genus_list(self):
         club = self.get_bap_club()
@@ -354,7 +411,7 @@ class BapGenusView(LoginRequiredMixin, ListView):
                 if genus_name not in genus_names: 
                     print('BapGenus initialization genus name:  ' + genus_name)
                     genus_names.add(genus_name)
-                    bapGP = BapGenus(name=genus_name, club=club, example_species=species, points=10)
+                    bapGP = BapGenus(name=genus_name, club=club, example_species=species, points=club.bap_default_points)
                     bapGP.save()
                     
                     try:

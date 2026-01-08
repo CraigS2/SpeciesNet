@@ -121,6 +121,22 @@
             {% endif %}
         </div>
     </div>
+                        
+    {% if userCanEdit %}
+        <div class="css_class='mb-3 section-bordered">
+            <h4>Update BAP Genus List</h4>
+            <p>Updating the BAP Genus List reads all currently defined Species and finds all <b>Genus</b> names not currently in the BAP Genus List.</p>
+            <p>Newly added entries are assigned the default BAP Point value as defined in your club's configuration. </p>
+            <p>
+                <form method="post" action="{% url 'bapGenus' bap_club.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="btn btn-secondary">Update BAP Genus Set</button>
+                </form>  
+            </p>          
+        </div>
+    {% endif %}   
+
 </div>
 
 {% endblock content %}
