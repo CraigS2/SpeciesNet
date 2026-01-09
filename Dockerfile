@@ -17,6 +17,10 @@ WORKDIR /app
 #    #apt-get clean && \
 #    #rm -rf /var/lib/apt/lists/*UN pip install --upgrade pip
 
+# only automated test startup uses the .test.sh file
 COPY ./entrypoint.sh /
+COPY ./entrypoint.test.sh /
+
+# Dockerfile.test overrides ENTRYPOINT to use entrypoint.test.sh
 ENTRYPOINT ["sh", "/entrypoint.sh"]
 

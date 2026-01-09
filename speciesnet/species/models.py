@@ -5,7 +5,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
-import datetime
+from django.utils import timezone
 
 
 class UserManager (BaseUserManager):
@@ -168,7 +168,7 @@ class Species (models.Model):
     def genus_name (self):
         genus_name = self.name.lstrip()   # strips any leading space characters
         if ' ' in genus_name:
-            genus_name = self.name.split(' ')[0]
+            genus_name = genus_name.split(' ')[0] 
         else:
             print ('Species name failed to resolve to genus name for species: ' + self.name)
         return genus_name
@@ -225,8 +225,8 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, null=True, blank=True)
-    acquired_from             = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # deletes ALL instances referencing any deleted species
-    year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    acquired_from             = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # TODO enable with SpeciesInstance 
+    year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     aquarist_notes            = models.TextField(null=True, blank=True)
     have_spawned              = models.BooleanField(default=False)
     spawning_notes            = models.TextField(null=True, blank=True)
@@ -329,10 +329,10 @@ class AquaristClub (models.Model):
     about                     = models.TextField (null=True, blank=True)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
-    website                   = models.URLField ()
-    city                      = models.CharField (max_length=100, blank=True)
-    state                     = models.CharField (max_length=100, blank=True)
-    country                   = models.CharField (max_length=100, blank=True)
+    website                   = models.URLField ()                                 # TODO review required/optional and possible max length
+    city                      = models.CharField (max_length=100, blank=True)      # TODO review null usage
+    state                     = models.CharField (max_length=100, blank=True)      # TODO review null usage
+    country                   = models.CharField (max_length=100, blank=True)      # TODO review null usage
     require_member_approval   = models.BooleanField (default=True)
     bap_guidelines            = models.TextField (null=True, blank=True)
     bap_notes_template        = models.TextField (null=True, blank=True)
@@ -372,6 +372,7 @@ class BapSubmission (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_submissions') 
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
+    #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
     
@@ -401,16 +402,19 @@ class BapLeaderboard (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_leaderboards') 
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_leaderboards') 
+    #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
     species_count             = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     cares_species_count       = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
     created                   = models.DateTimeField(auto_now_add=True)
+    #TODO manage lastUpdated  = models.DateTimeField(auto_now=True)  # compare dates of aquarist BAP submissions and only update when needed
+
 
     def __str__(self):
         return self.name    
     
-#TODO rename BapGenus BapGenusConfig
+#TODO rename BapGenus BapGenusConfig and manage new Genus additions post-config
 class BapGenus (models.Model):
 
     name                      = models.CharField (max_length=240)

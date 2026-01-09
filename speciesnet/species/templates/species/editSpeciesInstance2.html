@@ -101,20 +101,37 @@
 
             <!-- Delete button (only show when editing existing object) -->
             {% if form.instance.pk %}
-            <div><p>&nbsp;</p></div>
-            <div class="card mt-3 species-form-card">
-                <div class="card-header" style="background-color: #e9ebee">                   
-                    <h4 class="my-0">Delete Aquarist Species</h4>
+                <div><p>&nbsp;</p></div>
+                <div class="card mt-3 species-form-card">
+                    <div class="card-header" style="background-color: #e9ebee">                   
+                        <h4 class="my-0">Delete Aquarist Species</h4>
+                    </div>
+                    <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                        <p>This action cannot be undone. All associated data will be permanently removed.</p>
+                        <a href="{% url 'deleteSpeciesInstance' form.instance.pk %}" 
+                            class="btn btn-secondary"
+                            style="color: darkred !important; margin-left: 14%;">
+                            Delete Aquarist Species
+                        </a>
+                    </div>
                 </div>
-                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
-                    <p class="text-muted mb-3">This action cannot be undone. All associated data will be permanently removed.</p>
-                    <a href="{% url 'deleteSpeciesInstance' form.instance.pk %}" 
-                        class="btn btn-secondary"
-                        style="color: darkred !important; margin-left: 14%;">
-                        Delete Aquarist Species
-                    </a>
-                </div>
-            </div>
+                {% if not speciesMaintenanceLog %} 
+                    <div><p>&nbsp;</p></div>
+                    <div class="card mt-3 species-form-card">
+                        <div class="card-header" style="background-color: #e9ebee">                   
+                            <h4 class="my-0">Species Maintenance Group</h4>
+                        </div>
+                        <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                            <p>
+                                <b><i>Species Maintenance Groups</i></b> enable Aquarists to collaborate. You can create a
+                                <b>Species Maintenance Log</b> and invite other Aquarists to share ownership of the log. 
+                                By combining efforts you gain tank space and a larger gene pool to better maintain the species.
+                                Together you can add notes, photos, and YouTube videos documenting your maintenance journey.
+                            </p>
+                            <a href="{% url 'createSpeciesMaintenanceLog' form.instance.pk %}" class="btn btn-secondary">Add Species Maintenance Log</a>
+                        </div>
+                    </div>
+                {% endif %}
             {% endif %}
 
         </div>

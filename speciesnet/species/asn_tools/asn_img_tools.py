@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 #from django.db import models
 from django.db.models import ImageField
@@ -27,8 +27,32 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
     new_image_name = new_image_name.lower()
     new_image_name = new_image_name.replace(" ", "_")
 
+    # fix for cameras/phones which require EXIF orientation tag and image rotation. Orientation values:
+    # 1: Normal (0°), 2: Flipped horizontally (mirrored), 3: Rotated 180°, 4: Flipped vertically,
+    # 5: Rotated 90° CCW, then flipped horizontally, 6: Rotated 90° CW (Clockwise) - common for portrait photos,
+    # 7: Rotated 90° CW, then flipped horizontally, 8: Rotated 90° CCW (Counter-clockwise)
+    transpose_img = False
+    try: 
+        exif = img.getexif()
+        if exif:
+            orientation = exif.get(0x0112) # orientation tag
+            if orientation is not None: 
+                try:
+                    orientation = int(orientation)
+                    if orientation > 1:
+                        transpose_img = True
+                        print('Image transpose needed - EXIF orientation: ' + str(orientation))
+                except (ValueError, TypeError):
+                    print('Image processing exception: invalid EXIF orientation: ' + str(orientation))
+    except Exception as e:
+        print('Image processing exception: Could not read EXIF data: ' + str(e))
+    
     try:
-
+        # fix for cameras/phones which require EXIF orientation read and matching transpose
+        if transpose_img:
+            img = ImageOps.exif_transpose(img)
+            print('Image transposed to manageEXIF orientation')
+            
         # fix for png image support - png images support transparency
         if img.mode == 'RGBA':
             fill_color = '#E5E4E2'  # platinum very light grey default background color

@@ -69,7 +69,7 @@ urlpatterns = [
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
     path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
 
-    path('speciesInstanceLabels', views.speciesInstanceLabels, name="speciesInstanceLabels"),  
+    path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
     path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
     path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
 
@@ -87,6 +87,7 @@ urlpatterns = [
     path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
     path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
     path('speciesInstancesWithEmptyLogs/', views.speciesInstancesWithEmptyLogs, name="speciesInstancesWithEmptyLogs"),
+    path('speciesInstancesWithPhotos/', views.speciesInstancesWithPhotos, name="speciesInstancesWithPhotos"),
 
     path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
     path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
