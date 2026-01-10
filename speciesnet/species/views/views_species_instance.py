@@ -166,6 +166,31 @@ def deleteSpeciesInstance(request, pk):
     context = {'speciesInstance': speciesInstance}
     return render(request, 'species/deleteSpeciesInstance.html', context)
 
+### Reassign Species ID to SpeciesInstance (admin-only error correction)
+@login_required(login_url='login')
+def reassignSpeciesInstance(request, pk):
+    speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
+    cur_species = speciesInstance.species
+    userCanEdit = request.user.is_admin
+    if not userCanEdit:
+        raise PermissionDenied()
+    if request.method == 'POST': 
+        try:
+            new_species_id = request.POST.get('new_species_id')
+            new_species_id = int(new_species_id)                         # cast as true int
+            new_species = get_object_or_404(Species, id=new_species_id)  # validate species exists
+            speciesInstance.species = new_species
+            speciesInstance.save()
+            logger.info('User %s reassigned species (%s) to (%s) for speciesInstance: %s (%s)', request.user.username, str(cur_species.id), str(new_species.id), speciesInstance.name, str(speciesInstance.id))
+            messages.success(request, f'Aquarist Species "{speciesInstance.name}" updated to use new species "{new_species.name}" successfully!')
+            return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid input. Number entered must be a valid Species ID')            
+        except Exception as e: 
+            logger.error(f"Unexpected error reassigning speciesInstance: {str(e)}", exc_info=True)
+            messages.error(request, f'An unexpected error occurred:  {str(e)}')                
+    context = {'speciesInstance': speciesInstance}
+    return render(request, 'species/reassignSpeciesInstance.html', context)
 
 ### Create Species and Instance (Wizard Helper)
 
