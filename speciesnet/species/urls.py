@@ -81,7 +81,8 @@ urlpatterns = [
     path('createSpeciesInstance/<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
     path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
-
+    path('reassignSpeciesInstance/<str:pk>/', views.reassignSpeciesInstance, name="reassignSpeciesInstance"), 
+    
     path('createSpeciesAndInstance/', views.createSpeciesAndInstance, name="createSpeciesAndInstance"), 
 
     path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),

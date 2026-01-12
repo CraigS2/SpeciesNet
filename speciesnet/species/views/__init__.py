@@ -22,7 +22,7 @@ from .views_species_instance import (
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
     editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, speciesInstancesWithPhotos,
     speciesInstancesWithLabels, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
-    exportSpeciesInstances, importSpeciesInstances
+    reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances
 )
 
 # Maintenance Logs

@@ -1,20 +1,23 @@
 
 #############################################################################################################################################
 # 
-# Django test routines are generally run in their own environment - separate from the standard dev setup.
+#  Django test routines are generally run in their own environment - separate from the standard dev setup.
 # 
-# The ASN Automated Tests are run in a setup without a webserver (no nginx) and use an in-memory temporary DB destroyed after each time it runs.
+#  The ASN Automated Tests are run in a setup without a webserver (no nginx) and use an in-memory temporary DB destroyed after each time it runs.
 #
-# To run the full suite of tests using a separate Docker file and docker-compose.test.yml file:
+#  To run the full suite of tests using a separate Docker file and docker-compose.test.yml file:
 # 
+#     Modify the .env file to keep DEBUG=1 but set DEBUG_TOOLBAR=False as the toolbar is incompatible with the test framework
 #     docker-compose -f docker-compose.test.yml up --build           # builds and runs all tests
 #     CTRL-C                                                         # stops the Django and DB containers
 #     docker-compose -f docker-compose.test.yml down -v              # removes the Django and DB containers
+#
+#  Tests existing with code 0 are successful (passed). Code 1 indicates at least one failed test, which should be listed in the summary. 
 # 
-# Test development can use this approach too but it is very time consuming as the tests take a few minutes to run.
-# While developing it's much faster to build and run subsets of tests within the scope of iterative changes.
-# For example the following cycle of 4 commands supports iterative development of the SpeciesInstanceCreateViewTest class
-# declared in the test_views_species_instance file. Note the need to wait for the db startup before running the test.
+#  Test development can use this approach too but it is very time consuming as the tests take a few minutes to run.
+#  While developing it's much faster to build and run subsets of tests within the scope of iterative changes.
+#  For example the following cycle of 4 commands supports iterative development of the SpeciesInstanceCreateViewTest class
+#  declared in the test_views_species_instance file. Note the need to wait for the db startup before running the test.
 # 
 #     docker-compose -f docker-compose.test.yml build test_django
 #     docker-compose -f docker-compose.test.yml up -d test_db        # bring a new, empty in-memory db up (-d startup in the background)
@@ -22,7 +25,7 @@
 #     docker-compose -f docker-compose.test.yml run --rm test_django python manage.py test species.tests.test_views_species_instance -v 2
 #     docker-compose -f docker-compose.test.yml down -v
 # 
-# To narrow this further, a specific test within a class within a test file can be run in place of all tests in a class. For example:
+#  To narrow this further, a specific test within a class within a test file can be run in place of all tests in a class. For example:
 # 
 #     docker-compose -f docker-compose.test.yml run --rm test_django python manage.py test species.tests.test_views_species_instance.SpeciesInstanceCreateViewTest.test_create_species_instance_with_valid_optional_data -v 2
 # 

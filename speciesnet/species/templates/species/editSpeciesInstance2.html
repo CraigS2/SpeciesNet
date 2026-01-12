@@ -110,11 +110,30 @@
                         <p>This action cannot be undone. All associated data will be permanently removed.</p>
                         <a href="{% url 'deleteSpeciesInstance' form.instance.pk %}" 
                             class="btn btn-secondary"
-                            style="color: darkred !important; margin-left: 14%;">
+                            style="color: darkred !important;">
                             Delete Aquarist Species
                         </a>
                     </div>
                 </div>
+
+                {% if request.user.is_admin %} 
+                    <div><p>&nbsp;</p></div>
+                    <div class="card mt-3 species-form-card">
+                        <div class="card-header" style="background-color: #e9ebee">                   
+                            <h4 class="my-0">Reassign Species</h4>
+                        </div>
+                        <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                            <p>This is an <b>advanced option</b> to correct the Species assignment selected by the Aquarist Species user.</p>
+                            <p>Use with caution! You must know the Species ID you wish to assign.</p>
+                            <a href="{% url 'reassignSpeciesInstance' form.instance.pk %}" 
+                                class="btn btn-secondary"
+                                style="color: darkred !important;">
+                                Reassign Species
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
                 {% if not speciesMaintenanceLog %} 
                     <div><p>&nbsp;</p></div>
                     <div class="card mt-3 species-form-card">
