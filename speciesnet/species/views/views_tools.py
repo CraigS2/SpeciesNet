@@ -128,6 +128,108 @@ def tools2(request):
     return render(request, 'species/tools2.html')
 
 
+### DB text field integrity cleanup - eliminate use of NULL with search-replace of NULL with empty text strings
+### This requires an immediate DB migration to enforce the pattern of no-NULL text field usage
+
+from django.apps import apps
+from django.db import models, transaction
+
+def db_null_text_integrity_cleanup (modify_db=False):
+
+    # All field types that store text and should use blank=True not null=True
+    TEXT_FIELD_TYPES = (
+        models.CharField,
+        models.TextField,
+        models.URLField,
+        models.EmailField,
+        models.SlugField,
+        models.FileField,
+        models.ImageField,
+        models.FilePathField,
+        models.GenericIPAddressField,
+    )
+    
+    results = []
+    total_nulls = 0
+    total_fixed = 0
+    checked_count = 0
+    mode = "DRY_RUN" 
+    if modify_db:
+          mode = "FIXING"
+
+    print(f"\n{'='*70}")   # Outputs a string of ========= ... 70x
+    print(f"  {mode}:  Checking all text-based fields for NULL values")
+    print(f"{'='*70}\n")
+    
+    for model in apps.get_models():
+        # Find all text fields with null=True
+        text_fields = [
+            field for field in model._meta.get_fields()
+            if isinstance(field, TEXT_FIELD_TYPES)
+            #and getattr(field, 'null', False)  # Only check fields with null=True
+            #and hasattr(field, 'name')  # Skip reverse relations
+        ]
+        if not text_fields:
+            continue
+            
+        # Check each field for NULLs
+        for field in text_fields:
+            checked_count += 1
+            field_type = field.__class__.__name__
+            filter_kwargs = {f'{field.name}__isnull': True}
+            
+            try:
+                null_count = model.objects.filter(**filter_kwargs).count()
+                
+                if null_count > 0:
+                    total_nulls += null_count
+                    
+                    results.append({
+                        'model': f'{model._meta.app_label}.{model._meta. object_name}',
+                        'field': field. name,
+                        'field_type': field_type,
+                        'count': null_count,
+                    })
+                    
+                    if not modify_db:
+                        print(f"ISSUE:  {model._meta.app_label}.{model._meta. object_name}. {field.name} ({field_type}): {null_count} NULLs found")
+                    else:
+                        # write '' to NULLs 
+                        with transaction.atomic():
+                            update_kwargs = {field.name: ''}
+                            fixed = model.objects.filter(**filter_kwargs).update(**update_kwargs)
+                            total_fixed += fixed
+                            print(f"SUCCESS: {model._meta.app_label}.{model._meta.object_name}.{field.name} ({field_type}): Fixed {fixed} NULLs")
+                else:
+                    # Optional: print clean fields too
+                    # print(f"SUCCESS: {model._meta.app_label}. {model._meta.object_name}.{field.name} ({field_type}): Clean")
+                    pass
+                    
+            except Exception as e: 
+                print(f"ERROR: Error processing {model._meta.app_label}.{model._meta.object_name}.{field.name}: {e}")
+    
+    # Summary
+    print("\n" + "="*70) # Outputs a string of ========= ... 70x
+    if not modify_db:
+        if total_nulls == 0:
+            print("SUCCESS: No NULL values found in any text-based fields!")
+            print("SUCCESS: Your database is clean!")
+        else:
+            print(f"SUMMARY: Found {total_nulls} NULL values across {len(results)} fields")
+    else:
+        if total_fixed == 0:
+            print("SUCCESS: Nothing to do! No NULLs to fix - database is clean!")
+        else:
+            print(f"SUCCESS: Fixed {total_fixed} NULL values across {len(results)} fields")
+            print("\nAffected fields:")
+            for result in results:
+                print(f"  - {result['model']}.{result['field']} ({result['field_type']}): {result['count']} fixed")
+    
+    print("="*70 + "\n")
+    
+    return results
+
+
 def dirtyDeed(request):
     """
     One-off admin utility for database maintenance tasks
@@ -143,6 +245,10 @@ def dirtyDeed(request):
         raise PermissionDenied()
     
     # Dirty deed goes here ...  then return to tools2
+
+    #modify_db = True
+    modify_db = False
+    db_null_text_integrity_cleanup(modify_db)
     
     ######### Example:  Populate PVAS sample BapGenus table ########
     # club = AquaristClub.objects.get(id=1)

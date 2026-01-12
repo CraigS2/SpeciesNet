@@ -7,7 +7,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-
 class UserManager (BaseUserManager):
     
     def create_user (self, email, username, password=None, **extra_fields):
@@ -33,10 +32,19 @@ class UserManager (BaseUserManager):
         email = self.normalize_email (email)
         user = self.create_user(email, username, password)
         user.is_superuser = True
+        # TODO CARES: user.is_admin = True
+        # TODO CARES: user.is_manager = True
         user.is_staff = True
         user.save()
         return user
 
+##############################################################################################################
+# Model declarations                                                                                         #
+# Field configurations include a variety of attributes some of which are true DB configurations and some not #
+# null=True  --> allows NULL db entries (use for optional fields) default is equivalent to 'null=False'      #
+# blank=True --> allows fields to be empty when validating forms (has no DB impact) default is 'blank=false' #
+# Text-based fields (Text, Char, URLField) should not use null=True. Django uses empty strings only.         #
+##############################################################################################################
 
 class User(AbstractBaseUser, PermissionsMixin):
       
@@ -56,6 +64,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_email_blocked     = models.BooleanField (default=False)
 
     is_admin   = models.BooleanField (default=False)
+    # TODO CARES: is_manager = models.BooleanField (default=False)
     is_staff   = models.BooleanField (default=False)
     is_active  = models.BooleanField (default=True)
 
@@ -92,11 +101,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class UserEmail (models.Model):
 
-    name            = models.CharField (max_length=240)
-    send_to         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_emails_to') 
-    send_from       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_emails_from') 
-    email_subject   = models.TextField(null=False, blank=False) 
-    email_text      = models.TextField(null=False, blank=False) 
+    name            = models.CharField  (max_length=240)
+    send_to         = models.ForeignKey (User, on_delete=models.SET_NULL, null=True, related_name='user_emails_to') 
+    send_from       = models.ForeignKey (User, on_delete=models.SET_NULL, null=True, related_name='user_emails_from') 
+    email_subject   = models.TextField  (blank=False) 
+    email_text      = models.TextField  (blank=False) 
     created         = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -109,11 +118,11 @@ class UserEmail (models.Model):
 class Species (models.Model):
 
     name                      = models.CharField (max_length=240)
-    alt_name                  = models.CharField (max_length=240, null=True, blank=True)
-    common_name               = models.CharField (max_length=240, null=True, blank=True)
-    description               = models.TextField (null=True, blank=True)
+    alt_name                  = models.CharField (max_length=240, blank=True)
+    common_name               = models.CharField (max_length=240, blank=True)
+    description               = models.TextField (blank=True)
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
-    photo_credit              = models.CharField (max_length=200, null=True, blank=True)
+    photo_credit              = models.CharField (max_length=200, blank=True)
 
     class Category (models.TextChoices):
         CICHLIDS        = 'CIC', _('Cichlids')
@@ -128,7 +137,7 @@ class Species (models.Model):
         INVERTEBRATES   = 'INV', _('Invertebrates')
         OTHER           = 'OTH', _('All Others')
 
-    category                  = models.CharField (max_length=3, choices=Category.choices, default=Category.CICHLIDS)
+    category = models.CharField (max_length=3, choices=Category.choices, default=Category.CICHLIDS)
 
     class GlobalRegion (models.TextChoices):
         SOUTH_AMERICA   = 'SAM', _('South America')
@@ -140,8 +149,33 @@ class Species (models.Model):
         EUROPE          = 'EUR', _('Europe')
         OTHER           = 'OTH', _('Other Region')
         
-    global_region             = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
-    local_distribution        = models.CharField (max_length=200, null=True, blank=True)
+    global_region       = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
+    local_distribution  = models.CharField (max_length=200, blank=True)
+
+    # TODO CARES: class CaresFamily (models.TextChoices):
+    #     RICEFISH        = 'RIC', _('Adrianichthyidae (Ricefish)')
+    #     ANABANTIDS      = 'ANA', _('Anabantidae (Climbing Gouramies)')
+    #     EUROKILLIFISH   = 'EKF', _('Aphaniidae (Eurasian Killifish)')
+    #     MADAKILLIFISH   = 'MKF', _('Bedotiidae (Madagascan Killifish)')
+    #     KILLIFISH       = 'OKF', _('Killifish (Other Killifish)')
+    #     CHARACINS       = 'CHA', _('Characidae (Tetras)')
+    #     CICHLIDS        = 'CIC', _('Cichlidae (Cichlids)')
+    #     LOACHES         = 'LCH', _('Cobitidae (Loaches)')
+    #     CYPRINDAE       = 'CYP', _('Cyprinidae (Minnows and Carps)')
+    #     PUPFISH         = 'PUP', _('Cyprinodontidae (Pupfish)')
+    #     GOBIES          = 'GOB', _('Gobiidae (Gobies)')
+    #     GOODEIDS        = 'GOO', _('Goodeidae (Splitfins)')
+    #     LORICARIIDAE    = 'LOR', _('Loricariidae (Armoured Catfish)')
+    #     RAINBOWFISH     = 'RBF', _('Melanotaeniidae (Rainbowfish)')
+    #     SQUEEKERS       = 'SQU', _('Mochokidae (Squeakers)')
+    #     TOOTHCARPS      = 'TCA', _('Nothobranchiidae (Toothcarps)')
+    #     LIVEBEARERS     = 'LVB', _('Poeciliidae (Livebearers)')
+    #     BLUEEYES        = 'BLE', _('Pseudomugilidae (Blue Eyes)')
+    #     RIVULUS         = 'RIV', _('Rivulidae (Rivulus)')
+    #     VALENCIAS       = 'VLC', _('Valenciidae (Valencias)')
+    #     UNDEFINED       = 'UDF', _('Undefined')
+
+    # cares_family  = models.CharField (max_length=3, choices=CaresFamily.choices, default=CaresFamily.UNDEFINED)
 
     class CaresStatus (models.TextChoices):
         NOT_CARES_SPECIES = 'NOTC', _('Undefined')
@@ -179,11 +213,11 @@ class Species (models.Model):
 
 class SpeciesComment (models.Model):
 
-    name                      = models.CharField (max_length=240)
-    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_comments') 
-    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_comments') 
-    comment                   = models.TextField(null=False, blank=False) 
-    created                   = models.DateTimeField(auto_now_add=True)
+    name                      = models.CharField  (max_length=240)
+    user                      = models.ForeignKey (User, on_delete=models.CASCADE, editable=False, related_name='user_species_comments') 
+    species                   = models.ForeignKey (Species, on_delete=models.CASCADE, null=False, related_name='species_comments') 
+    comment                   = models.TextField  (blank=False) 
+    created                   = models.DateTimeField (auto_now_add=True)
 
     class Meta:
         ordering = ['-created'] # sorts in descending order - newest first
@@ -196,8 +230,7 @@ class SpeciesReferenceLink (models.Model):
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_links') 
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_links') 
-    reference_url             = models.URLField(max_length=500)  # help_text="Reference link URL - copy from browser"
-
+    reference_url             = models.URLField  (max_length=500)  # help_text="Reference link URL - copy from browser"
     created                   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -206,14 +239,19 @@ class SpeciesReferenceLink (models.Model):
     def __str__(self):
         return self.name
     
+# declare fn for time 'now' to remove use of lambda: in models.py (works fine until a migration is required, migration chokes on lambda)
+
+def get_cur_year():
+    return timezone.now().year
+
 class SpeciesInstance (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instances')  # delestes species instances if user deleted
     species                   = models.ForeignKey(Species, on_delete=models.PROTECT, null=False, related_name='species_instances')
-    unique_traits             = models.CharField (max_length=200, null=True, blank=True)                                                  # e.g. long-finned, color, etc. May be empty
+    unique_traits             = models.CharField (max_length=200, blank=True)                                    # e.g. long-finned, color, etc. May be empty
     aquarist_species_image    = models.ImageField(upload_to='images/%Y/%m/%d', null=True, blank=True)
-    aquarist_species_video_url= models.URLField (max_length=500, null=True, blank=True)                                                    # help_text="YouTube video link"
+    aquarist_species_video_url= models.URLField  (max_length=500, blank=True)                                     # help_text="YouTube video link"
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
@@ -224,14 +262,14 @@ class SpeciesInstance (models.Model):
         OTHER           = 'OT', _('Other')
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
-    collection_point          = models.CharField (max_length=200, null=True, blank=True)
-    acquired_from             = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # TODO enable with SpeciesInstance 
-    year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
-    aquarist_notes            = models.TextField(null=True, blank=True)
+    collection_point          = models.CharField (max_length=200, blank=True)
+    #acquired_from             = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') TODO CARES: resolve circular dependency
+    year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
+    aquarist_notes            = models.TextField (blank=True)
     have_spawned              = models.BooleanField(default=False)
-    spawning_notes            = models.TextField(null=True, blank=True)
+    spawning_notes            = models.TextField (blank=True)
     have_reared_fry           = models.BooleanField(default=False)
-    fry_rearing_notes         = models.TextField(null=True, blank=True)
+    fry_rearing_notes         = models.TextField (blank=True)
     young_available           = models.BooleanField(default=False)
     young_available_image     = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     currently_keep            = models.BooleanField(default=True)
@@ -252,10 +290,10 @@ class SpeciesInstanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.PROTECT, null=False, related_name='species_instance_log_entries') 
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
-    log_entry_video_url       = models.URLField(max_length=500, null=True, blank=True)                     # help_text="YouTube video link"
-    log_entry_notes           = models.TextField(null=False, blank=False)
-    created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
-    lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
+    log_entry_video_url       = models.URLField (max_length=500, blank=True)  # help_text="YouTube video link"
+    log_entry_notes           = models.TextField (null=False, blank=False)
+    created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
+    lastUpdated               = models.DateTimeField (auto_now=True)          # updated every save
 
     class Meta:
         ordering = ['-created'] # sorts in descending order - newest first
@@ -270,6 +308,7 @@ class SpeciesInstanceLabel (models.Model):
     text_line1                = models.CharField(null=False, blank=False, max_length=100)
     text_line2                = models.CharField(null=False, blank=False, max_length=100)
     created                   = models.DateTimeField(auto_now_add=True)
+    lastUpdated               = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
@@ -277,14 +316,14 @@ class SpeciesInstanceLabel (models.Model):
     def __str__(self):
         return f"Label: {self.name[:30]}"    
 
+
 class SpeciesMaintenanceLog (models.Model):
     name                      = models.CharField (max_length=240)
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_maintenance_logs')   # deletes ALL instances referencing any deleted species
     collaborators             = models.ManyToManyField(User, related_name='user_maintenance_logs') 
     speciesInstances          = models.ManyToManyField(SpeciesInstance, related_name='species_instance_maintenance_logs') 
-    description               = models.TextField (null=True, blank=True)
+    description               = models.TextField (blank=True)
     log_is_private            = models.BooleanField(default=False)
-
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -294,10 +333,10 @@ class SpeciesMaintenanceLog (models.Model):
 
 class SpeciesMaintenanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
-    speciesMaintenanceLog     = models.ForeignKey(SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')  
+    speciesMaintenanceLog     = models.ForeignKey (SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')  
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
-    log_entry_video_url       = models.URLField(max_length=500, null=True, blank=True)                     # help_text="YouTube video link"
-    log_entry_notes           = models.TextField(null=False, blank=False)
+    log_entry_video_url       = models.URLField (max_length=500, blank=True)                     # help_text="YouTube video link"
+    log_entry_notes           = models.TextField (blank=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -326,16 +365,16 @@ class SpeciesInstanceComment (models.Model):
 class AquaristClub (models.Model):
     name                      = models.CharField (max_length=240)
     acronym                   = models.CharField (max_length=10, blank=True)
-    about                     = models.TextField (null=True, blank=True)
+    about                     = models.TextField (blank=True)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
-    website                   = models.URLField ()                                 # TODO review required/optional and possible max length
-    city                      = models.CharField (max_length=100, blank=True)      # TODO review null usage
-    state                     = models.CharField (max_length=100, blank=True)      # TODO review null usage
-    country                   = models.CharField (max_length=100, blank=True)      # TODO review null usage
+    website                   = models.URLField  (blank=True)
+    city                      = models.CharField (max_length=100, blank=True)
+    state                     = models.CharField (max_length=100, blank=True)
+    country                   = models.CharField (max_length=100, blank=True)
     require_member_approval   = models.BooleanField (default=True)
-    bap_guidelines            = models.TextField (null=True, blank=True)
-    bap_notes_template        = models.TextField (null=True, blank=True)
+    bap_guidelines            = models.TextField (blank=True)
+    bap_notes_template        = models.TextField (blank=True)
     bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
     cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)  
     bap_start_date            = models.DateField (null=True, blank=True)
@@ -384,14 +423,14 @@ class BapSubmission (models.Model):
         CLOSED   = 'CLSD', _('Closed')
 
     status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
-    points                    = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
-    request_points_review     = models.BooleanField(default=False)    
-    notes                     = models.TextField(null=True, blank=True)
-    breeder_comments          = models.TextField(null=True, blank=True)
-    admin_comments            = models.TextField(null=True, blank=True)
-    active                    = models.BooleanField(default=True)
-    created                   = models.DateTimeField(auto_now_add=True)
-    lastUpdated               = models.DateTimeField(auto_now=True)    
+    points                    = models.IntegerField (validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
+    request_points_review     = models.BooleanField (default=False)    
+    notes                     = models.TextField (blank=True)
+    breeder_comments          = models.TextField (blank=True)
+    admin_comments            = models.TextField (blank=True)
+    active                    = models.BooleanField (default=True)
+    created                   = models.DateTimeField (auto_now_add=True)
+    lastUpdated               = models.DateTimeField (auto_now=True)    
 
     def __str__(self):
         return self.name
@@ -414,7 +453,7 @@ class BapLeaderboard (models.Model):
     def __str__(self):
         return self.name    
     
-#TODO rename BapGenus BapGenusConfig and manage new Genus additions post-config
+
 class BapGenus (models.Model):
 
     name                      = models.CharField (max_length=240)
@@ -433,7 +472,7 @@ class BapGenus (models.Model):
     def __str__(self):
         return self.name    
 
-#TODO rename BapSpecies BapSpeciesConfig
+
 class BapSpecies (models.Model):
 
     name                      = models.CharField (max_length=240)

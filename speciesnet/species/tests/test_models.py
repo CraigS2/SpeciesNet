@@ -376,7 +376,7 @@ class SpeciesInstanceModelCRUDTest(BaseTestCase):
             species=self.cichlid
         )
         self.assertEqual(instance.genetic_traits, 'AS')  # Default AQUARIUM_STRAIN
-        self.assertEqual(instance.year_acquired, 2025)
+        self.assertEqual(instance.year_acquired, 2026)
         self.assertFalse(instance.have_spawned)
         self.assertFalse(instance.have_reared_fry)
         self.assertFalse(instance.young_available)
