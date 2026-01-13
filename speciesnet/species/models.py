@@ -7,6 +7,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
+
+### Custom User
+
 class UserManager (BaseUserManager):
     
     def create_user (self, email, username, password=None, **extra_fields):
@@ -32,19 +35,12 @@ class UserManager (BaseUserManager):
         email = self.normalize_email (email)
         user = self.create_user(email, username, password)
         user.is_superuser = True
-        # TODO CARES: user.is_admin = True
-        # TODO CARES: user.is_manager = True
+        user.is_admin = True
+        user.is_manager = True
         user.is_staff = True
         user.save()
         return user
 
-##############################################################################################################
-# Model declarations                                                                                         #
-# Field configurations include a variety of attributes some of which are true DB configurations and some not #
-# null=True  --> allows NULL db entries (use for optional fields) default is equivalent to 'null=False'      #
-# blank=True --> allows fields to be empty when validating forms (has no DB impact) default is 'blank=false' #
-# Text-based fields (Text, Char, URLField) should not use null=True. Django uses empty strings only.         #
-##############################################################################################################
 
 class User(AbstractBaseUser, PermissionsMixin):
       
@@ -64,8 +60,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_email_blocked     = models.BooleanField (default=False)
 
     is_admin   = models.BooleanField (default=False)
-    # TODO CARES: is_manager = models.BooleanField (default=False)
+    is_manager = models.BooleanField (default=False)
     is_staff   = models.BooleanField (default=False)
+
+    is_proxy   = models.BooleanField (default=False)
     is_active  = models.BooleanField (default=True)
 
     USERNAME_FIELD = 'email'
@@ -115,6 +113,8 @@ class UserEmail (models.Model):
         return self.name
 
 
+### Species (Species Profile)
+
 class Species (models.Model):
 
     name                      = models.CharField (max_length=240)
@@ -152,30 +152,44 @@ class Species (models.Model):
     global_region       = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
     local_distribution  = models.CharField (max_length=200, blank=True)
 
-    # TODO CARES: class CaresFamily (models.TextChoices):
-    #     RICEFISH        = 'RIC', _('Adrianichthyidae (Ricefish)')
-    #     ANABANTIDS      = 'ANA', _('Anabantidae (Climbing Gouramies)')
-    #     EUROKILLIFISH   = 'EKF', _('Aphaniidae (Eurasian Killifish)')
-    #     MADAKILLIFISH   = 'MKF', _('Bedotiidae (Madagascan Killifish)')
-    #     KILLIFISH       = 'OKF', _('Killifish (Other Killifish)')
-    #     CHARACINS       = 'CHA', _('Characidae (Tetras)')
-    #     CICHLIDS        = 'CIC', _('Cichlidae (Cichlids)')
-    #     LOACHES         = 'LCH', _('Cobitidae (Loaches)')
-    #     CYPRINDAE       = 'CYP', _('Cyprinidae (Minnows and Carps)')
-    #     PUPFISH         = 'PUP', _('Cyprinodontidae (Pupfish)')
-    #     GOBIES          = 'GOB', _('Gobiidae (Gobies)')
-    #     GOODEIDS        = 'GOO', _('Goodeidae (Splitfins)')
-    #     LORICARIIDAE    = 'LOR', _('Loricariidae (Armoured Catfish)')
-    #     RAINBOWFISH     = 'RBF', _('Melanotaeniidae (Rainbowfish)')
-    #     SQUEEKERS       = 'SQU', _('Mochokidae (Squeakers)')
-    #     TOOTHCARPS      = 'TCA', _('Nothobranchiidae (Toothcarps)')
-    #     LIVEBEARERS     = 'LVB', _('Poeciliidae (Livebearers)')
-    #     BLUEEYES        = 'BLE', _('Pseudomugilidae (Blue Eyes)')
-    #     RIVULUS         = 'RIV', _('Rivulidae (Rivulus)')
-    #     VALENCIAS       = 'VLC', _('Valenciidae (Valencias)')
-    #     UNDEFINED       = 'UDF', _('Undefined')
+    class CaresFamily (models.TextChoices):
+        RICEFISH        = 'RIC', _('Adrianichthyidae (Ricefish)')
+        ANABANTIDS      = 'ANA', _('Anabantidae (Climbing Gouramies)')
+        EUROKILLIFISH   = 'EKF', _('Aphaniidae (Eurasian Killifish)')
+        MADAKILLIFISH   = 'MKF', _('Bedotiidae (Madagascan Killifish)')
+        KILLIFISH       = 'OKF', _('Killifish (Other Killifish)')
+        CHARACINS       = 'CHA', _('Characidae (Tetras)')
+        CICHLIDS        = 'CIC', _('Cichlidae (Cichlids)')
+        LOACHES         = 'LCH', _('Cobitidae (Loaches)')
+        CYPRINDAE       = 'CYP', _('Cyprinidae (Minnows and Carps)')
+        PUPFISH         = 'PUP', _('Cyprinodontidae (Pupfish)')
+        GOBIES          = 'GOB', _('Gobiidae (Gobies)')
+        GOODEIDS        = 'GOO', _('Goodeidae (Splitfins)')
+        LORICARIIDAE    = 'LOR', _('Loricariidae (Armoured Catfish)')
+        RAINBOWFISH     = 'RBF', _('Melanotaeniidae (Rainbowfish)')
+        SQUEEKERS       = 'SQU', _('Mochokidae (Squeakers)')
+        TOOTHCARPS      = 'TCA', _('Nothobranchiidae (Toothcarps)')
+        LIVEBEARERS     = 'LVB', _('Poeciliidae (Livebearers)')
+        BLUEEYES        = 'BLE', _('Pseudomugilidae (Blue Eyes)')
+        RIVULUS         = 'RIV', _('Rivulidae (Rivulus)')
+        VALENCIAS       = 'VLC', _('Valenciidae (Valencias)')
+        UNDEFINED       = 'UDF', _('Undefined')
 
-    # cares_family  = models.CharField (max_length=3, choices=CaresFamily.choices, default=CaresFamily.UNDEFINED)
+    cares_family  = models.CharField (max_length=3, choices=CaresFamily.choices, default=CaresFamily.UNDEFINED)
+
+    class IucnRedList (models.TextChoices):
+        UNDEFINED         = 'UN', _('Undefined')
+        NOT_EVALUATED     = 'NE', _('Not Evaluated')
+        DATA_DEFICIENT    = 'DD', _('Data Deficient')
+        LEAST_CONCERN     = 'LC', _('Least Concern')
+        NEAR_THREATENED   = 'NT', _('Near Threatened')
+        VULNERABLE        = 'VU', _('Vulnerable')
+        ENDANGERED        = 'EN', _('Endangered')
+        CRIT_ENDANGERED   = 'CR', _('Critically Endangered')
+        EXTINCT_IN_WILD   = 'EX', _('Extinct in the Wild')
+        EXTINCT           = 'EW', _('Extinct in the Wild')
+    
+    iucn_red_list         = models.CharField (max_length=2, choices=IucnRedList.choices, default=IucnRedList.UNDEFINED)
 
     class CaresStatus (models.TextChoices):
         NOT_CARES_SPECIES = 'NOTC', _('Undefined')
@@ -183,10 +197,10 @@ class Species (models.Model):
         VULNERABLE        = 'VULN', _('Vulnerable')
         ENDANGERED        = 'ENDA', _('Endangered')
         CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')
-        EXTINCT_IN_WILD   = 'EXCT', _('Extict in the Wild')
+        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')
     
-    cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
-    render_cares              = models.BooleanField (default=False)
+    cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
+    render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
     species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in searchSpecies list view
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
@@ -196,7 +210,7 @@ class Species (models.Model):
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
-        verbose_name_plural = "Species"
+        verbose_name = 'Species Profile'
 
     @property
     def genus_name (self):
@@ -209,7 +223,6 @@ class Species (models.Model):
 
     def __str__(self):
         return self.name
-
 
 class SpeciesComment (models.Model):
 
@@ -238,8 +251,9 @@ class SpeciesReferenceLink (models.Model):
 
     def __str__(self):
         return self.name
-    
-# declare fn for time 'now' to remove use of lambda: in models.py (works fine until a migration is required, migration chokes on lambda)
+
+
+### SpeciesInstance (Aquarist Species)
 
 def get_cur_year():
     return timezone.now().year
@@ -247,11 +261,11 @@ def get_cur_year():
 class SpeciesInstance (models.Model):
 
     name                      = models.CharField (max_length=240)
-    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instances')  # delestes species instances if user deleted
-    species                   = models.ForeignKey(Species, on_delete=models.PROTECT, null=False, related_name='species_instances')
-    unique_traits             = models.CharField (max_length=200, blank=True)                                    # e.g. long-finned, color, etc. May be empty
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instances')  # delestes Species instances if user deleted
+    species                   = models.ForeignKey(Species, on_delete=models.PROTECT, null=False, related_name='species_instances')        # allows Species deletion *only* if no SpeciesInstances exist
+    unique_traits             = models.CharField (max_length=200, blank=True)                            # e.g. long-finned, color, etc. May be empty
     aquarist_species_image    = models.ImageField(upload_to='images/%Y/%m/%d', null=True, blank=True)
-    aquarist_species_video_url= models.URLField  (max_length=500, blank=True)                                     # help_text="YouTube video link"
+    aquarist_species_video_url= models.URLField  (max_length=500, blank=True)                            # help_text="YouTube video link"
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
@@ -263,7 +277,7 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, blank=True)
-    #acquired_from             = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') TODO CARES: resolve circular dependency
+    acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # self == SpeciesInstance
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     aquarist_notes            = models.TextField (blank=True)
     have_spawned              = models.BooleanField(default=False)
@@ -282,6 +296,9 @@ class SpeciesInstance (models.Model):
 
     class Meta:
         ordering = ['-lastUpdated', '-created'] # sorts in descending order - newest first
+        verbose_name = 'Aquarist Species'
+        verbose_name_plural = "Aquarist Species"
+
 
     def __str__(self):
         return self.name
@@ -316,6 +333,22 @@ class SpeciesInstanceLabel (models.Model):
     def __str__(self):
         return f"Label: {self.name[:30]}"    
 
+class SpeciesInstanceComment (models.Model):
+
+    name                      = models.CharField (max_length=240)
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instance_comments') # delestes species instances if user deleted
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=False, related_name='species_instance_comments')   # deletes ALL instances referencing any deleted species
+    comment                   = models.TextField(null=False, blank=False) 
+    created                   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created'] # sorts in descending order - newest first
+
+    def __str__(self):
+        return self.name
+
+
+### SpeciesMaintenanceLog
 
 class SpeciesMaintenanceLog (models.Model):
     name                      = models.CharField (max_length=240)
@@ -330,7 +363,6 @@ class SpeciesMaintenanceLog (models.Model):
     def __str__(self):
         return self.name
     
-
 class SpeciesMaintenanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
     speciesMaintenanceLog     = models.ForeignKey (SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')  
@@ -347,20 +379,7 @@ class SpeciesMaintenanceLogEntry (models.Model):
         return self.name
 
 
-class SpeciesInstanceComment (models.Model):
-
-    name                      = models.CharField (max_length=240)
-    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instance_comments') # delestes species instances if user deleted
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=False, related_name='species_instance_comments')   # deletes ALL instances referencing any deleted species
-    comment                   = models.TextField(null=False, blank=False) 
-    created                   = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created'] # sorts in descending order - newest first
-
-    def __str__(self):
-        return self.name
-
+### AquaristClub
 
 class AquaristClub (models.Model):
     name                      = models.CharField (max_length=240)
@@ -396,6 +415,7 @@ class AquaristClubMember (models.Model):
     bap_participant           = models.BooleanField(default=False)
     membership_approved       = models.BooleanField(default=False)
     is_club_admin             = models.BooleanField(default=False)
+    is_cares_admin            = models.BooleanField(default=False)
     date_requested            = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     last_updated              = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -405,6 +425,58 @@ class AquaristClubMember (models.Model):
     def __str__(self):
         return self.name
 
+
+### CARES Registration & Approver
+
+class CaresApprover (models.Model):
+    name              = models.CharField (max_length=240)
+    approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
+    specialty         = models.CharField (max_length=3, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
+
+    last_updated      = models.DateTimeField(auto_now=True)      # updated every save
+    last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters') 
+    created           = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
+
+    class Meta:
+        ordering = ['name'] # sorts in alphabetical order
+
+    def __str__(self):
+        return self.name
+
+class CaresRegistration (models.Model):
+    name                      = models.CharField (max_length=240)
+    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_cares_registrations') 
+    cares_approver            = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
+    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) # should only be 1 per SpeciesInstance
+    verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
+    acquired_species_source   = models.TextField ()
+    acquired_species_timing   = models.TextField ()
+    species_has_spawned       = models.BooleanField (default=False)
+    offspring_distributed     = models.BooleanField (default=False) # TODO review usage and consider int 0, 1, 2, 3... to track success
+
+    class CaresRegistrationStatus (models.TextChoices):
+        OPEN     = 'OPEN', _('Open')
+        APPROVED = 'APRV', _('Approved')
+        DECLINED = 'DECL', _('Declined')
+        RESUBMIT = 'RESU', _('Resubmitted')
+        EXPIRED  = 'EXPI', _('Expired')
+        CLOSED   = 'CLSD', _('Closed')
+    
+    approver_notes            = models.TextField (blank=True)
+    status                    = models.CharField (max_length=4, choices=CaresRegistrationStatus.choices, default=CaresRegistrationStatus.OPEN)
+    
+    last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates') 
+    last_report_date          = models.DateField (null=True, blank=True)
+
+    date_requested            = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
+    lastUpdated               = models.DateTimeField (auto_now=True)    
+
+    def __str__(self):
+        return self.name
+
+
+### BAP Program
 
 class BapSubmission (models.Model):
 
@@ -447,7 +519,7 @@ class BapLeaderboard (models.Model):
     cares_species_count       = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
     created                   = models.DateTimeField(auto_now_add=True)
-    #TODO manage lastUpdated  = models.DateTimeField(auto_now=True)  # compare dates of aquarist BAP submissions and only update when needed
+    lastUpdated               = models.DateTimeField(auto_now=True)  # compare dates of aquarist BAP submissions and only update when needed
 
 
     def __str__(self):
@@ -489,6 +561,8 @@ class BapSpecies (models.Model):
     def __str__(self):
         return self.name            
 
+
+### ImportArchives
 
 class ImportArchive (models.Model):
 
