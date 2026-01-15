@@ -1,14 +1,46 @@
+
+/***********************************************
+Shades of CARES Green
+
+Lighter shades:
+
+    rgb(245, 250, 247) - Very light, almost white
+    rgb(232, 241, 235) - Very light green
+    rgb(219, 232, 223) - Light green
+    rgb(201, 220, 206) - Soft light green
+    rgb(192, 214, 197) - Medium-light green
+
+Base color:
+
+    rgb(183, 208, 189) - CARES Background Green (middle)
+
+Darker shades (towards black):
+
+    rgb(165, 187, 170) - Medium-dark green
+    rgb(137, 156, 142) - Muted green
+    rgb(110, 125, 114) - Dark muted green
+    rgb(73, 83, 76) - Very dark green
+    rgb(37, 42, 38) - Almost black green
+
+ ***********************************************/
+    
 body {
-    background-color: rgb(183, 208, 189) !important;
+    background-color: rgb(183, 208, 189) !important;   /* CARES Background Color  */
     padding: 0.5em !important; 
 }
-/* rgb(183, 208, 189) CARES */
-    
 
-a:link {color: rgb(36, 41, 37) !important;}
-a:visited {color:rgb(64, 73, 66) !important;}
-a:hover {color:rgb(92, 107, 95)!important;}
-a:active {color:grey !important;}
+/* rgb(152, 199, 231) ASN Background Color */
+
+/* a:link {color: rgb(153, 76, 0) !important;}      /* Chocolate brown */
+/* a:visited {color: rgb(102, 51, 0) !important;}       /* Dark chocolate */
+/* a:hover {color: rgb(230, 126, 34) !important;}     /* Carrot orange - lively */
+/* a:active {color: rgb(192, 57, 43) !important;}      /* Terracotta red */
+
+a:link {color: rgb(120, 63, 4) !important;}       /* Deep amber brown */
+a:visited {color: rgb(90, 47, 3) !important; }       /* Darker amber */
+a:hover {color: rgb(211, 84, 0) !important; }      /* Copper/burnt sienna */
+a:active {color: rgb(183, 28, 28) !important; }     /* Deep red */
+
 
 .home-container 
 {
@@ -28,22 +60,30 @@ a:active {color:grey !important;}
     border-top: 1px solid slategray;
 }
 
+.card {
+    background-color: rgb(232, 241, 235) !important;      /* very light green */
+}
+
 .card-header {
-    background-color: rgb(232, 243, 251) !important;
+    background-color: rgb(245, 250, 247) !important;      /* soft light green */
     border-bottom: 1px solid slategray !important;
+}
+
+.card-body {
+    background-color: rgb(232, 241, 235) !important;      /* very light green */
 }
 
 /* Bordered sections (e.g. Media) */
 .section-bordered {
-    background-color: rgb(212, 231, 247);
-    border: 2px solid rgb(162, 189, 221);
+    background-color: rgb(219, 232, 223) !important;      /* light green */
+    border: 2px solid rgb(165, 187, 170) !important;      /* medium light green */
     border-radius: 0.5rem;
     padding: 0.75rem 1.5rem;
     margin-bottom: 1rem;
 }
 
 .section-bordered legend {
-    background-color: rgb(212, 231, 247) !important;
+    background-color: rgb(219, 232, 223) !important;      /* light green */
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     border: none !important;

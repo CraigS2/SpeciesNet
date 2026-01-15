@@ -78,23 +78,25 @@ SITE_CONFIGS = {
     1: {
         'name': 'Aquarist Species',
         'domain': site_domain_1,
-        'logo': 'site1/logo.png',  # Path relative to static/
+        #'logo': 'site1/logo.png',  # Path relative to static/
         #'primary_color': 'rgb(152, 199, 231)',  # ASN blue
         #'secondary_color': '#6c757d',
+        'main_css': 'styles/site1/asn_main.css',        
         'navbar_template': 'site1/navbar.html',
         'home_template': 'species/site1/home.html',
-        'main_css': 'styles/site1/asn_main.css',        
+        'about_us': 'species/site1/about_us.html',
         'contact_email': 'contact@aquarist.example.com',
     },
     2: {
         'name': 'CARES Species',
         'domain': site_domain_2,
-        'logo': 'site2/logo.png',
+        #'logo': 'site2/logo.png',
         #'primary_color': 'rgb(183, 208, 189)',  # CARES green
         #'secondary_color': '#ffc107',
+        'main_css': 'styles/site2/cares_main.css',        
         'navbar_template': 'site2/navbar.html',
         'home_template': 'species/site2/home.html',
-        'main_css': 'styles/site2/cares_main.css',        
+        'about_us': 'species/site2/about_us.html',
         'contact_email': 'contact@cares.example.com',
     }
 }

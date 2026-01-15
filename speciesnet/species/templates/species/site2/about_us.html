@@ -1,0 +1,33 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+<div class="container">
+    <h2>About Us</h2>
+    <large>
+    <p>
+        Welcome to the new <b><i>CaresSpecies.org</i></b> site!</i>
+    </p>
+    <p>
+        <i>CaresSpecies.org</i> is a <b><i>beta site</i></b> supporting the 
+        <b><a href="https://caresforfish.org/" target="_blank">CARES Preservation Program</a></b>.
+        This program encourages aquarium hobbyists to help preserve at-risk species by dedicating tank space for <b>CARES species</b> in 
+        their home aquariums. If you are a <b>CARES</b> fishkeeper or a <b>CARES</b> liaison for a local club: <i>Please consider joining 
+        our <b>beta program</b>!</i>
+    </p>
+    <p>
+        This site provides <b>CARES Fish Species</b> details and registration support for species declared on the 
+        <b><a href="https://caresforfish.org/?page_id=40" target="_blank">CARES Priority List</a></b>. 
+    </p>
+    <p>
+        <i>CaresSpecies.org</i> partners with <b><i><a href="https://aquaristspecies.net/" target="_blank">AquaristSpecies.net</a></i></b>
+        to link aquarists keeping <b>CARES species</b>  to the <b><a href="https://caresforfish.org/" target="_blank">CARES Preservation Program</a></b>.
+        Individuals and <b>CARES</b> Liaisons can use their <i>AquaristSpecies.net</i> accounts to manage their species including <b>CARES Registration</b> 
+        and quarterly reporting. To participate in the <i>CaresSpecies.org</i> beta program create an account on <i>AquaristSpecies.net</i> and add your 
+        <b>CARES species</b>. If you are a <b>CARES</b> liaison please contact the site admin at <i>aquaristspecies@gmail.com</i> to set up your club 
+        and participate in our beta program. 
+    </p>
+    <p>Both individual and club liasion ** <b>Beta Users Welcome!</b> ** </p>  
+    </large>
+    <p style="text-align:left;"><a href="{% url 'speciesSearch'%}"><img src={% static 'images\cares_logo_200x200.jpg' %}></a></p>
+</div>
+{% endblock content %}

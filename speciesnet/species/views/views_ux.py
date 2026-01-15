@@ -27,8 +27,8 @@ def about_us(request):
         logger.info('User %s visited about_us page.', request.user.username)
     else:
         logger.info('Anonymous user visited about_us page.')
-    context = {'aquarists': aquarists}
-    return render(request, 'species/about_us.html', context)
+    context = {} 
+    return render(request, settings.CURRENT_SITE_CONFIG['about_us'], context)
 
 
 def howItWorks(request):

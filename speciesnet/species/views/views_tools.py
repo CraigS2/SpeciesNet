@@ -229,6 +229,54 @@ def db_null_text_integrity_cleanup (modify_db=False):
     
     return results
 
+def initialize_cares_species_fields():
+    
+    cares_species = Species.objects.filter(render_cares=True)
+    species_count = 0
+    unmapped_category_count = 0
+    unmapped_redlist_count = 0
+    for species in cares_species: 
+        species_count = species_count + 1
+        if species.cares_status == Species.CaresStatus.EXTINCT_IN_WILD:
+            species.iucn_red_list = Species.IucnRedList.EXTINCT_IN_WILD
+        elif species.cares_status == Species.CaresStatus.CRIT_ENDANGERED:
+            species.iucn_red_list = Species.IucnRedList.CRIT_ENDANGERED
+        elif species.cares_status == Species.CaresStatus.ENDANGERED:
+            species.iucn_red_list = Species.IucnRedList.ENDANGERED            
+        elif species.cares_status == Species.CaresStatus.NEAR_THREATENED:
+            species.iucn_red_list = Species.IucnRedList.NEAR_THREATENED           
+        elif species.cares_status == Species.CaresStatus.VULNERABLE:
+            species.iucn_red_list = Species.IucnRedList.VULNERABLE           
+        else:
+            print ('CARES Species not mapped to IUCN Red List: ' + species.name) 
+            unmapped_redlist_count = unmapped_redlist_count + 1
+
+        if species.category == Species.Category.ANABATIDS:
+            species.cares_family = Species.CaresFamily.ANABANTIDS
+        elif species.category == Species.Category.CATFISH:
+            species.cares_family = Species.CaresFamily.LORICARIIDAE
+        elif species.category == Species.Category.CHARACINS:
+            species.cares_family = Species.CaresFamily.CHARACINS
+        elif species.category == Species.Category.CICHLIDS:
+            species.cares_family = Species.CaresFamily.CICHLIDS
+        elif species.category == Species.Category.CYPRINIDS:
+            species.cares_family = Species.CaresFamily.CYPRINDAE
+        elif species.category == Species.Category.KILLIFISH:
+            species.cares_family = Species.CaresFamily.KILLIFISH
+        elif species.category == Species.Category.LOACHES:
+            species.cares_family = Species.CaresFamily.LOACHES
+        else:
+            print ('CARES Species not mapped to Cares Family: ' + species.name) 
+            unmapped_category_count = unmapped_category_count + 1
+
+        species.save()
+
+    message_text = 'Cares Migration (total: (' + str(species_count) + ') (unmapped category: ' + str(unmapped_category_count) + ') (unmapped redlist: (' + str(unmapped_redlist_count) + ')'
+    print (message_text)
+    return 
+
+
+
 
 def dirtyDeed(request):
     """
@@ -246,38 +294,13 @@ def dirtyDeed(request):
     
     # Dirty deed goes here ...  then return to tools2
 
+    ### DB NULL - Empty String Cleanup ###
     #modify_db = True
-    modify_db = False
-    db_null_text_integrity_cleanup(modify_db)
-    
-    ######### Example:  Populate PVAS sample BapGenus table ########
-    # club = AquaristClub.objects.get(id=1)
-    # species_set = Species.objects.all()
-    # genus_names = set()  # prevents duplicate entries
-    # for species in species_set:
-    #     if species.name and ' ' in species.name:
-    #         genus_name = species.name.split(' ')[0]
-    #         genus_names.add(genus_name)
-    # print('Genus list length:  ', (str(len(genus_names))))
-    # for name in genus_names:
-    #     bapGP = BapGenus(name=name, club=club, points=10)
-    #     bapGP.save()
+    # modify_db = False
+    # db_null_text_integrity_cleanup(modify_db)
 
-    ######## Example:  Populate PVAS sample BapSpecies table ########
-    # club = AquaristClub.objects.get(id=1)
-    # species_set = Species.objects.all()
-    # for species in species_set: 
-    #     bapSP = BapSpecies(name=species.name, species=species, club=club, points=10)
-    #     bapSP.save()
-
-    ######## Example:  Migrate aquarist species to new user ###############
-    # old_user = User.objects.get(username='fehringerk')
-    # new_user = User.objects.get(username='fehringer')
-    # si_set = SpeciesInstance.objects.filter(user=old_user)
-    # for si in si_set: 
-    #     si.user = new_user
-    #     si.save()
-    #     print('Moved ' + si.name + ' to ' + new_user.username)
+    ### Initialize CARES Properties ###
+    #initialize_cares_species_fields()
 
     logger.info('Admin user %s executed dirtyDeed', request.user.username)
     return render(request, 'species/tools2.html')

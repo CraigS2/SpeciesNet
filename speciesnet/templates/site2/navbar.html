@@ -6,7 +6,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: rgb(183, 208, 189);">
         <div class="container">
             <!-- Brand is used when menu collapses on mobile devices -->
-            <a class="navbar-brand" style="font-size: 1rem;" href="{% url 'home' %}">Go Home!</a>
+            <a class="navbar-brand" style="font-size: 1rem;" href="{% url 'home' %}">Home</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -17,10 +17,10 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'about_us' %}active{% endif %}" 
                         href="{% url 'about_us' %}">&nbsp;About Us&nbsp;</a>
                     </li>
-                    <!-- Species Search (Direct Link) -->
+                    <!-- CARES Priority List - Species Search (Direct Link) -->
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'speciesSearch' %}active{% endif %}" 
-                        href="{% url 'speciesSearch' %}">&nbsp;Species Search&nbsp;</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'caresSpeciesSearch' %}active{% endif %}" 
+                        href="{% url 'caresSpeciesSearch' %}">&nbsp;CARES Priority List&nbsp;</a>
                     </li> 
                     <!-- Aquarists (Direct Link) -->
                     <li class="nav-item">
@@ -28,46 +28,7 @@
                         href="{% url 'aquarists' %}">&nbsp;Aquarists&nbsp;</a>
                     </li> 
                     {% if user.is_authenticated %}
-                        <!-- Clubs (Dropdown) -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle {% if 'club' in request.path %}active{% endif %}" 
-                            href="#" id="clubsDropdown" role="button" 
-                            data-bs-toggle="dropdown" aria-expanded="false">&nbsp;Community&nbsp;</a>
-                            <ul class="dropdown-menu" aria-labelledby="clubsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">BAP Clubs</a></li>
-                                <li><a class="dropdown-item" href="{% url 'bap_overview' %}">BAP Program Overview</a></li>
-                                <li><a class="dropdown-item" href="{% url 'cares_overview' %}">CARES Preservation Program</a></li>
-                                <li><a class="dropdown-item" href="{% url 'speciesMaintenanceLogs' %}">Species Maintenance Groups</a></li>
-                            </ul>
-                        </li>
-                    {% endif %}
-                </ul>
-                
-                <!-- Right-aligned menu items (user account) -->
-                <ul class="navbar-nav ms-auto">
-                    {% if user.is_authenticated %}
-                        <!-- Account (Dropdown when logged in) -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" role="button" 
-                            data-bs-toggle="dropdown" aria-expanded="false">{{ user.username }}</a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
-                                <li><a class="dropdown-item" href="{% url 'userProfile' %}">Profile</a></li>
-                                <li><a class="dropdown-item" href="{% url 'aquarist' user.id %}">Fishroom</a></li>
-                                {% if user.is_staff %}
-                                    <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
-                                {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <!-- Login/Create-Account links when not logged in -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'account_login' %}">&nbsp;Sign-in&nbsp;</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/signup">&nbsp;Create Account&nbsp;</a>
-                        </li>
+                        <!-- TBD -->
                     {% endif %}
                 </ul>
             </div>

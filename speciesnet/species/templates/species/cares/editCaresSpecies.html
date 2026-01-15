@@ -1,0 +1,63 @@
+{% extends "main.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">
+                        {% if form.instance.pk %}
+                            Edit CARES Species: <i>{{ form.instance.name }}</i>
+                        {% else %}
+                            Add New Species
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    {% crispy form %}
+                </div>
+            </div>
+            
+            <!-- Preview current image -->
+            {% if form.instance.species_image %}
+            <div><p>&nbsp;</p></div>
+            <div class="card mt-3 species-form-card">
+                <div class="card-header" style="background-color: #e9ebee">
+                    <h4 class="my-0">Current Image</h4>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ form.instance.species_image.url }}" 
+                         alt="{{ form.instance.name }}" 
+                         class="img-fluid" 
+                         style="max-height: 300px;">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Delete button (only show when editing existing object) -->
+            {% if form.instance.pk %}
+            <div><p>&nbsp;</p></div>
+            <div class="card shadow-sm">
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    <h4>Delete Species</h4>
+                    <p class="text-muted mb-3">
+                        This action cannot be undone. All associated data will be permanently removed.
+                    </p>
+                    <a href="{% url 'deleteSpecies' form.instance.pk %}" 
+                        class="btn btn-secondary"
+                    style="color: darkred !important; margin-left: 14%;">
+                        Delete Species
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

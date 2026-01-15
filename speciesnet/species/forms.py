@@ -539,9 +539,32 @@ class SpeciesSearchFilterForm (forms.Form):
         ('AUS', 'Australia'),
         ('',    'All Regions'),
     ]   
+    CARES_FAMILY_CHOICES = [
+        ('RIC', 'Adrianichthyidae (Ricefish)'),
+        ('ANA', 'Anabantidae (Climbing Gouramies)'),
+        ('EKF', 'Aphaniidae (Eurasian Killifish)'),
+        ('MKF', 'Bedotiidae (Madagascan Killifish)'),
+        ('OKF', 'Killifish (Other Killifish)'),
+        ('CHA', 'Characidae (Tetras)'),
+        ('CIC', 'Cichlidae (Cichlids)'),
+        ('LCH', 'Cobitidae (Loaches)'),
+        ('CYP', 'Cyprinidae (Minnows and Carps)'),
+        ('PUP', 'Cyprinodontidae (Pupfish)'),
+        ('GOB', 'Gobiidae (Gobies)'),
+        ('GOO', 'Goodeidae (Splitfins)'),
+        ('LOR', 'Loricariidae (Armoured Catfish)'),
+        ('RBF', 'Melanotaeniidae (Rainbowfish)'),
+        ('SQU', 'Mochokidae (Squeakers)'),
+        ('TCA', 'Nothobranchiidae (Toothcarps)'),
+        ('LVB', 'Poeciliidae (Livebearers)'),
+        ('BLE', 'Pseudomugilidae (Blue Eyes)'),
+        ('RIV', 'Rivulidae (Rivulus)'),
+        ('VLC', 'Valenciidae (Valencias)'),
+        ('',    'All Families'),
+    ]
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
-
+    cares_family = forms.ChoiceField (choices = CARES_FAMILY_CHOICES, required = False)
 
 class BapSubmissionFilterForm (forms.Form):
     STATUS_CHOICES = [

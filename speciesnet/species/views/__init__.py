@@ -16,6 +16,11 @@ from .views_species import (
     exportSpecies, importSpecies
 )
 
+# Species (Species Profiles)
+from .views_cares import (
+    caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView
+)
+
 # Species Instance (Aquarist Species)
 from .views_species_instance import (
     speciesInstance, createSpeciesInstance, editSpeciesInstance, deleteSpeciesInstance,

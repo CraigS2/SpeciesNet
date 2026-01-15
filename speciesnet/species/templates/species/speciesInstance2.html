@@ -6,10 +6,12 @@
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card shadow-sm">
-                <div class="card-header" style="background-color: #e9ebee;">
+                <!--div class="card-header" style="background-color: #e9ebee;"-->
+                <div class="card-header">
                     <h3>Aquarist Species: &nbsp;<i>{{speciesInstance.name}}</i></h3>
                 </div>
-                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                <!--div class="card-body px-4 py-3" style="background-color: #b6d7ef;"-->
+                <div class="card-body px-4 py-3">
                     <h4>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h4>
                     
                     <!-- Species Profile -->

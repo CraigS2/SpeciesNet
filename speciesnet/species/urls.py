@@ -73,6 +73,14 @@ urlpatterns = [
     path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
     path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
 
+
+    path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"), 
+    path('createCaresSpecies/', views.createCaresSpecies, name="createCaresSpecies"),
+    path('editCaresSpecies/<str:pk>/', views.editCaresSpecies, name="editCaresSpecies"),
+    path('deleteCaresSpecies/<str:pk>/', views.deleteCaresSpecies, name="deleteCaresSpecies"),
+    path('cares/caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
+
+
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),

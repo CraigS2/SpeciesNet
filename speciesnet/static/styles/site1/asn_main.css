@@ -1,9 +1,34 @@
-body {
-    background-color: rgb(152, 199, 231) !important;
+/***********************************************
+Shades of ASN Blue TODO update css background and border colors
+
+Lighter shades (towards white):
+
+    rgb(242, 249, 252) - Very light, almost white
+    rgb(228, 241, 248) - Very light blue
+    rgb(214, 233, 245) - Light blue
+    rgb(190, 220, 241) - Soft light blue
+    rgb(171, 210, 236) - Medium-light blue
+
+Base color:
+
+    rgb(152, 199, 231) - ASN background color (middle)
+
+Darker shades (towards black):
+
+    rgb(137, 179, 208) - Medium-dark blue
+    rgb(114, 149, 173) - Muted blue
+    rgb(91, 119, 138) - Dark muted blue
+    rgb(61, 79, 92) - Very dark blue
+    rgb(30, 40, 46) - Almost black blue
+
+ ***********************************************/
+
+ body {
+    background-color: rgb(152, 199, 231) !important;   /* ASN Background Color  */
     padding: 0.5em !important; 
 }
-/* rgb(183, 208, 189) CARES */
-    
+
+/* rgb(183, 208, 189) CARES Background Color */
 
 a:link {color:rgb(20, 20, 230) !important;}
 a:visited {color:rgb(60, 60, 230) !important;}
