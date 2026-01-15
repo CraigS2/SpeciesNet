@@ -1,13 +1,14 @@
 body {
-    background-color: rgb(152, 199, 231) !important;
+    background-color: rgb(183, 208, 189) !important;
     padding: 0.5em !important; 
 }
+/* rgb(183, 208, 189) CARES */
     
 
-a:link {color:rgb(20, 20, 230) !important;}
-a:visited {color:rgb(60, 60, 230) !important;}
-a:hover {color:rgb(80, 80, 230) !important;}
-a:active {color:rgb(90, 90, 230) !important;}
+a:link {color: rgb(36, 41, 37) !important;}
+a:visited {color:rgb(64, 73, 66) !important;}
+a:hover {color:rgb(92, 107, 95)!important;}
+a:active {color:grey !important;}
 
 .home-container 
 {

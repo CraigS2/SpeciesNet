@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+{% extends 'main.html' %}
+{% block content %}
+{% load static %}
+<div class="container">
+    <h1>&nbsp;</h1>
+    <p style="text-align:center;"><a href="{% url 'speciesSearch'%}"><img src={% static 'images\cares_logo_400x400.jpg' %}></a></p>
+    <small>&nbsp;</small>
+    <h4 style="text-align:center;">New to the site?</h4>
+    {% if request.user.is_authenticated %}
+        <h4 style="text-align:center;">&nbsp;</h4>
+    {% else %}
+        <h4 style="text-align:center;"><a href="{% url 'account_login' %}">Sign in or Create New Account</a></h4>
+    {% endif %}
+</div>
+{% endblock content %}

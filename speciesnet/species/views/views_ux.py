@@ -6,6 +6,8 @@ Public-facing and helper pages for users
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from django.conf import settings
+
 
 ### Home Page
 
@@ -14,8 +16,8 @@ def home(request):
         logger.info('User %s visited ASN home page. ', request.user.username)
     else:
         logger.info('Anonymous user visited ASN home page.')
-    return render(request, 'species/home.html')
-
+    context = {} 
+    return render(request, settings.CURRENT_SITE_CONFIG['home_template'], context)
 
 ### About and Info Pages
 

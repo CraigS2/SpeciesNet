@@ -2,11 +2,46 @@ from django.db import models
 #from enum import Enum
 #from django.contrib.auth.models import User
 from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
+
+### Site Configuration
+
+class SiteConfiguration(models.Model):
+    site = models.OneToOneField(Site, on_delete=models. CASCADE, related_name='config')
+    
+    # Branding
+    logo = models.ImageField(upload_to='site_logos/', blank=True)
+    primary_color = models.CharField(max_length=7, default='#007bff')
+    secondary_color = models.CharField(max_length=7, default='#6c757d')
+    
+    # Templates
+    home_template = models.CharField(max_length=100, default='home.html')
+    base_template = models.CharField(max_length=100, default='base.html')
+    
+    # Toolbar/Navigation Configuration
+    show_about_page = models.BooleanField(default=True)
+    show_services_page = models.BooleanField(default=True)
+    show_blog = models.BooleanField(default=True)
+    show_contact_page = models.BooleanField(default=True)
+    
+    # Custom Navigation Items (JSON field)
+    custom_nav_items = models.JSONField(default=list, blank=True)
+    # Example: [{"label": "Products", "url": "/products/"}, ...]
+    
+    # Other settings
+    contact_email = models.EmailField()
+    analytics_id = models. CharField(max_length=50, blank=True)
+    
+    def __str__(self):
+        return f"Config for {self.site.domain}"
+    
+    class Meta:
+        verbose_name = 'Site Configuration'
 
 ### Custom User
 

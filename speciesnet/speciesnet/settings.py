@@ -17,6 +17,8 @@ import os, logging
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SITE_ID = int(os.getenv('SITE_ID', 1))
+SITE_DOMAIN = os.getenv('SITE_DOMAIN', 'your_domain.example.com')
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'], os.environ['ALLOWED_HOST3']]
@@ -25,7 +27,7 @@ ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'], os.en
 CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], os.environ['CSRF_TRUSTED_ORIGIN3']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
 
-# DEBUG environment variable shared with nginx-certbot will generally be set as 0 or 1
+# DEBUG environment variable shared with nginx-certbot: 0 or 1
 DEBUG = False
 if (os.environ['DEBUG'] == 'True'):
     DEBUG = True
@@ -62,7 +64,43 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
 EMAIL_SUBJECT_PREFIX = ""
-SITE_ID = 1
+
+# site configuration
+
+site_domain_1 = 'aquarist.example.com'
+site_domain_2 = 'cares.example.com'
+if SITE_ID==1:
+    site_domain_1 = SITE_DOMAIN
+else:
+    site_domain_2 = SITE_DOMAIN
+
+SITE_CONFIGS = {
+    1: {
+        'name': 'Aquarist Species',
+        'domain': site_domain_1,
+        'logo': 'site1/logo.png',  # Path relative to static/
+        #'primary_color': 'rgb(152, 199, 231)',  # ASN blue
+        #'secondary_color': '#6c757d',
+        'navbar_template': 'site1/navbar.html',
+        'home_template': 'species/site1/home.html',
+        'main_css': 'styles/site1/asn_main.css',        
+        'contact_email': 'contact@aquarist.example.com',
+    },
+    2: {
+        'name': 'CARES Species',
+        'domain': site_domain_2,
+        'logo': 'site2/logo.png',
+        #'primary_color': 'rgb(183, 208, 189)',  # CARES green
+        #'secondary_color': '#ffc107',
+        'navbar_template': 'site2/navbar.html',
+        'home_template': 'species/site2/home.html',
+        'main_css': 'styles/site2/cares_main.css',        
+        'contact_email': 'contact@cares.example.com',
+    }
+}
+
+CURRENT_SITE_CONFIG = SITE_CONFIGS.get(SITE_ID, SITE_CONFIGS[1])
+
 
 # logging
 
@@ -240,6 +278,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.request',
+                'species.context_processors.site_config',                
             ],
         },
     },

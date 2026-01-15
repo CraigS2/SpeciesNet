@@ -8,7 +8,7 @@
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> 
         <script src=" https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js "></script>
         <link href=" https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cerulean/bootstrap.min.css " rel="stylesheet">
-        <link rel="stylesheet" href="{% static 'styles\asn_main.css' %}">
+        <link rel="stylesheet" href="{% static site_config.main_css %}">
         
     </head>
     <script>
@@ -17,10 +17,12 @@
             $('#div_id_captcha').hide(); //{# django-recaptcha does not play well with crispy forms #}
           });
     </script>
-<body>
-    {% include 'navbar.html' %}
+<!--body style="background-color: rgb(183, 208, 189)"-->
+<body>    
+    {% include site_config.navbar_template %}
 
     {# Add hide_google_login = True to any of your contexts to hide the one click google login window #}
+    
     {% if not request.user.is_authenticated and not hide_google_login %}
     <!--script src="//accounts.google.com/gsi/client" async></script>
       <div id="g_id_onload"
