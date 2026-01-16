@@ -19,7 +19,7 @@ class SpeciesForm2(ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares', 'species_instance_count', 'created_by', 'last_edited_by']
+        exclude = ['render_cares', 'species_instance_count', 'iucn_red_list', 'cares_family', 'created_by', 'last_edited_by']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -114,6 +114,111 @@ class SpeciesForm2(ModelForm):
                 css_class='mt-2'
             )
         )
+
+class CaresSpeciesForm(ModelForm):
+    class Meta:
+        model = Species
+        fields = '__all__'
+        exclude = ['render_cares', 'species_instance_count', 'category', 'created_by', 'last_edited_by']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal species-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
+        self.helper.field_class = 'col-md-10'                          # 83% of row
+        
+        # Add Bootstrap classes and placeholders
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'e.g., Aulonocara jacobfreibergi',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['alt_name'].widget.attrs.update({
+            'placeholder': 'Alternative scientific name (if any)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['common_name'].widget.attrs.update({
+            'placeholder': 'e.g., Butterfly Peacock',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['description'].widget.attrs.update({
+            'rows': 2,
+            'placeholder': 'Summary description of the species...',
+            'class': 'form-control'
+        })
+        self.fields['photo_credit'].widget.attrs.update({
+            'placeholder': 'Name of the person or organization providing the photo',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['local_distribution'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'placeholder': 'e.g., Lake Malawi, Otter Point',
+            'class': 'form-control'
+        })
+        self.fields['global_region'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['cares_family'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['iucn_red_list'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })        
+        self.fields['cares_status'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+                                
+        self.helper.layout = Layout(
+            Fieldset(
+                '🐟 Species Declaration',
+                Field('name', css_class='mb-1'),              # tight spacing between field rows
+                Field('alt_name', css_class='mb-1'),
+                Field('common_name', css_class='mb-1'),
+                Field('description', css_class='mb-1'),
+                Field('global_region', css_class='mb-1'),
+                Field('local_distribution', css_class='mb-1'),
+                Field('cares_family', css_class='mb-1'),
+                Field('cares_status', css_class='mb-1'),
+                Field('iucn_red_list', css_class='mb-1'),                
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species and distribute their offspring throughout the hobby. </strong><br>
+                                    For more information about the CARES Preservation Program and how you can participate see the <a href="{% url 'cares_overview' %}">CARES Preservation Program Overview</a></small>
+                        </div>
+                    """),      
+                ),     
+                css_class='mb-1'
+            ),
+            Fieldset(
+                '📸 Media',
+                Div(
+                    Field('species_image', css_class='mb-1'),
+                    Field('photo_credit', css_class='mb-1'),                    
+                    HTML("""
+                        <div class="alert alert-info mb-1">
+                            <small>💡 <strong>Please use your photos or photos with permission and include photo credit</strong></small>
+                        </div>
+                    """),                
+                    css_class='media-fields-custom'
+                ),
+                css_class='mb-3 section-bordered'
+            ),
+            FormActions(
+                Submit('submit', 'Save Species', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )        
 
 class SpeciesForm (ModelForm):
     class Meta:

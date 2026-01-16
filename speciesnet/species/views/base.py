@@ -34,7 +34,7 @@ from species.models import (
 # Local forms
 from species.forms import (
     UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
-    SpeciesCommentForm, SpeciesReferenceLinkForm, SpeciesForm2, SpeciesInstanceForm2,
+    SpeciesCommentForm, SpeciesReferenceLinkForm, SpeciesForm2, CaresSpeciesForm, SpeciesInstanceForm2,
     CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm,
     AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm,
     SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm,

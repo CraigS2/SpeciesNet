@@ -15,7 +15,8 @@
                 <div class="row mb-3">
                     <div class="col-md-5">
                         <label for="category">Category:</label>
-                        <select name="category" id="category" class="form-select" onchange="this.form.submit()">
+                        <!--select name="category" id="category" class="form-select" onchange="this.form.submit()"-->
+                        <select name="category" id="category" class="form-select">
                             <option value="">-- All Categories --</option>
                             {% for value, label in categories %}
                                 <option value="{{ value }}" {% if value == selected_category %}selected{% endif %}>{{ label }}</option>
@@ -24,15 +25,13 @@
                     </div>
                     <div class="col-md-5">
                         <label for="global_region">Global Region:</label>
-                        <select name="global_region" id="global_region" class="form-select" onchange="this.form.submit()">
+                        <!--select name="global_region" id="global_region" class="form-select" onchange="this.form.submit()"-->
+                        <select name="global_region" id="global_region" class="form-select">
                             <option value="">-- All Regions --</option>
                             {% for value, label in global_regions %}
                                 <option value="{{ value }}" {% if value == selected_region %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" id="clear-category-region" class="btn btn-secondary mt-4">Clear Filters</button>
                     </div>
                 </div>
                 
@@ -44,10 +43,7 @@
                         <small class="form-text text-muted">Press Enter to search</small>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary mt-4">Search</button>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" id="clear-text-search" class="btn btn-secondary mt-4">Clear Search</button>
+                        <button type="button" id="clear-filters" class="btn btn-secondary mt-4" onclick="window.location.href='{% url 'speciesSearch' %}'">Clear Filters</button>
                     </div>
                 </div>
                 
@@ -168,34 +164,27 @@
 </div>
 
 <script>
-    // Make Enter key work for text search
+    // Reset page to 1 when any filter changes
+    function resetPageAndSubmit() {
+        document.getElementById('preservedPage').value = '1';
+        document.getElementById('filter-form').submit();
+    }
+    
+    // Reset page when dropdowns change
+    document.getElementById('category').addEventListener('change', function() {
+        resetPageAndSubmit();
+    });
+    
+    document.getElementById('global_region').addEventListener('change', function() {
+        resetPageAndSubmit();
+    });
+    
+    // Make Enter key work for text search and reset page
     document.getElementById('q').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            document.getElementById('filter-form').submit();
+            resetPageAndSubmit();
         }
-    });
-    
-    // Clear Category and Global Region filters button
-    document.getElementById('clear-category-region').addEventListener('click', function() {
-        // Reset category and region dropdowns
-        document.getElementById('category').value = '';
-        document.getElementById('global_region').value = '';
-        
-        // Keep text search if it exists
-        const q = document.getElementById('q').value;
-        
-        // Submit the form
-        document.getElementById('filter-form').submit();
-    });
-    
-    // Clear Text Search button
-    document.getElementById('clear-text-search').addEventListener('click', function() {
-        // Clear the text search field
-        document.getElementById('q').value = '';
-        
-        // Submit the form to update results
-        document.getElementById('filter-form').submit();
     });
 </script>
 

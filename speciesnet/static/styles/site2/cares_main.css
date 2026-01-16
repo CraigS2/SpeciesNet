@@ -93,10 +93,16 @@ a:active {color: rgb(183, 28, 28) !important; }     /* Deep red */
     margin-bottom: 1rem;
 }
 
+fieldset.section-bordered legend {
+    background-color: rgb(219, 232, 223) !important;
+    /* padding: 0.5rem 1rem !important; */
+    /* border-radius: 0.25rem ! important; */
+}
+
 /* All fieldset legends */
 fieldset legend,
 .section-bordered legend {
-    color: #495057 !important;  /* Match General Info gray */
+    color: rgb(138, 148, 158) !important;  /* Match General Info gray */
     font-weight: 400;
 }
 

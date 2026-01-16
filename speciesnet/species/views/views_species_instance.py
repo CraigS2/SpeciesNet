@@ -6,6 +6,7 @@ These represent individual aquarist's fish/species entries
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from django.conf import settings
 
 ### View Species Instance
 
@@ -154,14 +155,21 @@ def editSpeciesInstance(request, pk):
 @login_required(login_url='login')
 def deleteSpeciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
+    species = speciesInstance.species
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     if not userCanEdit:
         raise PermissionDenied()
     
     if request.method == 'POST':
+        messages.success (request, 'Deleted Aquarist Species: ' + speciesInstance.name)
         logger.info('User %s deleted speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
         speciesInstance.delete()
-        return redirect('speciesSearch')
+
+        site_id = getattr(settings, 'SITE_ID', 1)
+        if site_id == 2:
+            return redirect('caresSpeciesSearch')
+        else:
+            return redirect('speciesSearch')
     
     context = {'speciesInstance': speciesInstance}
     return render(request, 'species/deleteSpeciesInstance.html', context)

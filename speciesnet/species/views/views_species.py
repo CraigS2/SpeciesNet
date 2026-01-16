@@ -5,6 +5,7 @@ Species-related views: CRUD operations, search, comments, reference links
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from django.conf import settings
 
 ### View Species
 
@@ -190,7 +191,12 @@ def deleteSpecies(request, pk):
     if request.method == 'POST': 
         logger.info('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
-        return redirect('speciesSearch')
+
+        site_id = getattr(settings, 'SITE_ID', 1)
+        if site_id == 2:
+            return redirect('caresSpeciesSearch')
+        else:
+            return redirect('speciesSearch')
     
     context = {'species': species}
     return render(request, 'species/deleteSpecies.html', context)

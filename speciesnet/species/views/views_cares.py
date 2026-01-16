@@ -5,6 +5,7 @@ Species-related views: CRUD operations, search, comments, reference links
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from django.conf import settings
 
 ### View CARES Species
 
@@ -30,34 +31,36 @@ def caresSpecies(request, pk):
 
 
 ### Create CARES Species
-#TODO
 @login_required(login_url='login')
 def createCaresSpecies(request):
     register_heif_opener()
-    form = SpeciesForm2()
+    form = CaresSpeciesForm()
     
     if request.method == 'POST':
-        form = SpeciesForm2(request.POST, request.FILES)
+        form = CaresSpeciesForm(request.POST, request.FILES)
         if form.is_valid():
             try:
                 species = form.save(commit=False)
                 species_name = species.name
-                
-                # Assure unique species names - prevent duplicates
-                if not Species.objects.filter(name=species_name).exists():
-                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
-                    species.created_by = request.user
-                    species.save()
-                    if species.species_image:
-                        processUploadedImageFile(species.species_image, species.name, request)
-                    logger.info('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
-                    return HttpResponseRedirect(reverse("species", args=[species.id]))
+                # Must declare the cares status
+                if species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES:
+                    # Assure unique species names - prevent duplicates
+                    if not Species.objects.filter(name=species_name).exists():
+                        species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                        species.created_by = request.user
+                        species.save()
+                        if species.species_image:
+                            processUploadedImageFile(species.species_image, species.name, request)
+                        logger.info('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
+                        return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
+                    else:
+                        dupe_msg = f"{species_name} already exists.  Please use this Species entry."
+                        messages.info(request, dupe_msg)
+                        species = Species.objects.get(name=species_name)
+                        logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
+                        return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
                 else:
-                    dupe_msg = f"{species_name} already exists.  Please use this Species entry."
-                    messages.info(request, dupe_msg)
-                    species = Species.objects.get(name=species_name)
-                    logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
-                    return HttpResponseRedirect(reverse("species", args=[species.id]))
+                    messages.error (request, "Cares Species must declare Risk Classification. Cannot use 'Undefined'" )
             except IntegrityError as e: 
                 logger.error(f"IntegrityError creating species: {str(e)}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
@@ -73,7 +76,6 @@ def createCaresSpecies(request):
 
 
 ### Edit Species
-#TODO
 @login_required(login_url='login')
 def editCaresSpecies(request, pk):
     register_heif_opener()
@@ -83,7 +85,7 @@ def editCaresSpecies(request, pk):
         raise PermissionDenied()
 
     if request.method == 'POST': 
-        form = SpeciesForm2(request.POST, request.FILES, instance=species)
+        form = CaresSpeciesForm(request.POST, request.FILES, instance=species)
         if form.is_valid():
             try:
                 species = form.save(commit=False)
@@ -94,7 +96,7 @@ def editCaresSpecies(request, pk):
                     processUploadedImageFile(species.species_image, species.name, request)
                 logger.info('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
                 messages.success(request, f'Species "{species.name}" updated successfully!')
-                return HttpResponseRedirect(reverse("species", args=[species.id]))
+                return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
             except IntegrityError as e:
                 logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
@@ -105,14 +107,13 @@ def editCaresSpecies(request, pk):
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = SpeciesForm2(instance=species)
+        form = CaresSpeciesForm(instance=species)
 
     context = {'form': form, 'species': species}
     return render(request, 'species/cares/editCaresSpecies.html', context)
 
 
 ### Delete Species
-#TODO
 @login_required(login_url='login')
 def deleteCaresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
@@ -130,10 +131,10 @@ def deleteCaresSpecies(request, pk):
     if request.method == 'POST': 
         logger.info('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
-        return redirect('speciesSearch')
+        return redirect('caresSpeciesSearch')
     
     context = {'species': species}
-    return render(request, 'species/cares/deleteCaresSpecies.html', context)
+    return render(request, 'species/deleteSpecies.html', context)
 
 
 ### Search CARES Species (caresSpeciesSearch)
@@ -172,7 +173,7 @@ class CaresSpeciesListView(ListView):
         context = super().get_context_data(**kwargs)
         context['cares_families'] = Species.CaresFamily.choices
         context['global_regions'] = Species.GlobalRegion.choices
-        context['selected_category'] = self.request.GET.get('category', '')
+        context['selected_cares_family'] = self.request.GET. get('cares_family', '')
         context['selected_region'] = self.request.GET.get('global_region', '')
         context['query_text'] = self.request.GET.get('q', '')
         return context
