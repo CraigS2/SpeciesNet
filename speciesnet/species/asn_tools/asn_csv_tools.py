@@ -34,7 +34,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             species_name = import_row['name']
-            species_cares_status = import_row['cares_status']
+            species_cares_classification = import_row['cares_classification']
 
             # validate Species data using Form validation
             species_form = SpeciesForm (import_row) # reads expected fields by header name
@@ -55,7 +55,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
                         newly_added_species.save()
 
                     #special case: update bool 'render_cares' value if species is 'Not a CARES Species' ('NOTC')
-                    if species_cares_status != "NOTC":
+                    if species_cares_classification != "NOTC":
                         species.render_cares = True
                         newly_added_species.save()
                 else:
@@ -324,9 +324,9 @@ def export_csv_species():
         headers={"Content-Disposition": 'attachment; filename="species_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['name', 'category', 'global_region', 'local_distribution', 'species_image', 'cares_status', 'created', 'description'])
+    writer.writerow(['name', 'category', 'global_region', 'local_distribution', 'species_image', 'cares_classification', 'created', 'description'])
     for species in speciesSet:
-        writer.writerow([species.name, species.category, species.global_region, species.local_distribution, species.species_image.name, species.cares_status, species.created, species.description])
+        writer.writerow([species.name, species.category, species.global_region, species.local_distribution, species.species_image.name, species.cares_classification, species.created, species.description])
     return response
 
 def export_csv_speciesInstances():

@@ -105,7 +105,7 @@ class BaseTestCase(TestCase):
             name='Ptychochromis insolitus',
             category='CIC',
             global_region='AFR',
-            cares_status='EXCT',  # Extinct in the wild
+            cares_classification='EXCT',  # Extinct in the wild
             render_cares=True,
             description='Critically endangered Malagasy cichlid',
             created_by=cls.super_user

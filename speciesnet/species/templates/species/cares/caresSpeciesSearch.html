@@ -79,7 +79,7 @@
                                         <a href="{% url 'caresSpecies' species.id %}">{{species.name}}</a>
                                     </td>
                                     <td style='text-align:center'>{{ species.get_cares_family_display }}</td>
-                                    <td style='text-align:center'>{{ species.get_cares_status_display }}</td>
+                                    <td style='text-align:center'>{{ species.get_cares_classification_display }}</td>
                                     <td style='text-align:center'>{{ species.get_global_region_display }}</td>
                                     <td style='text-align:center'>
                                         {% if species.species_instances.all.count > 0 %}

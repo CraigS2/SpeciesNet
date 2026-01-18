@@ -323,7 +323,7 @@ class SpeciesInstanceReadViewTest(TestCase):
             name='Melanochromis auratus',
             category='CIC',
             global_region='AFR',
-            cares_status='ENDA',
+            cares_classification='ENDA',
             created_by=self.user,
         )
         

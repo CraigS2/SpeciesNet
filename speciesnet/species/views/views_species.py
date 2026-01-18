@@ -11,7 +11,7 @@ from django.conf import settings
 
 def species(request, pk):
     species = get_object_or_404(Species, pk=pk)
-    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+    renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesComments = SpeciesComment.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
@@ -45,7 +45,7 @@ def species(request, pk):
         'userCanEdit': userCanEdit,
         'cform': cform
     }
-    return render(request, 'species/species2.html', context)
+    return render(request, 'species/species.html', context)
 
 
 ### Search Species
@@ -106,7 +106,7 @@ def createSpecies(request):
                 
                 # Assure unique species names - prevent duplicates
                 if not Species.objects.filter(name=species_name).exists():
-                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.created_by = request.user
                     species.save()
                     if species.species_image:
@@ -130,7 +130,7 @@ def createSpecies(request):
             messages.error(request, 'Please correct the errors highlighted below.')
     
     context = {'form': form}
-    return render(request, 'species/editSpecies2.html', context)
+    return render(request, 'species/editSpecies.html', context)
 
 
 ### Edit Species
@@ -148,7 +148,7 @@ def editSpecies(request, pk):
         if form.is_valid():
             try:
                 species = form.save(commit=False)
-                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                 species.last_edited_by = request.user
                 species.save()
                 if species.species_image:
@@ -169,7 +169,7 @@ def editSpecies(request, pk):
         form = SpeciesForm2(instance=species)
 
     context = {'form': form, 'species': species}
-    return render(request, 'species/editSpecies2.html', context)
+    return render(request, 'species/editSpecies.html', context)
 
 
 ### Delete Species

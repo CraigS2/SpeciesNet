@@ -11,7 +11,7 @@ from django.conf import settings
 
 def caresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
-    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+    renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
     userCanEdit = user_can_edit_s(request.user, species)
@@ -42,11 +42,11 @@ def createCaresSpecies(request):
             try:
                 species = form.save(commit=False)
                 species_name = species.name
-                # Must declare the cares status
-                if species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES:
+                # Must declare the CARES Classification
+                if species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES:
                     # Assure unique species names - prevent duplicates
                     if not Species.objects.filter(name=species_name).exists():
-                        species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                        species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                         species.created_by = request.user
                         species.save()
                         if species.species_image:
@@ -89,7 +89,7 @@ def editCaresSpecies(request, pk):
         if form.is_valid():
             try:
                 species = form.save(commit=False)
-                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                 species.last_edited_by = request.user
                 species.save()
                 if species.species_image:

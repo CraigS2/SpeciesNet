@@ -229,7 +229,7 @@ class SpeciesModelCRUDTest(BaseTestCase):
         )
         self.assertEqual(species.category, 'CIC')  # Default to CICHLIDS
         self.assertEqual(species.global_region, 'AFR')  # Default to AFRICA
-        self.assertEqual(species.cares_status, 'NOTC')  # Default NOT_CARES_SPECIES
+        self.assertEqual(species.cares_classification, 'NOTC')  # Default NOT_CARES_SPECIES
         self.assertFalse(species.render_cares)
         self.assertEqual(species.species_instance_count, 0)
     
@@ -255,16 +255,16 @@ class SpeciesModelCRUDTest(BaseTestCase):
             )
             self.assertEqual(species.global_region, region)
     
-    def test_species_cares_status_choices(self):
-        """Test all CARES status choices are valid"""
+    def test_species_cares_classification_choices(self):
+        """Test all CARES Classification choices are valid"""
         statuses = ['NOTC', 'NEAR', 'VULN', 'ENDA', 'CEND', 'EXCT']
         for status in statuses: 
             species = Species.objects.create(
                 name=f'Test Species {status}',
-                cares_status=status,
+                cares_classification=status,
                 created_by=self.basic_user
             )
-            self.assertEqual(species.cares_status, status)
+            self.assertEqual(species.cares_classification, status)
 
 
 class SpeciesModelMethodsTest(BaseTestCase):

@@ -68,7 +68,7 @@ class SpeciesForm2(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
-        self.fields['cares_status'].widget.attrs.update({
+        self.fields['cares_classification'].widget.attrs.update({
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
@@ -83,7 +83,7 @@ class SpeciesForm2(ModelForm):
                 Field('description', css_class='mb-1'),
                 Field('global_region', css_class='mb-1'),
                 Field('local_distribution', css_class='mb-1'),
-                Field('cares_status', css_class='mb-1'),
+                Field('cares_classification', css_class='mb-1'),
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
@@ -172,7 +172,7 @@ class CaresSpeciesForm(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })        
-        self.fields['cares_status'].widget.attrs.update({
+        self.fields['cares_classification'].widget.attrs.update({
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
@@ -187,7 +187,7 @@ class CaresSpeciesForm(ModelForm):
                 Field('global_region', css_class='mb-1'),
                 Field('local_distribution', css_class='mb-1'),
                 Field('cares_family', css_class='mb-1'),
-                Field('cares_status', css_class='mb-1'),
+                Field('cares_classification', css_class='mb-1'),
                 Field('iucn_red_list', css_class='mb-1'),                
                 Div(
                     HTML("""
@@ -439,10 +439,10 @@ class CombinedSpeciesForm(forms.Form):
         initial=Species.GlobalRegion. AFRICA,
         label='Global Region'
     )
-    cares_status = forms.ChoiceField(
+    cares_classification = forms.ChoiceField(
         choices=Species.CaresStatus.choices,
         initial=Species.CaresStatus.NOT_CARES_SPECIES,
-        label='CARES Status'
+        label='CARES Classification'
     )
     
     # SpeciesInstance fields
@@ -496,7 +496,7 @@ class CombinedSpeciesForm(forms.Form):
                     Row(
                         Column('category', css_class='col-md-4 mb-3'),
                         Column('global_region', css_class='col-md-4 mb-3'),
-                        Column('cares_status', css_class='col-md-4 mb-3'),
+                        Column('cares_classification', css_class='col-md-4 mb-3'),
                     ),
                     css_class='mb-4'
                 ),

@@ -9,40 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 
-### Site Configuration
-
-class SiteConfiguration(models.Model):
-    site = models.OneToOneField(Site, on_delete=models. CASCADE, related_name='config')
-    
-    # Branding
-    logo = models.ImageField(upload_to='site_logos/', blank=True)
-    primary_color = models.CharField(max_length=7, default='#007bff')
-    secondary_color = models.CharField(max_length=7, default='#6c757d')
-    
-    # Templates
-    home_template = models.CharField(max_length=100, default='home.html')
-    base_template = models.CharField(max_length=100, default='base.html')
-    
-    # Toolbar/Navigation Configuration
-    show_about_page = models.BooleanField(default=True)
-    show_services_page = models.BooleanField(default=True)
-    show_blog = models.BooleanField(default=True)
-    show_contact_page = models.BooleanField(default=True)
-    
-    # Custom Navigation Items (JSON field)
-    custom_nav_items = models.JSONField(default=list, blank=True)
-    # Example: [{"label": "Products", "url": "/products/"}, ...]
-    
-    # Other settings
-    contact_email = models.EmailField()
-    analytics_id = models. CharField(max_length=50, blank=True)
-    
-    def __str__(self):
-        return f"Config for {self.site.domain}"
-    
-    class Meta:
-        verbose_name = 'Site Configuration'
-
 ### Custom User
 
 class UserManager (BaseUserManager):
@@ -234,9 +200,9 @@ class Species (models.Model):
         CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')
         EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')
     
-    cares_status              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
+    cares_classification              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in searchSpecies list view
+    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in speciesSearch list view
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
@@ -468,12 +434,12 @@ class CaresApprover (models.Model):
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=3, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
 
-    last_updated      = models.DateTimeField(auto_now=True)      # updated every save
+    last_updated      = models.DateTimeField(auto_now=True)           # updated every save
     last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters') 
     created           = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
 
     class Meta:
-        ordering = ['name'] # sorts in alphabetical order
+        ordering = ['name']
 
     def __str__(self):
         return self.name
@@ -483,12 +449,12 @@ class CaresRegistration (models.Model):
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_cares_registrations') 
     cares_approver            = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) # should only be 1 per SpeciesInstance
+    species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_registrations')
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
     acquired_species_source   = models.TextField ()
     acquired_species_timing   = models.TextField ()
     species_has_spawned       = models.BooleanField (default=False)
-    offspring_distributed     = models.BooleanField (default=False) # TODO review usage and consider int 0, 1, 2, 3... to track success
+    offspring_shared          = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(500)], default=0)  
 
     class CaresRegistrationStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')

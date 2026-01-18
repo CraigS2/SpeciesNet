@@ -237,15 +237,15 @@ def initialize_cares_species_fields():
     unmapped_redlist_count = 0
     for species in cares_species: 
         species_count = species_count + 1
-        if species.cares_status == Species.CaresStatus.EXTINCT_IN_WILD:
+        if species.cares_classification == Species.CaresStatus.EXTINCT_IN_WILD:
             species.iucn_red_list = Species.IucnRedList.EXTINCT_IN_WILD
-        elif species.cares_status == Species.CaresStatus.CRIT_ENDANGERED:
+        elif species.cares_classification == Species.CaresStatus.CRIT_ENDANGERED:
             species.iucn_red_list = Species.IucnRedList.CRIT_ENDANGERED
-        elif species.cares_status == Species.CaresStatus.ENDANGERED:
+        elif species.cares_classification == Species.CaresStatus.ENDANGERED:
             species.iucn_red_list = Species.IucnRedList.ENDANGERED            
-        elif species.cares_status == Species.CaresStatus.NEAR_THREATENED:
+        elif species.cares_classification == Species.CaresStatus.NEAR_THREATENED:
             species.iucn_red_list = Species.IucnRedList.NEAR_THREATENED           
-        elif species.cares_status == Species.CaresStatus.VULNERABLE:
+        elif species.cares_classification == Species.CaresStatus.VULNERABLE:
             species.iucn_red_list = Species.IucnRedList.VULNERABLE           
         else:
             print ('CARES Species not mapped to IUCN Red List: ' + species.name) 

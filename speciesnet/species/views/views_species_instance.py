@@ -51,7 +51,7 @@ def speciesInstance(request, pk):
         else:
             isBapParticipant = False
 
-    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+    renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     
     if request.user.is_authenticated:
@@ -69,7 +69,7 @@ def speciesInstance(request, pk):
         'renderCares':  renderCares,
         'userCanEdit': userCanEdit
     }
-    return render(request, 'species/speciesInstance2.html', context)
+    return render(request, 'species/speciesInstance.html', context)
 
 
 ### Create Species Instance
@@ -102,7 +102,7 @@ def createSpeciesInstance(request, pk):
 
     form = SpeciesInstanceForm2(initial={"name": species.name, "species": species.id})
     context = {'form': form}
-    return render(request, 'species/editSpeciesInstance2.html', context)
+    return render(request, 'species/editSpeciesInstance.html', context)
 
 
 ### Edit Species Instance
@@ -147,7 +147,7 @@ def editSpeciesInstance(request, pk):
         form = SpeciesInstanceForm2(instance=speciesInstance)
 
     context = {'form': form, 'speciesInstance': speciesInstance, 'speciesMaintenanceLog': speciesMaintenanceLog}
-    return render(request, 'species/editSpeciesInstance2.html', context)
+    return render(request, 'species/editSpeciesInstance.html', context)
 
 
 ### Delete Species Instance
@@ -217,13 +217,13 @@ def createSpeciesAndInstance(request):
                     description=form.cleaned_data['species_description'],
                     category=form.cleaned_data['category'],
                     global_region=form.cleaned_data['global_region'],
-                    cares_status=form.cleaned_data['cares_status'],
+                    cares_classification=form.cleaned_data['cares_classification'],
                     created_by=request.user,
                     last_edited_by=request.user
                 )
                 
                 if species: 
-                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.save()
 
                     # Create SpeciesInstance with Species as foreign key

@@ -8,7 +8,7 @@ Lighter shades (towards white):
     rgb(214, 233, 245) - Light blue
     rgb(190, 220, 241) - Soft light blue
     rgb(171, 210, 236) - Medium-light blue
-
+    
 Base color:
 
     rgb(152, 199, 231) - ASN background color (middle)
@@ -53,22 +53,33 @@ a:active {color:rgb(90, 90, 230) !important;}
     border-top: 1px solid slategray;
 }
 
+
+
+.card {
+    background-color: rgb(171, 210, 236) !important;      /* medium light blue */
+}
+
 .card-header {
-    background-color: rgb(232, 243, 251) !important;
+    background-color: rgb(228, 241, 248) !important;      /* very light blue */
     border-bottom: 1px solid slategray !important;
+}
+
+
+.card-body {
+    background-color: rgb(171, 210, 236) !important;      /* medium light blue */
 }
 
 /* Bordered sections (e.g. Media) */
 .section-bordered {
-    background-color: rgb(212, 231, 247);
-    border: 2px solid rgb(162, 189, 221);
+    background-color: rgb(214, 233, 245) !important;      /* light blue */
+    border: 2px solid rgb(162, 189, 221) !important;
     border-radius: 0.5rem;
     padding: 0.75rem 1.5rem;
     margin-bottom: 1rem;
 }
 
 .section-bordered legend {
-    background-color: rgb(212, 231, 247) !important;
+    background-color: rgb(214, 233, 245) !important;      /* light blue */
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     border: none !important;
@@ -76,6 +87,12 @@ a:active {color:rgb(90, 90, 230) !important;}
     width: auto;
     font-size: 1.1rem;
     margin-bottom: 1rem;
+}
+
+fieldset.section-bordered legend {
+    background-color: rgb(214, 233, 245) !important;
+    /* padding: 0.5rem 1rem !important; */
+    /* border-radius: 0.25rem ! important; */
 }
 
 /* All fieldset legends */
