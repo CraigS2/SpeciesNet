@@ -21,7 +21,7 @@ from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
     CaresRegistrationListView,
-    caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover
+    caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers
 )
 
 # Species Instance (Aquarist Species)

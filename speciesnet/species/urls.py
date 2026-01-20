@@ -91,6 +91,7 @@ urlpatterns = [
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
     path('editCaresApprover/<str:pk>/', views.editCaresApprover, name="editCaresApprover"),
     path('deleteCaresApprover/<str:pk>/', views.deleteCaresApprover, name="deleteCaresApprover"),    
+    path('caresApprovers/', views.caresApprovers, name="caresApprovers"), 
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),

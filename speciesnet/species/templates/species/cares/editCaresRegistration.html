@@ -1,25 +1,71 @@
 {% extends 'main.html' %}
 {% block content %}
-<div class="container">
-    <h3><b>Edit CARES Registration:</b> <i>{{registration.species.name}}</i></h3>
-    <h4><b>Aquarist:</b> {{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a></h4>
-    <h4><b>Species:</b> &nbsp;&nbsp;{{registration.species.name}}</h4>
-    <div>
-        <table>
-            <form method="POST" enctype="multipart/form-data" action="">
-                {% csrf_token %}
-                {{form.as_table}}
-                <!--td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td-->
-                <tr>
-                    <td></td>
-                    <td style="text-align: left; padding-top: 1em;">
-                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            value="Save Changes">
-                    </td>  
-                </tr>               
-            </form>
-        </table>
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>CARES Registration:</b> <i>{{registration.species.name}}</i></h4>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h5><b>Aquarist:</b> {{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a></h5>
+                    <h5><b>Club:</b> &nbsp;&nbsp;{{registration.affiliate_club.acronym}} ({{registration.affiliate_club.name}})</h5>
+                    <h5><b>Species:</b> &nbsp;&nbsp;{{registration.species.name}}</h5>
+                    <p><b>Collection Location:</b>
+                    {% if registration.collection_location %}
+                        &nbsp;&nbsp;{{registration.collection_location}}
+                    {% else %}   
+                        None
+                    {% endif %}          
+                    </p>
+                    <p><b>Aquarist Source:</b>&nbsp;&nbsp;{{registration.species_source}}</p>
+                    <p><b>Year Acquired:</b>&nbsp;&nbsp;{{registration.year_acquired}}</p>
+                    <p><b>Species Verification Photo:</b></p>
+
+                    {% if registration.verification_photo %}
+                        <p><img src={{registration.verification_photo.url}}></p>
+                    {% else %}   
+                        <p>None</p>
+                    {% endif %}       
+                    
+                    <p><b>Spawning colony:&nbsp;&nbsp;</b>
+                    {% if registration.species_has_spawned %}
+                        Yes
+                        {% if registration.offspring_shared > 0 %}
+                            &nbsp;&nbsp;(offspring shared)</p>
+                        {% else %}   
+                            </p>
+                        {% endif %}                         
+                    {% else %}   
+                        No</p>
+                    {% endif %}                         
+                    
+                    <div class="css_class='mb-3 section-bordered">
+                        <h5><b>Registration Approval:</b></h5>
+                        <table>
+                            <form method="POST" enctype="multipart/form-data" action="">
+                                {% csrf_token %}
+                                {{form.as_table}}
+                                <tr>
+                                    <td></td>
+                                    <td style="text-align: left; padding-top: 1em;">
+                                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                                            value="Save Changes">
+                                    </td>  
+                                </tr>     
+                                <!--tr>
+                                    <td></td>
+                                    <td style="text-align: left; padding-top: 1em;">
+                                        <a href="{% url 'deleteCaresRegistration' form.instance.pk %}" class="btn btn-secondary" 
+                                            style="color: darkred !important;">Delete CARES Registration </a>                            
+                                    </td>  
+                                </tr-->                             
+                            </form>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <p><small>&nbsp;</small></p>
 </div>
 {% endblock content %}
