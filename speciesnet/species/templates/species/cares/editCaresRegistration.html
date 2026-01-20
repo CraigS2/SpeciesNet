@@ -8,40 +8,58 @@
                     <h4><b>CARES Registration:</b> <i>{{registration.species.name}}</i></h4>
                 </div>
                 <div class="card-body px-4 py-3">
-                    <h5><b>Aquarist:</b> {{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a></h5>
-                    <h5><b>Club:</b> &nbsp;&nbsp;{{registration.affiliate_club.acronym}} ({{registration.affiliate_club.name}})</h5>
-                    <h5><b>Species:</b> &nbsp;&nbsp;{{registration.species.name}}</h5>
-                    <p><b>Collection Location:</b>
-                    {% if registration.collection_location %}
-                        &nbsp;&nbsp;{{registration.collection_location}}
-                    {% else %}   
-                        None
-                    {% endif %}          
-                    </p>
-                    <p><b>Aquarist Source:</b>&nbsp;&nbsp;{{registration.species_source}}</p>
-                    <p><b>Year Acquired:</b>&nbsp;&nbsp;{{registration.year_acquired}}</p>
-                    <p><b>Species Verification Photo:</b></p>
+                   <h5>
+                        <b>Aquarist:</b> &nbsp;<a href="{% url 'aquarist' registration.aquarist.id %}">{{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a>
+                        &nbsp;({{registration.aquarist.get_display_name}})
+                    </h5>
+                    <h5>
+                        <b>Club Affiliation:</b> &nbsp;<a href="{% url 'aquaristClub' registration.affiliate_club.id %}">{{registration.affiliate_club.acronym}}</a>
+                            &nbsp;({{registration.affiliate_club.name}})
 
-                    {% if registration.verification_photo %}
-                        <p><img src={{registration.verification_photo.url}}></p>
-                    {% else %}   
-                        <p>None</p>
-                    {% endif %}       
-                    
-                    <p><b>Spawning colony:&nbsp;&nbsp;</b>
-                    {% if registration.species_has_spawned %}
-                        Yes
-                        {% if registration.offspring_shared > 0 %}
-                            &nbsp;&nbsp;(offspring shared)</p>
-                        {% else %}   
-                            </p>
-                        {% endif %}                         
-                    {% else %}   
-                        No</p>
-                    {% endif %}                         
+                    </h5>     
+                    <small>&nbsp;</small>
                     
                     <div class="css_class='mb-3 section-bordered">
-                        <h5><b>Registration Approval:</b></h5>
+                        <h4><b>Species:</b>&nbsp;&nbsp;<a href="{% url 'caresSpecies' registration.species.id %}"><i>{{registration.species.name}}</i></a></h4>
+                        <p><b>Classification:</b>&nbsp;&nbsp;{{registration.species.get_cares_classification_display}}</a></p>
+                        <p><b>Family:</b>&nbsp;&nbsp;{{registration.species.get_cares_family_display}}</p>
+                    </div>  
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4><b>Details:</b></h4> 
+
+                        <p><b>Aquarist Source:</b>&nbsp;&nbsp;{{registration.species_source}}</p>
+                        <p><b>Year Acquired:</b>&nbsp;&nbsp;{{registration.year_acquired}}</p>
+
+                        <p><b>Collection Location:</b>
+                        {% if registration.collection_location %}
+                            &nbsp;&nbsp;{{registration.collection_location}}
+                        {% else %}   
+                            None
+                        {% endif %}          
+                        </p>     
+
+                        <p><b>Species Verification Photo:</b></p>
+                        {% if registration.verification_photo %}
+                            <p><img src={{registration.verification_photo.url}}></p>
+                        {% else %}
+                            <p>None</p>
+                        {% endif %}
+                        
+                        <p><b>Breeding Group?:&nbsp;&nbsp;</b>
+                        {% if registration.species_has_spawned %}
+                            Yes
+                            {% if registration.offspring_shared > 0 %}
+                                &nbsp;&nbsp;(offspring shared)</p>
+                            {% else %}   
+                                </p>
+                            {% endif %}                         
+                        {% else %}   
+                            No</p>
+                        {% endif %}                         
+                    </div>
+                    <div class="css_class='mb-3 section-bordered">
+                        <h5><b>Approval:</b></h5>
                         <table>
                             <form method="POST" enctype="multipart/form-data" action="">
                                 {% csrf_token %}

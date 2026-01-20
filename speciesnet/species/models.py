@@ -446,7 +446,7 @@ class CaresApprover (models.Model):
 class CaresRegistration (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_cares_registrations') 
-    cares_approver            = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
+    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_registrations')
     collection_location       = models.CharField (max_length=200, blank=True)

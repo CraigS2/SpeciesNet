@@ -13,20 +13,20 @@
             <form method="get" id="filter-form">
                 <div class="row mb-3">
                     <div class="col-md-5">
-                        <label for="status">Reg Status:</label>
-                        <select name="status" id="status" class="form-select" onchange="this.form.submit()">
+                        <label for="reg_status">Reg Status:</label>
+                        <select name="reg_status" id="reg_status" class="form-select" onchange="this.form.submit()">
                             <option value="">-- All Registration Types --</option>
-                            {% for value, label in status %}
-                                <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+                            {% for value, label in reg_status_options %}
+                                <option value="{{ value }}" {% if value == selected_reg_status %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div> 
                     <div class="col-md-5">
-                        <label for="family">Family:</label>
-                        <select name="family" id="family" class="form-select" onchange="this.form.submit()">
-                            <option value="">-- All Status Options --</option>
-                            {% for value, label in status %}
-                                <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+                        <label for="cares_family">Family:</label>
+                        <select name="cares_family" id="cares_family" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- All Families --</option>
+                            {% for value, label in cares_families %}
+                                <option value="{{ value }}" {% if value == selected_cares_family %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>                     
@@ -52,10 +52,10 @@
                         <thead>
                             <tr>
                                 <th>Registration</th>
-                                <th style='text-align:center'>Classification</th>
                                 <th style='text-align:center'>Aquarist</th>
                                 <th style='text-align:center'>Club</th> 
                                 <th style='text-align:center'>Family</th>
+                                <th style='text-align:center'>Classification</th>                                
                                 <th style='text-align:center'>Approver</th>
                                 <th style='text-align:center'>Status</th>
                                 <th style='text-align:center'>Submitted</th>
@@ -65,11 +65,11 @@
                             {% for registration in registrations_list %}
                                 <tr>
                                     <td ><a href="{% url 'caresRegistration' registration.id %}">{{ registration.species.name }}</a></td>
-                                    <td style='text-align:center'>{{ registration.species.get_cares_classification_display }}</td>
                                     <td style='text-align:center'>{{ registration.aquarist.first_name }} {{ registration.aquarist.last_name }}</td>
                                     <td style='text-align:center'>{{ registration.affiliate_club.acronym }}</td>
                                     <td style='text-align:center'>{{ registration.species.get_cares_family_display }}</td>
-                                    <td style='text-align:center'>{{ registration.cares_approver.first_name }} {{ registration.cares_approver.last_name }}</td>
+                                    <td style='text-align:center'>{{ registration.species.get_cares_classification_display }}</td>
+                                    <td style='text-align:center'>{{ registration.cares_approver.name }}</td>
                                     <td style='text-align:center'>{{ registration.status}} </td>  
                                     <td style='text-align:center'>{{ registration.date_requested | date:'M j, Y' }}</td>
                                     <!--td style='text-align:center'>{{ registration.date_requested | date:'d M Y' }}</td-->
@@ -86,12 +86,12 @@
                     <ul class="pagination justify-content-center">
                         {% if page_obj.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page=1{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="First">
+                                <a class="page-link" href="?page=1{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="First">
                                     <span aria-hidden="true">&laquo;&laquo;</span>
                                 </a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Previous">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Previous">
                                     <span aria-hidden="true">&laquo;</span>
                                 </a>
                             </li>
@@ -103,19 +103,19 @@
                                 <li class="page-item active"><span class="page-link">{{ i }}</span></li>
                             {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ i }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}">{{ i }}</a>
                                 </li>
                             {% endif %}
                         {% endfor %}
                         
                         {% if page_obj.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Next">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Next">
                                     <span aria-hidden="true">&raquo;</span>
                                 </a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Last">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_region %}&global_region={{ selected_region }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Last">
                                     <span aria-hidden="true">&raquo;&raquo;</span>
                                 </a>
                             </li>

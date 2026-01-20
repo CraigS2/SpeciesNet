@@ -205,6 +205,7 @@ def createCaresRegistration(request, pk):
             registration = form.save(commit=False)
             registration.name = species.name + ' - ' + request.user.username
             registration.species = species
+            registration.last_updated_by = request.user
             registration.aquarist = request.user
             registration.save()
             if registration.verification_photo:
@@ -284,7 +285,7 @@ class CaresRegistrationListView(ListView):
         query_text = self.request.GET.get('q', '')
         
         if cares_family:
-            queryset = queryset.filter(cares_family=cares_family)
+            queryset = queryset.filter(species__cares_family=cares_family)
         if reg_status: 
             queryset = queryset.filter(status=reg_status)
         if query_text: 
@@ -302,8 +303,8 @@ class CaresRegistrationListView(ListView):
         context = super().get_context_data(**kwargs)
         context['cares_families'] = Species.CaresFamily.choices
         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
-        context['selected_cares_family'] = self.request.GET. get('cares_family', '')
-        context['selected_status'] = self.request.GET.get('reg_status', '')
+        context['selected_cares_family'] = self.request.GET.get('cares_family', '')
+        context['selected_reg_status'] = self.request.GET.get('reg_status', '')
         context['query_text'] = self.request.GET.get('q', '')
         return context
 
@@ -333,10 +334,11 @@ def createCaresApprover(request):
         form = CaresApproverForm(request.POST)
         if form.is_valid():
             cares_approver = form.save(commit=False)
+            cares_approver.name = cares_approver.approver.first_name + ' ' + cares_approver.approver.last_name
             cares_approver.last_updated_by = request.user
             cares_approver.save()
             logger.info('User %s created caresApprover: %s (%s)', request.user.username, cares_approver.name, str(cares_approver.id))
-            return HttpResponseRedirect(reverse("caresApprover", args=[approver.id]))
+            return HttpResponseRedirect(reverse("caresApprover", args=[cares_approver.id]))
     context = {'form': form}
     return render(request, 'species/cares/createCaresApprover.html', context)
 

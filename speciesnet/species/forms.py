@@ -245,8 +245,8 @@ class CaresRegistrationApprovalForm (ModelForm):
         model = CaresRegistration
         fields = '__all__'
         exclude = ['name', 'aquarist', 'affiliate_club', 'species', 'collection_location', 'species_source', 
-                   'verification_photo', 'year_acquired', 'species_has_spawned', 'offspring_shared', 'last_updated_by', ]
-        widgets = {'approver_notes':          forms.Textarea(attrs={'rows':1,'cols':50}),}        
+                   'verification_photo', 'year_acquired', 'species_has_spawned', 'offspring_shared', 'last_updated_by', 'last_report_date']
+        widgets = {'approver_notes':          forms.Textarea(attrs={'rows':3,'cols':50}),}        
 
 class CaresApproverForm (ModelForm):
     class Meta:

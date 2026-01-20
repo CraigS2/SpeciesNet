@@ -38,6 +38,7 @@
                                 data-bs-toggle="dropdown" aria-expanded="false">Admin</a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                                     <li><a class="dropdown-item" href="{% url 'userProfile' %}">Profile</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">Clubs</a></li>                                    
                                     <li><a class="dropdown-item" href="{% url 'caresApprovers' %}">CARES Approvers</a></li>
                                     <li><a class="dropdown-item" href="{% url 'createCaresApprover' %}">Add CARES Approver</a></li>
                                     {% if user.is_staff %}
