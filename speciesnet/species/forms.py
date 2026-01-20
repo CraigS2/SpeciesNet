@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
-from .models import BapSubmission, BapGenus, BapSpecies
+from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -220,6 +220,39 @@ class CaresSpeciesForm(ModelForm):
             )
         )        
 
+class CaresRegistrationForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'species']
+        widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
+
+# registration submition by user
+class CaresRegistrationSubmitionForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'species', 'species_has_spawned', 'offspring_shared', 
+                   'status', 'cares_approver', 'approver_notes', 'last_updated_by', 'last_report_date']
+        widgets = { 'species_source':      forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
+        
+# registration review by approver
+class CaresRegistrationApprovalForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'species', 'collection_location', 'species_source', 'year_acquired' ]
+        widgets = {'approver_notes':          forms.Textarea(attrs={'rows':1,'cols':50}),}        
+
+class CaresApproverForm (ModelForm):
+    class Meta:
+        model = CaresApprover
+        fields = '__all__'
+        exclude = ['name', 'last_updated_by']
+        
 class SpeciesForm (ModelForm):
     class Meta:
         model = Species

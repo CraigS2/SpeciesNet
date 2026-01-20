@@ -28,7 +28,8 @@ from species.models import (
     User, AquaristClub, AquaristClubMember, Species, SpeciesComment,
     SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLabel,
     SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry,
-    ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies
+    ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies, 
+    CaresRegistration, CaresApprover
 )
 
 # Local forms
@@ -41,7 +42,8 @@ from species.forms import (
     MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm,
     SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet,
     BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFormAdminEdit,
-    BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm
+    BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm,
+    CaresRegistrationForm, CaresRegistrationSubmitionForm, CaresRegistrationApprovalForm, CaresApproverForm
 )
 
 # Local utilities

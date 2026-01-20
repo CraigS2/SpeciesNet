@@ -18,7 +18,10 @@ from .views_species import (
 
 # Species (Species Profiles)
 from .views_cares import (
-    caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView
+    caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
+    caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
+    CaresRegistrationListView,
+    caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover
 )
 
 # Species Instance (Aquarist Species)
@@ -100,6 +103,10 @@ __all__ = [
     'deleteAquaristClub', 'aquaristClubAdmin', 'AquaristClubMemberListView',
     'aquaristClubMember', 'createAquaristClubMember', 'editAquaristClubMember',
     'deleteAquaristClubMember',
+
+    # Cares
+    'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 
+    'caresApprover', 'createCaresApprover', 'editCaresApprover', 'deleteCaresApprover',
     
     # BAP
     'bapSubmission', 'createBapSubmission', 'editBapSubmission', 'deleteBapSubmission',

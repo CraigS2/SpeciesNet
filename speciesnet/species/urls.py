@@ -73,13 +73,24 @@ urlpatterns = [
     path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
     path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
 
-
     path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"), 
     path('createCaresSpecies/', views.createCaresSpecies, name="createCaresSpecies"),
     path('editCaresSpecies/<str:pk>/', views.editCaresSpecies, name="editCaresSpecies"),
     path('deleteCaresSpecies/<str:pk>/', views.deleteCaresSpecies, name="deleteCaresSpecies"),
     path('cares/caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
+    #path('caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
 
+    path('caresRegistration/<str:pk>/', views.caresRegistration, name="caresRegistration"), 
+    path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
+    path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
+    path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
+    #path('caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
+    path('cares/caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
+
+    path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
+    path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
+    path('editCaresApprover/<str:pk>/', views.editCaresApprover, name="editCaresApprover"),
+    path('deleteCaresApprover/<str:pk>/', views.deleteCaresApprover, name="deleteCaresApprover"),    
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),

@@ -1,0 +1,25 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+    <h3><b>Edit CARES Registration:</b> <i>{{registration.species.name}}</i></h3>
+    <h4><b>Aquarist:</b> {{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a></h4>
+    <h4><b>Species:</b> &nbsp;&nbsp;{{registration.species.name}}</h4>
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data" action="">
+                {% csrf_token %}
+                {{form.as_table}}
+                <!--td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td-->
+                <tr>
+                    <td></td>
+                    <td style="text-align: left; padding-top: 1em;">
+                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            value="Save Changes">
+                    </td>  
+                </tr>               
+            </form>
+        </table>
+    </div>
+    <p><small>&nbsp;</small></p>
+</div>
+{% endblock content %}

@@ -200,7 +200,7 @@ class Species (models.Model):
         CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')
         EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')
     
-    cares_classification              = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
+    cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
     species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in speciesSearch list view
 
@@ -433,7 +433,6 @@ class CaresApprover (models.Model):
     name              = models.CharField (max_length=240)
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=3, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
-
     last_updated      = models.DateTimeField(auto_now=True)           # updated every save
     last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters') 
     created           = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
@@ -450,9 +449,10 @@ class CaresRegistration (models.Model):
     cares_approver            = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_registrations')
+    collection_location       = models.CharField (max_length=200, blank=True)
+    species_source            = models.TextField (blank=False, default='')
+    year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
-    acquired_species_source   = models.TextField ()
-    acquired_species_timing   = models.TextField ()
     species_has_spawned       = models.BooleanField (default=False)
     offspring_shared          = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(500)], default=0)  
 

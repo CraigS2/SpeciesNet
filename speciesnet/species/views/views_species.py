@@ -165,9 +165,8 @@ def editSpecies(request, pk):
         else:
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    else:
-        form = SpeciesForm2(instance=species)
-
+    
+    form = SpeciesForm2(instance=species)
     context = {'form': form, 'species': species}
     return render(request, 'species/editSpecies.html', context)
 

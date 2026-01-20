@@ -22,14 +22,38 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'caresSpeciesSearch' %}active{% endif %}" 
                         href="{% url 'caresSpeciesSearch' %}">&nbsp;CARES Priority List&nbsp;</a>
                     </li> 
-                    <!-- Aquarists (Direct Link) -->
+                    <!-- Registrations (Direct Link) -->
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'aquarists' %}active{% endif %}" 
-                        href="{% url 'aquarists' %}">&nbsp;Aquarists&nbsp;</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'caresRegistrations' %}active{% endif %}" 
+                        href="{% url 'caresRegistrations' %}">&nbsp;Registrations&nbsp;</a>
                     </li> 
-                    {% if user.is_authenticated %}
-                        <!-- TBD -->
-                    {% endif %}
+                    </ul> 
+
+                    <!-- Right-aligned menu items (admin) -->
+                    <ul class="navbar-nav ms-auto">
+                        {% if user.is_authenticated %}
+                            <!-- Admin dropdown (admin only) -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" role="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">Admin</a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'userProfile' %}">Profile</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'aquarist' user.id %}">Fishroom</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'createCaresApprover' %}">Add Approver</a></li>
+                                    {% if user.is_staff %}
+                                        <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
+                                    {% endif %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                                </ul>
+                            </li>
+                        {% else %}
+                            <!-- Login link when not logged in -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'account_login' %}">&nbsp;Sign-in&nbsp;</a>
+                            </li>
+                        {% endif %}
+                    </ul>                 
                 </ul>
             </div>
         </div>

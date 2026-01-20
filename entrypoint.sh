@@ -27,7 +27,7 @@ END
 ### only use migrations when you know they are needed ###
 python manage.py init_sites
 #python manage.py showmigrations
-# python manage.py makemigrations --no-input
+#python manage.py makemigrations --no-input
 python manage.py migrate --no-input
 python manage.py collectstatic --no-input
 #python manage.py collectstatic --noinput --clear

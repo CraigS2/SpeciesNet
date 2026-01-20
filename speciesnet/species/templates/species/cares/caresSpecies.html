@@ -46,15 +46,15 @@
                         {% endfor %}  
                     {% endif %}
 
+                    <p><a class="btn btn-secondary" href="{% url 'createCaresRegistration' species.id  %}" role="button">&nbsp;Register Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
+
                     <small>&nbsp;</small>
                     <div class="css_class='mb-3 section-bordered">
-                        <h4>Aquarists keeping this Species</h4>
-                        {% if species.species_instances.all.count > 0  %}
-                            {% for speciesInstance in speciesInstances %}
-                                {% if speciesInstance.currently_keep %}
-                                    <p><b>{{speciesInstance.user.get_display_name}}</b>:       
-                                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-                                {% endif %}
+                        <h4>Registrations</h4>
+                        {% if species.registrations.all.count > 0  %}
+                            {% for registration in registration %}
+                                <p><b>{{registration.aquarist.get_first_name}} {{registration.aquarist.get_last_name}}</b>:       
+                                <a href="{% url 'caresRegistration' registration.id %}">{{registration.name}}</a></p>
                             {% endfor %}    
                         {% else %}
                             <p><b>None</b></p>
@@ -63,8 +63,8 @@
                         
                     {% if userCanEdit %}
                         <div class="css_class='mb-3 section-bordered">
-                            <h4>Edit Species</h4>
-                            <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit CARES Species Profile&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
+                            <h4>Edit</h4>
+                            <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
                             <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
                         </div>
                     {% endif %}                      

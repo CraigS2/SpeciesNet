@@ -1,0 +1,59 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container">
+    <div>
+        <h3><b>CARES Registration:</b> <i>{{registration.species.name}}</i></h3>
+        <h5>
+            Aquarist: &nbsp;<a href="{% url 'aquarist' registration.aquarist.id %}">{{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a>
+            &nbsp;({{registration.aquarist.get_display_name}})
+        </h5>
+        <h5>
+            Club Affiliation: &nbsp;<a href="{% url 'aquaristClub' registration.affiliate_club.id %}">{{registration.affiliate_club.acronym}}</a>
+        </h5>        
+        <!--h5>Club Affiliation: &nbsp;{{registration.affiliate_club.name}}</h5-->
+        <small>&nbsp;</small>
+    </div>
+
+    <div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;">
+        <h3><b>Registration Details</b></h3>
+        <p><b>Species:</b>&nbsp;&nbsp;<a href="{% url 'caresSpecies' registration.species.id %}">{{registration.species.name}}</a></p>
+        <p><b>Classification:</b>&nbsp;&nbsp;{{registration.species.get_cares_classification_display}}</a></p>
+        <p><b>CARES Family:</b>&nbsp;&nbsp;{{registration.species.get_cares_family_display}}</p>
+        <p><b>Approver:</b>&nbsp;&nbsp; {{ registration.cares_approver.first_name }} {{ registration.cares_approver.last_name }}</p>
+        <p><b>Status:</b> &nbsp;&nbsp;{{registration.get_status_display}}</p>
+        <p><b>Verification Photo:</b></p>
+        {% if registration.verification_photo %}
+            <p><img src={{registration.verification_photo.url}}></p>
+        {% else %}
+            <p>None</p>
+        {% endif %}
+        
+        <p><b>Source:</b></p>
+        <p>{{registration.species_source|linebreaks}}</p>
+        <small>&nbsp;</small>
+
+        <p><b>Approver Notes:</b></p>
+        <p>{{registration.approver_notes|linebreaks}}</p>
+        <small>&nbsp;</small>        
+
+        <p><b>Breeding Group?</b> &nbsp;&nbsp;
+        {% if registration.species_has_spawned %}
+            Yes</p>
+        {% else %}
+            No</p>
+        {% endif %}
+
+        <p><b>Offspring Shared?</b> &nbsp;&nbsp;
+        {% if registration.offspring_shared == 0 %}
+            Yes</p>
+        {% else %}
+            No</p>
+        {% endif %}        
+
+        {% if userCanEdit %}
+            <p><a class="btn btn-secondary" href="{% url 'editCaresRegistration' registration.id  %}" role="button">&nbsp;Edit Registration&nbsp;</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

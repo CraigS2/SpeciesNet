@@ -136,7 +136,6 @@ def deleteCaresSpecies(request, pk):
     context = {'species': species}
     return render(request, 'species/deleteSpecies.html', context)
 
-
 ### Search CARES Species (caresSpeciesSearch)
 
 class CaresSpeciesListView(ListView):
@@ -177,6 +176,220 @@ class CaresSpeciesListView(ListView):
         context['selected_region'] = self.request.GET.get('global_region', '')
         context['query_text'] = self.request.GET.get('q', '')
         return context
+
+
+### View CARES Registration
+
+def caresRegistration(request, pk):
+    registration = get_object_or_404(CaresRegistration, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if request.user.is_authenticated:
+        logger.info('User %s visited CaresRegistration page: %s.', request.user.username, registration.name)
+    else:
+        logger.info('Anonymous user visited species page: %s.', registration.name)
+    context = {'registration': registration, 'userCanEdit': userCanEdit}
+    return render(request, 'species/cares/caresRegistration.html', context)
+
+### Create CARES Registration
+
+@login_required(login_url='login')
+def createCaresRegistration(request, pk):
+    species = get_object_or_404(Species, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    form = CaresRegistrationSubmitionForm()
+    if request.method == 'POST': 
+        form = CaresRegistrationSubmitionForm(request.POST, request.FILES)
+        if form.is_valid():
+            registration = form.save(commit=False)
+            registration.species = species
+            registration.aquarist = request.user
+            registration.save()
+            if registration.verification_photo:
+                processUploadedImageFile(registration.verification_photo, registration.name, request)
+            logger.info('User %s created caresRegistration: %s (%s)', request.user.username, registration.name, str(registration.id))
+            return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+
+    context = {'form': form, 'species': species}
+    return render(request, 'species/cares/createCaresRegistration.html', context)
+
+### Edit CARES Registration
+
+@login_required(login_url='login')
+def editCaresRegistration(request, pk):
+    registration = get_object_or_404(CaresRegistration, pk=pk)
+    name = registration.name
+    aquarist = registration.aquarist
+    affiliate_club = registration.affiliate_club
+    species = registration.species
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()  
+    form = CaresRegistrationForm(instance=registration)        
+    if request.method == 'POST': 
+        form = CaresRegistrationForm(request.POST, request.FILES, instance=registration)
+        if form.is_valid():
+            try:
+                registration = form.save(commit=False)
+                if registration.verification_photo:
+                    processUploadedImageFile(registration.verification_photo, registration.name, request)
+
+                # print ('Registration name: ' + registration.name)
+                # registration.name = name
+                # print ('Registration aquarist: ' + registration.aquarist.username)
+                # registration.aquarist = aquarist
+                # print ('Registration affiliate_club: ' + registration.affiliate_club.acronym)
+                # registration.affiliate_club = affiliate_club
+                # print ('Registration species: ' + registration.species.name)
+                # registration.species = species
+
+                #TODO manage hidden fields
+                registration.save()
+                logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
+                return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+            except IntegrityError as e:
+                logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
+                messages.error(request, 'The registration data conflicts with existing records (possibly duplicate name).')
+            except Exception as e:
+                logger.error(f"Unexpected error editing cares registration: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+        else:
+            logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+    context = {'form': form, 'registration': registration}
+    return render(request, 'species/cares/editCaresRegistration.html', context)
+
+### Delete CARES Registration
+
+@login_required(login_url='login')
+def deleteCaresRegistration(request, pk):
+    registration = get_object_or_404(caresRegistration, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    if request.method == 'POST':
+        logger.info('User %s deleted caresRegistration: %s', request.user.username, registration.name)
+        registration.delete()
+        return redirect('caresSpeciesSearch')
+    object_type = 'CARES Registration'
+    object_name = registration.name
+    context = {'object_type': object_type, 'object_name': object_name}
+    return render(request, 'species/deleteConfirmation.html', context)
+
+
+### CARES Registrations - ListView
+
+class CaresRegistrationListView(ListView):
+    model = CaresRegistration
+    template_name = "species/cares/caresRegistrations.html"
+    context_object_name = "registrations_list"
+    paginate_by = 50
+
+    def get_queryset(self):
+        queryset = CaresRegistration.objects.all()
+        cares_family = self.request.GET.get('cares_family', '')
+        reg_status = self.request.GET.get('reg_status', '')
+        query_text = self.request.GET.get('q', '')
+        
+        if cares_family:
+            queryset = queryset.filter(cares_family=cares_family)
+        if reg_status: 
+            queryset = queryset.filter(status=reg_status)
+        if query_text: 
+            queryset = queryset.filter(
+                Q(name__icontains=query_text) |
+                Q(acquired_species_source__icontains=query_text) |
+                Q(acquired_species_timing__icontains=query_text) |
+                Q(approver_notes__icontains=query_text)
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        if self.request.user.is_authenticated:
+            logger.info('User %s visited caresRegistrations page.', self.request.user.username)
+        context = super().get_context_data(**kwargs)
+        context['cares_families'] = Species.CaresFamily.choices
+        context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
+        context['selected_cares_family'] = self.request.GET. get('cares_family', '')
+        context['selected_status'] = self.request.GET.get('reg_status', '')
+        context['query_text'] = self.request.GET.get('q', '')
+        return context
+
+
+### View CARES Approver
+
+def caresApprover(request, pk):
+    approver = get_object_or_404(CaresApprover, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if request.user.is_authenticated:
+        logger.info('User %s visited CaresApprover page: %s.', request.user.username, approver.name)
+    else:
+        logger.info('Anonymous user visited species page: %s.', approver.name)
+    context = {'species': species, 'userCanEdit': userCanEdit}
+    return render(request, 'species/cares/caresApprover.html', context)
+
+### Create CARES Approver
+
+@login_required(login_url='login')
+def createCaresApprover(request):
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    form = CaresApproverForm()
+    if request.method == 'POST': 
+        form = CaresApproverForm(request.POST)
+        if form.is_valid():
+            approver = form.save(commit=False)
+            approver.last_updated_by = request.user
+            approver.save()
+            logger.info('User %s created caresApprover: %s (%s)', request.user.username, approver.name, str(approver.id))
+            return HttpResponseRedirect(reverse("caresApprover", args=[approver.id]))
+    context = {'form': form}
+    return render(request, 'species/cares/createCaresApprover.html', context)
+
+### Edit CARES Approver
+
+@login_required(login_url='login')
+def editCaresApprover(request, pk):
+    approver = get_object_or_404(caresApprover, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied(instance=approver)     
+    form = CaresApproverForm(instance=approver) 
+    if request.method == 'POST': 
+        form = CaresApproverForm(request.POST, instance=approver)
+        if form.is_valid():
+            try:
+                aquaristClub = form.save(commit=True)
+                logger.info('User %s edited cares approver: %s (%s)', request.user.username, approver.name, str(approver.id))
+                return HttpResponseRedirect(reverse("caresApprover", args=[approver.id]))
+            except Exception as e:
+                logger.error(f"Unexpected error editing cares approver: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+        else:
+            logger.warning(f"CARES Approver form validation failed for approver_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+    context = {'form': form}
+    return render(request, 'species/cares/editCaresApprover.html', context)
+
+### Delete CARES Approver
+
+@login_required(login_url='login')
+def deleteCaresApprover(request, pk):
+    approver = get_object_or_404(caresApprover, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    if request.method == 'POST':
+        logger.info('User %s deleted caresApprover: %s', request.user.username, approver.name)
+        approver.delete()
+        return redirect('caresSpeciesSearch')
+    object_type = 'CARES Approver'
+    object_name = approver.name
+    context = {'object_type': object_type, 'object_name': object_name}
+    return render(request, 'species/deleteConfirmation.html', context)
+
 
 ### Species Reference Links
 

@@ -3,11 +3,14 @@
 {% block content %}
 {% load static %}
 <div class="container">
-    <h1>&nbsp;</h1>
+    <p>&nbsp;</p>
+    <h1 style="text-align:center;">CaresSpecies.org</h1>
+    <h4 style="text-align:center;">CARES Priority List Species Management</h4>
+    <p>&nbsp;</p>
     <p style="text-align:center;"><a href="{% url 'speciesSearch'%}"><img src={% static 'images\cares_logo_400x400.jpg' %}></a></p>
-    <small>&nbsp;</small>
-    <h4 style="text-align:center;">CaresSpecies.org</h4>
-    <p style="text-align:center;">** beta **</p>
+    <p>&nbsp;</p>
+    <h4 style="text-align:center;">For more information see <a href="{% url 'speciesSearch'%}">CaresForFish.org</a></h4>
+    <h5 style="text-align:center;">** Beta Site | Under Development **</h5>
     {% if request.user.is_authenticated %}
         <h4 style="text-align:center;">&nbsp;</h4>
     {% else %}

@@ -70,12 +70,12 @@ a:active {color: rgb(183, 28, 28) !important; }     /* Deep red */
 }
 
 .card-body {
-    background-color: rgb(232, 241, 235) !important;      /* very light green */
+    background-color: rgb(219, 232, 223) !important;      /* light green */
 }
 
 /* Bordered sections (e.g. Media) */
 .section-bordered {
-    background-color: rgb(219, 232, 223) !important;      /* light green */
+    background-color: rgb(232, 241, 235) !important;      /* light green */
     border: 2px solid rgb(165, 187, 170) !important;      /* medium light green */
     border-radius: 0.5rem;
     padding: 0.75rem 1.5rem;
@@ -83,7 +83,7 @@ a:active {color: rgb(183, 28, 28) !important; }     /* Deep red */
 }
 
 .section-bordered legend {
-    background-color: rgb(219, 232, 223) !important;      /* light green */
+    background-color: rgb(232, 241, 235) !important;      /* light green */
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     border: none !important;
@@ -94,7 +94,7 @@ a:active {color: rgb(183, 28, 28) !important; }     /* Deep red */
 }
 
 fieldset.section-bordered legend {
-    background-color: rgb(219, 232, 223) !important;
+    background-color: rgb(232, 241, 235) !important;      /* light green */
     /* padding: 0.5rem 1rem !important; */
     /* border-radius: 0.25rem ! important; */
 }
