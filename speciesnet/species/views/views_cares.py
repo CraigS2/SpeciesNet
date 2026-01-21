@@ -112,6 +112,41 @@ def editCaresSpecies(request, pk):
     context = {'form': form, 'species': species}
     return render(request, 'species/cares/editCaresSpecies.html', context)
 
+@login_required(login_url='login')
+def editCaresSpecies2(request, pk):         # admin only for full editing of hidden fields
+    register_heif_opener()
+    species = get_object_or_404(Species, pk=pk)
+    userCanEdit = user_can_edit_s(request.user, species)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST': 
+        form = CaresSpeciesForm2(request.POST, request.FILES, instance=species)
+        if form.is_valid():
+            try:
+                species = form.save(commit=False)
+                species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                species.last_edited_by = request.user
+                species.save()
+                if species.species_image:
+                    processUploadedImageFile(species.species_image, species.name, request)
+                logger.info('User %s edited species: %s (%s)', request.user.username, species.name, str(species.id))
+                messages.success(request, f'Species "{species.name}" updated successfully!')
+                return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
+            except IntegrityError as e:
+                logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
+                messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
+            except Exception as e:
+                logger.error(f"Unexpected error editing species: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+        else:
+            logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+    else:
+        form = CaresSpeciesForm2(instance=species)
+
+    context = {'form': form, 'species': species}
+    return render(request, 'species/cares/editCaresSpecies.html', context)
 
 ### Delete Species
 @login_required(login_url='login')
@@ -229,6 +264,41 @@ def editCaresRegistration(request, pk):
         #TODO sort out admin/approval levels and call appropriate form type for editing
         # Currently CaresRegistrationForm, CaresRegistrationApprovalForm, CaresRegistrationSubmitionForm
         form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration)
+        if form.is_valid():
+            try:
+                registration = form.save(commit=False)
+                if registration.verification_photo:
+                    processUploadedImageFile(registration.verification_photo, registration.name, request)
+                # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
+                # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
+                registration.last_updated_by = request.user
+                registration.save()
+                logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
+                return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+            except IntegrityError as e:
+                logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
+                messages.error(request, 'The registration data conflicts with existing records (possibly duplicate name).')
+            except Exception as e:
+                logger.error(f"Unexpected error editing cares registration: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+        else:
+            logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+    context = {'form': form, 'registration': registration}
+    return render(request, 'species/cares/editCaresRegistration.html', context)
+
+
+@login_required(login_url='login')
+def editCaresRegistration2(request, pk):        # admin only for full editing of hidden fields
+    registration = get_object_or_404(CaresRegistration, pk=pk)
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()  
+    form = CaresRegistrationForm2(instance=registration)        
+    if request.method == 'POST': 
+        #TODO sort out admin/approval levels and call appropriate form type for editing
+        # Currently CaresRegistrationForm, CaresRegistrationApprovalForm, CaresRegistrationSubmitionForm
+        form = CaresRegistrationForm2(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
                 registration = form.save(commit=False)

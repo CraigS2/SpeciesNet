@@ -42,7 +42,7 @@
     <!-- Registrations List -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4>CARES Registrations</h4>
+            <h4>Registrations</h4>
             <span>Total: {{ page_obj.paginator.count }} Registrations found</span>
         </div>
         <div class="card-body">
@@ -58,7 +58,8 @@
                                 <th style='text-align:center'>Classification</th>                                
                                 <th style='text-align:center'>Approver</th>
                                 <th style='text-align:center'>Status</th>
-                                <th style='text-align:center'>Submitted</th>
+                                <!--th style='text-align:center'>Submitted</th-->
+                                <th style='text-align:center'>Updated</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -71,9 +72,12 @@
                                     <td style='text-align:center'>{{ registration.species.get_cares_classification_display }}</td>
                                     <td style='text-align:center'>{{ registration.cares_approver.name }}</td>
                                     <td style='text-align:center'>{{ registration.status}} </td>  
-                                    <td style='text-align:center'>{{ registration.date_requested | date:'M j, Y' }}</td>
                                     <!--td style='text-align:center'>{{ registration.date_requested | date:'d M Y' }}</td-->
-                                    <!--td style='text-align:center'>{{ registration.date_requested | date:'Y-m-d' }}</td-->
+                                    {% if registration.last_report_date %}
+                                        <td style='text-align:center'>R: {{ registration.last_report_date | date:'Y-m-d' }}</td>
+                                    {% else %}
+                                        <td style='text-align:center'>U: {{ registration.lastUpdated | date:'Y-m-d' }}</td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>

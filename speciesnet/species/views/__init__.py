@@ -21,6 +21,7 @@ from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
     CaresRegistrationListView,
+    editCaresSpecies2, editCaresRegistration2,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers
 )
 

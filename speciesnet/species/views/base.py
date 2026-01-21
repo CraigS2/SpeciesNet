@@ -43,7 +43,8 @@ from species.forms import (
     SpeciesLabelsSelectionForm, SpeciesInstanceLabelFormSet,
     BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFormAdminEdit,
     BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm,
-    CaresRegistrationForm, CaresRegistrationSubmitionForm, CaresRegistrationApprovalForm, CaresApproverForm
+    CaresRegistrationSubmitionForm, CaresRegistrationApprovalForm, CaresApproverForm,
+    CaresRegistrationForm2, CaresSpeciesForm2
 )
 
 # Local utilities
