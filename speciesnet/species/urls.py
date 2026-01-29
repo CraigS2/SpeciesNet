@@ -31,6 +31,8 @@ urlpatterns = [
     path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
     path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
+    
+    path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
 
     path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
     path('bapSubmission/<str:pk>/', views.bapSubmission, name="bapSubmission"),
@@ -59,6 +61,8 @@ urlpatterns = [
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
+
+    path('speciesProfilesWithPhotos/', views.speciesProfilesWithPhotos, name="speciesProfilesWithPhotos"),
 
     path('speciesComments/', views.speciesComments, name="speciesComments"),
     path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"), 

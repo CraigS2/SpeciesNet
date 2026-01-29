@@ -399,6 +399,8 @@ class AquaristClub (models.Model):
     cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)  
     bap_start_date            = models.DateField (null=True, blank=True)
     bap_end_date              = models.DateField (null=True, blank=True)
+    is_bap_club               = models.BooleanField (default=False)
+    is_cares_club             = models.BooleanField (default=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 

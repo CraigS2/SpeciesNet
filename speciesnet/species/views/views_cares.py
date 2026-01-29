@@ -342,6 +342,41 @@ def deleteCaresRegistration(request, pk):
 
 ### CARES Registrations - ListView
 
+# class CaresRegistrationListView(ListView):
+#     model = CaresRegistration
+#     template_name = "species/cares/caresRegistrations.html"
+#     context_object_name = "registrations_list"
+#     paginate_by = 50
+
+#     def get_queryset(self):
+#         queryset = CaresRegistration.objects.all()
+#         cares_family = self.request.GET.get('cares_family', '')
+#         reg_status = self.request.GET.get('reg_status', '')
+#         query_text = self.request.GET.get('q', '')
+        
+#         if cares_family:
+#             queryset = queryset.filter(species__cares_family=cares_family)
+#         if reg_status: 
+#             queryset = queryset.filter(status=reg_status)
+#         if query_text: 
+#             queryset = queryset.filter(
+#                 Q(name__icontains=query_text) |
+#                 Q(species_source__icontains=query_text) |
+#                 Q(approver_notes__icontains=query_text)
+#             )
+#         return queryset
+
+#     def get_context_data(self, **kwargs):
+#         if self.request.user.is_authenticated:
+#             logger.info('User %s visited caresRegistrations page.', self.request.user.username)
+#         context = super().get_context_data(**kwargs)
+#         context['cares_families'] = Species.CaresFamily.choices
+#         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
+#         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
+#         context['selected_reg_status'] = self.request.GET.get('reg_status', '')
+#         context['query_text'] = self.request.GET.get('q', '')
+#         return context
+
 class CaresRegistrationListView(ListView):
     model = CaresRegistration
     template_name = "species/cares/caresRegistrations.html"
@@ -349,20 +384,25 @@ class CaresRegistrationListView(ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        queryset = CaresRegistration.objects.all()
+        queryset = CaresRegistration.objects.select_related(
+            'cares_approver', 'species', 'aquarist', 'affiliate_club'
+        )
+        
         cares_family = self.request.GET.get('cares_family', '')
         reg_status = self.request.GET.get('reg_status', '')
+        approver = self.request.GET.get('approver', '')
         query_text = self.request.GET.get('q', '')
         
         if cares_family:
             queryset = queryset.filter(species__cares_family=cares_family)
         if reg_status: 
             queryset = queryset.filter(status=reg_status)
+        if approver:
+            queryset = queryset.filter(cares_approver_id=approver)
         if query_text: 
             queryset = queryset.filter(
                 Q(name__icontains=query_text) |
-                Q(acquired_species_source__icontains=query_text) |
-                Q(acquired_species_timing__icontains=query_text) |
+                Q(species_source__icontains=query_text) |
                 Q(approver_notes__icontains=query_text)
             )
         return queryset
@@ -370,14 +410,27 @@ class CaresRegistrationListView(ListView):
     def get_context_data(self, **kwargs):
         if self.request.user.is_authenticated:
             logger.info('User %s visited caresRegistrations page.', self.request.user.username)
+        
         context = super().get_context_data(**kwargs)
+        
+        # Get unique approvers from all registrations (base queryset before filters)
+        # Assuming cares_approver is a ForeignKey to a model with 'name' and 'id' fields
+        approvers = CaresRegistration.objects.values_list(
+            'cares_approver__id', 'cares_approver__name'
+        ).distinct().order_by('cares_approver__name')
+        
+        # Filter out None values (registrations without approvers)
+        context['approvers'] = [(id, name) for id, name in approvers if id is not None]
+        
+        # Existing context
         context['cares_families'] = Species.CaresFamily.choices
         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
         context['selected_reg_status'] = self.request.GET.get('reg_status', '')
+        context['selected_approver'] = self.request.GET.get('approver', '')
         context['query_text'] = self.request.GET.get('q', '')
+        
         return context
-
 
 ### View CARES Approver
 

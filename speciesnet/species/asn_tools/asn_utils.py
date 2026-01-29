@@ -87,8 +87,9 @@ def user_can_edit_club (cur_user: User, club: AquaristClub):
             print ('user_can_edit_club: seeing if member exists')
             try:
                 member = AquaristClubMember.objects.get(user=cur_user, club=club) 
-                userCanEdit = member.is_club_admin
-                print ('Club Member is club admin: ' + cur_user.username)
+                if (member.is_club_admin or member.is_cares_admin):
+                    userCanEdit = True
+                    print ('Club Member is club admin: ' + cur_user.username)
             except ObjectDoesNotExist:
                 pass # user is not a member 
                 print ('Club Member not found: ' + cur_user.username + ' can join')

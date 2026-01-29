@@ -7,6 +7,33 @@ Restricted to staff/admin users only
 
 from .base import *
 
+### Species Reports
+
+def speciesProfilesWithPhotos(request):
+    species_with_photos = Species.objects.exclude(species_image__in=['', None])
+    context = {'species_with_photos': species_with_photos}
+    return render(request, 'species/speciesProfilesWithPhotos.html', context)
+
+
+### Species Instances with Photos 
+
+@login_required(login_url='login')
+def speciesInstancesWithPhotos(request):
+    si_with_photos = SpeciesInstance.objects.exclude(aquarist_species_image__in=['', None])
+    context = {'si_with_photos': si_with_photos}
+    return render(request, 'species/speciesInstancesWithPhotos.html', context)
+
+
+### Species Instance Labels (QR Codes)
+
+@login_required(login_url='login')
+def speciesInstancesWithLabels(request):
+    si_labels = SpeciesInstanceLabel.objects.all()
+    context = {'si_labels': si_labels}
+    return render(request, 'species/speciesInstancesWithLabels.html', context)
+
+
+
 ### Species Instance Reports
 
 @login_required(login_url='login')

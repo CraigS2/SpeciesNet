@@ -29,8 +29,7 @@ from .views_cares import (
 from .views_species_instance import (
     speciesInstance, createSpeciesInstance, editSpeciesInstance, deleteSpeciesInstance,
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
-    editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, speciesInstancesWithPhotos,
-    speciesInstancesWithLabels, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
+    editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
     reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances
 )
 
@@ -49,7 +48,7 @@ from .views_club import (
     aquaristClubs, aquaristClub, createAquaristClub, editAquaristClub,
     deleteAquaristClub, aquaristClubAdmin, AquaristClubMemberListView,
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
-    deleteAquaristClubMember
+    deleteAquaristClubMember, AquaristClubCaresLiaisonListView
 )
 
 # CLub BAP
@@ -69,6 +68,7 @@ from .views_ux import (
 
 # Admin Tools
 from .views_tools import (
+    speciesProfilesWithPhotos, speciesInstancesWithPhotos, speciesInstancesWithLabels, 
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
     tools, tools2, dirtyDeed
 )
@@ -103,7 +103,7 @@ __all__ = [
     'aquaristClubs', 'aquaristClub', 'createAquaristClub', 'editAquaristClub',
     'deleteAquaristClub', 'aquaristClubAdmin', 'AquaristClubMemberListView',
     'aquaristClubMember', 'createAquaristClubMember', 'editAquaristClubMember',
-    'deleteAquaristClubMember',
+    'deleteAquaristClubMember', AquaristClubCaresLiaisonListView,
 
     # Cares
     'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 

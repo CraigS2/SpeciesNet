@@ -37,28 +37,36 @@
         {% if userIsMember or userCanEdit %}
             <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' aquaristClub.id %}" role="button">Club Members</a></p>
             <small>&nbsp;</small> 
-
-            <div class="div-line-above">
-                <h3>2025-2026 Breeder Award Program</h3>
-                <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' aquaristClub.id  %}" role="button">&nbsp;BAP Submissions&nbsp;</a></p>
-                <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Leaderboard&nbsp;&nbsp;</a></p>
-                <p><a class="btn btn-secondary" href="{% url 'bapGenus' aquaristClub.id  %}" role="button">&nbsp;BAP Points Configuration&nbsp;</a></p>
-            </div>
+            {% if aquaristClub.is_bap_club %}
+                <div class="div-line-above">
+                    <h3>2025-2026 Breeder Award Program</h3>
+                    <p><a class="btn btn-secondary" href="{% url 'bapSubmissions' aquaristClub.id  %}" role="button">&nbsp;BAP Submissions&nbsp;</a></p>
+                    <p><a class="btn btn-secondary" href="{% url 'bapLeaderboard' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Leaderboard&nbsp;&nbsp;</a></p>
+                    <p><a class="btn btn-secondary" href="{% url 'bapGenus' aquaristClub.id  %}" role="button">&nbsp;BAP Points Configuration&nbsp;</a></p>
+                </div>
+            {% endif %}
             {% if userCanEdit %}
                 <small>&nbsp;</small>
                 <div class="div-line-above">
                     <h3>Club Admin</h3>
                     <p><a class="btn btn-secondary" href="{% url 'editAquaristClub' aquaristClub.id  %}" role="button">&nbsp;&nbsp;&nbsp;Edit Club&nbsp;&nbsp;&nbsp;</a></p>
-                    <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Exceptions&nbsp;&nbsp;</a></p>
+                    {% if aquaristClub.is_bap_club %}
+                        <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Exceptions&nbsp;&nbsp;</a></p>
+                    {% endif %}
+                    {% if aquaristClub.is_cares_club %}
+                        <p><a class="btn btn-secondary" href="{% url 'caresLiaisonDashboard' aquaristClub.id  %}" role="button">&nbsp;&nbsp;CARES Liasion Dashboard&nbsp;&nbsp;</a></p>
+                    {% endif %}                 
                 </div>
             {% endif %}
         {% endif %}
 
-        {% if userIsAdmin %}
-            <p><a class="btn btn-secondary" href="{% url 'importClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Import BAP Genus Points&nbsp;</a></p>
-        {% endif %}
-        {% if userCanEdit %}
-            <p><a class="btn btn-secondary" href="{% url 'exportClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Export BAP Genus Points&nbsp;</a></p>
+        {% if aquaristClub.is_bap_club %}
+            {% if userIsAdmin %}
+                <p><a class="btn btn-secondary" href="{% url 'importClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Import BAP Genus Points&nbsp;</a></p>
+            {% endif %}
+            {% if userCanEdit %}
+                <p><a class="btn btn-secondary" href="{% url 'exportClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Export BAP Genus Points&nbsp;</a></p>
+            {% endif %}
         {% endif %}
 
         {% if not userIsMember and not userIsPending %}
