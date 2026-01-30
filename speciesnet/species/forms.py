@@ -336,7 +336,7 @@ class CaresRegistrationForm (ModelForm):
         fields = '__all__'
         exclude = ['name', 'species', 'aquarist', 'affiliate_club', 'offspring_shared', 'status', 
                    'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
-        widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
+        widgets = { 'species_source': forms.Textarea(attrs={'rows':3,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
 # admin-only full access to normally hidden properties
@@ -359,13 +359,13 @@ class CaresRegistrationSubmitionForm (ModelForm):
         widgets = { 'species_source':      forms.Textarea(attrs={'rows':1,'cols':50}),
                     'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
-# registration review by approver
+# registration review by approver - general workflow edit
 class CaresRegistrationApprovalForm (ModelForm):
     class Meta:
         model = CaresRegistration
         fields = '__all__'
-        exclude = ['name', 'aquarist', 'affiliate_club', 'species', 'collection_location', 'species_source', 
-                   'verification_photo', 'year_acquired', 'species_has_spawned', 'offspring_shared', 'last_updated_by', 'last_report_date']
+        exclude = ['name', 'aquarist', 'species', 'collection_location', 'species_source', 
+                   'verification_photo', 'year_acquired', 'offspring_shared', 'last_updated_by', 'last_report_date']
         widgets = {'approver_notes':          forms.Textarea(attrs={'rows':3,'cols':50}),}        
 
 class CaresApproverForm (ModelForm):

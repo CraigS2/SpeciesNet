@@ -447,13 +447,11 @@ class CaresApprover (models.Model):
 
 class CaresRegistration (models.Model):
     name                      = models.CharField (max_length=240)
-    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_cares_registrations') 
     aquarist_name             = models.CharField (max_length=240, blank=False, default='')
-    aquarist_email            = models.EmailField(max_length=50, null=True)
-    
+    aquarist_email            = models.EmailField(max_length=50, null=True)  
     cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
-    species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_registrations')
+    species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.CharField (max_length=200, blank=True)
     species_source            = models.TextField (blank=False, default='')
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year

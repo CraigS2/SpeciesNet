@@ -28,7 +28,7 @@ from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
     CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies,
-    editCaresSpecies2, editCaresRegistration2,
+    editCaresSpecies2, editCaresRegistration2, caresRegistrationCheck,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers
 )
 
@@ -119,7 +119,7 @@ __all__ = [
     # Cares
     'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 
     'caresApprover', 'createCaresApprover', 'editCaresApprover', 'deleteCaresApprover',
-    'registerCaresSelectSpecies', 'registerCaresSpecies',
+    'registerCaresSelectSpecies', 'registerCaresSpecies', caresRegistrationCheck,
     
     # BAP
     'bapSubmission', 'createBapSubmission', 'editBapSubmission', 'deleteBapSubmission',

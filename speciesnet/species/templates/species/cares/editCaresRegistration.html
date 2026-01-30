@@ -9,13 +9,16 @@
                 </div>
                 <div class="card-body px-4 py-3">
                    <h5>
-                        <b>Aquarist:</b> &nbsp;<a href="{% url 'aquarist' registration.aquarist.id %}">{{registration.aquarist.first_name}} {{registration.aquarist.last_name}}</a>
+                        <b>Aquarist:</b> &nbsp;{{registration.aquarist_name}}</a>
                         &nbsp;({{registration.aquarist.get_display_name}})
                     </h5>
                     <h5>
-                        <b>Club Affiliation:</b> &nbsp;<a href="{% url 'aquaristClub' registration.affiliate_club.id %}">{{registration.affiliate_club.acronym}}</a>
+                        {% if registration.affiliate_club %}
+                            <b>Club Affiliation:</b> &nbsp;<a href="{% url 'aquaristClub' registration.affiliate_club.id %}">{{registration.affiliate_club.acronym}}</a>
                             &nbsp;({{registration.affiliate_club.name}})
-
+                        {% else %}
+                            <b>Club Affiliation:</b> &nbsp; None
+                        {% endif %}  
                     </h5>     
                     <small>&nbsp;</small>
                     

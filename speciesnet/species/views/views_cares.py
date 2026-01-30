@@ -229,6 +229,16 @@ def caresRegistration(request, pk):
 
 ### Register CARES Species - Wizard Start (Annonymous User)
 
+def caresRegistrationCheck(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited caresRegistrationCheck page. ', request.user.username)
+    else:
+        logger.info('Anonymous user visited caresRegistrationCheck page.')
+    return render(request, 'species/cares/caresRegistrationCheck.html')
+
+
+### Register CARES Species - Wizard Start (Annonymous User)
+
 def registerCaresSelectSpecies(request):
     """
     Wizard style workflow helping users search/find cares species to register
@@ -257,11 +267,11 @@ def registerCaresSpecies(request, pk):
             try:
                 cares_reg = form.save(commit=False)
                 #TODO any hidden post processing needed
-                cares_reg.name = species.name + ' - ' + request.user.username
+                cares_reg.name = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.species = cares_species
-                cares_reg.last_updated_by = request.user
-                #cares_reg.aquarist = None        # annonymous user
-                #cares_reg.affiliated_club = None # TODO manage later from ASN side?
+                cares_reg.last_updated_by = None
+                cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
+                cares_reg.cares_approver  = None            #TODO manage approver assignment via cares family or genus matching
                 cares_reg.save()
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
@@ -279,8 +289,6 @@ def registerCaresSpecies(request, pk):
 
     context = {'form': form, 'cares_species': cares_species}
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
-
-
 
 
 ### Create CARES Registration -- Admin internal TODO needs work
@@ -319,8 +327,6 @@ def editCaresRegistration(request, pk):
         raise PermissionDenied()  
     form = CaresRegistrationApprovalForm(instance=registration)        
     if request.method == 'POST': 
-        #TODO sort out admin/approval levels and call appropriate form type for editing
-        # Currently CaresRegistrationForm, CaresRegistrationApprovalForm, CaresRegistrationSubmitionForm
         form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
@@ -354,8 +360,6 @@ def editCaresRegistration2(request, pk):        # admin only for full editing of
         raise PermissionDenied()  
     form = CaresRegistrationForm2(instance=registration)        
     if request.method == 'POST': 
-        #TODO sort out admin/approval levels and call appropriate form type for editing
-        # Currently CaresRegistrationForm, CaresRegistrationApprovalForm, CaresRegistrationSubmitionForm
         form = CaresRegistrationForm2(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
@@ -408,7 +412,7 @@ class CaresRegistrationListView(ListView):
 
     def get_queryset(self):
         queryset = CaresRegistration.objects.select_related(
-            'cares_approver', 'species', 'aquarist', 'affiliate_club'
+            'cares_approver', 'species', 'affiliate_club'
         )
         
         cares_family = self.request.GET.get('cares_family', '')

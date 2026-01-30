@@ -36,7 +36,7 @@
                                 data-bs-toggle="dropdown" aria-expanded="false">Registration</a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                                     <li><a class="dropdown-item" href="{% url 'registerCaresSelectSpecies' %}">Register your CARES Species</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'about_us' %}">Check your CARES Registration Status</a></li>  
+                                    <li><a class="dropdown-item" href="{% url 'caresRegistrationCheck' %}">Check your CARES Registration Status</a></li>  
                                 </ul>                                  
                             </li>
                         {% endif %}
@@ -58,7 +58,7 @@
                                     <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout {{ request.user.username }}</a></li>
                             </ul>
                         </li>
                     {% else %}
