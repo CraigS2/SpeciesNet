@@ -389,6 +389,7 @@ def chooseSpeciesInstancesForLabels(request, pk):
     context = {'form': form}
     return render(request, 'species/chooseSpeciesInstancesForLabels.html', context)
 
+### Species Instance Labels
 
 @login_required(login_url='login')
 def editSpeciesInstanceLabels(request):
@@ -444,6 +445,13 @@ def editSpeciesInstanceLabels(request):
         formset = SpeciesInstanceLabelFormSet(initial=default_labels)
 
     return render(request, 'species/editSpeciesInstanceLabels.html', {'formset': formset})
+
+
+### Register Cares Species - from Species Instance
+
+@login_required(login_url='login')
+def registerCaresSpeciesInstance(request, pk):
+    return ()
 
 
 ### Import/Export Species Instances

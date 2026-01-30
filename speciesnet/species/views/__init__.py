@@ -2,6 +2,13 @@
 Species views package
 """
 
+### Adding Views requires:
+### 1: importing the view from the appropriate file -- see IMPORT
+### 2: making the view available from the package   -- see PACKAGE
+
+
+### IMPORT from view .py files
+
 # User & Authentication
 from .views_user import (
     userProfile, editUserProfile, aquarist, AquaristListView,
@@ -20,7 +27,7 @@ from .views_species import (
 from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
-    CaresRegistrationListView,
+    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies,
     editCaresSpecies2, editCaresRegistration2,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers
 )
@@ -30,7 +37,8 @@ from .views_species_instance import (
     speciesInstance, createSpeciesInstance, editSpeciesInstance, deleteSpeciesInstance,
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
     editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
-    reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances
+    reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances,
+    registerCaresSpeciesInstance
 )
 
 # Maintenance Logs
@@ -73,7 +81,9 @@ from .views_tools import (
     tools, tools2, dirtyDeed
 )
 
-# Make all views available at package level
+
+### PACKAGE view declarations
+
 __all__ = [
     # User
     'userProfile', 'editUserProfile', 'aquarist', 'AquaristListView',
@@ -90,6 +100,7 @@ __all__ = [
     'createSpeciesAndInstance', 'speciesInstanceLog', 'createSpeciesInstanceLogEntry',
     'editSpeciesInstanceLogEntry', 'deleteSpeciesInstanceLogEntry', 'speciesInstancesWithLabels', 
     'speciesInstancesWithPhotos','chooseSpeciesInstancesForLabels', 'editSpeciesInstanceLabels',
+    'registerCaresSpeciesInstance',
        
     # Maintenance Logs
     'speciesMaintenanceLogs', 'speciesMaintenanceLog', 'createSpeciesMaintenanceLog',
@@ -108,6 +119,7 @@ __all__ = [
     # Cares
     'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 
     'caresApprover', 'createCaresApprover', 'editCaresApprover', 'deleteCaresApprover',
+    'registerCaresSelectSpecies', 'registerCaresSpecies',
     
     # BAP
     'bapSubmission', 'createBapSubmission', 'editBapSubmission', 'deleteBapSubmission',
@@ -127,4 +139,4 @@ __all__ = [
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',
     'tools', 'tools2',  'dirtyDeed'
-]
+] # type: ignore

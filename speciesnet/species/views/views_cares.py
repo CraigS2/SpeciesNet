@@ -2,6 +2,7 @@
 Species-related views: CRUD operations, search, comments, reference links
 """
 
+### views_cares.py includes cares site2 views unique to the cares site ###
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
@@ -225,7 +226,64 @@ def caresRegistration(request, pk):
     context = {'registration': registration, 'userCanEdit': userCanEdit}
     return render(request, 'species/cares/caresRegistration.html', context)
 
-### Create CARES Registration
+
+### Register CARES Species - Wizard Start (Annonymous User)
+
+def registerCaresSelectSpecies(request):
+    """
+    Wizard style workflow helping users search/find cares species to register
+    """
+    if request.user.is_authenticated:
+        logger.info('User %s visited registerCaresSelectSpecies page. ', request.user.username)
+    else:
+        logger.info('Anonymous user visited registerCaresSelectSpecies page.')
+    return render(request, 'species/cares/registerCaresSelectSpecies.html')
+
+
+### Register CARES Species - Wizard Start (Annonymous User)
+
+def registerCaresSpecies(request, pk):
+    register_heif_opener()
+    cares_species = get_object_or_404(Species, pk=pk)
+
+    #TODO: Manage some hidden voodoo to set fields including:
+    # -- setting cares_species being registered
+    # --> aquarist (capture their email)
+    # --> club (which we may not yet know about)
+
+    if request.method == 'POST': 
+        form = CaresRegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                cares_reg = form.save(commit=False)
+                #TODO any hidden post processing needed
+                cares_reg.name = species.name + ' - ' + request.user.username
+                cares_reg.species = cares_species
+                cares_reg.last_updated_by = request.user
+                #cares_reg.aquarist = None        # annonymous user
+                #cares_reg.affiliated_club = None # TODO manage later from ASN side?
+                cares_reg.save()
+                if cares_reg.verification_photo:
+                    processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
+                logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
+                messages.success(request, f'CARES "{cares_species.name}" registration submitted!')
+                return HttpResponseRedirect(reverse("caresSpecies", args=[cares_species.id]))
+            except Exception as e:
+                logger.error(f"Unexpected error registering cares species: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+        else:
+            logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
+            messages.error(request, 'Please correct the errors highlighted below.')
+    else:
+        form = CaresRegistrationForm()
+
+    context = {'form': form, 'cares_species': cares_species}
+    return render(request, 'species/cares/registerCaresSpecies.html', context)    
+
+
+
+
+### Create CARES Registration -- Admin internal TODO needs work
 
 @login_required(login_url='login')
 def createCaresRegistration(request, pk):
@@ -341,41 +399,6 @@ def deleteCaresRegistration(request, pk):
 
 
 ### CARES Registrations - ListView
-
-# class CaresRegistrationListView(ListView):
-#     model = CaresRegistration
-#     template_name = "species/cares/caresRegistrations.html"
-#     context_object_name = "registrations_list"
-#     paginate_by = 50
-
-#     def get_queryset(self):
-#         queryset = CaresRegistration.objects.all()
-#         cares_family = self.request.GET.get('cares_family', '')
-#         reg_status = self.request.GET.get('reg_status', '')
-#         query_text = self.request.GET.get('q', '')
-        
-#         if cares_family:
-#             queryset = queryset.filter(species__cares_family=cares_family)
-#         if reg_status: 
-#             queryset = queryset.filter(status=reg_status)
-#         if query_text: 
-#             queryset = queryset.filter(
-#                 Q(name__icontains=query_text) |
-#                 Q(species_source__icontains=query_text) |
-#                 Q(approver_notes__icontains=query_text)
-#             )
-#         return queryset
-
-#     def get_context_data(self, **kwargs):
-#         if self.request.user.is_authenticated:
-#             logger.info('User %s visited caresRegistrations page.', self.request.user.username)
-#         context = super().get_context_data(**kwargs)
-#         context['cares_families'] = Species.CaresFamily.choices
-#         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
-#         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
-#         context['selected_reg_status'] = self.request.GET.get('reg_status', '')
-#         context['query_text'] = self.request.GET.get('q', '')
-#         return context
 
 class CaresRegistrationListView(ListView):
     model = CaresRegistration

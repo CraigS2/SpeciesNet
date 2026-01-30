@@ -330,6 +330,15 @@ class CaresSpeciesForm2(ModelForm):
             )
         )        
 
+class CaresRegistrationForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'species', 'aquarist', 'affiliate_club', 'offspring_shared', 'status', 
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
+        widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
+
 # admin-only full access to normally hidden properties
 class CaresRegistrationForm2 (ModelForm):
     class Meta:

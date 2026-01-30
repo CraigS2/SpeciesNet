@@ -302,8 +302,17 @@ def initialize_cares_species_fields():
     print (message_text)
     return 
 
-
-
+def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
+    cur_registrations = CaresRegistration.objects.all()
+    for reg in cur_registrations:
+        reg_name  = reg.aquarist.first_name + ' ' + reg.aquarist.last_name
+        reg_email = reg.aquarist.email
+        print ('Reg Migration: ' + reg_name + ' | ' + reg_email)
+        if modify_db:
+            reg.aquarist_email = reg_email
+            reg.aquarist_name  = reg_name
+            reg.save()
+    return
 
 def dirtyDeed(request):
     """
@@ -320,6 +329,10 @@ def dirtyDeed(request):
         raise PermissionDenied()
     
     # Dirty deed goes here ...  then return to tools2
+
+    ### Registration dev-only migration work in progress ###
+    modify_db = True
+    dirtyDeedMigrateWorkingRegistrations (modify_db)
 
     ### DB NULL - Empty String Cleanup ###
     #modify_db = True

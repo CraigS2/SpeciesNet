@@ -44,7 +44,7 @@ from species.forms import (
     BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFormAdminEdit,
     BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm,
     CaresRegistrationSubmitionForm, CaresRegistrationApprovalForm, CaresApproverForm,
-    CaresRegistrationForm2, CaresSpeciesForm2
+    CaresRegistrationForm, CaresRegistrationForm2, CaresSpeciesForm2
 )
 
 # Local utilities

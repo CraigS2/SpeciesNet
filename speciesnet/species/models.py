@@ -435,9 +435,9 @@ class CaresApprover (models.Model):
     name              = models.CharField (max_length=240)
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=3, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
-    last_updated      = models.DateTimeField(auto_now=True)           # updated every save
+    last_updated      = models.DateTimeField(auto_now=True)
     last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters') 
-    created           = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
+    created           = models.DateTimeField (auto_now_add=True)
 
     class Meta:
         ordering = ['name']
@@ -448,6 +448,9 @@ class CaresApprover (models.Model):
 class CaresRegistration (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_cares_registrations') 
+    aquarist_name             = models.CharField (max_length=240, blank=False, default='')
+    aquarist_email            = models.EmailField(max_length=50, null=True)
+    
     cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='species_registrations')
@@ -456,6 +459,7 @@ class CaresRegistration (models.Model):
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
     species_has_spawned       = models.BooleanField (default=False)
+    young_available           = models.BooleanField (default=False)
     offspring_shared          = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(500)], default=0)  
 
     class CaresRegistrationStatus (models.TextChoices):
