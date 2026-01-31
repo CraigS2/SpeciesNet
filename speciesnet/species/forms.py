@@ -900,7 +900,7 @@ class AquaristClubMemberJoinForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'membership_approved', 'is_club_admin', 'bap_participant']
+        exclude = ['name', 'club', 'membership_approved', 'is_club_admin', 'is_cares_admin', 'bap_participant']
 
 class AquaristClubMemberForm (ModelForm):
     class Meta:

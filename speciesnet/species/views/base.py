@@ -11,11 +11,15 @@ from django.db.models import Q
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
+from django.core.validators import validate_email
+from django.conf import settings
+from django.utils.html import escape
 from django.db.utils import IntegrityError
 from django.core.mail import EmailMessage
 from django.utils import timezone
 from django.views.generic import ListView
+#from django.views import View
 from smtplib import SMTPException
 from csv import DictReader
 import logging

@@ -2,7 +2,6 @@
 {% load static %}
 {% block content %}
 
-<!-- context['cares_families'] ['reg_status_options'] ['approvers'] ['selected_cares_family'] ['selected_reg_status'] ['selected_approver'] registrations_list -->
 <div class="container">
     <h1 class="my-4">CARES Registrations</h1>
     <div class="card mb-4">
@@ -11,17 +10,18 @@
         </div>
         <div class="card-body">
             <form method="get" id="filter-form">
+                <!-- First row of filters -->
                 <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="reg_status">Reg Status:</label>
                         <select name="reg_status" id="reg_status" class="form-select">
-                            <option value="">-- All Registration Types --</option>
+                            <option value="">-- All Statuses --</option>
                             {% for value, label in reg_status_options %}
                                 <option value="{{ value }}" {% if value == selected_reg_status %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div> 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="cares_family">Family:</label>
                         <select name="cares_family" id="cares_family" class="form-select">
                             <option value="">-- All Families --</option>
@@ -30,7 +30,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="approver">Approver:</label>
                         <select name="approver" id="approver" class="form-select">
                             <option value="">-- All Approvers --</option>
@@ -39,24 +39,33 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label for="club">Club:</label>
+                        <select name="club" id="club" class="form-select">
+                            <option value="">-- All Clubs --</option>
+                            {% for value, label in clubs %}
+                                <option value="{{ value }}" {% if value|stringformat:"s" == selected_club %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
+                
+                <!-- Second row: Search box -->
                 <div class="row mb-3">
                     <div class="col-md-10">
                         <label for="q">Search:</label>
-                        <input type="text" name="q" id="q" class="form-control" placeholder="Search by name, source, or notes..." value="{{ query_text }}">
+                        <input type="text" name="q" id="q" class="form-control" placeholder="Search by aquarist name, species name, source, or notes..." value="{{ query_text }}">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                        {% if selected_cares_family or selected_reg_status or selected_approver or selected_club or query_text %}
+                            <a href="{% url request.resolver_match.url_name %}" class="btn btn-secondary btn-sm w-100">Clear Filters</a>
+                        {% endif %}
                     </div>
                 </div>
+                
                 <!-- Hidden fields to preserve pagination when only clearing specific filters -->
                 <input type="hidden" id="preservedPage" name="page" value="{{ request.GET.page|default:'' }}">
             </form>
-            {% if selected_cares_family or selected_reg_status or selected_approver or query_text %}
-                <div class="mt-2">
-                    <a href="{% url request.resolver_match.url_name %}" class="btn btn-secondary btn-sm">Clear All Filters</a>
-                </div>
-            {% endif %}
         </div>
     </div>
     
@@ -79,7 +88,6 @@
                                 <th style='text-align:center'>Classification</th>                                
                                 <th style='text-align:center'>Approver</th>
                                 <th style='text-align:center'>Status</th>
-                                <!--th style='text-align:center'>Submitted</th-->
                                 <th style='text-align:center'>Updated</th>
                             </tr>
                         </thead>
@@ -92,8 +100,7 @@
                                     <td style='text-align:center'>{{ registration.species.get_cares_family_display }}</td>
                                     <td style='text-align:center'>{{ registration.species.get_cares_classification_display }}</td>
                                     <td style='text-align:center'>{{ registration.cares_approver.name }}</td>
-                                    <td style='text-align:center'>{{ registration.status }}</td>  
-                                    <!--td style='text-align:center'>{{ registration.date_requested | date:'d M Y' }}</td-->
+                                    <td style='text-align:center'>{{ registration.get_status_display }}</td>  
                                     {% if registration.last_report_date %}
                                         <td style='text-align:center'>R: {{ registration.last_report_date | date:'Y-m-d' }}</td>
                                     {% else %}
@@ -111,12 +118,12 @@
                     <ul class="pagination justify-content-center">
                         {% if page_obj.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page=1{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="First">
+                                <a class="page-link" href="?page=1{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if selected_club %}&club={{ selected_club }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="First">
                                     <span aria-hidden="true">&laquo;&laquo;</span>
                                 </a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Previous">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if selected_club %}&club={{ selected_club }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Previous">
                                     <span aria-hidden="true">&laquo;</span>
                                 </a>
                             </li>
@@ -128,19 +135,19 @@
                                 <li class="page-item active"><span class="page-link">{{ i }}</span></li>
                             {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ i }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if selected_club %}&club={{ selected_club }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}">{{ i }}</a>
                                 </li>
                             {% endif %}
                         {% endfor %}
                         
                         {% if page_obj.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Next">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if selected_club %}&club={{ selected_club }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Next">
                                     <span aria-hidden="true">&raquo;</span>
                                 </a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Last">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_cares_family %}&cares_family={{ selected_cares_family }}{% endif %}{% if selected_reg_status %}&reg_status={{ selected_reg_status }}{% endif %}{% if selected_approver %}&approver={{ selected_approver }}{% endif %}{% if selected_club %}&club={{ selected_club }}{% endif %}{% if query_text %}&q={{ query_text }}{% endif %}" aria-label="Last">
                                     <span aria-hidden="true">&raquo;&raquo;</span>
                                 </a>
                             </li>
@@ -172,6 +179,10 @@
     });
     
     document.getElementById('approver').addEventListener('change', function() {
+        resetPageAndSubmit();
+    });
+    
+    document.getElementById('club').addEventListener('change', function() {
         resetPageAndSubmit();
     });
     

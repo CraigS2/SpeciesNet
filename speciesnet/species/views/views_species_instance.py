@@ -6,7 +6,6 @@ These represent individual aquarist's fish/species entries
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
-from django.conf import settings
 
 ### View Species Instance
 

@@ -229,12 +229,39 @@ def caresRegistration(request, pk):
 
 ### Register CARES Species - Wizard Start (Annonymous User)
 
-def caresRegistrationCheck(request):
-    if request.user.is_authenticated:
-        logger.info('User %s visited caresRegistrationCheck page. ', request.user.username)
-    else:
-        logger.info('Anonymous user visited caresRegistrationCheck page.')
-    return render(request, 'species/cares/caresRegistrationCheck.html')
+def registrationLookup(request):
+    
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        email = escape(email) #sanitize
+        if not email:
+            messages.error(request, 'Please enter a valid email address')
+            return render(request, 'species/cares/registrationLookup.html')
+        
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, 'Please enter a valid email address.')
+            return render(request, 'species/cares/registrationLookup.html')
+        
+        # get all matching registrations - iexact (case-insensitive exact match)
+        #                                - select_related (performance optimization using SQL JOIN avoids N+X queries)
+        registrations = CaresRegistration.objects.filter(aquarist_email__iexact=email).select_related(
+            'species', 'affiliate_club', 'cares_approver').order_by('-date_requested')
+        
+        if not registrations.exists():
+            messages.warning(
+                request, 
+                f'No registrations found for {email}'
+            )
+            return render(request, 'species/cares/registrationLookup.html')
+        
+        context = {'registrations': registrations, 'email': email, 'registration_count': registrations.count()}
+        logger.info('registrationLookup inquiry for ' + email + ' found ' + str(registrations.count()) + ' registrations')
+        return render(request, 'species/cares/registrationLookupResults.html', context)
+    
+    logger.info('User visited registrationLookup page.')
+    return render(request, 'species/cares/registrationLookup.html')
 
 
 ### Register CARES Species - Wizard Start (Annonymous User)
@@ -401,10 +428,9 @@ def deleteCaresRegistration(request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render(request, 'species/deleteConfirmation.html', context)
 
+### CARES Registrations (ListView with Filters)
 
-### CARES Registrations - ListView
-
-class CaresRegistrationListView(ListView):
+class CaresRegistrationListView(LoginRequiredMixin, ListView):
     model = CaresRegistration
     template_name = "species/cares/caresRegistrations.html"
     context_object_name = "registrations_list"
@@ -418,6 +444,7 @@ class CaresRegistrationListView(ListView):
         cares_family = self.request.GET.get('cares_family', '')
         reg_status = self.request.GET.get('reg_status', '')
         approver = self.request.GET.get('approver', '')
+        club = self.request.GET.get('club', '')
         query_text = self.request.GET.get('q', '')
         
         if cares_family:
@@ -426,11 +453,14 @@ class CaresRegistrationListView(ListView):
             queryset = queryset.filter(status=reg_status)
         if approver:
             queryset = queryset.filter(cares_approver_id=approver)
+        if club:
+            queryset = queryset.filter(affiliate_club_id=club)
         if query_text: 
             queryset = queryset.filter(
                 Q(name__icontains=query_text) |
                 Q(species_source__icontains=query_text) |
-                Q(approver_notes__icontains=query_text)
+                Q(approver_notes__icontains=query_text) |
+                Q(aquarist_name__icontains=query_text)
             )
         return queryset
 
@@ -440,14 +470,17 @@ class CaresRegistrationListView(ListView):
         
         context = super().get_context_data(**kwargs)
         
-        # Get unique approvers from all registrations (base queryset before filters)
-        # Assuming cares_approver is a ForeignKey to a model with 'name' and 'id' fields
+        # Get unique approvers
         approvers = CaresRegistration.objects.values_list(
             'cares_approver__id', 'cares_approver__name'
         ).distinct().order_by('cares_approver__name')
-        
-        # Filter out None values (registrations without approvers)
         context['approvers'] = [(id, name) for id, name in approvers if id is not None]
+        
+        # Get unique clubs
+        clubs = CaresRegistration.objects.values_list(
+            'affiliate_club__id', 'affiliate_club__name'
+        ).distinct().order_by('affiliate_club__name')
+        context['clubs'] = [(id, name) for id, name in clubs if id is not None]
         
         # Existing context
         context['cares_families'] = Species.CaresFamily.choices
@@ -455,6 +488,7 @@ class CaresRegistrationListView(ListView):
         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
         context['selected_reg_status'] = self.request.GET.get('reg_status', '')
         context['selected_approver'] = self.request.GET.get('approver', '')
+        context['selected_club'] = self.request.GET.get('club', '')
         context['query_text'] = self.request.GET.get('q', '')
         
         return context

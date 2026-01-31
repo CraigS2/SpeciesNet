@@ -28,12 +28,16 @@ def aquaristClub(request, pk):
     userCanEdit = user_can_edit_club(cur_user, club)
     userIsMember = user_is_club_member(cur_user, club)
     userIsPending = user_is_pending_club_member(cur_user, club)
-    
+    enableClubFeatures = True
+    site_id = getattr(settings, 'SITE_ID', 1)
+    if site_id == 2:
+        enableClubFeatures = False
+        
     logger.info('User %s visited club:  %s (%s)', request.user.username, club.name, str(club.id))
-    
     context = {
         'aquaristClub': club,
         'aquaristClubMembers': aquaristClubMembers,
+        'enableClubFeatures': enableClubFeatures,
         'userIsAdmin': userIsAdmin,
         'userCanEdit': userCanEdit,
         'userIsMember': userIsMember,
@@ -257,50 +261,7 @@ def deleteAquaristClubMember(request, pk):
     return render(request, 'species/deleteAquaristClubMember.html', context)
 
 
-###########################################################
-
-### Cares Liaison Views
-
-# class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
-#     model = SpeciesInstance
-#     template_name = "species/caresLiaisonDashboard.html"
-#     context_object_name = "member_cares_species_list"
-#     paginate_by = 100
-
-#     def setup(self, request, *args, **kwargs):
-#         super().setup(request, *args, **kwargs)
-#         self.club = get_object_or_404(AquaristClub, pk=self.kwargs['pk'])
-#         print("AquaristClubCaresLiaisonListView setup called")
-
-#     def get_club(self):
-#         club_id = self.kwargs.get('pk')
-#         club = AquaristClub.objects.get(id=club_id)
-#         return club
-
-#     def get_queryset(self):
-#         queryset = SpeciesInstance.objects.filter(
-#             species__render_cares=True,
-#             currently_keep=True,
-#             user__user_club_members__club=self.get_club(),
-#             user__user_club_members__membership_approved=True 
-#         )
-#         print("AquaristClubCaresLiaisonListView get_queryset called")
-#         return queryset
-
-#     def get_userCanEdit(self):
-#         club = self.get_club()
-#         user = self.request.user
-#         if not (user_is_club_member(user, club) or user.is_staff):
-#             raise PermissionDenied
-#         return user_can_edit_club(user, club)
-
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['club'] = self.get_club()
-#         context['userCanEdit'] = self.get_userCanEdit()
-#         logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s', 
-#                    self.request.user.username, self.get_club().name)
-#         return context
+### Cares Liaison Dashboard
 
 class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
     model = SpeciesInstance

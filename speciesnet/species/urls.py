@@ -36,7 +36,7 @@ urlpatterns = [
     path('registerCaresSelectSpecies/', views.registerCaresSelectSpecies, name="registerCaresSelectSpecies"),
     path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),
     path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
-    path('caresRegistrationCheck/', views.caresRegistrationCheck, name="caresRegistrationCheck"),
+    path('registrationLookup/', views.registrationLookup, name="registrationLookup"),
 
     path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
     path('bapSubmission/<str:pk>/', views.bapSubmission, name="bapSubmission"),

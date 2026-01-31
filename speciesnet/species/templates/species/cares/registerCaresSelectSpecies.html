@@ -1,9 +1,17 @@
 {% extends 'main.html' %}
-
+{% load static %}
 {% block content %}
+
 <div class="container">
-    <div>
-        <h3>TODO Register Cares Select Species Wizard</h3>
-    </div>  
+    <h3 style="text-align:center;"><i><b>Register Your CARES Species</b></i></h3>
+    <h4 style="text-align:center;">CARES registrations are associated with Species Profiles declared in the CARES Priority List.</h4>
+    <h4 style="text-align:center;">To register your fish, you must select your CARES Species from the Priority List.</h4>
+    <small>&nbsp;</small>
+    <h4 style="text-align:center;">1. Navigate to <b>CARES Species</b> (top menu) and use filter and search options to find your species. </h4>
+    <h4 style="text-align:center;">2. Click on the <b>Species Name</b> to load the species page.</h4>
+    <h4 style="text-align:center;">3. Scroll to the bottom of the page and click the <b><i>Register This Species</i></b> button. </h4>
+    <small>&nbsp;</small>
+    <p style="text-align:center;"><a href="{% url 'caresSpeciesSearch'%}"><img src={% static 'images\cares_logo_400x400.jpg' %}></a></p>
 </div>
+ 
 {% endblock content %}
