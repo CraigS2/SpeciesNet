@@ -9,11 +9,12 @@
                 </div>
                 <div class="card-body px-4 py-3">
                     <h5>
-                        <b>Aquarist:</b> &nbsp;{{registration.aquarist_name}}</a>
+                        <b>Aquarist:</b> &nbsp;{{registration.aquarist_name}}
                     </h5>
                     <h5>
-                        <b>Email:</b> &nbsp;{{registration.aquarist_email}}</a>
-                    </h5>                                        <h5>
+                        <b>Email:</b> &nbsp;{{registration.aquarist_email}}
+                    </h5>                                        
+                    <h5>
                         {% if registration.affiliate_club %}
                             <b>Club Affiliation:</b> &nbsp;<a href="{% url 'aquaristClub' registration.affiliate_club.id %}">{{registration.affiliate_club.acronym}}</a>
                             &nbsp;({{registration.affiliate_club.name}})

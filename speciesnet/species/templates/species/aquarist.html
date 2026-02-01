@@ -1,69 +1,278 @@
 {% extends 'main.html' %}
-<!-- context = {'aquarist': aquarist, 'speciesKept': speciesKept} -->
+ {% load static %}
 {% block content %}
-<div class="container">
-    <div class="div-line-below">
-        <h3>{{aquarist.get_display_name}}'s Fishroom</h3>
-        {% if request.user.is_authenticated %}
-            {% if not aquarist.is_private_name  %}
-                <p><large><B>Name: </B>{{aquarist.first_name}} {{aquarist.last_name}}</large></p> 
-            {% else %}
-                <p><large><B>Name: </B>Private</large></p>
-            {% endif %}
-            {% if not aquarist.is_private_email  %}
-                <p><large><B>Email: </B>{{aquarist.email}} </large></p>    
-            {% else %}
-                <p><large><B>Email: </B>Private</large></p>
-            {% endif %}
-            {% if not aquarist.is_private_location  %}
-                {% if aquarist.state or aquarist.country  %}
-                    <p><large><B>Location: </B>{{aquarist.state}}, {{aquarist.country}}</large></p> 
-                {% endif %} 
-            {% else %}
-                <p><large><B>Location: </B>Private</large></p>
-            {% endif %}
-            <p><a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">Email {{aquarist.get_display_name}}</a></p>
-        {% endif %}  
-    </div>
 
-    <div class="div-line-below">
-    <h3>Keeps the following species:</h3>
-    {% if speciesKept.all.count > 0  %}
-        {% for speciesInstance in speciesKept %}
-            {% if speciesInstance.currently_keep %}
-                {% if speciesInstance.species.render_cares and speciesInstance.young_available %}
-                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> (Young Available)</p>
-                {% elif speciesInstance.species.render_cares %}
-                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> <font style="color:#860404;" >CARES</font> </p>
-                {% elif speciesInstance.young_available %}
-                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a> (Young Available)</p>
-                {% else %}
-                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-                {% endif%}
-            {% endif %}
-        {% endfor %}    
-    {% else %}
-        <p><B>None</B></p>
-    {% endif %}
-    <small>&nbsp;</small>
+<!-- context = {'aquarist': aquarist, 'speciesKept': speciesKept} -->
 
-    {% if userCanEdit and speciesKept.all.count > 0 %}
-        <p><a class="btn btn-secondary" href="{% url 'chooseSpeciesInstancesForLabels' aquarist.id  %}" role="button">&nbsp;Create Labels&nbsp;</a></p>
-        <small>&nbsp;</small>
-    {% endif %}
-    </div>
-
-    {% if speciesPreviouslyKept.all.count > 0  %}
-        <h3>Previously kept the following species:</h3>
-        <div>
-            {% for speciesInstance in speciesPreviouslyKept %}
-                {% if not speciesInstance.currently_keep %}
-                <div>
-                    <p><a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-house-door-fill me-2"></i>
+                        {{aquarist.get_display_name}}'s Fishroom
+                    </h3>
                 </div>
-                {% endif %}
-            {% endfor %}    
-        </div>
-    {% endif %}
+                <div class="card-body px-4 py-3">
+
+                    <!-- Aquarist Info Section -->
+                    <div class="mb-4 pb-3">
+                        {% if affiliate_clubs.all.count > 0  %}
+                            <div class="mb-2">
+                                {% if registration.affiliate_club %}
+                                    <strong>Club Affiliation:</strong>
+                                    <a href="{% url 'aquaristClub' registration.affiliate_club.id %}" class="text-decoration-none">
+                                        {{registration.affiliate_club.acronym}}
+                                    </a>
+                                    <span class="text-muted">({{registration.affiliate_club.name}})</span>
+                                {% endif %}                        
+                            </div>
+                        {% endif %}
+                        
+                        {% if request.user.is_authenticated %}
+                            {% if not aquarist.is_private_name %}
+                                <div class="mb-2">
+                                    <strong>Name:</strong> {{aquarist.first_name}} {{aquarist.last_name}}
+                                </div>
+                            {% else %}
+                                <div class="mb-2">
+                                    <strong>Name:</strong> <span class="text-muted">Private</span>
+                                </div>
+                            {% endif %}
+                            
+                            {% if not aquarist.is_private_location %}
+                                {% if aquarist.state or aquarist.country %}
+                                    <div class="mb-2">
+                                        <strong>Location:</strong> {{aquarist.state}}{% if aquarist.state and aquarist.country %}, {% endif %}{{aquarist.country}}
+                                    </div> 
+                                {% endif %} 
+                            {% endif %}
+                            
+                            <div class="mt-3">
+                                <a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">
+                                    <i class="bi bi-envelope me-2"></i>Email {{aquarist.get_display_name}}
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Currently Kept Species Section with Bordered Container -->
+                    <div class="section-bordered mb-4 p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0">
+                                <i class="bi bi-fish me-2"></i>Currently Keeping
+                            </h4>
+                            <span class="text-muted"><large>{{ speciesKept.all.count }} species&nbsp;&nbsp;</large></span>
+                        </div>
+                        {% if speciesKept.all.count > 0 %}
+                            <div class="row g-4">
+                                {% for speciesInstance in speciesKept %}
+                                    <div class="col-lg-3 col-md-4 col-sm-6">
+                                        <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
+                                            <div class="card h-100 shadow-sm species-card species-tile">
+                                                <!-- Image Section -->
+                                                <div class="card-img-top-wrapper position-relative" style="height: 180px; overflow: hidden; background-color: #f8f9fa; border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;">
+                                                    {% if speciesInstance.aquarist_species_image %}
+                                                        <img src="{{ speciesInstance.aquarist_species_image.url }}" 
+                                                             class="card-img-top h-100 w-100" 
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.species.name }}">
+                                                    {% else %}
+                                                        <img src={% static "images\asn_placeholder_not_found2.png" %}
+                                                             class="card-img-top h-100 w-100" 
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.species.name }}">
+                                                    {% endif %}
+                                                    
+                                                    <!-- CARES Badge -->
+                                                    {% if speciesInstance.species.render_cares %}
+                                                        <span class="position-absolute top-0 start-0 m-2 badge badge-cares">
+                                                            CARES
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <!-- Card Body -->
+                                                <div class="card-body">
+                                                    <h6 class="card-title mb-2">
+                                                        <em>{{ speciesInstance.species.name }}</em>
+                                                    </h6>
+                                                    <div class="mb-2 small text-muted d-flex justify-content-between align-items-center">
+                                                        <span>
+                                                            <!--i class="bi bi-geo-alt"></i-->
+                                                            {% if speciesInstance.collection_point %}
+                                                                {{ speciesInstance.collection_point }}
+                                                            {% else %}
+                                                                &nbsp;
+                                                            {% endif %}
+                                                        </span>
+                                                        
+                                                        <span>
+                                                            {% if speciesInstance.genetic_traits == speciesInstance.GeneticLine.WILD_CAUGHT %}
+                                                                WC
+                                                            {% elif speciesInstance.genetic_traits == speciesInstance.GeneticLine.F1 %}
+                                                                F1
+                                                            {% elif speciesInstance.genetic_traits == speciesInstance.GeneticLine.F2 %}
+                                                                F2
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>                                               
+                                                    
+                                                    <!-- Status Badges with Text -->
+                                                    <div class="mt-3 d-flex flex-wrap gap-1">
+                                                        {% if speciesInstance.have_spawned %}
+                                                            <span class="badge badge-breeding">
+                                                                <i class="bi bi-heart-fill"></i>&nbsp;Breeding&nbsp;
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if speciesInstance.young_available %}
+                                                            <span class="badge badge-young-available">
+                                                                <i class="bi bi-gift-fill"></i>&nbsp;Available&nbsp;
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if speciesInstance.enable_species_log %}
+                                                            <span class="badge badge-species-log">
+                                                                <i class="bi bi-gift-fill"></i> Species Log
+                                                            </span>
+                                                        {% endif %}                                                        
+                                                    </div>                                                     
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                No species currently being kept.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Previously Kept Species Section with Bordered Container -->
+                    {% if speciesPreviouslyKept.all.count > 0 %}
+                        <div class="section-bordered mt-5 p-4">
+                            <h4 class="mb-3">
+                                <i class="bi bi-clock-history me-2"></i>Previously Kept 
+                                <span class="badge bg-secondary">{{ speciesPreviouslyKept.all.count }}</span>
+                            </h4>
+                            
+                            <div class="row g-4">
+                                {% for speciesInstance in speciesPreviouslyKept %}
+                                    {% if not speciesInstance.currently_keep %}
+                                        <div class="col-lg-3 col-md-4 col-sm-6">
+                                            <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
+                                                <div class="card h-100 shadow-sm species-card opacity-75">
+                                                    <!-- Image Section -->
+                                                    <div class="card-img-top-wrapper position-relative" style="height: 180px; overflow: hidden; background-color: #f8f9fa; border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;">
+                                                        {% if speciesInstance.aquarist_species_image %}
+                                                            <img src="{{ speciesInstance.aquarist_species_image.url }}" 
+                                                                 class="card-img-top h-100 w-100" 
+                                                                 style="object-fit: cover; filter: grayscale(30%);"
+                                                                 alt="{{ speciesInstance.species.name }}">
+                                                        {% else %}
+                                                            <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                                                <div class="text-center">
+                                                                    <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                                                    <p class="mb-0 small">No photo</p>
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+                                                        
+                                                        <!-- "Previously Kept" Overlay Badge -->
+                                                        <span class="position-absolute top-0 start-0 m-2 badge bg-secondary">
+                                                            Previously Kept
+                                                        </span>
+                                                        
+                                                        <!-- CARES Badge -->
+                                                        {% if speciesInstance.species.render_cares %}
+                                                            <span class="position-absolute top-0 end-0 m-2 badge bg-danger">
+                                                                CARES
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <!-- Card Body -->
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-2 text-muted">
+                                                            <em>{{ speciesInstance.species.name }}</em>
+                                                        </h6>
+                                                        {% if speciesInstance.collection_point %}
+                                                            <p class="mb-2 small text-muted">
+                                                                <i class="bi bi-geo-alt"></i>
+                                                                {{ speciesInstance.collection_point }}
+                                                            </p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>    
+    </div>                
 </div>
+
+<style>
+    .species-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .card-img-top-wrapper img {
+        transition: transform 0.3s;
+    }
+    
+    .species-card:hover img {
+        transform: scale(1.05);
+    }
+
+    /* Breeding badge - soft green */
+    .badge-breeding {
+        background-color: #88c9a1;      /* Muted sage green */
+        color: #1e4d2b;                 /* Dark green text */
+    }
+
+    /* Fry badge - soft teal/blue */
+    .badge-raised-fry {
+        background-color: #7ec8d9;      /* Soft teal */
+        color: #1e4d5c;                 /* Dark teal text */
+    }
+
+    /* Available badge - soft amber */
+    .badge-young-available {
+        background-color: #f0c674;      /* Soft amber/gold */
+        color: #5c4a1e;                 /* Dark brown text */
+    }
+
+    /* Available badge - soft amber */
+    .badge-species-log {
+        background-color: rgb(160, 160, 180);      /* Soft amber/gold */
+        color: darkslategray;                 /* Dark brown text */
+    }
+
+    /* CARES badge - softer red */
+    .badge-cares {
+        background-color: rgb(255, 84, 84);      /* Muted coral red */
+        color: #5c1e1e;                 /* Dark red text */
+    }
+
+    /* Optional: Add subtle hover effect */
+    .badge-breeding:hover,
+    .badge-fry:hover,
+    .badge-available:hover,
+    .badge-cares:hover {
+        filter: brightness(1.1);
+        transform: scale(1.05);
+        transition: all 0.2s;
+}
+
+</style>
 {% endblock content %}
