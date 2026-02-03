@@ -16,52 +16,91 @@ def userProfile(request):
     return render(request, 'species/userProfile.html', context)
 
 
+# @login_required(login_url='login')
+# def editUserProfile(request):
+#     cur_user = request.user
+#     form = UserProfileForm2(instance=cur_user)
+#     if request.method == 'POST':
+#         form = UserProfileForm2(request.POST, instance=cur_user)
+#         #TODO fix up this messy validation logic - raise validation error if URLs fail
+#         if form.is_valid():
+#             cur_user = form.save(commit=False)           
+#             invalid_url = ''
+#             if cur_user.instagram_url:
+#                 valid_url = validate_normalize_instagram_url(cur_user.instagram_url)
+#                 if not valid_url:
+#                     invalid_url = 'Instagram'
+#             if cur_user.facebook_url:
+#                 valid_url = validate_normalize_facebook_url(cur_user.facebook_url)
+#                 if not valid_url:
+#                     invalid_url = 'Facebook'
+#             if cur_user.youtube_url:
+#                 valid_url = validate_normalize_youtube_url(cur_user.youtube_url)
+#                 if not valid_url:
+#                     invalid_url = 'YouTube'                                        
+#             if not invalid_url:
+#                 cur_user.save()
+#                 logger.info('User %s edited their profile page', request.user.username)
+#                 messages.success(request, 'User profile updated successfully!')
+#             else:
+#                 error_msg = 'Error saving User Profile changes - Invalid ' + invalid_url + ' URL - Please enter a valid URL'
+#                 messages.error(request, error_msg)
+#                 context = {'form': form, 'user': request.user }
+#                 return render(request, 'species/editUserProfile.html', context)
+#         else:
+#             error_msg = "Error saving User Profile changes"
+#             messages.error(request, error_msg)
+#         context = {'aquarist':  request.user}
+#         return render(request, 'species/userProfile.html', context)
+#     context = {'form': form, 'user': request.user }
+#     return render(request, 'species/editUserProfile.html', context)
+
 @login_required(login_url='login')
 def editUserProfile(request):
     cur_user = request.user
-    form = UserProfileForm2(instance=cur_user)
+
     if request.method == 'POST':
         form = UserProfileForm2(request.POST, instance=cur_user)
-        #TODO fix up this messy validation logic - raise validation error if URLs fail
         if form.is_valid():
+            # handling social urls outside normal validation to cleanly map 3 cases
+            # instagram, facebook, and youtube each have unique validation routines based on url domain 
             cur_user = form.save(commit=False)
-            # cur_user.first_name = form.instance.first_name
-            # cur_user.last_name = form.instance.last_name
-            # cur_user.state = form.instance.state
-            # cur_user.country = form.instance.country
-            # cur_user.is_private_name = form.instance.is_private_name
-            # cur_user.is_private_email = form.instance.is_private_email
-            # cur_user.is_private_location = form.instance.is_private_location            
-            invalid_url = ''
+            url_validation_failed = False
             if cur_user.instagram_url:
                 valid_url = validate_normalize_instagram_url(cur_user.instagram_url)
                 if not valid_url:
-                    invalid_url = 'Instagram'
+                    form.add_error('instagram_url', 'Please enter a valid Instagram URL')
+                    url_validation_failed = True
+                else:
+                    cur_user.instagram_url = valid_url 
             if cur_user.facebook_url:
                 valid_url = validate_normalize_facebook_url(cur_user.facebook_url)
                 if not valid_url:
-                    invalid_url = 'Facebook'
+                    form.add_error('facebook_url', 'Please enter a valid Facebook URL')
+                    url_validation_failed = True
+                else:
+                    cur_user.facebook_url = valid_url
             if cur_user.youtube_url:
                 valid_url = validate_normalize_youtube_url(cur_user.youtube_url)
                 if not valid_url:
-                    invalid_url = 'YouTube'                                        
-            if not invalid_url:
+                    form.add_error('youtube_url', 'Please enter a valid YouTube URL')
+                    url_validation_failed = True
+                else:
+                    cur_user.youtube_url = valid_url
+            if not url_validation_failed:
                 cur_user.save()
                 logger.info('User %s edited their profile page', request.user.username)
                 messages.success(request, 'User profile updated successfully!')
-            else:
-                error_msg = 'Error saving User Profile changes - Invalid ' + invalid_url + ' URL - Please enter a valid URL'
-                messages.error(request, error_msg)
-                context = {'form': form, 'user': request.user }
-                return render(request, 'species/editUserProfile.html', context)
-        else:
-            error_msg = "Error saving User Profile changes"
-            messages.error(request, error_msg)
-        context = {'aquarist':  request.user}
-        return render(request, 'species/userProfile.html', context)
-    context = {'form': form, 'user': request.user }
-    return render(request, 'species/editUserProfile.html', context)
+                context = {'aquarist': request.user}
+                return render(request, 'species/userProfile.html', context)
+        
+        if not form.is_valid() or url_validation_failed:
+            messages.error(request, 'Please correct the errors below')
+    else:
+        form = UserProfileForm2(instance=cur_user)
 
+    context = {'form': form, 'user': request.user}
+    return render(request, 'species/editUserProfile.html', context)
 
 ### View Aquarist Profile
 

@@ -16,42 +16,43 @@
                 </div>
                 <div class="card-body px-4 py-3">
                     {% if request.user.is_authenticated %}
-                        <!-- Aquarist Info Section -->
-                        <div class="mb-4 pb-3">
-                            <div class="mb-2">
-                                <!--h4-->
-                                    <!-- Aquarist Name -->
-                                    {% if not aquarist.is_private_name %}
-                                        <strong>Name:</strong>&nbsp;&nbsp; {{aquarist.get_full_name}} 
-                                    {% else %}
-                                        <strong>Name:</strong>&nbsp;&nbsp; <i>Private</i>
-                                    {% endif %}
-
-                                    <!-- Social Media Links -->
-                                    {% if aquarist.instagram_url or aquarist.facebook_url or aquarist.youtube_url  %}
+                        <!-- Split first line left|right with Name on left and Social Media (if it exists) on right -->
+                        <div class="mb-2 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                {% if not aquarist.is_private_name %}
+                                    <strong>Name:</strong>&nbsp;&nbsp; {{aquarist.get_full_name}} 
+                                {% else %}
+                                    <strong>Name:</strong>&nbsp;&nbsp; <i>Private</i>
+                                {% endif %}
+                            </div>
+                            {% if aquarist.instagram_url or aquarist.facebook_url or aquarist.youtube_url %}
+                                <div class="d-flex align-items-center gap-2">
+                                    Social Media:
+                                    <div class="d-flex gap-2">
                                         {% if aquarist.instagram_url %}
-                                            &nbsp;&nbsp;<a href="{{ aquarist.instagram_url }}" target="_blank" rel="noopener noreferrer" 
-                                            class="text-decoration-none" title="Instagram">
-                                                <i class="bi bi-instagram" style="font-size: 1.5rem; color: #E4405F;"></i>
+                                            <a href="{{ aquarist.instagram_url }}" target="_blank" rel="noopener noreferrer" 
+                                            class="social-icon" title="Instagram">
+                                                <i class="bi bi-instagram" style="font-size: 2.0rem; color: #E4405F;"></i>
                                             </a>
                                         {% endif %}
                                         {% if aquarist.facebook_url %}
-                                            &nbsp;&nbsp;<a href="{{ aquarist.facebook_url }}" target="_blank" rel="noopener noreferrer" 
-                                            class="text-decoration-none" title="Facebook">
-                                                <i class="bi bi-facebook" style="font-size: 1.5rem; color: #1877F2;"></i>
+                                            <a href="{{ aquarist.facebook_url }}" target="_blank" rel="noopener noreferrer" 
+                                            class="social-icon" title="Facebook">
+                                                <i class="bi bi-facebook" style="font-size: 2.0rem; color: #1877F2;"></i>
                                             </a>
                                         {% endif %}
-                                    
                                         {% if aquarist.youtube_url %}
-                                            &nbsp;&nbsp;<a href="{{ aquarist.youtube_url }}" target="_blank" rel="noopener noreferrer" 
-                                            class="text-decoration-none" title="YouTube">
-                                                <i class="bi bi-youtube" style="font-size: 1.5rem; color: #FF0000;"></i>
+                                            <a href="{{ aquarist.youtube_url }}" target="_blank" rel="noopener noreferrer" 
+                                            class="social-icon" title="YouTube">
+                                                <i class="bi bi-youtube" style="font-size: 2.0rem; color: #FF0000;"></i>
                                             </a>
-                                        {% endif %}  
-                                    {% endif %}
-                                <!--/h4--> 
-                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
 
+                        <div class="mb-2">
                             {% if not aquarist.is_private_location %}
                                 {% if aquarist.state or aquarist.country %}
                                     <div class="mb-2">
@@ -82,8 +83,8 @@
                                     </a>
                                 {% endif %}
                             </div>
-                        {% endif %}
-                    </div>
+                        <small>&nbsp;</small>
+                    {% endif %}
 
                     <!-- Currently Kept Species Section with Bordered Container -->
                     <div class="section-bordered mb-4 p-4">
@@ -182,60 +183,59 @@
                     <!-- Previously Kept Species Section with Bordered Container -->
                     {% if speciesPreviouslyKept.all.count > 0 %}
                         <div class="section-bordered mt-5 p-4">
-                            <h4 class="mb-3">
-                                <i class="bi bi-clock-history me-2"></i>Previously Kept 
-                                <span class="badge bg-secondary">{{ speciesPreviouslyKept.all.count }}</span>
-                            </h4>
-                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="mb-0">
+                                    <i class="bi bi-clock-history me-2"></i>Previously Kept 
+                                </h4>
+                                <span class="text-muted"><large>{{ speciesPreviouslyKept.all.count }} species&nbsp;&nbsp;</large></span>
+                            </div>
                             <div class="row g-4">
                                 {% for speciesInstance in speciesPreviouslyKept %}
-                                    {% if not speciesInstance.currently_keep %}
-                                        <div class="col-lg-3 col-md-4 col-sm-6">
-                                            <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
-                                                <div class="card h-100 shadow-sm species-card opacity-75">
-                                                    <!-- Image Section -->
-                                                    <div class="card-img-top-wrapper position-relative" style="height: 180px; overflow: hidden; background-color: #f8f9fa; border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;">
-                                                        {% if speciesInstance.aquarist_species_image %}
-                                                            <img src="{{ speciesInstance.aquarist_species_image.url }}" 
-                                                                 class="card-img-top h-100 w-100" 
-                                                                 style="object-fit: cover; filter: grayscale(30%);"
-                                                                 alt="{{ speciesInstance.species.name }}">
-                                                        {% else %}
-                                                            <img src={% static "images\asn_placeholder_not_found2.png" %}
+                                    <div class="col-lg-3 col-md-4 col-sm-6">
+                                        <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
+                                            <div class="card h-100 shadow-sm species-card opacity-50">
+                                                <!-- Lower card opacity = more grayed out effect | Higher image grayscale = more grayed out effect -->
+                                                <div class="card-img-top-wrapper position-relative" style="height: 180px; overflow: hidden; background-color: #f8f9fa; border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;">
+                                                    {% if speciesInstance.aquarist_species_image %}
+                                                        <img src="{{ speciesInstance.aquarist_species_image.url }}" 
                                                                 class="card-img-top h-100 w-100" 
-                                                                style="object-fit: cover;"
+                                                                style="object-fit: cover; filter: grayscale(60%);"
                                                                 alt="{{ speciesInstance.species.name }}">
-                                                        {% endif %}
-                                                        
-                                                        <!-- "Previously Kept" Overlay Badge -->
-                                                        <span class="position-absolute top-0 start-0 m-2 badge bg-secondary">
-                                                            Previously Kept
-                                                        </span>
-                                                        
-                                                        <!-- CARES Badge -->
-                                                        {% if speciesInstance.species.render_cares %}
-                                                            <span class="position-absolute top-0 end-0 m-2 badge bg-danger">
-                                                                CARES
-                                                            </span>
-                                                        {% endif %}
-                                                    </div>
+                                                    {% else %}
+                                                        <img src={% static "images\asn_placeholder_not_found2.png" %}
+                                                            class="card-img-top h-100 w-100" 
+                                                            style="object-fit: cover;"
+                                                            alt="{{ speciesInstance.species.name }}">
+                                                    {% endif %}
                                                     
-                                                    <!-- Card Body -->
-                                                    <div class="card-body">
-                                                        <h6 class="card-title mb-2 text-muted">
-                                                            <em>{{ speciesInstance.species.name }}</em>
-                                                        </h6>
-                                                        {% if speciesInstance.collection_point %}
-                                                            <p class="mb-2 small text-muted">
-                                                                <i class="bi bi-geo-alt"></i>
-                                                                {{ speciesInstance.collection_point }}
-                                                            </p>
-                                                        {% endif %}
-                                                    </div>
+                                                    <!-- "Previously Kept" Overlay Badge -->
+                                                    <span class="position-absolute top-0 start-0 m-2 badge bg-secondary">
+                                                        Previously Kept
+                                                    </span>
+                                                    
+                                                    <!-- CARES Badge -->
+                                                    {% if speciesInstance.species.render_cares %}
+                                                        <span class="position-absolute top-0 end-0 m-2 badge badge-cares">
+                                                            CARES
+                                                        </span>
+                                                    {% endif %}
                                                 </div>
-                                            </a>
-                                        </div>
-                                    {% endif %}
+                                                
+                                                <!-- Card Body -->
+                                                <div class="card-body">
+                                                    <h6 class="card-title mb-2 text-muted">
+                                                        <em>{{ speciesInstance.species.name }}</em>
+                                                    </h6>
+                                                    {% if speciesInstance.collection_point %}
+                                                        <p class="mb-2 small text-muted">
+                                                            <i class="bi bi-geo-alt"></i>
+                                                            {{ speciesInstance.collection_point }}
+                                                        </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
                                 {% endfor %}
                             </div>
                         </div>
