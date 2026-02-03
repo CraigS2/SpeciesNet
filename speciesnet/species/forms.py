@@ -916,6 +916,128 @@ class UserProfileForm (ModelForm):
                     'last_name':          forms.Textarea(attrs={'rows':1,'cols':40}),                   
                     'state':              forms.Textarea(attrs={'rows':1,'cols':40}),
                     'country':            forms.Textarea(attrs={'rows':1,'cols':40}),}
+
+class UserProfileForm2(ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'state', 'country', 
+                  'is_private_name', 'is_private_email', 'is_private_location',
+                  'instagram_url', 'facebook_url', 'youtube_url' ]
+        #exclude = ['user', 'species', 'acquired_from', 'young_available_image']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal species-instance-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+        
+        # Customize field widgets
+        self.fields['first_name'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['last_name'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['state'].widget.attrs.update({
+            'placeholder': 'e.g. Massachusets or MA (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['country'].widget.attrs.update({
+            'placeholder': 'e.g. USA, Canada, Norway ... (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        }) 
+        self.fields['instagram_url'].widget.attrs.update({
+            'placeholder': 'https://instagram.com/username',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })   
+        self.fields['facebook_url'].widget.attrs.update({
+            'placeholder': 'https://facebook.com/username',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })   
+        self.fields['youtube_url'].widget.attrs.update({
+            'placeholder': 'https://youtube.com/@username',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })                                        
+        
+        # Add IDs to checkboxes for JavaScript targeting
+        self.fields['is_private_name'].widget.attrs.update({'id': 'id_is_private_name'})
+        self.fields['is_private_email'].widget.attrs.update({'id': 'id_is_private_email'})
+        self.fields['is_private_location'].widget.attrs.update({'id': 'id_is_private_location'})
+
+        self.helper.layout = Layout(
+            # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
+            # General Info - no border, just background
+            # Fieldset(
+            Div(
+                Field('first_name', css_class='mb-1'),
+                Field('last_name', css_class='mb-1'),
+                Field('state', css_class='mb-1'),
+                Field('country', css_class='mb-1'),
+                css_class='mb-3'
+            ),    
+
+            Fieldset(
+                '🔏 Privacy Settings',  
+                Row(
+                    Column(
+                        Field('is_private_name', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('is_private_email', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('is_private_location', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),                
+                    css_class='form-row'
+                ),
+                Div( 
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Privacy settings determine what is visible to users. </strong><br>
+                                    Checking <i>private name</i> hides your name on all public pages. &nbsp;If you join a club, club members will see your name on club pages.<br>
+                                    Checking <i>private email</i> or <i>private location</i> hides this personal data from all users.</small>
+                        </div>
+                    """),      
+                ),                  
+                css_class='mb-3 section-bordered'
+            ),            
+            Fieldset(
+                '🌐 Social Media',
+                Div(
+                    Field('instagram_url', css_class='mb-1'),
+                    Field('facebook_url', css_class='mb-1'),
+                    Field('youtube_url', css_class='mb-1'),
+                    css_class='social-media-fields-custom'  # Add custom class
+                ), 
+                Div( 
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Customize your Profile with links to your Social Media pages. &nbsp;&nbsp;</strong> 
+                                    These links will be displayed on your <i>Fishroom</i> page.</small>
+                        </div>
+                    """),      
+                ),                                
+                css_class='mb-3 section-bordered'
+            ),
+            # Submit Buttons
+            FormActions(
+                Submit('submit', 'Save Profile', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )
         
 class EmailAquaristForm (ModelForm):
     class Meta:

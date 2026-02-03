@@ -14,9 +14,9 @@
                         <h5><img src={{aquaristClub.logo_image.path}}></h5>
                     {% endif %}
                     {% if aquaristClub.acronym %}
-                        <h5><a href="{{aquaristClub.website}}" target="_blank">{{aquaristClub.acronym}} website</a></h5>
+                        <h5><a href="{{aquaristClub.website}}" target="_blank" rel="noopener noreferrer">{{aquaristClub.acronym}} website</a></h5>
                     {% else %}
-                        <h5><a href="{{aquaristClub.website}}" target="_blank">{{aquaristClub.name}} website</a></h5>
+                        <h5><a href="{{aquaristClub.website}}" target="_blank" rel="noopener noreferrer">{{aquaristClub.name}} website</a></h5>
                     {% endif %}
                     {% if aquaristClub.about %}
                         <p>{{aquaristClub.about|linebreaks}}</p>

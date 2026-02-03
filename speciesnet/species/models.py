@@ -5,9 +5,10 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-
+import re
 
 ### Custom User
 
@@ -35,10 +36,10 @@ class UserManager (BaseUserManager):
             raise ValueError ('Password is required.')
         email = self.normalize_email (email)
         user = self.create_user(email, username, password)
-        user.is_superuser = True
-        user.is_admin = True
-        user.is_manager = True
-        user.is_staff = True
+        user.is_superuser     = True
+        user.is_admin         = True
+        user.is_staff         = True
+        user.is_species_admin = True
         user.save()
         return user
 
@@ -60,12 +61,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_private_location  = models.BooleanField (default=False)
     is_email_blocked     = models.BooleanField (default=False)
 
-    is_admin   = models.BooleanField (default=False)
-    is_manager = models.BooleanField (default=False)
-    is_staff   = models.BooleanField (default=False)
+    is_admin         = models.BooleanField (default=False)  # full species app administration privileges
+    is_staff         = models.BooleanField (default=False)  # django default admin permission (Admin Panel access)
+    is_species_admin = models.BooleanField (default=False)  # allows access to edit all Species objects
 
     is_proxy   = models.BooleanField (default=False)
     is_active  = models.BooleanField (default=True)
+
+    instagram_url = models.URLField(max_length=200, blank=True, null=True, verbose_name="Instagram Profile") #help_text="Full Instagram URL (e.g., https://instagram.com/username)")
+    facebook_url = models.URLField(max_length=200, blank=True, null=True,  verbose_name="Facebook Profile")  #help_text="Full Facebook URL (e.g., https://facebook.com/username)")
+    youtube_url = models.URLField(max_length=200, blank=True, null=True,   verbose_name="YouTube Channel")   #help_text="Full YouTube URL (e.g., https://youtube.com/@username)")    
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -77,14 +82,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     def clean(self):
         super().clean()
         self.email = self.__class__.objects.normalize_email(self.email)
-
-    def get_full_name(self):
-        full_name = "%s %s" % (self.first_name, self.last_name)
-        return full_name.strip()
-
-    def get_short_name(self):
-        return self.first_name
     
+    def get_full_name(self):
+        full_name = self.first_name + ' ' + self.last_name
+        return full_name.strip() 
+ 
     def get_display_name(self):
         """Return username without domain if it's an email address."""
         if '@' in self.username:

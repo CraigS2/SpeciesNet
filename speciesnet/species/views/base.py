@@ -38,7 +38,7 @@ from species.models import (
 
 # Local forms
 from species.forms import (
-    UserProfileForm, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
+    UserProfileForm, UserProfileForm2, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
     SpeciesCommentForm, SpeciesReferenceLinkForm, SpeciesForm2, CaresSpeciesForm, SpeciesInstanceForm2,
     CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm,
     AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm,
@@ -65,7 +65,8 @@ from species.asn_tools.asn_utils import (
     get_sml_collaborator_choices, get_sml_speciesInstance_choices,
     validate_sml_collection, get_sml_available_collaborators,
     get_sml_available_speciesInstances, sanitize_text, validate_url,
-    processVideoURL
+    processVideoURL, validate_normalize_instagram_url, validate_normalize_facebook_url,
+    validate_normalize_youtube_url
 )
 from species.asn_tools.asn_pdf_tools import generatePdfLabels
 

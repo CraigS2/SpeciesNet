@@ -311,10 +311,11 @@ def export_csv_aquarists():
     )
     writer = csv.writer(response)
     writer.writerow(['username', 'email', 'first_name', 'last_name', 'state', 'country', 'date_joined', 
-                     'is_private_name', 'is_private_email', 'is_private_location', 'is_staff', 'is_active'])
+                     'is_private_name', 'is_private_email', 'is_private_location', 'is_staff', 'is_species_admin', 'is_admin' 'is_active'])
     for aqst in aquaristSet:
         writer.writerow([aqst.username, aqst.email, aqst.first_name, aqst.last_name, aqst.state, aqst.country, aqst.date_joined, 
-                         aqst.is_private_name, aqst.is_private_email, aqst.is_private_location, aqst.is_staff, aqst.is_active])
+                         aqst.is_private_name, aqst.is_private_email, aqst.is_private_location, 
+                         aqst.is_staff, aqst.is_species_admin, aqst.is_admin, aqst.is_active])
     return response
 
 def export_csv_species():

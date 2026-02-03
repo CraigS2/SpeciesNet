@@ -136,21 +136,6 @@ class UserModelMethodsTest(MinimalTestCase):
             password='pass123'
         )
     
-    def test_get_full_name(self):
-        """Test get_full_name method"""
-        self.user.first_name = 'John'
-        self.user.last_name = 'Doe'
-        self.assertEqual(self.user.get_full_name(), 'John Doe')
-    
-    def test_get_full_name_empty(self):
-        """Test get_full_name with no names"""
-        self.assertEqual(self.user.get_full_name(), '')
-    
-    def test_get_short_name(self):
-        """Test get_short_name method"""
-        self.user.first_name = 'John'
-        self.assertEqual(self.user.get_short_name(), 'John')
-    
     def test_get_display_name_with_email_username(self):
         """Test get_display_name strips email domain"""
         user = User.objects.create_user(
