@@ -16,45 +16,6 @@ def userProfile(request):
     return render(request, 'species/userProfile.html', context)
 
 
-# @login_required(login_url='login')
-# def editUserProfile(request):
-#     cur_user = request.user
-#     form = UserProfileForm2(instance=cur_user)
-#     if request.method == 'POST':
-#         form = UserProfileForm2(request.POST, instance=cur_user)
-#         #TODO fix up this messy validation logic - raise validation error if URLs fail
-#         if form.is_valid():
-#             cur_user = form.save(commit=False)           
-#             invalid_url = ''
-#             if cur_user.instagram_url:
-#                 valid_url = validate_normalize_instagram_url(cur_user.instagram_url)
-#                 if not valid_url:
-#                     invalid_url = 'Instagram'
-#             if cur_user.facebook_url:
-#                 valid_url = validate_normalize_facebook_url(cur_user.facebook_url)
-#                 if not valid_url:
-#                     invalid_url = 'Facebook'
-#             if cur_user.youtube_url:
-#                 valid_url = validate_normalize_youtube_url(cur_user.youtube_url)
-#                 if not valid_url:
-#                     invalid_url = 'YouTube'                                        
-#             if not invalid_url:
-#                 cur_user.save()
-#                 logger.info('User %s edited their profile page', request.user.username)
-#                 messages.success(request, 'User profile updated successfully!')
-#             else:
-#                 error_msg = 'Error saving User Profile changes - Invalid ' + invalid_url + ' URL - Please enter a valid URL'
-#                 messages.error(request, error_msg)
-#                 context = {'form': form, 'user': request.user }
-#                 return render(request, 'species/editUserProfile.html', context)
-#         else:
-#             error_msg = "Error saving User Profile changes"
-#             messages.error(request, error_msg)
-#         context = {'aquarist':  request.user}
-#         return render(request, 'species/userProfile.html', context)
-#     context = {'form': form, 'user': request.user }
-#     return render(request, 'species/editUserProfile.html', context)
-
 @login_required(login_url='login')
 def editUserProfile(request):
     cur_user = request.user
@@ -102,27 +63,38 @@ def editUserProfile(request):
     context = {'form': form, 'user': request.user}
     return render(request, 'species/editUserProfile.html', context)
 
-### View Aquarist Profile
+
+### View Aquarist Profile (with Tile/List Toggle)
 
 def aquarist(request, pk):
+    """
+    Display an aquarist's fishroom with species they keep.
+    Supports both tile and list views via ?view=tile or ?view=list query parameter.
+    """
     aquarist = User.objects.get(id=pk)
     userCanEdit = user_can_edit_a(request.user, aquarist)
-    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).order_by('name')
-    speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).order_by('name')
-    speciesComments = SpeciesComment.objects.filter(user=aquarist)
+    view_type = 'tile'
+    view_choice = request.GET.get('view')
+    if view_choice in ['tile', 'list']:
+        view_type = view_choice
+    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).select_related('species').order_by('species__name')
+    speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).select_related('species').order_by('species__name')
     if request.user.is_authenticated:
-        logger.info('User %s visited aquarist page for %s. ', request.user.username, aquarist.username)
+        logger.info('User %s visited aquarist page for %s.', request.user.username, aquarist.username)
     else:
         logger.info('Anonymous user visited aquarist page for %s.', aquarist.username)
     context = {
         'aquarist': aquarist,
         'speciesKept': speciesKept,
         'speciesPreviouslyKept': speciesPreviouslyKept,
-        'speciesComments':  speciesComments,
-        'userCanEdit': userCanEdit
+        'userCanEdit': userCanEdit,
+        'current_view': view_type,  # Pass view type to template for button state
     }
-    return render(request, 'species/aquarist.html', context)
-
+    if view_type == 'tile':
+        template = 'species/aquarist1.html'  # Tile view template
+    else:
+        template = 'species/aquarist2.html'   # List view template
+    return render(request, template, context)
 
 ### Aquarists Directory
 

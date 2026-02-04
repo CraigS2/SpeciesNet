@@ -1,0 +1,376 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Aquarist Wide List View -->
+<!-- context = {'aquarist': aquarist, 'speciesKept': speciesKept, 'speciesPreviouslyKept': speciesPreviouslyKept} -->
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-house-door-fill me-2"></i>
+                        {{aquarist.get_display_name}}'s Fishroom
+                    </h3>
+                </div>
+                <div class="card-body px-4 py-3">
+                    {% if request.user.is_authenticated %}
+                        <!-- Split first line left|right with Name on left and Social Media (if it exists) on right -->
+                        <div class="mb-2 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                {% if not aquarist.is_private_name %}
+                                    <strong>Name:</strong>&nbsp;&nbsp; {{aquarist.get_full_name}} 
+                                {% else %}
+                                    <strong>Name:</strong>&nbsp;&nbsp; <i>Private</i>
+                                {% endif %}
+                            </div>
+                            {% if aquarist.instagram_url or aquarist.facebook_url or aquarist.youtube_url %}
+                                <div class="d-flex align-items-center gap-2">
+                                    Social Media:
+                                    <div class="d-flex gap-2">
+                                        {% if aquarist.instagram_url %}
+                                            <a href="{{ aquarist.instagram_url }}" target="_blank" rel="noopener noreferrer" 
+                                            class="social-icon" title="Instagram">
+                                                <i class="bi bi-instagram" style="font-size: 2.0rem; color: #E4405F;"></i>
+                                            </a>
+                                        {% endif %}
+                                        {% if aquarist.facebook_url %}
+                                            <a href="{{ aquarist.facebook_url }}" target="_blank" rel="noopener noreferrer" 
+                                            class="social-icon" title="Facebook">
+                                                <i class="bi bi-facebook" style="font-size: 2.0rem; color: #1877F2;"></i>
+                                            </a>
+                                        {% endif %}
+                                        {% if aquarist.youtube_url %}
+                                            <a href="{{ aquarist.youtube_url }}" target="_blank" rel="noopener noreferrer" 
+                                            class="social-icon" title="YouTube">
+                                                <i class="bi bi-youtube" style="font-size: 2.0rem; color: #FF0000;"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-2">
+                            {% if not aquarist.is_private_location %}
+                                {% if aquarist.state or aquarist.country %}
+                                    <div class="mb-2">
+                                        <strong>Location:</strong> &nbsp;&nbsp;{{aquarist.state}}{% if aquarist.state and aquarist.country %}, {% endif %}{{aquarist.country}}
+                                    </div> 
+                                {% endif %} 
+                            {% endif %}
+
+                            {% if affiliate_clubs.all.count > 0  %}
+                                <div class="mb-2">
+                                    {% if registration.affiliate_club %}
+                                        <strong>Club Affiliation:</strong>&nbsp;&nbsp;
+                                        <a href="{% url 'aquaristClub' registration.affiliate_club.id %}" class="text-decoration-none">
+                                            {{registration.affiliate_club.acronym}}
+                                        </a>
+                                        <span class="text-muted">({{registration.affiliate_club.name}})</span>
+                                    {% endif %}                        
+                                </div>
+                            {% endif %}                            
+                            
+                            <div class="mt-3 d-flex justify-content-between align-items-start">
+                                <a class="btn btn-secondary" href="{% url 'emailAquarist' aquarist.id %}" role="button">
+                                    <i class="bi bi-envelope me-2"></i>Email {{aquarist.get_display_name}}
+                                </a>
+                                {% if userCanEdit and speciesKept.all.count > 0 %}
+                                    <a class="btn btn-secondary" href="{% url 'chooseSpeciesInstancesForLabels' aquarist.id %}" role="button">
+                                        <i class="bi bi-tags me-2"></i>&nbsp;Create Labels&nbsp;
+                                    </a>
+                                {% endif %}
+                            </div>
+                        <small>&nbsp;</small>
+                    {% endif %}
+
+                    <!-- Currently Kept Species Section - RESPONSIVE LIST VIEW -->
+                    <div class="section-bordered mb-4 p-4">
+
+                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0">
+                                <i class="bi bi-fish me-2"></i>Currently Keeping
+                            </h4>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="text-muted"><large>{{ speciesKept.all.count }} species</large></span>
+                                <!-- View Toggle -->
+                                <div class="btn-group btn-group-sm" role="group" aria-label="View toggle">
+                                    <a href="?view=tile" 
+                                    class="btn {% if current_view == 'tile' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                                    title="Tile View">
+                                        <i class="bi bi-grid-3x3-gap"></i> Tiles
+                                    </a>
+                                    <a href="?view=list" 
+                                    class="btn {% if current_view == 'list' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                                    title="List View">
+                                        <i class="bi bi-list-ul"></i> List
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if speciesKept.all.count > 0 %}
+                            <!-- RESPONSIVE LIST VIEW -->
+                            {% for speciesInstance in speciesKept %}
+                                <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
+                                    <div class="card mb-2 species-list-item">
+                                        <div class="row g-0 align-items-stretch">
+                                            <!-- Thumbnail -->
+                                            <div class="col-auto">
+                                                <div style="width: 120px; height: 90px; overflow: hidden;">
+                                                    {% if speciesInstance.aquarist_species_image %}
+                                                        <img src="{{ speciesInstance.aquarist_species_image.url }}" 
+                                                             class="h-100 w-100" 
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.species.name }}">
+                                                    {% else %}
+                                                        <img src="{% static 'images/asn_placeholder_not_found2.png' %}" 
+                                                             class="h-100 w-100" 
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.species.name }}">
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Content Area -->
+                                            <div class="col">
+                                                <div class="card-body py-2 px-3">
+                                                    <div class="row g-2">
+                                                        <!-- Left: Species Info (always visible) -->
+                                                        <div class="col-12 col-md-4 col-lg-3">
+                                                            <h6 class="mb-1">
+                                                                <em>{{ speciesInstance.species.name }}</em>
+                                                            </h6>
+                                                            <div class="small text-muted d-flex align-items-center gap-2 flex-wrap">
+                                                                {% if speciesInstance.collection_point %}
+                                                                    <span>
+                                                                        <i class="bi bi-geo-alt"></i> {{ speciesInstance.collection_point }}
+                                                                    </span>
+                                                                {% endif %}
+                                                                {% if speciesInstance.genetic_traits == speciesInstance.GeneticLine.WILD_CAUGHT or speciesInstance.genetic_traits == speciesInstance.GeneticLine.F1 or speciesInstance.genetic_traits == speciesInstance.GeneticLine.F2 %}
+                                                                    <span class="badge bg-light text-dark">
+                                                                        {% if speciesInstance.genetic_traits == speciesInstance.GeneticLine.WILD_CAUGHT %}WC
+                                                                        {% elif speciesInstance.genetic_traits == speciesInstance.GeneticLine.F1 %}F1
+                                                                        {% elif speciesInstance.genetic_traits == speciesInstance.GeneticLine.F2 %}F2
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endif %}
+                                                                {% if speciesInstance.species.render_cares %}
+                                                                    <span class="badge badge-cares">CARES</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Middle: Additional Details (hidden on small screens) -->
+                                                        <div class="col-12 col-md-5 col-lg-6 d-none d-md-block">
+                                                            <div class="small text-muted">
+                                                                {% if speciesInstance.aquarist_notes %}
+                                                                    <div class="mb-1">
+                                                                        <i class="bi bi-journal-text me-1"></i>
+                                                                        <strong>Notes:</strong> 
+                                                                        {{ speciesInstance.aquarist_notes|truncatewords:12 }}
+                                                                    </div>
+                                                                {% endif %}
+                                                                
+                                                                <div class="d-flex gap-3 flex-wrap">
+                                                                    {% if speciesInstance.acquired_from %}
+                                                                        <span>
+                                                                            <i class="bi bi-box-arrow-in-down me-1"></i>
+                                                                            <strong>From:</strong> {{ speciesInstance.acquired_from }}
+                                                                        </span>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if speciesInstance.date_acquired %}
+                                                                        <span>
+                                                                            <i class="bi bi-calendar-event me-1"></i>
+                                                                            <strong>Since:</strong> {{ speciesInstance.date_acquired|date:"M Y" }}
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Right: Status Badges (always visible, position adapts) -->
+                                                        <div class="col-auto col-md-3 ms-auto">
+                                                            <div class="d-flex flex-wrap gap-1 justify-content-end align-items-start">
+                                                                {% if speciesInstance.have_spawned %}
+                                                                    <span class="badge badge-breeding">Breeding</span>
+                                                                {% endif %}
+                                                                {% if speciesInstance.young_available %}
+                                                                    <span class="badge badge-young-available">Available</span>
+                                                                {% endif %}
+                                                                {% if speciesInstance.enable_species_log %}
+                                                                    <span class="badge badge-species-log">Species Log</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                No species currently being kept.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Previously Kept Species Section - RESPONSIVE LIST VIEW -->
+                    {% if speciesPreviouslyKept.all.count > 0 %}
+                        <div class="section-bordered mt-5 p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="mb-0">
+                                    <i class="bi bi-clock-history me-2"></i>Previously Kept 
+                                </h4>
+                                <span class="text-muted"><large>{{ speciesPreviouslyKept.all.count }} species&nbsp;&nbsp;</large></span>
+                            </div>
+                            <!-- RESPONSIVE LIST VIEW with faded effect -->
+                            {% for speciesInstance in speciesPreviouslyKept %}
+                                <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
+                                    <div class="card mb-2 species-list-item opacity-50">
+                                        <div class="row g-0 align-items-stretch">
+                                            <!-- Thumbnail -->
+                                            <div class="col-auto">
+                                                <div style="width: 120px; height: 90px; overflow: hidden;">
+                                                    {% if speciesInstance.aquarist_species_image %}
+                                                        <img src="{{ speciesInstance.aquarist_species_image.url }}" 
+                                                             class="h-100 w-100" 
+                                                             style="object-fit: cover; filter: grayscale(60%);"
+                                                             alt="{{ speciesInstance.species.name }}">
+                                                    {% else %}
+                                                        <img src="{% static 'images/asn_placeholder_not_found2.png' %}" 
+                                                             class="h-100 w-100" 
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.species.name }}">
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Content Area -->
+                                            <div class="col">
+                                                <div class="card-body py-2 px-3">
+                                                    <div class="row g-2">
+                                                        <!-- Left: Species Info (always visible) -->
+                                                        <div class="col-12 col-md-4 col-lg-3">
+                                                            <h6 class="mb-1 text-muted">
+                                                                <em>{{ speciesInstance.species.name }}</em>
+                                                            </h6>
+                                                            <div class="small text-muted d-flex align-items-center gap-2 flex-wrap">
+                                                                {% if speciesInstance.collection_point %}
+                                                                    <span>
+                                                                        <i class="bi bi-geo-alt"></i> {{ speciesInstance.collection_point }}
+                                                                    </span>
+                                                                {% endif %}
+                                                                {% if speciesInstance.genetic_traits == speciesInstance.GeneticLine.WILD_CAUGHT or speciesInstance.genetic_traits == speciesInstance.GeneticLine.F1 or speciesInstance.genetic_traits == speciesInstance.GeneticLine.F2 %}
+                                                                    <span class="badge bg-light text-dark">
+                                                                        {% if speciesInstance.genetic_traits == speciesInstance.GeneticLine.WILD_CAUGHT %}WC
+                                                                        {% elif speciesInstance.genetic_traits == speciesInstance.GeneticLine.F1 %}F1
+                                                                        {% elif speciesInstance.genetic_traits == speciesInstance.GeneticLine.F2 %}F2
+                                                                        {% endif %}
+                                                                    </span>
+                                                                {% endif %}
+                                                                {% if speciesInstance.species.render_cares %}
+                                                                    <span class="badge badge-cares">CARES</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Middle: Additional Details (hidden on small screens) -->
+                                                        <div class="col-12 col-md-5 col-lg-6 d-none d-md-block">
+                                                            <div class="small text-muted">
+                                                                {% if speciesInstance.aquarist_notes %}
+                                                                    <div class="mb-1">
+                                                                        <i class="bi bi-journal-text me-1"></i>
+                                                                        <strong>Notes:</strong> 
+                                                                        {{ speciesInstance.aquarist_notes|truncatewords:12 }}
+                                                                    </div>
+                                                                {% endif %}
+                                                                
+                                                                <div class="d-flex gap-3 flex-wrap">
+                                                                    {% if speciesInstance.acquired_from %}
+                                                                        <span>
+                                                                            <i class="bi bi-box-arrow-in-down me-1"></i>
+                                                                            <strong>From:</strong> {{ speciesInstance.acquired_from }}
+                                                                        </span>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if speciesInstance.date_acquired %}
+                                                                        <span>
+                                                                            <i class="bi bi-calendar-event me-1"></i>
+                                                                            <strong>Since:</strong> {{ speciesInstance.date_acquired|date:"M Y" }}
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Right: Previously Kept Badge (always visible, position adapts) -->
+                                                        <div class="col-auto col-md-3 ms-auto">
+                                                            <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                                                <span class="badge bg-secondary">Previously Kept</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>    
+    </div>                
+</div>
+
+<style>
+    /* List item hover effect */
+    .species-list-item {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .species-list-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Breeding badge - soft green */
+    .badge-breeding {
+        background-color: #88c9a1;              /* Muted sage green */
+        color: #1e4d2b;                         /* Dark green text */
+    }
+
+    /* Fry badge - soft teal/blue */
+    .badge-raised-fry {
+        background-color: #7ec8d9;              /* Soft teal */
+        color: #1e4d5c;                         /* Dark teal text */
+    }
+
+    /* Available badge - soft amber */
+    .badge-young-available {
+        background-color: #f0c674;              /* Soft amber/gold */
+        color: #5c4a1e;                         /* Dark brown text */
+    }
+
+    /* Species Log badge - soft blue */
+    .badge-species-log {
+        background-color: rgb(160, 200, 230);   /* Light bluish gray */
+        color: darkslategray;                   /* Dark gray */
+    }
+
+    /* CARES badge - softer red */
+    .badge-cares {
+        background-color: rgb(255, 84, 84);     /* Muted coral red */
+        color: #5c1e1e;                         /* Dark red text */
+    }
+</style>
+{% endblock content %}
