@@ -100,11 +100,13 @@
                                 <div class="btn-group btn-group-sm" role="group" aria-label="View toggle">
                                     <a href="?view=tile" 
                                     class="btn {% if current_view == 'tile' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                                    {% if current_view == 'tile' %}style="background-color: rgb(190, 220, 241) !important; border-color: rgb(60, 60, 200) !important;"{% endif %}
                                     title="Tile View">
                                         <i class="bi bi-grid-3x3-gap"></i> Tiles
                                     </a>
                                     <a href="?view=list" 
                                     class="btn {% if current_view == 'list' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                                    {% if current_view == 'list' %}style="background-color: rgb(190, 220, 241) !important; border-color: rgb(60, 60, 200) !important;"{% endif %}
                                     title="List View">
                                         <i class="bi bi-list-ul"></i> List
                                     </a>

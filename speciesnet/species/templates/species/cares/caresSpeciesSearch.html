@@ -68,8 +68,13 @@
                                 <th style='text-align:center'>CARES Family</th>
                                 <th style='text-align:center'>Risk Classification</th>
                                 <th style='text-align:center'>Region</th>
-                                <th style='text-align:center'>Registrations</th>
-                                <!--th>Description</th-->
+                                <th style='text-align:center'>
+                                    {% if userCanEdit %}
+                                        Registrations
+                                    {% else %}
+                                        Description
+                                    {% endif %}
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -81,14 +86,20 @@
                                     <td style='text-align:center'>{{ species.get_cares_family_display }}</td>
                                     <td style='text-align:center'>{{ species.get_cares_classification_display }}</td>
                                     <td style='text-align:center'>{{ species.get_global_region_display }}</td>
-                                    <td style='text-align:center'>
-                                        {% if species.species_instances.all.count > 0 %}
-                                            {{ species.species_instances.all.count }} 
-                                        {% else %}
-                                            &nbsp;
-                                        {% endif %}
-                                    </td>                                    
-                                    <!--td>{{ species.description|truncatewords:5 }}</td-->
+                                    
+                                    {% if userCanEdit %}
+                                        <td style='text-align:center'>
+                                            {% if species.species_instances.all.count > 0 %}
+                                                {{ species.species_instances.all.count }} 
+                                            {% else %}
+                                                &nbsp;
+                                            {% endif %}
+                                        </td>
+                                    {% else %}
+                                        <td style='text-align:left'>
+                                            {{ species.description|truncatewords:12 }}
+                                        </td>                                    
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>

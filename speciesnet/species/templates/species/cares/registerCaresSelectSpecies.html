@@ -2,16 +2,29 @@
 {% load static %}
 {% block content %}
 
-<div class="container">
-    <h3 style="text-align:center;"><i><b>Register Your CARES Species</b></i></h3>
-    <h4 style="text-align:center;">CARES registrations are associated with Species Profiles declared in the CARES Priority List.</h4>
-    <h4 style="text-align:center;">To register your fish, you must select your CARES Species from the Priority List.</h4>
-    <small>&nbsp;</small>
-    <h4 style="text-align:center;">1. Navigate to <b>CARES Species</b> (top menu) and use filter and search options to find your species. </h4>
-    <h4 style="text-align:center;">2. Click on the <b>Species Name</b> to load the species page.</h4>
-    <h4 style="text-align:center;">3. Scroll to the bottom of the page and click the <b><i>Register This Species</i></b> button. </h4>
-    <small>&nbsp;</small>
-    <p style="text-align:center;"><a href="{% url 'caresSpeciesSearch'%}"><img src={% static 'images\cares_logo_400x400.jpg' %}></a></p>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Register Your Species</h3>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h2>How to Register your CARES Species</h2>
+                    <large>
+                        <p>To register your fish, select your CARES Species from the Priority List and click the 'Register Species' button.</p>
+                        <p>1. Navigate to <b>CARES Species</b> (top menu) and use search options to find your species. </p>
+                        <p>2. Click on the <b>Species Name</b> to load the species page.</p>
+                        <p>3. Scroll to the bottom of the page and click the <b><i>Register This Species</i></b> button.</p>
+                    
+                        <p><a class="btn btn-primary" href="{% url 'caresSpeciesSearch' %}" role="button">&nbsp;Go to CARES Species Search now&nbsp;</a></p>
+                        <small>&nbsp;</small>
+                    </large>
+                    <p style="text-align:left;"><a href="{% url 'caresSpeciesSearch'%}"><img src={% static 'images\cares_logo_200x200_transparent_bg.png' %}></a></p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
- 
 {% endblock content %}

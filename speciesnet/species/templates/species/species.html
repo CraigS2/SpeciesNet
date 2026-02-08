@@ -89,12 +89,12 @@
                             {% endif %}
 
                             <p><i>Add a new comment about this species:</i></p>
-                            <form method="POST" enctype="multipart/form-data" action="">
-                                {% csrf_token %}
-                                {{cform.as_p}}
-                                <!--input type="Submit" value="Add Comment"-->
-                                <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Add Comment"/> 
-                            </form>
+                                <form method="POST" enctype="multipart/form-data" action="">
+                                    {% csrf_token %}
+                                    {{cform.as_p}}
+                                    <input type="submit" class="btn btn-secondary" value="&nbsp;&nbsp;Add Comment&nbsp;&nbsp;"/> 
+                                </form>
+
                         </div>
                     {% endif %}
 

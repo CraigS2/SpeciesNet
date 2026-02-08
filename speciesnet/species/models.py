@@ -434,6 +434,7 @@ class AquaristClubMember (models.Model):
 ### CARES Registration & Approver
 
 class CaresApprover (models.Model):
+    #TODO Rename CaresAuthority
     name              = models.CharField (max_length=240)
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=3, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)

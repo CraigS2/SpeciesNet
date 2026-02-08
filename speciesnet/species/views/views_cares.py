@@ -211,6 +211,8 @@ class CaresSpeciesListView(ListView):
         context['selected_cares_family'] = self.request.GET. get('cares_family', '')
         context['selected_region'] = self.request.GET.get('global_region', '')
         context['query_text'] = self.request.GET.get('q', '')
+        context['userCanEdit'] = user_can_edit (self.request.user)
+
         return context
 
 
@@ -482,7 +484,6 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
         ).distinct().order_by('affiliate_club__name')
         context['clubs'] = [(id, name) for id, name in clubs if id is not None]
         
-        # Existing context
         context['cares_families'] = Species.CaresFamily.choices
         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
@@ -490,7 +491,7 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
         context['selected_approver'] = self.request.GET.get('approver', '')
         context['selected_club'] = self.request.GET.get('club', '')
         context['query_text'] = self.request.GET.get('q', '')
-        
+
         return context
 
 ### View CARES Approver
