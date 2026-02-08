@@ -215,20 +215,20 @@ a:active {color:rgb(12, 74, 110) !important;}
 .btn-success {
     background-color: rgb(136, 201, 161);     /* Your sage green */
     border-color: rgb(136, 201, 161);
-    color: rgb(30, 77, 43);                   /* Dark green text for contrast */
+    color: white;
 }
 
 .btn-success:hover {
     background-color: rgb(116, 181, 141);     /* Darker on hover */
     border-color: rgb(116, 181, 141);
-    color: rgb(30, 77, 43);
+    color: white;
 }
 
 .btn-success:active,
 .btn-success:focus {
     background-color: rgb(96, 161, 121);      /* Even darker */
     border-color: rgb(96, 161, 121);
-    color: rgb(255, 255, 255);                /* White text when active */
+    color: white;
 }
 
 .bg-success { background-color: rgb(136, 201, 161) !important; }

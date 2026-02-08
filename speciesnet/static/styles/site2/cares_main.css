@@ -41,6 +41,244 @@ a:visited {color: rgb(90, 47, 3) !important; }       /* Darker amber */
 a:hover {color: rgb(211, 84, 0) !important; }      /* Copper/burnt sienna */
 a:active {color: rgb(183, 28, 28) !important; }     /* Deep red */
 
+btn-primary {
+    --bs-btn-bg: rgb(24, 144, 215);
+    --bs-btn-border-color: rgb(24, 144, 215);
+    --bs-btn-color: rgb(255, 255, 255) !important;
+    --bs-btn-hover-bg: rgb(19, 115, 172);
+    --bs-btn-hover-border-color: rgb(19, 115, 172);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+    --bs-btn-active-bg: rgb(15, 92, 138);
+    --bs-btn-active-border-color: rgb(15, 92, 138);
+    --bs-btn-active-color: rgb(255, 255, 255);
+    --bs-btn-disabled-bg: rgb(140, 191, 225);
+    --bs-btn-disabled-border-color: rgb(140, 191, 225);
+    --bs-btn-disabled-color: rgba(255, 255, 255, 0.6);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: rgb(91, 119, 138);
+    --bs-btn-border-color: rgb(24, 144, 215);
+    --bs-btn-hover-bg: rgb(24, 144, 215);
+    --bs-btn-hover-border-color: rgb(24, 144, 215);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+    --bs-btn-active-bg: rgb(19, 115, 172);
+    --bs-btn-active-border-color: rgb(19, 115, 172);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.bg-primary { background-color: rgb(24, 144, 215) !important; }
+.text-primary { color: rgb(24, 144, 215) !important; }
+.border-primary { border-color: rgb(24, 144, 215) !important; }
+
+/* Match checkboxes to primary color */
+.form-check-input:checked {
+    background-color: rgb(24, 144, 215) !important;
+    border-color: rgb(24, 144, 215) !important;
+}
+
+.form-check-input:focus {
+    border-color: rgb(24, 144, 215) !important;
+    box-shadow: 0 0 0 0.25rem rgba(24, 144, 215, 0.25) !important;
+}
+
+
+/* Secondary Buttons */
+
+.btn-secondary {
+    --bs-btn-bg: rgb(245, 250, 247);                   /* Very light green */
+    --bs-btn-border-color: rgb(137, 156, 142);         /* Muted green  */
+    --bs-btn-color: rgb(60, 60, 230);                  /*  */
+    --bs-btn-hover-bg: rgb(165, 187, 170);             /* Darken */
+    --bs-btn-hover-border-color: rgb(120, 63, 4);      /*  */
+    --bs-btn-hover-color: rgb(33, 37, 41);             /* Slightly darker text */
+    --bs-btn-active-bg: rgb(137, 156, 142);            /* Darken  */
+    --bs-btn-active-border-color: rgb(165, 187, 170);  /*  */
+    --bs-btn-active-color: rgb(33, 37, 41);            /* Keep dark text */
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: rgb(108, 117, 125);
+    --bs-btn-border-color: rgb(137, 156, 142);
+    --bs-btn-hover-bg: rgb(228, 241, 248);
+    --bs-btn-hover-border-color: rgb(120, 63, 4);
+    --bs-btn-hover-color: rgb(33, 37, 41);
+}
+
+.bg-secondary { background-color: rgb(228, 241, 248) !important; }
+.text-secondary { color: rgb(52, 58, 64) !important; }
+.border-secondary { border-color: rgb(200, 210, 220) !important; }
+
+
+/* INFO */
+
+.btn-info {
+    --bs-btn-bg: rgb(160, 200, 230);
+    --bs-btn-border-color: rgb(160, 200, 230);
+    --bs-btn-color: rgb(47, 79, 79);
+    --bs-btn-hover-bg: rgb(140, 180, 210);
+    --bs-btn-hover-border-color: rgb(140, 180, 210);
+    --bs-btn-hover-color: rgb(47, 79, 79);
+    --bs-btn-active-bg: rgb(120, 160, 190);
+    --bs-btn-active-border-color: rgb(120, 160, 190);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.btn-outline-info {
+    --bs-btn-color: rgb(80, 120, 150);
+    --bs-btn-border-color: rgb(160, 200, 230);
+    --bs-btn-hover-bg: rgb(160, 200, 230);
+    --bs-btn-hover-border-color: rgb(160, 200, 230);
+    --bs-btn-hover-color: rgb(47, 79, 79);
+}
+
+
+.btn-info {
+    background-color: rgb(160, 200, 230);     /* Your species log blue */
+    border-color: rgb(160, 200, 230);
+    color: rgb(47, 79, 79);                   /* Dark slate gray text */
+}
+
+.btn-info:hover {
+    background-color: rgb(140, 180, 210);     /* Darker on hover */
+    border-color: rgb(140, 180, 210);
+    color: rgb(47, 79, 79);
+}
+
+.btn-info:active,
+.btn-info:focus {
+    background-color: rgb(120, 160, 190);     /* Even darker */
+    border-color: rgb(120, 160, 190);
+    color: rgb(255, 255, 255);
+}
+
+
+
+/* SUCCESS */
+
+.btn-success {
+    --bs-btn-bg: rgb(136, 201, 161);
+    --bs-btn-border-color: rgb(136, 201, 161);
+    --bs-btn-color: rgb(30, 77, 43);
+    --bs-btn-hover-bg: rgb(116, 181, 141);
+    --bs-btn-hover-border-color: rgb(116, 181, 141);
+    --bs-btn-hover-color: rgb(30, 77, 43);
+    --bs-btn-active-bg: rgb(96, 161, 121);
+    --bs-btn-active-border-color: rgb(96, 161, 121);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.btn-outline-success {
+    --bs-btn-color: rgb(80, 140, 100);
+    --bs-btn-border-color: rgb(136, 201, 161);
+    --bs-btn-hover-bg: rgb(136, 201, 161);
+    --bs-btn-hover-border-color: rgb(136, 201, 161);
+    --bs-btn-hover-color: rgb(30, 77, 43);
+}
+
+
+.btn-success {
+    background-color: rgb(136, 201, 161);     /* Your sage green */
+    border-color: rgb(136, 201, 161);
+    color: white;                             /* White */
+}
+
+.btn-success:hover {
+    background-color: rgb(116, 181, 141);     /* Darker on hover */
+    border-color: rgb(116, 181, 141);
+    color: white;
+}
+
+.btn-success:active,
+.btn-success:focus {
+    background-color: rgb(96, 161, 121);      /* Even darker */
+    border-color: rgb(96, 161, 121);
+    color: white;
+}
+
+.bg-success { background-color: rgb(136, 201, 161) !important; }
+.text-success { color: rgb(30, 77, 43) !important; }
+
+
+
+/* WARNING - Soft Amber */
+
+.btn-warning {
+    --bs-btn-bg: rgb(240, 198, 116);
+    --bs-btn-border-color: rgb(240, 198, 116);
+    --bs-btn-color: rgb(92, 74, 30);
+    --bs-btn-hover-bg: rgb(220, 178, 96);
+    --bs-btn-hover-border-color: rgb(220, 178, 96);
+    --bs-btn-hover-color: rgb(92, 74, 30);
+    --bs-btn-active-bg: rgb(200, 158, 76);
+    --bs-btn-active-border-color: rgb(200, 158, 76);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.btn-outline-warning {
+    --bs-btn-color: rgb(180, 140, 70);
+    --bs-btn-border-color: rgb(240, 198, 116);
+    --bs-btn-hover-bg: rgb(240, 198, 116);
+    --bs-btn-hover-border-color: rgb(240, 198, 116);
+    --bs-btn-hover-color: rgb(92, 74, 30);
+}
+
+
+.btn-warning {
+    background-color: rgb(240, 198, 116);     /* Your amber/gold */
+    border-color: rgb(240, 198, 116);
+    color: rgb(92, 74, 30);                   /* Dark brown text */
+}
+
+.btn-warning:hover {
+    background-color: rgb(220, 178, 96);      /* Darker on hover */
+    border-color: rgb(220, 178, 96);
+    color: rgb(92, 74, 30);
+}
+
+.btn-warning:active,
+.btn-warning:focus {
+    background-color: rgb(200, 158, 76);      /* Even darker */
+    border-color: rgb(200, 158, 76);
+    color: rgb(255, 255, 255);
+}
+
+.bg-warning { background-color: rgb(240, 198, 116) !important; }
+.text-warning { color: rgb(92, 74, 30) !important; }
+
+
+/* DANGER - Muted Red */
+
+.btn-danger {
+    --bs-btn-bg: rgb(220, 85, 85);
+    --bs-btn-border-color: rgb(220, 85, 85);
+    --bs-btn-color: rgb(255, 255, 255);
+    --bs-btn-hover-bg: rgb(200, 65, 65);
+    --bs-btn-hover-border-color: rgb(200, 65, 65);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+    --bs-btn-active-bg: rgb(180, 50, 50);
+    --bs-btn-active-border-color: rgb(180, 50, 50);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+/* Outline danger button */
+.btn-outline-danger {
+    --bs-btn-color: rgb(220, 85, 85);
+    --bs-btn-border-color: rgb(220, 85, 85);
+    --bs-btn-hover-bg: rgb(220, 85, 85);
+    --bs-btn-hover-border-color: rgb(220, 85, 85);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+}
+
+/* Utility classes for backgrounds/text */
+.bg-danger { 
+    background-color: rgb(220, 85, 85) !important; 
+}
+
+.text-danger { 
+    color: rgb(220, 85, 85) !important; 
+}
+
 
 .home-container 
 {
@@ -158,21 +396,25 @@ li
     color: darkslategray !important; 
 }
 
-.btn-primary {
-    background-color: #7ca38d !important;  
-    border-color:#7ca38d !important;
+.alert-info {
+    background-color: rgb(236, 239, 241) !important;  /* Very light slate gray */
+    border-color: rgb(206, 212, 218) !important;      /* Slightly darker border */
+    color: rgb(52, 58, 64) !important;                /* Dark gray text */
 }
 
-.btn-primary:hover {
-    background-color: #6a8aa1 !important;  
-    border-color:#6a8aa1 !important;
+.alert-info strong {
+    color: rgb(33, 37, 41) !important;                /* Darker text for emphasis */
 }
 
-.btn-primary:active,
-.btn-primary:focus {
-    background-color: #638296!important;  
-    border-color: #638296!important;
+.alert-info a {
+    color: rgb(24, 144, 215) !important;              /* primary blue for links */
+    text-decoration: underline;
 }
+
+.alert-info a:hover {
+    color: rgb(20, 80, 20) !important;
+}
+
 /* Placeholder styling for all forms */
 ::placeholder {
     color: #adb5bd !important;        /* Medium-light gray */
