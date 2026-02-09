@@ -148,7 +148,7 @@ class Species (models.Model):
         NORTH_AMERICA   = 'NAM', _('North America')
         AFRICA          = 'AFR', _('Africa')
         SOUTHEAST_ASIA  = 'SEA', _('Southeast Asia')
-        AUSTRALIA       = 'AUS', _('Australia')
+        OCEANIA         = 'AUS', _('Oceania')
         EUROPE          = 'EUR', _('Europe')
         OTHER           = 'OTH', _('Other Region')
         

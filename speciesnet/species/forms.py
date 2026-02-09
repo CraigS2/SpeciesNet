@@ -330,7 +330,7 @@ class CaresSpeciesForm2(ModelForm):
             )
         )        
 
-class CaresRegistrationForm (ModelForm):
+class CaresRegistrationAnonymousForm (ModelForm):
     class Meta:
         model = CaresRegistration
         fields = '__all__'
@@ -339,8 +339,108 @@ class CaresRegistrationForm (ModelForm):
         widgets = { 'species_source': forms.Textarea(attrs={'rows':3,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
+
+from django import forms
+
+class CaresRegistrationAnonymousForm2 (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location', 'species_source', 'year_acquired', 
+                  'verification_photo', 'species_has_spawned']
+        exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
+        widgets = {
+            'species_source': forms.Textarea(attrs={'rows': 2}),  
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.instance.pk:  # initialize default club for new registrations
+            try:
+                default_club = AquaristClub.objects.get(name='None')
+                self.fields['affiliate_club'].initial = default_club.pk
+            except AquaristClub.DoesNotExist:
+                pass  
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal registration-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
+        self.helper.field_class = 'col-md-10'                          # 83% of row
+        
+        # Add Bootstrap classes and placeholders
+        self.fields['aquarist_name'].widget.attrs.update({
+            'placeholder': 'Your full name',
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['aquarist_email'].widget.attrs.update({
+            'placeholder': 'Your email address',
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['affiliate_club'].help_text = "CARES affiliate club, if you are a member, otherwise choose 'None'"
+        self.fields['affiliate_club'].widget.attrs.update({
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['collection_location'].widget.attrs.update({
+            'placeholder': 'The original collection location of the species, if known. Otherwise leave blank.',
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['species_source'].widget.attrs.update({
+            'placeholder': 'Describe where you obtained your fish ...',
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['year_acquired'].help_text = 'The year you obtained your fish.'
+        self.fields['year_acquired'].widget.attrs.update({
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['verification_photo'].help_text = 'A photo of the fish you are registering.'
+        self.fields['verification_photo'].widget.attrs.update({
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['species_has_spawned'].help_text = 'Have your fish spawned?'
+        self.fields['species_has_spawned'].widget.attrs.update({
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+                                
+        self.helper.layout = Layout(
+            Fieldset(
+                '🐟 Registration Details',
+                Field('aquarist_name', css_class='mb-1'),              # tight spacing between field rows
+                Field('aquarist_email', css_class='mb-1'),
+                Field('affiliate_club', css_class='mb-1'),
+                Field('collection_location', css_class='mb-1'),
+                Field('species_source', css_class='mb-1'),
+                Field('year_acquired', css_class='mb-1'),
+                Field('verification_photo', css_class='mb-1'),                
+                Field('species_has_spawned', css_class='mb-1'),
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Please be sure to upload a good quality photo of your fish for verification purposes.</strong><br></small>
+                        </div>
+                    """),      
+                ),     
+                css_class='mb-1'
+            ),
+            FormActions(
+                Submit('submit', 'Submit Registration', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{% url \'home\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )        
+
+
 # admin-only full access to normally hidden properties
-class CaresRegistrationForm2 (ModelForm):
+class CaresRegistrationAdminForm (ModelForm):
     class Meta:
         model = CaresRegistration
         fields = '__all__'
@@ -349,8 +449,8 @@ class CaresRegistrationForm2 (ModelForm):
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
 
-# registration submition by user
-class CaresRegistrationSubmitionForm (ModelForm):
+# registration submition by Cares Admin
+class CaresRegistrationSubmitionAdminForm (ModelForm):
     class Meta:
         model = CaresRegistration
         fields = '__all__'
@@ -790,13 +890,14 @@ class SpeciesSearchFilterForm (forms.Form):
         ('',    'All Categories',),
     ]
     GLOBAL_REGION_CHOICES = [
-        ('SAM', 'Africa'),
-        ('CAM', 'South America'),
-        ('NAM', 'Central America'),
-        ('AFR', 'North America'),
+        ('AFR', 'Africa'),
+        ('SAM', 'South America'),
+        ('CAM', 'Central America'),
+        ('NAM', 'North America'),
         ('SEA', 'Southeast Asia'),
-        ('AUS', 'Australia'),
-        ('',    'All Regions'),
+        ('AUS', 'Oceania'),
+        ('EUR', 'Europe'),
+        ('',    'All Regions'),      
     ]   
     CARES_FAMILY_CHOICES = [
         ('RIC', 'Adrianichthyidae (Ricefish)'),
@@ -929,7 +1030,7 @@ class UserProfileForm2(ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = 'post'
-        self.helper.form_class = 'form-horizontal species-instance-form'
+        self.helper.form_class = 'form-horizontal user-profile-form'
         self.helper.label_class = 'col-md-2 col-form-label fw-bold'
         self.helper.field_class = 'col-md-10'
         

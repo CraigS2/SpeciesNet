@@ -279,7 +279,7 @@ def registerCaresSelectSpecies(request):
     return render(request, 'species/cares/registerCaresSelectSpecies.html')
 
 
-### Register CARES Species - Wizard Start (Annonymous User)
+### Register CARES Species (Annonymous User)
 
 def registerCaresSpecies(request, pk):
     register_heif_opener()
@@ -291,7 +291,7 @@ def registerCaresSpecies(request, pk):
     # --> club (which we may not yet know about)
 
     if request.method == 'POST': 
-        form = CaresRegistrationForm(request.POST, request.FILES)
+        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES)
         if form.is_valid():
             try:
                 cares_reg = form.save(commit=False)
@@ -314,7 +314,7 @@ def registerCaresSpecies(request, pk):
             logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = CaresRegistrationForm()
+        form = CaresRegistrationAnonymousForm2()
 
     context = {'form': form, 'cares_species': cares_species}
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
@@ -328,9 +328,9 @@ def createCaresRegistration(request, pk):
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
         raise PermissionDenied()
-    form = CaresRegistrationSubmitionForm()
+    form = CaresRegistrationSubmitionAdminForm()
     if request.method == 'POST': 
-        form = CaresRegistrationSubmitionForm(request.POST, request.FILES)
+        form = CaresRegistrationSubmitionAdminForm(request.POST, request.FILES)
         if form.is_valid():
             registration = form.save(commit=False)
             registration.name = species.name + ' - ' + request.user.username
@@ -382,14 +382,14 @@ def editCaresRegistration(request, pk):
 
 
 @login_required(login_url='login')
-def editCaresRegistration2(request, pk):        # admin only for full editing of hidden fields
+def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
         raise PermissionDenied()  
-    form = CaresRegistrationForm2(instance=registration)        
+    form = CaresRegistrationAdminForm(instance=registration)        
     if request.method == 'POST': 
-        form = CaresRegistrationForm2(request.POST, request.FILES, instance=registration)
+        form = CaresRegistrationAdminForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
                 registration = form.save(commit=False)

@@ -1,24 +1,20 @@
-
-{% extends 'main.html' %}
+{% extends "main.html" %}
+{% load crispy_forms_tags %}
 {% block content %}
-<div class="container">
-    <h2><b>CARES Species Registration</b></h2>
-    <h4>Register your: <i>{{ cares_species.name }}</i> </h4>
-    <div>
-        <table>
-            <form method="POST" enctype="multipart/form-data" action="">
-                {% csrf_token %}
-                {{form.as_table}}
-                <!--td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td-->
-                <tr>
-                    <td></td>
-                    <td style="text-align: left; padding-top: 1em;">
-                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Submit">
-                    </td>  
-                </tr>               
-            </form>
-        </table>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">Register CARES Species: <i>{{ cares_species.name }}</i></h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
     </div>
-    <p><small>&nbsp;</small></p>
 </div>
-{% endblock content %}
+
+{% endblock %}

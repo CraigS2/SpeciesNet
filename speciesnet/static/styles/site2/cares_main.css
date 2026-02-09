@@ -158,8 +158,8 @@ btn-primary {
 
 .btn-success {
     --bs-btn-bg: rgb(136, 201, 161);
-    --bs-btn-border-color: rgb(136, 201, 161);
-    --bs-btn-color: rgb(30, 77, 43);
+    --bs-btn-border-color: rgb(30, 77, 43);
+    --bs-btn-color: white;
     --bs-btn-hover-bg: rgb(116, 181, 141);
     --bs-btn-hover-border-color: rgb(116, 181, 141);
     --bs-btn-hover-color: rgb(30, 77, 43);

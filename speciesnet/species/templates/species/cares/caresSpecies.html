@@ -46,24 +46,23 @@
                         {% endfor %}  
                     {% endif %}
 
-                    <!--p><a class="btn btn-secondary" href="{% url 'createCaresRegistration' species.id  %}" role="button">&nbsp;Register Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp; </p-->
                     <p>
                         <a class="btn btn-secondary" href="{% url 'registerCaresSpecies' species.id  %}" role="button">&nbsp;Register This Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
                     </p>
-                    <small>&nbsp;</small>
-                    <div class="css_class='mb-3 section-bordered">
-                        <h4>Registrations</h4>
-                        {% if species.registrations.all.count > 0  %}
-                            {% for registration in registration %}
-                                <p><b>{{registration.aquarist.get_first_name}} {{registration.aquarist.get_last_name}}</b>:       
-                                <a href="{% url 'caresRegistration' registration.id %}">{{registration.name}}</a></p>
-                            {% endfor %}    
-                        {% else %}
-                            <p><b>None</b></p>
-                        {% endif %}
+                    {% if userCanEdit %}
+                        <small>&nbsp;</small>
+                        <div class="css_class='mb-3 section-bordered">
+                            <h4>Registrations</h4>
+                            {% if species.registrations.all.count > 0  %}
+                                {% for registration in registration %}
+                                    <p><b>{{registration.aquarist.get_first_name}} {{registration.aquarist.get_last_name}}</b>:       
+                                    <a href="{% url 'caresRegistration' registration.id %}">{{registration.name}}</a></p>
+                                {% endfor %}    
+                            {% else %}
+                                <p><b>None</b></p>
+                            {% endif %}
                     </div>
                         
-                    {% if userCanEdit %}
                         <div class="css_class='mb-3 section-bordered">
                             <h4>Edit</h4>
                             <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
