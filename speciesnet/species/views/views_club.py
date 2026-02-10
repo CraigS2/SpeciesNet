@@ -54,16 +54,16 @@ def createAquaristClub(request):
     if not request.user.is_staff:
         raise PermissionDenied()
     
-    form = AquaristClubForm()
     if request.method == 'POST': 
-        form2 = AquaristClubForm(request.POST, request.FILES)
-        if form2.is_valid():
+        form = AquaristClubForm(request.POST, request.FILES)
+        if form.is_valid():
             aquaristClub = form2.save(commit=True)
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             logger.info('User %s created club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-
+    
+    form = AquaristClubForm()
     context = {'form':  form}
     return render(request, 'species/createAquaristClub.html', context)
 
@@ -78,9 +78,8 @@ def editAquaristClub(request, pk):
     if not userCanEdit: 
         raise PermissionDenied()
     
-    form = AquaristClubForm(instance=aquaristClub)
     if request.method == 'POST':
-        form = AquaristClubForm(request.POST, request.FILES, instance=aquaristClub)
+        form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
         if form.is_valid(): 
             aquaristClub = form.save()
             if aquaristClub.logo_image:
@@ -88,7 +87,8 @@ def editAquaristClub(request, pk):
             form.save()
             logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-    
+        
+    form = AquaristClubForm2(instance=aquaristClub)
     context = {'form':  form, 'aquaristClub': aquaristClub}
     return render(request, 'species/editAquaristClub.html', context)
 

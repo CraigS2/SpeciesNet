@@ -16,7 +16,7 @@
                         {% endif %}
                     </h4>
                 </div>
-                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                <div class="card-body px-4 py-3">
                     {% crispy form %}
                 </div>
             </div>
@@ -25,7 +25,7 @@
             {% if form.instance.species_image %}
             <div><p>&nbsp;</p></div>
             <div class="card mt-3 species-form-card">
-                <div class="card-header" style="background-color: #e9ebee">
+                <div class="card-header">
                     <h4 class="my-0">Current Image</h4>
                 </div>
                 <div class="card-body text-center">
@@ -41,7 +41,7 @@
             {% if form.instance.pk %}
             <div><p>&nbsp;</p></div>
             <div class="card shadow-sm">
-                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                <div class="card-body px-4 py-3">
                     <h4>Delete Species</h4>
                     <p class="text-muted mb-3">
                         This action cannot be undone. All associated data will be permanently removed.

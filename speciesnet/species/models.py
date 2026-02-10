@@ -72,6 +72,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     facebook_url = models.URLField(max_length=200, blank=True, null=True,  verbose_name="Facebook Profile")  #help_text="Full Facebook URL (e.g., https://facebook.com/username)")
     youtube_url = models.URLField(max_length=200, blank=True, null=True,   verbose_name="YouTube Channel")   #help_text="Full YouTube URL (e.g., https://youtube.com/@username)")    
 
+    prefer_tile_view = models.BooleanField (default=True)
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 

@@ -73,10 +73,14 @@ def aquarist(request, pk):
     """
     aquarist = User.objects.get(id=pk)
     userCanEdit = user_can_edit_a(request.user, aquarist)
+
     view_type = 'tile'
     view_choice = request.GET.get('view')
     if view_choice in ['tile', 'list']:
-        view_type = view_choice
+        view_type = view_choice            # toggle tile/view selected on page
+    elif request.user.is_authenticated and not request.user.prefer_tile_view:
+        view_type = 'list'                 # user has list as view preference
+
     speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).select_related('species').order_by('species__name')
     speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).select_related('species').order_by('species__name')
     if request.user.is_authenticated:

@@ -19,7 +19,7 @@
                     <small>&nbsp;</small>
 
                     <div class="mb-3 section-bordered">
-                        <h4>Privacy Settings</h4> 
+                        <h4>🔏 Privacy Settings</h4> 
                         {% if aquarist.is_private_name %}
                             <p><b>Name: </b>&nbsp;<i>Private</i></p>
                         {% else %}
@@ -36,6 +36,15 @@
                             <p><b>Location: </b>&nbsp;<i>Shared</i></i></p>
                         {% endif %}
                     </div>
+
+                    <div class="mb-3 section-bordered">
+                        <h4>👤 Preferences</h4> 
+                        {% if aquarist.prefer_tile_view %}
+                            <p><b>Tile or List View Preference: </b>&nbsp;<i>Tile</i></p>
+                        {% else %}
+                            <p><b>Tile or List View Preference: </b>&nbsp;<i>List</i></p>
+                        {% endif %}
+                    </div>                    
 
                     {% if aquarist.instagram_url or aquarist.facebook_url or aquarist.youtube_url  %}
                         <div class="mb-3 section-bordered">

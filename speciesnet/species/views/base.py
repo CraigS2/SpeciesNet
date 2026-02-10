@@ -40,7 +40,7 @@ from species.models import (
 from species.forms import (
     UserProfileForm, UserProfileForm2, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
     SpeciesCommentForm, SpeciesReferenceLinkForm, SpeciesForm2, CaresSpeciesForm, SpeciesInstanceForm2,
-    CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm,
+    CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubForm2,
     AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm,
     SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm,
     MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm,
