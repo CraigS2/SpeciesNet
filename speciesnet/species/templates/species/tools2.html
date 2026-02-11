@@ -3,13 +3,19 @@
 {% block content %}
 <div class="container">
     <div class="div-line-below">
-        <h3>Import Export Tools</h3>
+        <h3>Export Tools</h3>
         <p><a href="{% url 'exportAquarists'%}">Export Aquarists to CSV</a></p>
+        <p><a href="{% url 'exportAquaristClubs'%}">Export Aquarist Clubs to CSV</a></p>
+        <p><a href="{% url 'exportAquaristClubMembers'%}">Export Aquarist Club Members to CSV</a></p>
         <p><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></p>
-        <p><a href="{% url 'importSpecies' %}">Import Species from CSV</a></p> 
         <p><a href="{% url 'exportSpeciesInstances' %}">Export Aquarist Species to CSV</a></p>
-        <p><a href="{% url 'importSpeciesInstances' %}">Import Aquarist Species from CSV</a></p>               
+        <p><a href="{% url 'exportCaresRegistrations'%}">Export CARES Registrations to CSV</a></p>
     </div>
+    <div class="div-line-below">
+        <h3>Import Tools</h3>
+        <p><a href="{% url 'importSpecies' %}">Import Species from CSV</a></p> 
+        <p><a href="{% url 'importSpeciesInstances' %}">Import Aquarist Species from CSV</a></p>               
+    </div>    
     <div class="div-line-below">
         <h3>Species Tools</h3>
         <p><a href="{% url 'createSpecies'%}">Add Species</a></p>

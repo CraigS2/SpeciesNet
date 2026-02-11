@@ -27,7 +27,7 @@ from .views_species import (
 from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
-    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies,
+    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, exportCaresRegistrations,
     editCaresSpecies2, editCaresRegistrationAdmin, registrationLookup,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers
 )
@@ -56,7 +56,8 @@ from .views_club import (
     aquaristClubs, aquaristClub, createAquaristClub, editAquaristClub,
     deleteAquaristClub, aquaristClubAdmin, AquaristClubMemberListView,
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
-    deleteAquaristClubMember, AquaristClubCaresLiaisonListView
+    deleteAquaristClubMember, AquaristClubCaresLiaisonListView,
+    exportAquaristClubs, exportAquaristClubMembers
 )
 
 # CLub BAP

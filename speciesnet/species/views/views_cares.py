@@ -577,6 +577,11 @@ def caresApprovers(request):
     context = {'cares_approvers': cares_approvers, 'userCanEdit': userCanEdit}
     return render(request, 'species/cares/caresApprovers.html', context)
 
+@login_required(login_url='login')
+def exportCaresRegistrations(request):
+    return export_csv_caresRegistrations()
+
+
 
 ### Species Reference Links
 

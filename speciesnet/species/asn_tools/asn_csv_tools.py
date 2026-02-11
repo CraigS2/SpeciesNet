@@ -1,5 +1,5 @@
-from species.models import Species, SpeciesInstance, AquaristClub, BapGenus, ImportArchive, User
-from species.forms import SpeciesForm, SpeciesInstanceForm, BapGenusForm
+from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus, ImportArchive, User
+from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 from django.db.models import FileField
 #from django.contrib.auth.models import User
 from django.shortcuts import render
@@ -310,12 +310,28 @@ def export_csv_aquarists():
         headers={"Content-Disposition": 'attachment; filename="aquarists_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['username', 'email', 'first_name', 'last_name', 'state', 'country', 'date_joined', 
-                     'is_private_name', 'is_private_email', 'is_private_location', 'is_staff', 'is_species_admin', 'is_admin' 'is_active'])
-    for aqst in aquaristSet:
-        writer.writerow([aqst.username, aqst.email, aqst.first_name, aqst.last_name, aqst.state, aqst.country, aqst.date_joined, 
-                         aqst.is_private_name, aqst.is_private_email, aqst.is_private_location, 
-                         aqst.is_staff, aqst.is_species_admin, aqst.is_admin, aqst.is_active])
+
+    writer.writerow([
+       # id    username    email    first_name    last_name    state    country
+        'id', 'username', 'email', 'first_name', 'last_name', 'state', 'country', 
+       # is_private_name    is_private_email    is_email_blocked   is_private_location    date_joined
+        'is_private_name', 'is_private_email', 'is_email_blocked' 'is_private_location', 'date_joined', 
+       # is_admin    is_staff    is_species_admin    is_proxy   is_active 
+        'is_admin', 'is_staff', 'is_species_admin', 'is_proxy' 'is_active',
+       # instagram_url    facebook_url    youtube_url    prefer_tile_view
+        'instagram_url', 'facebook_url', 'youtube_url', 'prefer_tile_view'
+        ])
+    
+    for user in aquaristSet:
+        writer.writerow([
+            #    id       username       email       first_name       last_name       state       country
+            user.id, user.username, user.email, user.first_name, user.last_name, user.state, user.country, 
+            #    is_private_name       is_private_email       is_email_blocked       is_private_location       date_joined
+            user.is_private_name, user.is_private_email, user.is_email_blocked, user.is_private_location, user.date_joined, 
+            #    is_admin       is_staff       is_species_admin      is_proxy        is_active 
+            user.is_admin, user.is_staff, user.is_species_admin, user.is_proxy, user.is_active
+            ])
+        
     return response
 
 def export_csv_species():
@@ -325,9 +341,30 @@ def export_csv_species():
         headers={"Content-Disposition": 'attachment; filename="species_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['name', 'category', 'global_region', 'local_distribution', 'species_image', 'cares_classification', 'created', 'description'])
+
+    writer.writerow([
+       # id    name   alt_name    common_name     description    species_image    photo_credit           
+        'id', 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit', 
+       # category    global_region    local_distribution 
+        'category', 'global_region', 'local_distribution', 
+       # cares_family            iucn_red_list    cares_classification   render_cares
+        'cares_classification', 'iucn_red_list', 'cares_classification', 'render_cares', 
+       # species_instance_count    created   created_by     lastUpdated    last_edited_by    
+        'species_instance_count', 'created', 'created_by', 'lastUpdated', 'last_edited_by' 
+        ])
+    
     for species in speciesSet:
-        writer.writerow([species.name, species.category, species.global_region, species.local_distribution, species.species_image.name, species.cares_classification, species.created, species.description])
+        writer.writerow([
+            #       id          name          alt_name          common_name          description          species_image          photo_credit           
+            species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
+            #       category          global_region          local_distribution 
+            species.category, species.global_region, species.local_distribution, 
+            #       cares_family          iucn_red_list          cares_classification          render_cares
+            species.cares_family, species.iucn_red_list, species.cares_classification, species.render_cares,
+            #       species_instance_count          created          created_by          lastUpdated          last_edited_by    
+            species.species_instance_count, species.created, species.created_by, species.lastUpdated, species.last_edited_by
+            ])
+    
     return response
 
 def export_csv_speciesInstances():
@@ -337,11 +374,116 @@ def export_csv_speciesInstances():
         headers={"Content-Disposition": 'attachment; filename="species_instance_export.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['aquarist', 'name', 'species', 'unique_traits', 'aquarist_species_image', 'collection_point', 'genetic_traits', 'currently_keep', 
-                    'approx_date_acquired', 'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'created'])
-    for speciesInstance in speciesInstances:
-        writer.writerow([speciesInstance.user.username, speciesInstance.name, speciesInstance.species, speciesInstance.unique_traits, speciesInstance.aquarist_species_image.name, 
-                         speciesInstance.collection_point, speciesInstance.genetic_traits, speciesInstance.currently_keep, speciesInstance.year_acquired,
-                         speciesInstance.aquarist_notes, speciesInstance.have_spawned, speciesInstance.spawning_notes, speciesInstance.have_reared_fry, 
-                         speciesInstance.fry_rearing_notes, speciesInstance.young_available, speciesInstance.created])
+
+    writer.writerow([
+       # id    user    name    species    unique_traits    genetic_traits    collection_point
+        'id' ,'user', 'name', 'species', 'unique_traits', 'genetic_traits', 'collection_point', 
+       # acquired_from    year_acquired    aquarist_species_image aquarist_species_video_url 
+        'acquired_from', 'year_acquired', 'aquarist_species_image', 'aquarist_species_video_url', 
+       # aquarist_notes    have_spawned    spawning_notes    have_reared_fry    fry_rearing_notes    young_available    young_available_image 
+        'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'young_available_image', 
+       # currently_keep    enable_species_log    log_is_private    cares_registered    created    lastUpdated           
+        'currently_keep', 'enable_species_log', 'log_is_private', 'cares_registered', 'created', 'lastUpdated'
+        ])
+    for si in speciesInstances:
+        writer.writerow([
+            #  id     user              name     species     unique_traits     genetic_traits     collection_point
+            si.id, si.user.username, si.name, si.species, si.unique_traits, si.genetic_traits, si.collection_point, 
+            #  acquired_from     year_acquired     aquarist_species_image     aquarist_species_video_url 
+            si.acquired_from, si.year_acquired, si.aquarist_species_image, si.aquarist_species_video_url, 
+            #  aquarist_notes     have_spawned     spawning_notes     have_reared_fry     fry_rearing_notes     young_available     young_available_image 
+            si.aquarist_notes, si.have_spawned, si.spawning_notes, si.have_reared_fry, si.fry_rearing_notes, si.young_available, si.young_available_image,
+            # currently_keep      enable_species_log     log_is_private     cares_registered     created     lastUpdated           
+            si.currently_keep, si.enable_species_log, si.log_is_private, si.cares_registered, si.created, si.lastUpdated
+        ])
+
+    return response
+
+def export_csv_aquaristClubs():
+    clubs = AquaristClub.objects.all()
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="aquarist_club_export.csv"'},
+    )
+    writer = csv.writer(response)
+
+    writer.writerow([
+       # id     name    acronym    about    logo_image    website    city    state    country   
+        'id' , 'name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country',
+       # bap_guidelines    bap_notes_template    cares_muliplier    bap_start_date    bap_end_date
+        'bap_guidelines', 'bap_notes_template', 'cares_muliplier', 'bap_start_date', 'bap_end_date',
+       # is_bap_club is_cares_club require_member_approval club_admins created lastUpdated            
+        'is_bap_club', 'is_cares_club', 'require_member_approval', 'club_admins', 'created', 'lastUpdated'
+        ])
+    for club in clubs:
+        writer.writerow([
+            #    id       name        acronym      about       logo_image       website       city       state       country   
+            club.id, club.name, club.acronym, club.about, club.logo_image, club.website, club.city, club.state, club.country,
+            #    bap_guidelines       bap_notes_template       cares_muliplier       bap_start_date       bap_end_date
+            club.bap_guidelines, club.bap_notes_template, club.cares_muliplier, club.bap_start_date, club.bap_end_date,
+            #    is_bap_club       is_cares_club       require_member_approval       club_admins       created       lastUpdated            
+            club.is_bap_club, club.is_cares_club, club.require_member_approval, club.club_admins, club.created, club.lastUpdated
+        ])
+
+    return response
+
+def export_csv_aquaristClubMembers():
+    club_members = AquaristClubMember.objects.all()
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="aquarist_club_member_export.csv"'},
+    )
+    writer = csv.writer(response)
+     
+    writer.writerow([
+       # id  name club user membership_approved   
+        'id', 'name', 'club', 'user', 'membership_approved',
+       # bap_participant is_club_admin is_cares_admin 
+        'bap_participant', 'is_club_admin', 'is_cares_admin',
+       # date_requested last_updated 
+        'date_requested', 'last_updated'
+        ])
+    for cm in club_members:
+        writer.writerow([
+            # id  name club user membership_approved   
+            cm.id, cm.name, cm.club, cm.user, cm.membership_approved, 
+            # bap_participant is_club_admin is_cares_admin 
+            cm.bap_participant, cm.is_club_admin, cm.is_cares_admin, 
+            # date_requested last_updated 
+            cm.date_requested, cm.last_updated
+        ])
+
+    return response
+
+
+def export_csv_caresRegistrations():
+    registrations = CaresRegistration.objects.all()
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="cares_registration_export.csv"'},
+    )
+    writer = csv.writer(response)
+
+    writer.writerow([
+       # id name aquarist_name aquarist_email affiliate_club species collection_location
+        'id' , 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',
+       # species_source year_acquired verification_photo species_has_spawned young_available offspring_shared
+        'species_source', 'year_acquired', 'verification_photo', 'species_has_spawned', 'young_available', 'offspring_shared',
+       # cares_approver approver_notes status          
+        'cares_approver', 'approver_notes', 'status',
+       # date_requested lastUpdated last_updated_by last_report_date
+        'date_requested', 'lastUpdated', 'last_updated_by', 'last_report_date'
+        ])
+    for reg in registrations:
+        writer.writerow([
+            # id name aquarist_name aquarist_email affiliate_club species collection_location
+            reg.id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, reg.collection_location,
+            # species_source year_acquired verification_photo species_has_spawned young_available offspring_shared
+            reg.species_source, reg.year_acquired, reg.verification_photo, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
+            # cares_approver approver_notes status          
+            reg.cares_approver, reg.approver_notes, reg.status,
+            # date_requested lastUpdated last_updated_by last_report_date
+            reg.date_requested, reg.lastUpdated, reg.last_updated_by, reg.last_report_date
+        ])
+
     return response

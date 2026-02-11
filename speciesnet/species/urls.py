@@ -87,14 +87,12 @@ urlpatterns = [
     path('editCaresSpecies2/<str:pk>/', views.editCaresSpecies2, name="editCaresSpecies2"),
     path('deleteCaresSpecies/<str:pk>/', views.deleteCaresSpecies, name="deleteCaresSpecies"),
     path('cares/caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
-    #path('caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
 
     path('caresRegistration/<str:pk>/', views.caresRegistration, name="caresRegistration"), 
     path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
     path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
     path('editCaresRegistrationAdmin/<str:pk>/', views.editCaresRegistrationAdmin, name="editCaresRegistrationAdmin"),
     path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
-    #path('caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
     path('cares/caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
@@ -102,6 +100,10 @@ urlpatterns = [
     path('editCaresApprover/<str:pk>/', views.editCaresApprover, name="editCaresApprover"),
     path('deleteCaresApprover/<str:pk>/', views.deleteCaresApprover, name="deleteCaresApprover"),    
     path('caresApprovers/', views.caresApprovers, name="caresApprovers"), 
+
+    path('exportAquaristClubs/', views.exportAquaristClubs, name="exportAquaristClubs"),
+    path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
+    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),

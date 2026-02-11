@@ -340,3 +340,12 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
         logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s', 
                    self.request.user.username, self.get_club().name)
         return context
+    
+
+@login_required(login_url='login')
+def exportAquaristClubs(request):
+    return export_csv_aquaristClubs()
+
+@login_required(login_url='login')
+def exportAquaristClubMembers(request):
+    return export_csv_aquaristClubMembers()
