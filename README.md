@@ -14,6 +14,24 @@ The primary use cases for the site include Searching Species, browsing other Use
 
 Additional features include an optional Aquarist Species Log where users can add additional photos and notes on the species they keep, and a shared Species Maintenance Group where Users can collaborate on the breeding and maitenance of a Species. 
 
+## CARES Species Enrichment Tool
+
+The project includes a standalone script for enriching CARES species CSV files with verified data from FishBase and IUCN Red List. This tool uses exact-match rules to minimize hallucinations and provides conservative, fact-based enrichment.
+
+**Features:**
+- Exact-match verification against FishBase and IUCN Red List
+- Automatic detection of non-exact species (sp., cf., aff.)
+- Two-tab output: enriched species and species needing research
+- Conservative data extraction with BeautifulSoup4
+- Family-based region inference and template descriptions
+
+**Usage:**
+```bash
+python scripts/enrich_cares_species_csv.py --input path/to/cares.csv --output-dir /static
+```
+
+See [docs/cares_enrichment.md](docs/cares_enrichment.md) for detailed documentation.
+
 -----------------------------------
 
 SpeciesNet setup notes:
