@@ -25,6 +25,7 @@ from scripts.enrich_cares_species_csv import (
     generate_description,
     get_fishbase_data,
     get_iucn_data,
+    FAMILY_DESCRIPTIONS,
 )
 
 
@@ -131,6 +132,12 @@ class TestExactSpeciesDetection(unittest.TestCase):
         """Test valid subspecies name"""
         # Subspecies should still be valid if properly formatted
         self.assertTrue(is_exact_species("Aulonocara jacobfreibergi mamelela"))
+    
+    def test_species_ending_with_sp(self):
+        """Test that species names ending with 'sp' letters are valid"""
+        # Valid species names that happen to end with 'sp'
+        self.assertTrue(is_exact_species("Haplochromis wasp"))
+        self.assertTrue(is_exact_species("Haplochromis crisp"))
 
 
 class TestGlobalRegionInference(unittest.TestCase):
@@ -188,7 +195,8 @@ class TestDescriptionGeneration(unittest.TestCase):
         desc = generate_description("Cichlidae")
         self.assertIsInstance(desc, str)
         self.assertTrue(10 <= len(desc.split()) <= 30)  # Roughly 10-25 words
-        self.assertIn("Cichlidae", FAMILY_DESCRIPTIONS or {})
+        # Verify it returns the expected description from the dictionary
+        self.assertEqual(desc, FAMILY_DESCRIPTIONS['Cichlidae'])
     
     def test_generate_loricariidae_description(self):
         """Test Loricariidae description"""
@@ -377,10 +385,6 @@ class TestIUCNDataParsing(unittest.TestCase):
         result = get_iucn_data("Aulonocara jacobfreibergi", "test-token")
         
         self.assertIsNone(result)
-
-
-# Import after defining tests to avoid circular import issues
-from scripts.enrich_cares_species_csv import FAMILY_DESCRIPTIONS
 
 
 if __name__ == '__main__':

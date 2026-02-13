@@ -138,14 +138,13 @@ def is_exact_species(species_name: str) -> bool:
     
     # Check for non-exact indicators
     non_exact_patterns = [
-        r'\bsp\.?\b',          # sp. or sp
-        r'\bcf\.?\b',          # cf. or cf
-        r'\baff\.?\b',         # aff. or aff
-        r'\?',                 # question mark
-        r'\bx\b',              # hybrid indicator
-        r'\bhybrid\b',         # explicit hybrid
-        r'\b[A-Z][a-z]+ sp\b', # Genus sp pattern
-        r'^\w+\s*$',           # Single word (genus only)
+        r'\bsp\.?(?:\s|$|")',  # sp. or sp followed by space, end, or quote
+        r'\bcf\.?\b',           # cf. or cf
+        r'\baff\.?\b',          # aff. or aff
+        r'\?',                  # question mark
+        r'\bx\b',               # hybrid indicator
+        r'\bhybrid\b',          # explicit hybrid
+        r'\b[A-Z][a-z]+ sp\.?(?:\s|$|")', # Genus sp pattern
     ]
     
     for pattern in non_exact_patterns:
