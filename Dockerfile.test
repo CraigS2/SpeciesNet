@@ -6,6 +6,7 @@ COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY ./speciesnet /app
+COPY ./scripts /scripts
 
 WORKDIR /app
 
