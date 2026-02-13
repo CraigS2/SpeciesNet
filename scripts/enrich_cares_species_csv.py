@@ -42,8 +42,9 @@ VALID_GLOBAL_REGIONS = {
 }
 
 # CARES Family to Global Region mapping (conservative estimates)
+# Note: Only includes families with clear geographic distributions
+# Cichlidae is excluded due to widespread distribution across multiple continents
 CARES_FAMILY_REGIONS = {
-    'Cichlidae': 'Africa',  # Many cichlids are African, but also S. America
     'Cyprinodontidae': 'North America',
     'Rivulidae': 'South America',
     'Aplocheilidae': 'Africa',
@@ -385,13 +386,13 @@ def enrich_species_row(row: Dict[str, str], iucn_token: str) -> Tuple[Dict[str, 
     # Add global region from family (helper only, doesn't qualify as enriched)
     if cares_family:
         region = get_global_region_from_family(cares_family)
-        if region and 'Global Region' not in enriched_row:
+        if region and not enriched_row.get('Global Region'):
             enriched_row['Global Region'] = region
     
     # Add description from family template
     if cares_family:
         description = get_family_description(cares_family)
-        if description and 'Description (1-2 lines)' not in enriched_row:
+        if description and not enriched_row.get('Description (1-2 lines)'):
             enriched_row['Description (1-2 lines)'] = description
     
     # Determine if row qualifies as enriched

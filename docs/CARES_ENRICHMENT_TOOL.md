@@ -57,7 +57,7 @@ docker-compose up --build
 docker cp your_cares_species.csv <container_name>:/tmp/input.csv
 
 # Run the enrichment script
-docker exec -it <container_name> python3 /app/../scripts/enrich_cares_species_csv.py \
+docker exec -it <container_name> python3 /scripts/enrich_cares_species_csv.py \
   --input /tmp/input.csv \
   --output-dir /static
 
@@ -71,7 +71,7 @@ docker cp <container_name>:/static/cares_species_needs_research.csv ./
 ```bash
 # Set IUCN_TOKEN in your .env file or pass it directly
 docker exec -it -e IUCN_TOKEN=your_token_here <container_name> \
-  python3 /app/../scripts/enrich_cares_species_csv.py \
+  python3 /scripts/enrich_cares_species_csv.py \
   --input /tmp/input.csv \
   --output-dir /static
 ```

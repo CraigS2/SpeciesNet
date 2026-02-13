@@ -99,9 +99,10 @@ class TestBinomialValidation(unittest.TestCase):
     
     def test_valid_binomial_with_hyphen(self):
         """Test valid binomial with hyphenated species."""
-        self.assertTrue(is_valid_binomial("Otropheus duboisi"))
-        # Note: hyphens are allowed in species epithet
-        self.assertTrue(is_valid_binomial("Pseudotropheus saulosi"))
+        # Note: Hyphens in species epithets are uncommon but valid
+        # Testing with real examples
+        self.assertTrue(is_valid_binomial("Haplochromis rock-kribensis"))
+        self.assertTrue(is_valid_binomial("Aulonocara blue-gold"))
     
     def test_invalid_single_word(self):
         """Test rejection of single-word names."""
