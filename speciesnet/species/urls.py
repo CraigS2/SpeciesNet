@@ -146,6 +146,8 @@ urlpatterns = [
 
     path('addSpeciesInstanceWizard1/', views.addSpeciesInstanceWizard1, name="addSpeciesInstanceWizard1"),
     path('addSpeciesInstanceWizard2/', views.addSpeciesInstanceWizard2, name="addSpeciesInstanceWizard2"),
+
+    path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),
     
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),

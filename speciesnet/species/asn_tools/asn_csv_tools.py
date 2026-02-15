@@ -76,7 +76,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         else:
             if import_count == row_count:
                 import_archive.import_status = ImportArchive.ImportStatus.FULL
-        import_archive.name = current_user.get_display_name + "_species_import"
+        import_archive.name = current_user.username + "_species_import"
         import_archive.save()
     return
 
@@ -148,7 +148,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         else:
             if import_count == row_count:
                 import_archive.import_status = ImportArchive.ImportStatus.FULL
-        import_archive.name = current_user.get_display_name + "_speciesInstance_import"
+        import_archive.name = current_user.username + "_speciesInstance_import"
         import_archive.save()
     return
 

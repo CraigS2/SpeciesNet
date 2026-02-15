@@ -40,21 +40,3 @@ Requirements.txt declares all Django project package dependencies. These will be
 This project has been developed, tested, and deployed on Ubuntu development machines and servers.
 
 -----------------------------------
-
-## CARES Species CSV Enrichment Tool
-
-A standalone tool for enriching CARES-format CSV files with species information from FishBase and IUCN Red List.
-
-See [docs/CARES_ENRICHMENT_TOOL.md](docs/CARES_ENRICHMENT_TOOL.md) for detailed documentation.
-
-Quick start:
-```bash
-# With IUCN token
-export IUCN_TOKEN=your_token_here
-
-# Run enrichment
-python3 scripts/enrich_cares_species_csv.py \
-  --input path/to/cares_species.csv \
-  --output-dir /path/to/output
-```
-

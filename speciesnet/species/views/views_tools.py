@@ -302,6 +302,26 @@ def initialize_cares_species_fields():
     print (message_text)
     return 
 
+
+@login_required(login_url='login')
+def collectSpeciesData(request):
+    current_user = request.user
+    userCanEdit = user_is_admin (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save()
+            #TODO sort out signature and details in method
+            return collect_species_data_as_csv (import_archive, current_user)
+            #return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+        
+    form = ImportCsvForm()
+    return render(request, "species/importSpecies.html", {"form": form})
+
+
 def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
     cur_registrations = CaresRegistration.objects.all()
     for reg in cur_registrations:

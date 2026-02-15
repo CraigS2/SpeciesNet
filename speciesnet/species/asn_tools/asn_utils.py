@@ -9,7 +9,14 @@ from django.utils import timezone
 from urllib.parse import urlparse
 import logging, bleach, re
 
-# user_can_edit
+# user_can_edit | user_is_admin
+
+def user_is_admin (cur_user: User):
+    user_is_admin = False
+    if cur_user.is_authenticated:
+        if cur_user.is_admin:
+            user_is_admin = True
+    return user_is_admin
 
 def user_can_edit (cur_user: User):
     userCanEdit = False

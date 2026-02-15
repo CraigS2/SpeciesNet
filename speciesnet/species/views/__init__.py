@@ -79,6 +79,7 @@ from .views_ux import (
 from .views_tools import (
     speciesProfilesWithPhotos, speciesInstancesWithPhotos, speciesInstancesWithLabels, 
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
+    collectSpeciesData, 
     tools, tools2, dirtyDeed
 )
 
