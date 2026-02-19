@@ -305,6 +305,12 @@ def initialize_cares_species_fields():
 
 @login_required(login_url='login')
 def collectSpeciesData(request):
+    """
+    Data aggregation tool ** BETA ** needs significant work to be user friendly
+    Inputs a species list with csv header: Family, Species
+    Scrapes targeted data from Fishbase.se
+    Outputs roughly structured csv with heaer: FishBase URL, Distribution, Biology, Conservation Notes, IUCN Status
+    """    
     current_user = request.user
     userCanEdit = user_is_admin (request.user)
     if not userCanEdit:
@@ -314,7 +320,7 @@ def collectSpeciesData(request):
         form = ImportCsvForm(request.POST, request.FILES)
         if form.is_valid():
             import_archive = form.save()
-            #TODO sort out signature and details in method
+            #TODO sort out mechanims of downloading csv output and displaying progress and/or summary results
             return collect_species_data_as_csv (import_archive, current_user)
             #return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
         

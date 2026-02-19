@@ -1,3 +1,16 @@
+"""
+Species CSV Aggregation Tool - Scrapes Fishbase.se 
+Enriches Species-format CSV files with FishBase and IUCN Red List data
+
+Input CSV Format example - header w/ 3 species
+CARES Family,Species
+Anabantidae - Bettas and gouramies,Belontia signata
+Characidae - Tetras,Rachoviscus crassiceps
+Loricariidae - Armoured catfish,Parancistrus aurantiacus
+
+Outputs CSV Columns: FishBase URL, Distribution, Biology, Conservation Notes, IUCN Status
+"""
+
 import csv
 import logging
 import os
@@ -16,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Rate limiting to not choke website traffic
 REQUEST_DELAY = 2.0  # seconds between requests
-CHUNK_SIZE = 10  # Process 10 species at a time (workaroun to avoid timeouts)
+CHUNK_SIZE = 10  # Process 10 species at a time (workaround to avoid timeouts)
 #TODO: Implement celery and process the CSV asynchronously
 
 
@@ -68,6 +81,10 @@ def test_network_connectivity():
 
 
 def get_fishbase_url(species_name: str) -> Optional[str]:
+    """
+    Construct FishBase URL directly using species name.
+    Format: https://www.fishbase.se/summary/Genus-species
+    """
     try:
         print(f'Constructing FishBase URL for: {species_name}')
         
@@ -104,7 +121,49 @@ def get_fishbase_url(species_name: str) -> Optional[str]:
 
 
 def extract_distribution(soup: BeautifulSoup) -> Optional[str]:
+    """Extract ONLY the geographic distribution text"""
     try:
+        # Method 1: Find the distribution table row
+        for tr in soup.find_all('tr'):
+            header = tr.find(['th', 'td', 'b'])
+            if header and 'distribution' in header.get_text().lower():
+                # Get the next cell or paragraph
+                content_cell = tr.find_all('td')
+                if len(content_cell) > 1:
+                    text = content_cell[1].get_text(strip=True)
+                    # Clean up
+                    text = re.sub(r'Territories\|.*?Faunafri', '', text)
+                    text = re.sub(r'Size / Weight.*', '', text)
+                    text = re.sub(r'Short description.*', '', text)
+                    text = ' '.join(text.split())
+                    if len(text) > 20 and len(text) < 800:
+                        return text
+        
+        # Method 2: Look for geographic keywords in standalone paragraphs
+        for p in soup.find_all('p'):
+            text = p.get_text(strip=True)
+            
+            # Must start with a region
+            if not any(text.startswith(region) for region in [
+                'Africa:', 'Asia:', 'Europe:', 'Oceania:', 
+                'Central America:', 'South America:', 'North America:'
+            ]):
+                continue
+            
+            # Must be reasonable length
+            if len(text) < 20 or len(text) > 800:
+                continue
+            
+            # Must not contain navigation
+            if any(nav in text for nav in ['Territories|', 'FAO areas|', 'Click here']):
+                continue
+            
+            # Clean and return
+            text = re.sub(r'Size / Weight.*', '', text)
+            text = ' '.join(text.split())
+            return text
+        
+        # Method 3: Look in elements containing geographic keywords
         for element in soup.find_all(['td', 'div', 'p']):
             text = element.get_text(strip=True)
             
@@ -112,7 +171,11 @@ def extract_distribution(soup: BeautifulSoup) -> Optional[str]:
                 parts = text.split('Faunafri')
                 if len(parts) > 1:
                     cleaned = parts[1].strip()
-                    if len(cleaned) > 20:
+                    # Remove common junk patterns
+                    cleaned = re.sub(r'Size / Weight.*', '', cleaned)
+                    cleaned = re.sub(r'Short description.*', '', cleaned)
+                    cleaned = ' '.join(cleaned.split())
+                    if len(cleaned) > 20 and len(cleaned) < 800:
                         return cleaned
                 continue
             
@@ -121,10 +184,12 @@ def extract_distribution(soup: BeautifulSoup) -> Optional[str]:
                 'Atlantic slope', 'Pacific slope', 'endemic to', 'River', 'Basin', 'known only from'
             ]):
                 cleaned = re.sub(r'Territories\|FAO.*?Faunafri', '', text)
+                cleaned = re.sub(r'Size / Weight.*', '', cleaned)
+                cleaned = re.sub(r'Short description.*', '', cleaned)
                 cleaned = re.sub(r'http[s]?://\S+', '', cleaned)
                 cleaned = ' '.join(cleaned.split())
                 
-                if len(cleaned) > 20 and len(cleaned) < 500:
+                if len(cleaned) > 20 and len(cleaned) < 800:
                     return cleaned
         
         return None
@@ -135,29 +200,74 @@ def extract_distribution(soup: BeautifulSoup) -> Optional[str]:
 
 
 def extract_biology(soup: BeautifulSoup) -> Optional[str]:
+    """Extract ONLY the biology/ecology narrative text"""
     try:
-        for element in soup.find_all(['td', 'div', 'p']):
+        biology_text_parts = []
+        
+        # Look for the biology section - typically after "Biology" header
+        for element in soup.find_all(['p', 'div', 'td']):
             text = element.get_text(strip=True)
             
-            if 'Environment:' in text and 'Ecology' in text:
-                parts = text.split('Ecology')
-                if len(parts) > 1:
-                    biology_text = parts[1].strip()
-                    biology_text = re.sub(r'http[s]?://\S+', '', biology_text)
-                    biology_text = ' '.join(biology_text.split())
-                    
-                    if len(biology_text) > 20:
-                        return biology_text
+            # Skip navigation and headers
+            if any(skip in text for skip in [
+                'Glossary', 'Life cycle and mating', 'Main reference',
+                'Upload your references', 'Trophic ecology', 'Food items',
+                'Maturity|Reproduction', 'Click here', '(e.g. epibenthic)',
+                'Distribution', 'Territories|FAO', 'Short description'
+            ]):
+                continue
             
-            biology_keywords = ['feeds on', 'found in', 'inhabits', 'occurs in', 'most abundant',
-                              'elevation', 'substrate', 'vegetation', 'breed']
+            # Skip if it's just the environment line
+            if text.startswith('Freshwater;') and 'Tropical' in text and len(text) < 200:
+                continue
             
-            if any(keyword in text.lower() for keyword in biology_keywords):
-                if not any(nav in text for nav in ['Glossary', 'milieu / climate', 'depth range / distribution range']):
-                    if len(text) > 30 and len(text) < 500:
-                        cleaned = re.sub(r'http[s]?://\S+', '', text)
-                        cleaned = ' '.join(cleaned.split())
-                        return cleaned
+            # Look for actual biology sentences
+            biology_indicators = [
+                'inhabits', 'found in', 'occurs in', 'feeds on', 'diet consists',
+                'omnivore', 'herbivore', 'carnivore', 'prefers', 'lives in',
+                'spawns', 'breeds', 'temperature', 'depth', 'substrate',
+                'abundant in', 'common in', 'endemic to', 'aquarium conditions'
+            ]
+            
+            if any(indicator in text.lower() for indicator in biology_indicators):
+                # Clean the text
+                cleaned = text
+                
+                # Remove reference citations like (Ref.12345)
+                cleaned = re.sub(r'\(Ref\.\d+\)', '', cleaned)
+                
+                # Remove URLs
+                cleaned = re.sub(r'http[s]?://\S+', '', cleaned)
+                
+                # Remove navigation pipes
+                cleaned = re.sub(r'\|[A-Z][a-z]+\s*\|', '', cleaned)
+                
+                # Stop at certain break points
+                for break_point in [
+                    'Life cycle and mating',
+                    'Main reference',
+                    'IUCN Red List',
+                    'Threat to humans',
+                    'Human uses',
+                    'Short description',
+                    'Distribution',
+                    'Size / Weight'
+                ]:
+                    if break_point in cleaned:
+                        cleaned = cleaned.split(break_point)[0]
+                
+                cleaned = ' '.join(cleaned.split())
+                
+                if 20 < len(cleaned) < 800:
+                    biology_text_parts.append(cleaned)
+        
+        # Combine and deduplicate
+        if biology_text_parts:
+            # Join unique parts
+            combined = ' '.join(biology_text_parts)
+            # Remove duplicates that sometimes appear
+            if len(combined) > 50:
+                return combined[:800]  # Cap at 800 chars
         
         return None
         
@@ -166,38 +276,114 @@ def extract_biology(soup: BeautifulSoup) -> Optional[str]:
         return None
 
 
-def extract_iucn_from_fishbase(soup: BeautifulSoup) -> Optional[str]:
+def extract_conservation_notes(soup: BeautifulSoup) -> Optional[str]:
+    """Extract conservation-relevant notes (threats, habitat loss, etc.)"""
     try:
-        for element in soup.find_all(['td', 'div', 'p', 'span']):
+        for element in soup.find_all(['p', 'div', 'td']):
             text = element.get_text(strip=True)
             
-            if 'IUCN Red List Status' in text:
-                parent = element.find_parent(['tr', 'div', 'p'])
-                if parent:
-                    full_text = parent.get_text(strip=True)
-                    
-                    pattern = r'(Not Evaluated|Data Deficient|Least Concern|Near Threatened|Vulnerable|Endangered|Critically Endangered|Extinct in the Wild|Extinct)\s*\(([A-Z]{2,3})\)'
-                    match = re.search(pattern, full_text)
-                    if match:
-                        return match.group(0)
+            # Look for conservation keywords
+            conservation_keywords = [
+                'threat', 'decline', 'habitat loss', 'pollution',
+                'overfishing', 'endangered', 'vulnerable', 'extinct',
+                'conservation', 'protected', 'rare', 'population decline'
+            ]
             
-            if any(code in text for code in ['(LC)', '(NT)', '(VU)', '(EN)', '(CR)', '(EW)', '(EX)', '(DD)', '(NE)']):
-                pattern = r'(Not Evaluated|Data Deficient|Least Concern|Near Threatened|Vulnerable|Endangered|Critically Endangered|Extinct in the Wild|Extinct)\s*\(([A-Z]{2,3})\)'
-                match = re.search(pattern, text)
-                if match:
-                    return match.group(0)
+            if any(keyword in text.lower() for keyword in conservation_keywords):
+                # Skip navigation
+                if any(nav in text for nav in ['IUCN Red List Status', 'Click here', 'References']):
+                    continue
+                
+                # Clean
+                cleaned = re.sub(r'\(Ref\.\d+\)', '', text)
+                cleaned = re.sub(r'http[s]?://\S+', '', cleaned)
+                cleaned = ' '.join(cleaned.split())
+                
+                if 20 < len(cleaned) < 500:
+                    return cleaned
         
         return None
         
     except Exception as e:
-        print(f'Error extracting IUCN from FishBase: {e}')
+        print(f'Error extracting conservation notes: {e}')
+        return None
+
+
+def extract_iucn_from_fishbase(soup: BeautifulSoup) -> Optional[str]:
+    """Extract JUST the IUCN status code"""
+    try:
+        # Look for IUCN Red List Status
+        for element in soup.find_all(text=re.compile(r'IUCN Red List Status')):
+            parent = element.find_parent(['tr', 'div', 'p', 'td'])
+            if parent:
+                text = parent.get_text(strip=True)
+                
+                # Extract just the status
+                pattern = r'(Extinct|Extinct in the Wild|Critically Endangered|Endangered|Vulnerable|Near Threatened|Least Concern|Data Deficient|Not Evaluated)\s*\(([A-Z]{2,3})\)'
+                match = re.search(pattern, text)
+                if match:
+                    return match.group(1) + ' (' + match.group(2) + ')'
+        
+        # Fallback: look for status codes directly
+        for element in soup.find_all(['td', 'div', 'p', 'span']):
+            text = element.get_text(strip=True)
+            
+            if any(code in text for code in ['(LC)', '(NT)', '(VU)', '(EN)', '(CR)', '(EW)', '(EX)', '(DD)', '(NE)']):
+                pattern = r'(Extinct|Extinct in the Wild|Critically Endangered|Endangered|Vulnerable|Near Threatened|Least Concern|Data Deficient|Not Evaluated)\s*\(([A-Z]{2,3})\)'
+                match = re.search(pattern, text)
+                if match:
+                    return match.group(1) + ' (' + match.group(2) + ')'
+        
+        return None
+        
+    except Exception as e:
+        print(f'Error extracting IUCN: {e}')
+        return None
+
+
+def extract_common_name(soup: BeautifulSoup) -> Optional[str]:
+    """Extract the common/English name"""
+    try:
+        # Look in title or header
+        title = soup.find('title')
+        if title:
+            text = title.get_text()
+            # Often format is "Scientific name, Common name"
+            if ',' in text:
+                parts = text.split(',')
+                if len(parts) > 1:
+                    common = parts[1].strip()
+                    # Remove any extra junk
+                    common = re.sub(r'\s+FishBase', '', common)
+                    common = re.sub(r'\s+\(.*?\)', '', common)
+                    if len(common) > 0 and len(common) < 50:
+                        return common
+        
+        # Look for "Common names" section or English name
+        for element in soup.find_all(text=re.compile(r'English\s+name', re.IGNORECASE)):
+            parent = element.find_parent(['tr', 'td', 'div'])
+            if parent:
+                # Get next sibling or cell
+                next_elem = parent.find_next_sibling()
+                if next_elem:
+                    name = next_elem.get_text(strip=True)
+                    if len(name) > 0 and len(name) < 50:
+                        return name
+        
+        return None
+        
+    except Exception as e:
+        print(f'Error extracting common name: {e}')
         return None
 
 
 def get_fishbase_data(fishbase_url: str) -> Dict[str, str]:
+    """Extract CLEAN, conservation-relevant data from FishBase species page."""
     result = {
+        'common_name': '',
         'distribution': '',
         'biology': '',
+        'conservation_notes': '',
         'iucn_status': ''
     }
     
@@ -209,6 +395,16 @@ def get_fishbase_data(fishbase_url: str) -> Dict[str, str]:
         
         soup = BeautifulSoup(response.content, 'html.parser')
         
+        # Extract common name
+        print('  Looking for Common Name...')
+        common_name = extract_common_name(soup)
+        if common_name:
+            result['common_name'] = common_name
+            print(f'  Common Name: {common_name}')
+        else:
+            print('  WARNING: Common Name not found')
+        
+        # Extract Distribution
         print('  Looking for Distribution...')
         distribution = extract_distribution(soup)
         if distribution:
@@ -217,6 +413,7 @@ def get_fishbase_data(fishbase_url: str) -> Dict[str, str]:
         else:
             print('  WARNING: Distribution not found')
         
+        # Extract Biology
         print('  Looking for Biology...')
         biology = extract_biology(soup)
         if biology:
@@ -225,11 +422,21 @@ def get_fishbase_data(fishbase_url: str) -> Dict[str, str]:
         else:
             print('  WARNING: Biology not found')
         
+        # Extract Conservation Notes
+        print('  Looking for Conservation Notes...')
+        conservation = extract_conservation_notes(soup)
+        if conservation:
+            result['conservation_notes'] = conservation
+            print(f'  Conservation: {conservation[:80]}...')
+        else:
+            print('  INFO: Conservation notes not found')
+        
+        # Extract IUCN Status
         print('  Looking for IUCN Red List Status...')
         iucn_status = extract_iucn_from_fishbase(soup)
         if iucn_status:
             result['iucn_status'] = iucn_status
-            print(f'  IUCN Status found: {iucn_status}')
+            print(f'  IUCN Status: {iucn_status}')
         else:
             print('  WARNING: IUCN Status not found')
         
@@ -252,15 +459,17 @@ def enrich_species_row(row: Dict[str, str]) -> Tuple[Dict[str, str], Optional[st
     
     if not is_valid_binomial(clean_name):
         error_msg = f"Invalid binomial format: '{raw_name}'"
-        print(f"VALIDATION FAILED: {error_msg}")
+        print(f"ERROR: VALIDATION FAILED: {error_msg}")
         return row, error_msg
     
     print(f"Validation passed for: {clean_name}")
     
     enriched_row = row.copy()
+    enriched_row['Common Name'] = ''
     enriched_row['FishBase URL'] = ''
-    enriched_row['Biology'] = ''
     enriched_row['Distribution'] = ''
+    enriched_row['Biology'] = ''
+    enriched_row['Conservation Notes'] = ''
     enriched_row['IUCN Status'] = ''
     
     species_data_found = False
@@ -275,14 +484,20 @@ def enrich_species_row(row: Dict[str, str]) -> Tuple[Dict[str, str], Optional[st
             species_data_found = True
             
             try:
-                print(f'🔍 Extracting data from FishBase page')
+                print(f'Extracting CLEAN data from FishBase page')
                 fishbase_data = get_fishbase_data(fishbase_url)
+                
+                if fishbase_data['common_name']:
+                    enriched_row['Common Name'] = fishbase_data['common_name']
                 
                 if fishbase_data['distribution']:
                     enriched_row['Distribution'] = fishbase_data['distribution']
                 
                 if fishbase_data['biology']:
                     enriched_row['Biology'] = fishbase_data['biology']
+                
+                if fishbase_data['conservation_notes']:
+                    enriched_row['Conservation Notes'] = fishbase_data['conservation_notes']
                 
                 if fishbase_data['iucn_status']:
                     enriched_row['IUCN Status'] = fishbase_data['iucn_status']
@@ -307,6 +522,10 @@ def enrich_species_row(row: Dict[str, str]) -> Tuple[Dict[str, str], Optional[st
 
 
 def collect_species_data_as_csv(import_archive: ImportArchive, current_user: User):
+    """
+    Process species CSV in chunks to avoid timeout issues.
+    Each chunk processes CHUNK_SIZE species before saving progress.
+    """
     import sys
     
     with open(import_archive.import_csv_file.path, 'r', encoding="utf-8") as input_csv_file:
@@ -341,7 +560,14 @@ def collect_species_data_as_csv(import_archive: ImportArchive, current_user: Use
         tprint(f"Estimated time: {(total_species * REQUEST_DELAY * 2)/60:.1f} minutes")
         
         # Ensure our columns are in the output
-        required_columns = ['FishBase URL', 'Biology', 'Distribution', 'IUCN Status']
+        required_columns = [
+            'Common Name',
+            'FishBase URL',
+            'Distribution',
+            'Biology',
+            'Conservation Notes',
+            'IUCN Status'
+        ]
         output_fieldnames = input_fieldnames.copy()
         
         for col in required_columns:
