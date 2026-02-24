@@ -123,7 +123,6 @@ class BaseTestCase(TestCase):
             cares_muliplier=2,
             require_member_approval=True
         )
-        cls.basic_club.club_admins.add(cls.active_user)
     
     def setUp(self):
         """

@@ -206,7 +206,7 @@ class Species (models.Model):
     
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in speciesSearch list view
+    species_instance_count    = models.PositiveIntegerField (default=0)       # TODO use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
@@ -391,7 +391,6 @@ class AquaristClub (models.Model):
     acronym                   = models.CharField (max_length=10, blank=True)
     about                     = models.TextField (blank=True)
     logo_image                = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
-    club_admins               = models.ManyToManyField (User, related_name='admin_aquarist_clubs') 
     website                   = models.URLField  (blank=True)
     city                      = models.CharField (max_length=100, blank=True)
     state                     = models.CharField (max_length=100, blank=True)

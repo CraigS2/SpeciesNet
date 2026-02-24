@@ -27,9 +27,10 @@ from .views_species import (
 from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
-    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, exportCaresRegistrations,
+    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, 
     editCaresSpecies2, editCaresRegistrationAdmin, registrationLookup,
-    caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers
+    caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers,
+    exportCaresRegistrations, importCaresRegistrations,
 )
 
 # Species Instance (Aquarist Species)
@@ -57,16 +58,17 @@ from .views_club import (
     deleteAquaristClub, aquaristClubAdmin, AquaristClubMemberListView,
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
     deleteAquaristClubMember, AquaristClubCaresLiaisonListView,
-    exportAquaristClubs, exportAquaristClubMembers
+    exportAquaristClubs, exportAquaristClubMembers, importAquaristClubs
 )
 
 # CLub BAP
 from .views_bap import (
     bapSubmission, createBapSubmission, editBapSubmission, deleteBapSubmission,
-    BapSubmissionsView, BapLeaderboardView, BapGenusView, BapSpeciesView,
-    BapGenusSpeciesView, editBapGenus, deleteBapGenus, createBapSpecies,
-    editBapSpecies, deleteBapSpecies, importClubBapGenus, exportClubBapGenus, 
-    bap_submissions_overview
+    BapSubmissionsView, bap_submissions_overview,
+    BapLeaderboardView, BapGenusView, BapSpeciesView, BapGenusSpeciesView,
+    createBapSpecies, editBapSpecies, deleteBapSpecies, 
+    editBapGenus, deleteBapGenus,
+    importClubBapGenus, exportClubBapGenus, exportBapSubmissions
 )
 
 # User Experience

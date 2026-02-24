@@ -6,67 +6,74 @@ from django.conf import settings
 from . import views
 
 urlpatterns = [
+    path('', views.home, name="home"),
+    path('about_us/', views.about_us, name="about_us"),
+    path('howItWorks/', views.howItWorks, name="howItWorks"),
+
+    ### Users == Aquarists ###
+
     path('login/', views.loginUser, name="login"),
     path('logout/', views.logoutUser, name="logout"), 
     #path('register/', views.registerUser, name="register"), 
-
-    path('', views.home, name="home"),
-
     path('userProfile/', views.userProfile, name="userProfile"),
     path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
 
-    path('aquarists/', views.AquaristListView.as_view(), name="aquarists"),
     path('aquarist/<str:pk>/', views.aquarist, name="aquarist"),
+    path('aquarists/', views.AquaristListView.as_view(), name="aquarists"),
     path('emailAquarist/<str:pk>/', views.emailAquarist, name="emailAquarist"),
     path('exportAquarists/', views.exportAquarists, name="exportAquarists"),
 
+    ### Aquarist Clubs ###
+
     path('aquaristClubs/', views.aquaristClubs, name="aquaristClubs"),
     path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"), 
-    path('aquaristClubMembers/<str:pk>/', views.AquaristClubMemberListView.as_view(), name="aquaristClubMembers"), 
+    path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
+    path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
+    path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
+    path('exportAquaristClubs/', views.exportAquaristClubs, name="exportAquaristClubs"),
+    path('importAquaristClubs/', views.importAquaristClubs, name="importAquaristClubs"),
 
     path('aquaristClubMember/<int:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
-    path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
-    path('createAquaristClubMember/<str:pk>', views.createAquaristClubMember, name="createAquaristClubMember"),
-    path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
-    path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
-    path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
-    path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
-
-    path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
-    path('registerCaresSelectSpecies/', views.registerCaresSelectSpecies, name="registerCaresSelectSpecies"),
-    path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),
-    path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
-    path('registrationLookup/', views.registrationLookup, name="registrationLookup"),
-
     path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
+    path('aquaristClubMembers/<str:pk>/', views.AquaristClubMemberListView.as_view(), name="aquaristClubMembers"), 
+    path('createAquaristClubMember/<str:pk>', views.createAquaristClubMember, name="createAquaristClubMember"),
+    path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
+    path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
+    path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
+
+    ### Aquarist Club BAP Programs ###
+
     path('bapSubmission/<str:pk>/', views.bapSubmission, name="bapSubmission"),
     path('bapSubmissions/<str:pk>/', views.BapSubmissionsView.as_view(), name="bapSubmissions"),
     path('createBapSubmission/<str:pk>/', views.createBapSubmission, name="createBapSubmission"),
     path('editBapSubmission/<str:pk>/', views.editBapSubmission, name="editBapSubmission"),
     path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
+    path('exportBapSubmissions/', views.exportBapSubmissions, name="exportBapSubmissions"),
+
     path('bapGenus/<str:pk>/', views.BapGenusView.as_view(), name="bapGenus"),
-    path('bapSpecies/<str:pk>/', views.BapSpeciesView.as_view(), name="bapSpecies"),
-    path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    
-    path('deleteBapSubmission/<str:pk>/', views.deleteBapSubmission, name="deleteBapSubmission"),
     path('editBapGenus/<str:pk>/', views.editBapGenus, name="editBapGenus"),
+    path('deleteBapGenus/<str:pk>/', views.deleteBapGenus, name="deleteBapGenus"),
+
+    path('bapSpecies/<str:pk>/', views.BapSpeciesView.as_view(), name="bapSpecies"),
     path('createBapSpecies/<str:pk>/', views.createBapSpecies, name="createBapSpecies"),
     path('editBapSpecies/<str:pk>/', views.editBapSpecies, name="editBapSpecies"),
-    path('deleteBapGenus/<str:pk>/', views.deleteBapGenus, name="deleteBapGenus"),
     path('deleteBapSpecies/<str:pk>/', views.deleteBapSpecies, name="deleteBapSpecies"),
+
+    path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    
+    
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
-    path('bap_verview/', views.bap_overview, name="bap_overview"),
+    path('bap_overview/', views.bap_overview, name="bap_overview"),
     path('bap_submissions_overview/', views.bap_submissions_overview, name="bap_submissions_overview"),
-    path('cares_overview/', views.cares_overview, name="cares_overview"),
 
     path('importClubBapGenus/<str:pk>/', views.importClubBapGenus, name="importClubBapGenus"),
     path('exportClubBapGenus/<str:pk>/', views.exportClubBapGenus, name="exportClubBapGenus"),
+
+    ### Species == 'Species Profiles' (UX) ###
 
     path('species/<str:pk>/', views.species, name="species"), 
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
-
-    path('speciesProfilesWithPhotos/', views.speciesProfilesWithPhotos, name="speciesProfilesWithPhotos"),
 
     path('speciesComments/', views.speciesComments, name="speciesComments"),
     path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"), 
@@ -77,9 +84,13 @@ urlpatterns = [
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
     path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
 
-    path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
-    path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
-    path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),  
+    ### CARES ASN or Shared ###
+    
+    path('cares_overview/', views.cares_overview, name="cares_overview"),
+    path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
+    path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
+
+    ### CARES Site 2 Only ###
 
     path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"), 
     path('createCaresSpecies/', views.createCaresSpecies, name="createCaresSpecies"),
@@ -89,11 +100,18 @@ urlpatterns = [
     path('cares/caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
 
     path('caresRegistration/<str:pk>/', views.caresRegistration, name="caresRegistration"), 
+    path('cares/caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
     path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
     path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
     path('editCaresRegistrationAdmin/<str:pk>/', views.editCaresRegistrationAdmin, name="editCaresRegistrationAdmin"),
     path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
-    path('cares/caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
+
+    path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),             # annonymous user registration
+    path('registerCaresSelectSpecies/', views.registerCaresSelectSpecies, name="registerCaresSelectSpecies"),    # annonymous user registration
+    path('registrationLookup/', views.registrationLookup, name="registrationLookup"),                            # annonymous user reg check
+
+    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
+    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
@@ -101,13 +119,13 @@ urlpatterns = [
     path('deleteCaresApprover/<str:pk>/', views.deleteCaresApprover, name="deleteCaresApprover"),    
     path('caresApprovers/', views.caresApprovers, name="caresApprovers"), 
 
-    path('exportAquaristClubs/', views.exportAquaristClubs, name="exportAquaristClubs"),
-    path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
-    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
+    ### Species == Species Profile (UX) ###
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
     path('importSpecies/', views.importSpecies, name="importSpecies"),
+
+    ### Species Instance == Aquarist Species (UX) ###
 
     path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
     path('createSpeciesInstance/<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
@@ -117,10 +135,8 @@ urlpatterns = [
     
     path('createSpeciesAndInstance/', views.createSpeciesAndInstance, name="createSpeciesAndInstance"), 
 
-    path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
-    path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
-    path('speciesInstancesWithEmptyLogs/', views.speciesInstancesWithEmptyLogs, name="speciesInstancesWithEmptyLogs"),
-    path('speciesInstancesWithPhotos/', views.speciesInstancesWithPhotos, name="speciesInstancesWithPhotos"),
+    path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
+    path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),      
 
     path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
     path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
@@ -147,20 +163,27 @@ urlpatterns = [
     path('addSpeciesInstanceWizard1/', views.addSpeciesInstanceWizard1, name="addSpeciesInstanceWizard1"),
     path('addSpeciesInstanceWizard2/', views.addSpeciesInstanceWizard2, name="addSpeciesInstanceWizard2"),
 
-    path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),
-    
-    path('about_us/', views.about_us, name="about_us"),
-    path('howItWorks/', views.howItWorks, name="howItWorks"),
-    path('tools/', views.tools, name="tools"),
-    path('tools2/', views.tools2, name="tools2"),
-    path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),
+    ### Admin Tools - Multiple Levels ###
 
-    path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),
+    path('tools/', views.tools, name="tools"),      # Level 1 Species Admins
+    path('tools2/', views.tools2, name="tools2"),   # Level 2 Staff and Level 3 Admin-only
 
-    # re_path configuration for media files solves production error with nginx serving up image files
+    path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
+    path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
+    path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
+    path('speciesInstancesWithEmptyLogs/', views.speciesInstancesWithEmptyLogs, name="speciesInstancesWithEmptyLogs"),
+    path('speciesInstancesWithPhotos/', views.speciesInstancesWithPhotos, name="speciesInstancesWithPhotos"),
+    path('speciesProfilesWithPhotos/', views.speciesProfilesWithPhotos, name="speciesProfilesWithPhotos"),
+
+    path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),    # admin-only
+    path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),                   # admin-only
+    path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
+
+
+    # django: re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
 ]
 
-# extend urlpatterns to support Media images uploaded by user - development DEBUG environment
+# django: extend urlpatterns to support Media images uploaded by user - development DEBUG environment
 urlpatterns = urlpatterns + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
 

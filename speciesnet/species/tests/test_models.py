@@ -603,18 +603,6 @@ class AquaristClubModelTest(BaseTestCase):
         )
         self.assertEqual(club.bap_default_points, 50)
     
-    def test_club_many_to_many_admins(self):
-        """Test club can have multiple admins"""
-        club = AquaristClub.objects.create(
-            name='Multi Admin Club',
-            website='https://example.com'
-        )
-        club.club_admins.add(self.super_user, self.active_user)
-        
-        self.assertEqual(club.club_admins.count(), 2)
-        self.assertIn(self.super_user, club.club_admins.all())
-        self.assertIn(self.active_user, club.club_admins.all())
-    
     def test_club_str_method(self):
         """Test __str__ method"""
         # Use pre-loaded basic_club from BaseTestCase

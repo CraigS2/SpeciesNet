@@ -979,7 +979,6 @@ class AquaristClubForm (ModelForm):
     class Meta:
         model = AquaristClub
         fields = '__all__'
-        exclude = ['club_admins', 'club_members']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'website':            forms.Textarea(attrs={'rows':1,'cols':50}),
                    'city':               forms.Textarea(attrs={'rows':1,'cols':50}),
@@ -993,7 +992,6 @@ class AquaristClubForm2 (ModelForm):
     class Meta:
         model = AquaristClub
         fields = '__all__'
-        exclude = ['club_admins', 'club_members']
         widgets = {
             'about':              forms.Textarea(attrs={'rows': 3}),  
             'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),  

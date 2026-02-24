@@ -239,8 +239,8 @@ def createSpeciesAndInstance(request):
                     
                     if speciesInstance:
                         speciesInstance.save()
-                        species.species_instance_count = 1
-                        species.save()
+                        # species.species_instance_count = 1
+                        # species.save()
 
                     messages.success(request, f'Successfully created species "{species.name}" and your Aquarist Species!')
                     logger.info('User %s added species: %s (%s) and speciesInstance: %s (%s)', 
@@ -450,6 +450,7 @@ def editSpeciesInstanceLabels(request):
 
 @login_required(login_url='login')
 def registerCaresSpeciesInstance(request, pk):
+    print ('WARNING: TODO registerCaresSpeciesInstance')
     return ()
 
 
@@ -463,13 +464,16 @@ def exportSpeciesInstances(request):
 @login_required(login_url='login')
 def importSpeciesInstances(request):
     current_user = request.user
-    form = ImportCsvForm()
+    userCanEdit = user_is_admin (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
     
     if request.method == 'POST':
-        form2 = ImportCsvForm(request.POST, request.FILES)
-        if form2.is_valid():
-            import_archive = form2.save()
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save()
             import_csv_speciesInstances(import_archive, current_user)
             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
-    
+        
+    form = ImportCsvForm()
     return render(request, "species/importSpecies.html", {"form": form})

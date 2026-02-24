@@ -153,6 +153,76 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
     return
 
 
+# Import Aquarist Clubs from csv
+# iterate through csv rows check if club exists, and create if it does not yet exist in the db. 
+
+def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User, aquarist_club: AquaristClub):
+    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+
+        # create results csv file
+        csv_report_buffer = StringIO()
+        csv_report_writer = csv.writer(csv_report_buffer)
+        report_row = ["Genus", "Import_Status"]
+        csv_report_writer.writerow(report_row)
+
+        # batch process import one genus per row
+        row_count = 0
+        import_count = 0
+        for import_row in DictReader(import_file):
+            row_count = row_count + 1
+            club_name = import_row['name']
+
+            if AquaristClub.objects.filter(name=club_name).exists():
+                print ('Aquarist Club import skipping row ' + str(row_count) + ': Club exists (' + club_name + ')')
+            else:
+                # create club
+                print ('Aquarist Club import started for row ' + str(row_count))
+                club = AquaristClub()
+                club.name = club_name
+                club.acronym = import_row['acronym']
+                club.about = import_row['about']
+                club.logo_image = import_row['logo_image']
+                club.website = import_row['website']
+                club.city = import_row['city']
+                club.state = import_row['state']
+                club.country = import_row['country']
+                club.require_member_approval = import_row['require_member_approval']
+                club.bap_guidelines = import_row['bap_guidelines']
+                club.bap_notes_template = import_row['bap_notes_template']
+                club.bap_default_points = import_row['bap_default_points']
+                club.cares_muliplier = import_row['cares_muliplier']
+                club.bap_start_date = import_row['bap_start_date']
+                club.bap_end_date = import_row['bap_end_date']
+                club.is_bap_club = import_row['is_bap_club']
+                club.is_cares_club = import_row['is_cares_club']   
+
+                club.save() 
+
+                print ('  Club ' + club.acronym + ' successfully added to db.')
+                logger.info ('User %s imported AquaristClub: %s (%s)', current_user.username, club.acronym, club.name)
+                status_txt = 'SUCCESS: New ' + club.acronym + ' Aquarist Club added (' + club.name + ')'
+                report_row = [club_name, status_txt] 
+
+                csv_report_writer.writerow(report_row)
+
+        # persist import report
+        csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+        csv_report_filename = current_user.username + '_' + bap_club.acronym + "_club_import_log.csv"
+        import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+        # persist import archive
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+        if import_count == 0:
+            import_archive.import_status = ImportArchive.ImportStatus.FAIL
+        else:
+            if import_count == row_count:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+        import_archive.name = current_user.username + '_' + club.acronym + '_club_import'
+        import_archive.save()
+    return
+
+
+
 # Import BAP Genus List
 # iterate through csv rows check if example species exists, and add or update BAP Genus entries. Supports club import/update workflow
 
@@ -315,7 +385,7 @@ def export_csv_aquarists():
        # id    username    email    first_name    last_name    state    country
         'id', 'username', 'email', 'first_name', 'last_name', 'state', 'country', 
        # is_private_name    is_private_email    is_email_blocked   is_private_location    date_joined
-        'is_private_name', 'is_private_email', 'is_email_blocked' 'is_private_location', 'date_joined', 
+        'is_private_name', 'is_private_email', 'is_email_blocked', 'is_private_location', 'date_joined', 
        # is_admin    is_staff    is_species_admin    is_proxy   is_active 
         'is_admin', 'is_staff', 'is_species_admin', 'is_proxy' 'is_active',
        # instagram_url    facebook_url    youtube_url    prefer_tile_view
@@ -329,7 +399,9 @@ def export_csv_aquarists():
             #    is_private_name       is_private_email       is_email_blocked       is_private_location       date_joined
             user.is_private_name, user.is_private_email, user.is_email_blocked, user.is_private_location, user.date_joined, 
             #    is_admin       is_staff       is_species_admin      is_proxy        is_active 
-            user.is_admin, user.is_staff, user.is_species_admin, user.is_proxy, user.is_active
+            user.is_admin, user.is_staff, user.is_species_admin, user.is_proxy, user.is_active,
+            #    instagram_url       facebook_url       youtube_url       prefer_tile_view
+            user.instagram_url, user.facebook_url, user.youtube_url, user.prefer_tile_view
             ])
         
     return response
@@ -412,8 +484,8 @@ def export_csv_aquaristClubs():
         'id' , 'name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country',
        # bap_guidelines    bap_notes_template    cares_muliplier    bap_start_date    bap_end_date
         'bap_guidelines', 'bap_notes_template', 'cares_muliplier', 'bap_start_date', 'bap_end_date',
-       # is_bap_club is_cares_club require_member_approval club_admins created lastUpdated            
-        'is_bap_club', 'is_cares_club', 'require_member_approval', 'club_admins', 'created', 'lastUpdated'
+       # is_bap_club is_cares_club require_member_approval created lastUpdated            
+        'is_bap_club', 'is_cares_club', 'require_member_approval', 'created', 'lastUpdated'
         ])
     for club in clubs:
         writer.writerow([
@@ -421,8 +493,8 @@ def export_csv_aquaristClubs():
             club.id, club.name, club.acronym, club.about, club.logo_image, club.website, club.city, club.state, club.country,
             #    bap_guidelines       bap_notes_template       cares_muliplier       bap_start_date       bap_end_date
             club.bap_guidelines, club.bap_notes_template, club.cares_muliplier, club.bap_start_date, club.bap_end_date,
-            #    is_bap_club       is_cares_club       require_member_approval       club_admins       created       lastUpdated            
-            club.is_bap_club, club.is_cares_club, club.require_member_approval, club.club_admins, club.created, club.lastUpdated
+            #    is_bap_club       is_cares_club       require_member_approval       created       lastUpdated            
+            club.is_bap_club, club.is_cares_club, club.require_member_approval, club.created, club.lastUpdated
         ])
 
     return response
@@ -456,6 +528,35 @@ def export_csv_aquaristClubMembers():
     return response
 
 
+def export_csv_bap_submissions():
+    bap_submissions = BapSubmission.objects.all()
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="aquarist_club_member_export.csv"'},
+    )
+
+    writer = csv.writer(response)
+    writer.writerow([
+        # name   club    year    speciesInstance
+        'name', 'club', 'year', 'speciesInstance',
+        # status   points    request_points_review    notes
+        'status', 'points', 'request_points_review', 'notes',
+        # breeder_comments    admin_comments  active  created lastUpdated
+        'breeder_comments', 'admin_comments', 'active', 'created', 'lastUpdated'
+        ])
+    for bap_s in bap_submissions:
+        writer.writerow([
+            # name  aquarist   year speciesInstance
+            bap_s.name, bap_s.aquarist, bap_s.year, bap_s.speciesInstance,
+            #     status        points        request_points_review         notes
+            bap_s.status, bap_s.points, bap_s.request_points_review, bap_s.notes,
+            # breeder_comments    admin_comments  active  created lastUpdated
+            bap_s.breeder_comments, bap_s.admin_comments, bap_s.active, bap_s.created, bap_s.lastUpdated
+        ])
+
+    return response
+
+
 def export_csv_caresRegistrations():
     registrations = CaresRegistration.objects.all()
     response = HttpResponse (
@@ -463,7 +564,6 @@ def export_csv_caresRegistrations():
         headers={"Content-Disposition": 'attachment; filename="cares_registration_export.csv"'},
     )
     writer = csv.writer(response)
-
     writer.writerow([
        # id name aquarist_name aquarist_email affiliate_club species collection_location
         'id' , 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',

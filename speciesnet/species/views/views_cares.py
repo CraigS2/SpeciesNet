@@ -272,6 +272,8 @@ def registerCaresSelectSpecies(request):
     """
     Wizard style workflow helping users search/find cares species to register
     """
+    # TODO add 'search' to make it a true wizard - currently simply a 'how to' page
+    
     if request.user.is_authenticated:
         logger.info('User %s visited registerCaresSelectSpecies page. ', request.user.username)
     else:
@@ -580,6 +582,11 @@ def caresApprovers(request):
 @login_required(login_url='login')
 def exportCaresRegistrations(request):
     return export_csv_caresRegistrations()
+
+@login_required(login_url='login')
+def importCaresRegistrations(request):
+    print ('TODO: importCaresRegistrations view')
+    return()
 
 
 
