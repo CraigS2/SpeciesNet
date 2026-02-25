@@ -191,8 +191,8 @@ class Species (models.Model):
         VULNERABLE        = 'VU', _('Vulnerable')
         ENDANGERED        = 'EN', _('Endangered')
         CRIT_ENDANGERED   = 'CR', _('Critically Endangered')
-        EXTINCT_IN_WILD   = 'EX', _('Extinct in the Wild')
-        EXTINCT           = 'EW', _('Extinct in the Wild')
+        EXTINCT_IN_WILD   = 'EW', _('Extinct in the Wild')
+        EXTINCT           = 'EX', _('Extinct')
     
     iucn_red_list         = models.CharField (max_length=2, choices=IucnRedList.choices, default=IucnRedList.UNDEFINED)
 
@@ -202,11 +202,11 @@ class Species (models.Model):
         VULNERABLE        = 'VULN', _('Vulnerable')
         ENDANGERED        = 'ENDA', _('Endangered')
         CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')
-        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')
+        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')     
     
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    species_instance_count    = models.PositiveIntegerField (default=0)       # TODO use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
+    #species_instance_count    = models.PositiveIntegerField (default=0)       # TODO use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
