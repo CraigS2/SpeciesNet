@@ -1,12 +1,23 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from .models import User
 
 # Register your models here.
 from .models import Species, SpeciesComment, SpeciesReferenceLink
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
-from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard
+from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
 
-admin.site.register (User)
+class UserAdmin(BaseUserAdmin):
+    fieldsets = BaseUserAdmin.fieldsets + (
+        ('Permissions',  {'fields': ('is_admin', 'is_species_admin'),}          ),
+        ('Privacy',      {'fields': ('is_private_name', 'is_private_location', 'is_proxy'),}       ),
+        ('Social Media', {'fields': ('instagram_url', 'facebook_url', 'youtube_url'),} ),
+    )
+    list_filter  = BaseUserAdmin.list_filter +  ('is_admin', 'is_species_admin', 'is_private_name', 'is_private_location', 'is_proxy',)
+    list_display = BaseUserAdmin.list_display + ('is_admin', 'is_species_admin',)
+
+admin.site.register (User, UserAdmin)  
 admin.site.register (UserEmail)
 admin.site.register (AquaristClub)
 admin.site.register (AquaristClubMember)
@@ -23,8 +34,6 @@ admin.site.register (BapSubmission)
 admin.site.register (BapGenus)
 admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
+admin.site.register (CaresRegistration)
+admin.site.register (CaresApprover)
 
-class SpeciesAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'global_region')
-    list_filter = ('category', 'global_region')
-    search_fields = ('name', 'alt_name', 'common_name', 'local_distribution', 'description')

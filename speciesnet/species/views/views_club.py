@@ -28,12 +28,16 @@ def aquaristClub(request, pk):
     userCanEdit = user_can_edit_club(cur_user, club)
     userIsMember = user_is_club_member(cur_user, club)
     userIsPending = user_is_pending_club_member(cur_user, club)
-    
+    enableClubFeatures = True
+    site_id = getattr(settings, 'SITE_ID', 1)
+    if site_id == 2:
+        enableClubFeatures = False
+        
     logger.info('User %s visited club:  %s (%s)', request.user.username, club.name, str(club.id))
-    
     context = {
         'aquaristClub': club,
         'aquaristClubMembers': aquaristClubMembers,
+        'enableClubFeatures': enableClubFeatures,
         'userIsAdmin': userIsAdmin,
         'userCanEdit': userCanEdit,
         'userIsMember': userIsMember,
@@ -50,16 +54,16 @@ def createAquaristClub(request):
     if not request.user.is_staff:
         raise PermissionDenied()
     
-    form = AquaristClubForm()
     if request.method == 'POST': 
-        form2 = AquaristClubForm(request.POST, request.FILES)
-        if form2.is_valid():
-            aquaristClub = form2.save(commit=True)
+        form = AquaristClubForm(request.POST, request.FILES)
+        if form.is_valid():
+            aquaristClub = form.save(commit=True)
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             logger.info('User %s created club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-
+    
+    form = AquaristClubForm()
     context = {'form':  form}
     return render(request, 'species/createAquaristClub.html', context)
 
@@ -74,9 +78,8 @@ def editAquaristClub(request, pk):
     if not userCanEdit: 
         raise PermissionDenied()
     
-    form = AquaristClubForm(instance=aquaristClub)
     if request.method == 'POST':
-        form = AquaristClubForm(request.POST, request.FILES, instance=aquaristClub)
+        form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
         if form.is_valid(): 
             aquaristClub = form.save()
             if aquaristClub.logo_image:
@@ -84,7 +87,8 @@ def editAquaristClub(request, pk):
             form.save()
             logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-    
+        
+    form = AquaristClubForm2(instance=aquaristClub)
     context = {'form':  form, 'aquaristClub': aquaristClub}
     return render(request, 'species/editAquaristClub.html', context)
 
@@ -255,3 +259,109 @@ def deleteAquaristClubMember(request, pk):
     
     context = {'aquaristClubMember': aquaristClubMember, 'aquaristClub':  aquaristClub}
     return render(request, 'species/deleteAquaristClubMember.html', context)
+
+
+### Cares Liaison Dashboard
+
+class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
+    model = SpeciesInstance
+    template_name = "species/caresLiaisonDashboard.html"
+    context_object_name = "member_cares_species_list"
+    paginate_by = 100
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.club = get_object_or_404(AquaristClub, pk=self.kwargs['pk'])
+        print("AquaristClubCaresLiaisonListView setup called")
+
+    def get_club(self):
+        club_id = self.kwargs.get('pk')
+        club = AquaristClub.objects.get(id=club_id)
+        return club
+
+    def get_queryset(self):
+        # Base queryset
+        queryset = SpeciesInstance.objects.filter(
+            species__render_cares=True,
+            currently_keep=True,
+            user__user_club_members__club=self.get_club(),
+            user__user_club_members__membership_approved=True 
+        ).select_related('user', 'species').distinct()
+        
+        # Apply filters from GET parameters
+        selected_member = self.request.GET.get('member')
+        selected_species = self.request.GET.get('species_kept')
+        
+        if selected_member:
+            queryset = queryset.filter(user_id=selected_member)
+        
+        if selected_species:
+            queryset = queryset.filter(species_id=selected_species)
+        
+        print("AquaristClubCaresLiaisonListView get_queryset called")
+        return queryset
+
+    def get_userCanEdit(self):
+        club = self.get_club()
+        user = self.request.user
+        if not (user_is_club_member(user, club) or user.is_staff):
+            raise PermissionDenied
+        return user_can_edit_club(user, club)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['club'] = self.get_club()
+        context['userCanEdit'] = self.get_userCanEdit()
+        
+        # Get base queryset (without pagination and without current filters applied)
+        base_queryset = SpeciesInstance.objects.filter(
+            species__render_cares=True,
+            currently_keep=True,
+            user__user_club_members__club=self.get_club(),
+            user__user_club_members__membership_approved=True 
+        ).select_related('user', 'species').distinct()
+        
+        club_members = base_queryset.values_list(
+            'user__id', 'user__first_name', 'user__last_name'
+        ).distinct().order_by('user__last_name', 'user__first_name')
+        context['club_members'] = [
+            (user_id, f"{first_name} {last_name}") 
+            for user_id, first_name, last_name in club_members
+        ]
+        
+        species_list = base_queryset.values_list(
+            'species__id', 'species__name'
+        ).distinct().order_by('species__name')
+        context['species_kept_list'] = list(species_list)
+        
+        context['selected_member'] = self.request.GET.get('member', '')
+        context['selected_species_kept'] = self.request.GET.get('species_kept', '')
+        
+        logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s', 
+                   self.request.user.username, self.get_club().name)
+        return context
+
+
+@login_required(login_url='login')
+def importAquaristClubs(request):
+    userCanEdit = user_is_admin (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save()
+            import_csv_aquarist_clubs(import_archive, current_user)
+            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+        
+    form = ImportCsvForm()
+    return render(request, "species/importSpecies.html", {"form": form})
+
+@login_required(login_url='login')
+def exportAquaristClubs(request):
+    return export_csv_aquaristClubs()
+
+@login_required(login_url='login')
+def exportAquaristClubMembers(request):
+    return export_csv_aquaristClubMembers()

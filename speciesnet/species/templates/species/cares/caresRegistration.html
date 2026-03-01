@@ -1,0 +1,97 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3><b>CARES Registration:</b> <i>{{registration.species.name}}</i></h3>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h5>
+                        <b>Aquarist:</b> &nbsp;{{registration.aquarist_name}}
+                    </h5>
+                    <h5>
+                        <b>Email:</b> &nbsp;{{registration.aquarist_email}}
+                    </h5>                                        
+                    <h5>
+                        {% if registration.affiliate_club %}
+                            <b>Club Affiliation:</b> &nbsp;<a href="{% url 'aquaristClub' registration.affiliate_club.id %}">{{registration.affiliate_club.acronym}}</a>
+                            &nbsp;({{registration.affiliate_club.name}})
+                        {% else %}
+                            <b>Club Affiliation:</b> &nbsp; None
+                        {% endif %}                        
+                    </h5>
+                    <small>&nbsp;</small>
+                    
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4><b>CARES Species:</b>&nbsp;&nbsp;<a href="{% url 'caresSpecies' registration.species.id %}"><i>{{registration.species.name}}</i></a></h4>
+                        <p><b>Family:</b>&nbsp;&nbsp;{{registration.species.get_cares_family_display}}</p>
+                        <p><b>Classification:</b>&nbsp;&nbsp;{{registration.species.get_cares_classification_display}}</a></p>
+                    </div>
+
+                    <!--div style="background-color: rgba(255, 255, 255, 0.3); padding: 1rem; padding-left: 2rem; border-radius: 10px; border: 1px solid black;"-->
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4><b>Aquarist Species</b></h4>    
+                        <p><b>Source:</b>&nbsp;&nbsp;{{registration.species_source}}</p>
+                        <p><b>Year Acquired:</b>&nbsp;&nbsp;{{registration.year_acquired}}</p>
+                        <p><b>Collection Location:</b>
+                        {% if registration.collection_location %}
+                            &nbsp;&nbsp;{{registration.collection_location}}
+                        {% else %}   
+                            None
+                        {% endif %}          
+                        </p> 
+
+                        <p><b>Verification Photo:</b></p>
+                        {% if registration.verification_photo %}
+                            <p><img src={{registration.verification_photo.url}}></p>
+                        {% else %}
+                            <p>None</p>
+                        {% endif %}
+
+                        <p><b>Breeding Group?</b>&nbsp;&nbsp;
+                        {% if registration.species_has_spawned %}
+                            Yes</p>
+                        {% else %}
+                            No</p>
+                        {% endif %}
+
+                        <p><b>Offspring Shared?</b> &nbsp;&nbsp;
+                        {% if registration.offspring_shared > 0 %}
+                            Yes</p>
+                        {% else %}
+                            No</p>
+                        {% endif %}    
+
+                        {% if registration.last_report_date %}
+                            <p><b>Last Report:</b>&nbsp;&nbsp; {{ registration.last_report_date | date:'Y-m-d' }}</p>                        
+                        {% endif %}                          
+                    </div>    
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4><b>Registration Detail</b></h4>    
+                        <p><b>Status:</b> &nbsp;&nbsp;{{registration.get_status_display}}</p>
+                        <p><b>Approver:</b>&nbsp;&nbsp; {{ registration.cares_approver.name }}</p>
+                        <p><b>Notes:</b>&nbsp;&nbsp;
+                        {% if registration.approver_notes %}
+                            {{registration.approver_notes}}</p>
+                        {% else %}
+                            None</p>
+                        {% endif %}                          
+                        <p><b>Submitted:</b>&nbsp;&nbsp; {{ registration.date_requested | date:'Y-m-d' }}</p>  
+                        {% if registration.lastUpdated %}
+                            <p><b>Updated:</b>&nbsp;&nbsp; {{ registration.lastUpdated | date:'Y-m-d' }}</p>                        
+                            <p><b>Last Update by:</b>&nbsp;&nbsp; {{ registration.last_updated_by.first_name }} {{ registration.last_updated_by.last_name }}</p>                        
+                        {% endif %}                                                                        
+
+                        {% if userCanEdit %}
+                            <p><a class="btn btn-secondary" href="{% url 'editCaresRegistration' registration.id  %}" role="button">&nbsp;Edit Registration&nbsp;</a></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

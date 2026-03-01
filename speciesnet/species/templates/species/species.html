@@ -10,7 +10,8 @@
                 <div class="card-header">
                     <h3>Species Profile: &nbsp;<i>{{species.name}}</i></h3>
                 </div>
-                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                <!--div class="card-body px-4 py-3" style="background-color: #b6d7ef;"-->
+                <div class="card-body px-4 py-3">
                     {% if species.alt_name %}
                         <p><b>Alternate Name:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
                     {% endif %}
@@ -29,7 +30,7 @@
                     <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
                     <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
                     {% if renderCares %}
-                        <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+                        <p><b>CARES Classification:</b> &nbsp;&nbsp;{{species.get_cares_classification_display}}</p>
                     {% endif %}
 
                     {% if speciesReferenceLinks.all.count > 0  %}
@@ -88,12 +89,12 @@
                             {% endif %}
 
                             <p><i>Add a new comment about this species:</i></p>
-                            <form method="POST" enctype="multipart/form-data" action="">
-                                {% csrf_token %}
-                                {{cform.as_p}}
-                                <!--input type="Submit" value="Add Comment"-->
-                                <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Add Comment"/> 
-                            </form>
+                                <form method="POST" enctype="multipart/form-data" action="">
+                                    {% csrf_token %}
+                                    {{cform.as_p}}
+                                    <input type="submit" class="btn btn-secondary" value="&nbsp;&nbsp;Add Comment&nbsp;&nbsp;"/> 
+                                </form>
+
                         </div>
                     {% endif %}
 

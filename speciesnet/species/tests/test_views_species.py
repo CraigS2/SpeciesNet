@@ -45,7 +45,7 @@ class SpeciesCreateViewTest(TestCase):
             'name': 'Melanochromis auratus',
             'category': 'CIC',
             'global_region': 'AFR',
-            'cares_status':  'NOTC',
+            'cares_classification':  'NOTC',
         })
         
         # Should redirect on success
@@ -62,7 +62,7 @@ class SpeciesCreateViewTest(TestCase):
         self.assertEqual(species.created_by, self.user)
         self.assertFalse(species.render_cares)  # NOTC = Not CARES
     
-    def test_create_species_with_cares_status(self):
+    def test_create_species_with_cares_classification(self):
         """Test creating a CARES species sets render_cares correctly"""
         self.client.login(username='testuser', password='testpass123')
         
@@ -70,7 +70,7 @@ class SpeciesCreateViewTest(TestCase):
             'name': 'Ptychochromis insolitus',
             'category': 'CIC',
             'global_region':  'AFR',
-            'cares_status': 'VULN',
+            'cares_classification': 'VULN',
         })
         
         species = Species.objects.first()
@@ -92,7 +92,7 @@ class SpeciesCreateViewTest(TestCase):
             'name':  'Melanochromis auratus',  # Duplicate
             'category': 'CIC',
             'global_region': 'AFR',
-            'cares_status':  'NOTC',
+            'cares_classification':  'NOTC',
         })
         
         # Should redirect to existing species
@@ -112,7 +112,7 @@ class SpeciesCreateViewTest(TestCase):
             'common_name': 'Auratus',
             'category': 'CIC',
             'global_region': 'AFR',
-            'cares_status': 'NOTC',
+            'cares_classification': 'NOTC',
             'description':  'A beautiful cichlid',
             'local_distribution': 'Lake Malawi',
         })
@@ -170,7 +170,7 @@ class SpeciesEditViewTests(TestCase):
         url = reverse('editSpecies', args=[self.old_species.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'species/editSpecies2.html')
+        self.assertTemplateUsed(response, 'species/editSpecies.html')
 
     def test_edit_species_admin_can_edit_old_species(self):
         """Test that admin user (is_admin=True) can edit species created in the past"""
@@ -178,7 +178,7 @@ class SpeciesEditViewTests(TestCase):
         url = reverse('editSpecies', args=[self.old_species.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'species/editSpecies2.html')
+        self.assertTemplateUsed(response, 'species/editSpecies.html')
 
     def test_edit_species_regular_user_cannot_edit_old_species(self):
         """Test that regular user cannot edit species created in the past"""
@@ -197,7 +197,7 @@ class SpeciesEditViewTests(TestCase):
             'common_name':  'Updated Common Name',
             'category': 'CIC',
             'global_region': 'AFR',
-            'cares_status': 'NOTC'
+            'cares_classification': 'NOTC'
         }
         
         response = self.client.post(url, data)
@@ -217,7 +217,7 @@ class SpeciesEditViewTests(TestCase):
             'common_name':  'Admin Updated Name',
             'category': 'CIC',
             'global_region': 'AFR',
-            'cares_status': 'NOTC'
+            'cares_classification': 'NOTC'
         }
         
         response = self.client.post(url, data)
@@ -466,7 +466,7 @@ class SpeciesReadViewTest(TestCase):
             common_name='Auratus',
             category='CIC',
             global_region='AFR',
-            cares_status='ENDA',
+            cares_classification='ENDA',
             created_by=self.user,
             description='A beautiful cichlid from Lake Malawi'
         )

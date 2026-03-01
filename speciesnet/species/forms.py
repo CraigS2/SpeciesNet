@@ -10,7 +10,7 @@ from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
-from .models import BapSubmission, BapGenus, BapSpecies
+from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -19,7 +19,7 @@ class SpeciesForm2(ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares', 'species_instance_count', 'created_by', 'last_edited_by']
+        exclude = ['render_cares', 'species_instance_count', 'iucn_red_list', 'cares_family', 'created_by', 'last_edited_by']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -68,7 +68,7 @@ class SpeciesForm2(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
-        self.fields['cares_status'].widget.attrs.update({
+        self.fields['cares_classification'].widget.attrs.update({
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
@@ -83,7 +83,7 @@ class SpeciesForm2(ModelForm):
                 Field('description', css_class='mb-1'),
                 Field('global_region', css_class='mb-1'),
                 Field('local_distribution', css_class='mb-1'),
-                Field('cares_status', css_class='mb-1'),
+                Field('cares_classification', css_class='mb-1'),
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
@@ -115,6 +115,365 @@ class SpeciesForm2(ModelForm):
             )
         )
 
+class CaresSpeciesForm(ModelForm):
+    class Meta:
+        model = Species
+        fields = '__all__'
+        exclude = ['render_cares', 'species_instance_count', 'category', 'created_by', 'last_edited_by']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal species-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
+        self.helper.field_class = 'col-md-10'                          # 83% of row
+        
+        # Add Bootstrap classes and placeholders
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'e.g., Aulonocara jacobfreibergi',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['alt_name'].widget.attrs.update({
+            'placeholder': 'Alternative scientific name (if any)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['common_name'].widget.attrs.update({
+            'placeholder': 'e.g., Butterfly Peacock',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['description'].widget.attrs.update({
+            'rows': 2,
+            'placeholder': 'Summary description of the species...',
+            'class': 'form-control'
+        })
+        self.fields['photo_credit'].widget.attrs.update({
+            'placeholder': 'Name of the person or organization providing the photo',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['local_distribution'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'placeholder': 'e.g., Lake Malawi, Otter Point',
+            'class': 'form-control'
+        })
+        self.fields['global_region'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['cares_family'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['iucn_red_list'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })        
+        self.fields['cares_classification'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+                                
+        self.helper.layout = Layout(
+            Fieldset(
+                '🐟 Species Declaration',
+                Field('name', css_class='mb-1'),              # tight spacing between field rows
+                Field('alt_name', css_class='mb-1'),
+                Field('common_name', css_class='mb-1'),
+                Field('description', css_class='mb-1'),
+                Field('global_region', css_class='mb-1'),
+                Field('local_distribution', css_class='mb-1'),
+                Field('cares_family', css_class='mb-1'),
+                Field('cares_classification', css_class='mb-1'),
+                Field('iucn_red_list', css_class='mb-1'),                
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species and distribute their offspring throughout the hobby. </strong><br>
+                                    For more information about the CARES Preservation Program and how you can participate see the <a href="{% url 'cares_overview' %}">CARES Preservation Program Overview</a></small>
+                        </div>
+                    """),      
+                ),     
+                css_class='mb-1'
+            ),
+            Fieldset(
+                '📸 Media',
+                Div(
+                    Field('species_image', css_class='mb-1'),
+                    Field('photo_credit', css_class='mb-1'),                    
+                    HTML("""
+                        <div class="alert alert-info mb-1">
+                            <small>💡 <strong>Please use your photos or photos with permission and include photo credit</strong></small>
+                        </div>
+                    """),                
+                    css_class='media-fields-custom'
+                ),
+                css_class='mb-3 section-bordered'
+            ),
+            FormActions(
+                Submit('submit', 'Save Species', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        ) 
+
+class CaresSpeciesForm2(ModelForm):
+    class Meta:
+        model = Species
+        fields = '__all__'
+        exclude = ['render_cares', 'species_instance_count','created_by', 'last_edited_by']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal species-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
+        self.helper.field_class = 'col-md-10'                          # 83% of row
+        
+        # Add Bootstrap classes and placeholders
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'e.g., Aulonocara jacobfreibergi',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['alt_name'].widget.attrs.update({
+            'placeholder': 'Alternative scientific name (if any)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['common_name'].widget.attrs.update({
+            'placeholder': 'e.g., Butterfly Peacock',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['description'].widget.attrs.update({
+            'rows': 2,
+            'placeholder': 'Summary description of the species...',
+            'class': 'form-control'
+        })
+        self.fields['photo_credit'].widget.attrs.update({
+            'placeholder': 'Name of the person or organization providing the photo',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['local_distribution'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'placeholder': 'e.g., Lake Malawi, Otter Point',
+            'class': 'form-control'
+        })
+        self.fields['global_region'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['cares_family'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['category'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+        self.fields['iucn_red_list'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })        
+        self.fields['cares_classification'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;'
+        })
+                                
+        self.helper.layout = Layout(
+            Fieldset(
+                '🐟 Species Declaration',
+                Field('name', css_class='mb-1'),              # tight spacing between field rows
+                Field('alt_name', css_class='mb-1'),
+                Field('common_name', css_class='mb-1'),
+                Field('description', css_class='mb-1'),
+                Field('global_region', css_class='mb-1'),
+                Field('local_distribution', css_class='mb-1'),
+                Field('category', css_class='mb-1'),                
+                Field('cares_family', css_class='mb-1'),
+                Field('cares_classification', css_class='mb-1'),
+                Field('iucn_red_list', css_class='mb-1'),                
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>The CARES Preservation Program encourages hobbyists to maintain at-risk species and distribute their offspring throughout the hobby. </strong><br>
+                                    For more information about the CARES Preservation Program and how you can participate see the <a href="{% url 'cares_overview' %}">CARES Preservation Program Overview</a></small>
+                        </div>
+                    """),      
+                ),     
+                css_class='mb-1'
+            ),
+            Fieldset(
+                '📸 Media',
+                Div(
+                    Field('species_image', css_class='mb-1'),
+                    Field('photo_credit', css_class='mb-1'),                    
+                    HTML("""
+                        <div class="alert alert-info mb-1">
+                            <small>💡 <strong>Please use your photos or photos with permission and include photo credit</strong></small>
+                        </div>
+                    """),                
+                    css_class='media-fields-custom'
+                ),
+                css_class='mb-3 section-bordered'
+            ),
+            FormActions(
+                Submit('submit', 'Save Species', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )        
+
+class CaresRegistrationAnonymousForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'species', 'aquarist', 'affiliate_club', 'offspring_shared', 'status', 
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
+        widgets = { 'species_source': forms.Textarea(attrs={'rows':3,'cols':50}),
+                    'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
+
+
+from django import forms
+
+class CaresRegistrationAnonymousForm2 (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location', 'species_source', 'year_acquired', 
+                  'verification_photo', 'species_has_spawned']
+        exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
+        widgets = {
+            'species_source': forms.Textarea(attrs={'rows': 2}),  
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.instance.pk:  # initialize default club for new registrations
+            try:
+                default_club = AquaristClub.objects.get(name='None')
+                self.fields['affiliate_club'].initial = default_club.pk
+            except AquaristClub.DoesNotExist:
+                pass  
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal registration-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
+        self.helper.field_class = 'col-md-10'                          # 83% of row
+        
+        # Add Bootstrap classes and placeholders
+        self.fields['aquarist_name'].widget.attrs.update({
+            'placeholder': 'Your full name',
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['aquarist_email'].widget.attrs.update({
+            'placeholder': 'Your email address',
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['affiliate_club'].help_text = "CARES affiliate club, if you are a member, otherwise choose 'None'"
+        self.fields['affiliate_club'].widget.attrs.update({
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['collection_location'].widget.attrs.update({
+            'placeholder': 'The original collection location of the species, if known. Otherwise leave blank.',
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['species_source'].widget.attrs.update({
+            'placeholder': 'Describe where you obtained your fish ...',
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['year_acquired'].help_text = 'The year you obtained your fish.'
+        self.fields['year_acquired'].widget.attrs.update({
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+        self.fields['verification_photo'].help_text = 'A photo of the fish you are registering.'
+        self.fields['verification_photo'].widget.attrs.update({
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['species_has_spawned'].help_text = 'Have your fish spawned?'
+        self.fields['species_has_spawned'].widget.attrs.update({
+            'style': 'max-width: 300px;',
+            'class': 'form-control'
+        })
+                                
+        self.helper.layout = Layout(
+            Fieldset(
+                '🐟 Registration Details',
+                Field('aquarist_name', css_class='mb-1'),              # tight spacing between field rows
+                Field('aquarist_email', css_class='mb-1'),
+                Field('affiliate_club', css_class='mb-1'),
+                Field('collection_location', css_class='mb-1'),
+                Field('species_source', css_class='mb-1'),
+                Field('year_acquired', css_class='mb-1'),
+                Field('verification_photo', css_class='mb-1'),                
+                Field('species_has_spawned', css_class='mb-1'),
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Please be sure to upload a good quality photo of your fish for verification purposes.</strong><br></small>
+                        </div>
+                    """),      
+                ),     
+                css_class='mb-1'
+            ),
+            FormActions(
+                Submit('submit', 'Submit Registration', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{% url \'home\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )        
+
+
+# admin-only full access to normally hidden properties
+class CaresRegistrationAdminForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'species']
+        widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
+
+# registration submition by Cares Admin
+class CaresRegistrationSubmitionAdminForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'species', 'species_has_spawned', 'offspring_shared', 
+                   'status', 'cares_approver', 'approver_notes', 'last_updated_by', 'last_report_date']
+        widgets = { 'species_source':      forms.Textarea(attrs={'rows':1,'cols':50}),
+                    'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
+        
+# registration review by approver - general workflow edit
+class CaresRegistrationApprovalForm (ModelForm):
+    class Meta:
+        model = CaresRegistration
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'species', 'collection_location', 'species_source', 
+                   'verification_photo', 'year_acquired', 'offspring_shared', 'last_updated_by', 'last_report_date']
+        widgets = {'approver_notes':          forms.Textarea(attrs={'rows':3,'cols':50}),}        
+
+class CaresApproverForm (ModelForm):
+    class Meta:
+        model = CaresApprover
+        fields = '__all__'
+        exclude = ['name', 'last_updated_by']
+        
 class SpeciesForm (ModelForm):
     class Meta:
         model = Species
@@ -139,6 +498,18 @@ class SpeciesImportMinimumForm (ModelForm):
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
+class SpeciesInstanceForm (ModelForm):
+    class Meta:
+        model = SpeciesInstance
+        fields = '__all__'
+        exclude = ['user', 'species', 'acquired_from', 'cares_registered']
+        widgets = {'name':                       forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'unique_traits':              forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'aquarist_species_video_url': forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'collection_point':           forms.Textarea(attrs={'rows':1,'cols':50}),
+                   'aquarist_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
+                   'spawning_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
+                   'fry_rearing_notes':          forms.Textarea(attrs={'rows':6,'cols':50}),}
 
 class SpeciesInstanceForm2(ModelForm):
     class Meta:
@@ -285,31 +656,11 @@ class SpeciesInstanceForm2(ModelForm):
             
             # Submit Buttons
             FormActions(
-                Submit('submit', 'Save Aquarist Species', css_class='btn btn-success btn-lg'),
+                Submit('submit', 'Save Aquarist Species', css_class='btn btn-primary btn-lg'),
                 HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
                 css_class='mt-2'
             )
         )
-
-class SpeciesInstanceForm (ModelForm):
-    class Meta:
-        model = SpeciesInstance
-        fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from', 'cares_registered']
-        widgets = {'name':                       forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'unique_traits':              forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'aquarist_species_video_url': forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'collection_point':           forms.Textarea(attrs={'rows':1,'cols':50}),
-                   'aquarist_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
-                   'spawning_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
-                   'fry_rearing_notes':          forms.Textarea(attrs={'rows':6,'cols':50}),}
-        
-
-from django import forms
-from crispy_forms.helper import FormHelper
-from crispy_forms. layout import Layout, Fieldset, Submit, Row, Column, HTML
-from .models import Species, SpeciesInstance
-
 
 class CombinedSpeciesForm(forms.Form):
     # Species fields
@@ -334,10 +685,10 @@ class CombinedSpeciesForm(forms.Form):
         initial=Species.GlobalRegion. AFRICA,
         label='Global Region'
     )
-    cares_status = forms.ChoiceField(
+    cares_classification = forms.ChoiceField(
         choices=Species.CaresStatus.choices,
         initial=Species.CaresStatus.NOT_CARES_SPECIES,
-        label='CARES Status'
+        label='CARES Classification'
     )
     
     # SpeciesInstance fields
@@ -391,7 +742,7 @@ class CombinedSpeciesForm(forms.Form):
                     Row(
                         Column('category', css_class='col-md-4 mb-3'),
                         Column('global_region', css_class='col-md-4 mb-3'),
-                        Column('cares_status', css_class='col-md-4 mb-3'),
+                        Column('cares_classification', css_class='col-md-4 mb-3'),
                     ),
                     css_class='mb-4'
                 ),
@@ -531,17 +882,41 @@ class SpeciesSearchFilterForm (forms.Form):
         ('',    'All Categories',),
     ]
     GLOBAL_REGION_CHOICES = [
-        ('SAM', 'Africa'),
-        ('CAM', 'South America'),
-        ('NAM', 'Central America'),
-        ('AFR', 'North America'),
+        ('AFR', 'Africa'),
+        ('SAM', 'South America'),
+        ('CAM', 'Central America'),
+        ('NAM', 'North America'),
         ('SEA', 'Southeast Asia'),
-        ('AUS', 'Australia'),
-        ('',    'All Regions'),
+        ('AUS', 'Oceania'),
+        ('EUR', 'Europe'),
+        ('',    'All Regions'),      
     ]   
+    CARES_FAMILY_CHOICES = [
+        ('RIC', 'Adrianichthyidae (Ricefish)'),
+        ('ANA', 'Anabantidae (Climbing Gouramies)'),
+        ('EKF', 'Aphaniidae (Eurasian Killifish)'),
+        ('MKF', 'Bedotiidae (Madagascan Killifish)'),
+        ('OKF', 'Killifish (Other Killifish)'),
+        ('CHA', 'Characidae (Tetras)'),
+        ('CIC', 'Cichlidae (Cichlids)'),
+        ('LCH', 'Cobitidae (Loaches)'),
+        ('CYP', 'Cyprinidae (Minnows and Carps)'),
+        ('PUP', 'Cyprinodontidae (Pupfish)'),
+        ('GOB', 'Gobiidae (Gobies)'),
+        ('GOO', 'Goodeidae (Splitfins)'),
+        ('LOR', 'Loricariidae (Armoured Catfish)'),
+        ('RBF', 'Melanotaeniidae (Rainbowfish)'),
+        ('SQU', 'Mochokidae (Squeakers)'),
+        ('TCA', 'Nothobranchiidae (Toothcarps)'),
+        ('LVB', 'Poeciliidae (Livebearers)'),
+        ('BLE', 'Pseudomugilidae (Blue Eyes)'),
+        ('RIV', 'Rivulidae (Rivulus)'),
+        ('VLC', 'Valenciidae (Valencias)'),
+        ('',    'All Families'),
+    ]
     category = forms.ChoiceField (choices = CATEGORY_CHOICES, required = False)
     region   = forms.ChoiceField (choices = GLOBAL_REGION_CHOICES, required = False)
-
+    cares_family = forms.ChoiceField (choices = CARES_FAMILY_CHOICES, required = False)
 
 class BapSubmissionFilterForm (forms.Form):
     STATUS_CHOICES = [
@@ -604,7 +979,6 @@ class AquaristClubForm (ModelForm):
     class Meta:
         model = AquaristClub
         fields = '__all__'
-        exclude = ['club_admins', 'club_members']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'website':            forms.Textarea(attrs={'rows':1,'cols':50}),
                    'city':               forms.Textarea(attrs={'rows':1,'cols':50}),
@@ -614,11 +988,173 @@ class AquaristClubForm (ModelForm):
                    'bap_guidelines':     forms.Textarea(attrs={'rows':8,'cols':50}),
                    'bap_notes_template': forms.Textarea(attrs={'rows':8,'cols':50}),}
         
+class AquaristClubForm2 (ModelForm):
+    class Meta:
+        model = AquaristClub
+        fields = '__all__'
+        widgets = {
+            'about':              forms.Textarea(attrs={'rows': 3}),  
+            'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),  
+            'bap_notes_template': forms.Textarea(attrs={'rows': 8}),  
+        }      
+          
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal aqurist-club-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'Full name of your club',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['acronym'].widget.attrs.update({
+            'placeholder': "Short all-caps acronym, e.g. 'ACA', 'AKA', 'PVAS' ... etc",
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['about'].widget.attrs.update({
+            'placeholder': 'Short 1-2 sentences describing your club',
+            'style': 'max-width: 750px;',
+            'class': 'form-control'
+        })      
+        self.fields['website'].widget.attrs.update({
+            'placeholder': 'Full url for your site, e.g. https://www.aka.org',
+            'style': 'max-width: 750px;',
+            'class': 'form-control'
+        }) 
+        self.fields['city'].widget.attrs.update({
+            'placeholder': 'City where your club meets or is located, e.g. Boston (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['state'].widget.attrs.update({
+            'placeholder': 'e.g. Massachusets or MA (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['country'].widget.attrs.update({
+            'placeholder': 'e.g. USA, Canada, Norway ... (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        }) 
+        self.fields['require_member_approval'].help_text = 'Admins must approve members before accessing club pages.'
+        self.fields['require_member_approval'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })   
+        self.fields['is_bap_club'].help_text = 'Enables BAP Features for your club.'
+        self.fields['is_bap_club'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })   
+        self.fields['is_cares_club'].help_text = 'Enables CARES Liaison Feature.'
+        self.fields['is_cares_club'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        }) 
+        self.fields['bap_guidelines'].widget.attrs.update({
+            'placeholder': "Short summary of your Club's BAP rules",
+            'style': 'max-width: 750px;',
+            'class': 'form-control'
+        })
+        self.fields['bap_notes_template'].widget.attrs.update({
+            'placeholder': "Text displayed for input on each BAP Submission, e.g. Water and Tank Conditions:, Feeding Routine:, Spawning and Fry-Rearing Notes:",
+            'style': 'max-width: 750px;',
+            'class': 'form-control'
+        })  
+        self.fields['bap_default_points'].help_text = 'Default and most common value applied to BAP Genus entries'
+        self.fields['bap_default_points'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        }) 
+        self.fields['cares_muliplier'].help_text = 'e.g. 2 doubles the points for CARES Species. Enter 1 if you do not want to use a multiplier'
+        self.fields['cares_muliplier'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        }) 
+        self.fields['bap_start_date'].help_text = 'The start date for your annual BAP cycle, e.g. September 1st or January 1st.'
+        self.fields['bap_start_date'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        }) 
+        self.fields['bap_end_date'].help_text = 'The end date for your annual BAP cycle, e.g. June 30th or December 31st.'
+        self.fields['bap_end_date'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        })        
+
+        self.helper.layout = Layout(
+            # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
+            # Fieldset(
+            Div(
+                Field('name', css_class='mb-1'),
+                Field('acronym', css_class='mb-1'),
+                Field('logo_image', css_class='mb-1'),
+                Field('website', css_class='mb-1'),
+                Field('about', css_class='mb-1'),
+                Field('city', css_class='mb-1'),
+                Field('state', css_class='mb-1'),
+                Field('country', css_class='mb-1'),
+                css_class='mb-3'
+            ),    
+            Fieldset(
+                'Club Features',  
+                Row(
+                    Column(
+                        Field('is_bap_club', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('is_cares_club', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('require_member_approval', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),                
+                    css_class='form-row'
+                ),
+                Div( 
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Checking options turns on or off Club features. </strong><br>
+                                    Checking <i>BAP Club</i> enables the BAP program for your club. &nbsp;Unchecking hides all BAP features.<br>
+                                    Checking <i>CARES Club</i> enables the CARES Liaison role. &nbsp;Unchecking disables CARES features.<br>
+                        </div>
+                    """),      
+                ),                  
+                css_class='mb-3 section-bordered'
+            ),     
+    
+            Fieldset(
+                'BAP Features', 
+                Field('bap_guidelines', css_class='mb-1'),
+                Field('bap_notes_template', css_class='mb-1'),
+                Field('bap_default_points', css_class='mb-1'),
+                Field('cares_muliplier', css_class='mb-1'),
+                Field('bap_start_date', css_class='mb-1'),
+                Field('bap_end_date', css_class='mb-1'),
+                css_class='mb-3 section-bordered'
+            ),  
+
+            # Submit Buttons
+            FormActions(
+                Submit('submit', 'Save Club Configuration', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )
+
+        
 class AquaristClubMemberJoinForm (ModelForm):
     class Meta:
         model = AquaristClubMember
         fields = '__all__'
-        exclude = ['name', 'club', 'membership_approved', 'is_club_admin', 'bap_participant']
+        exclude = ['name', 'club', 'membership_approved', 'is_club_admin', 'is_cares_admin', 'bap_participant']
 
 class AquaristClubMemberForm (ModelForm):
     class Meta:
@@ -634,6 +1170,152 @@ class UserProfileForm (ModelForm):
                     'last_name':          forms.Textarea(attrs={'rows':1,'cols':40}),                   
                     'state':              forms.Textarea(attrs={'rows':1,'cols':40}),
                     'country':            forms.Textarea(attrs={'rows':1,'cols':40}),}
+
+class UserProfileForm2(ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'state', 'country', 
+                  'is_private_name', 'is_private_email', 'is_private_location',
+                  'prefer_tile_view',
+                  'instagram_url', 'facebook_url', 'youtube_url' ]
+        #exclude = ['user', 'species', 'acquired_from', 'young_available_image']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal user-profile-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+        
+        # Customize field widgets
+        self.fields['first_name'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['last_name'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['state'].widget.attrs.update({
+            'placeholder': 'e.g. Massachusets or MA (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['country'].widget.attrs.update({
+            'placeholder': 'e.g. USA, Canada, Norway ... (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        }) 
+        self.fields['instagram_url'].widget.attrs.update({
+            'placeholder': 'https://instagram.com/username',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })   
+        self.fields['facebook_url'].widget.attrs.update({
+            'placeholder': 'https://facebook.com/username',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })   
+        self.fields['youtube_url'].widget.attrs.update({
+            'placeholder': 'https://youtube.com/@username',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })                                        
+        
+        self.fields['is_private_name'].widget.attrs.update({'id': 'id_is_private_name'})
+        self.fields['is_private_email'].widget.attrs.update({'id': 'id_is_private_email'})
+        self.fields['is_private_location'].widget.attrs.update({'id': 'id_is_private_location'})
+        self.fields['prefer_tile_view'].widget.attrs.update({'id': 'id_prefer_tile_view'})
+
+        self.helper.layout = Layout(
+            # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
+            # General Info - no border, just background
+            # Fieldset(
+            Div(
+                Field('first_name', css_class='mb-1'),
+                Field('last_name', css_class='mb-1'),
+                Field('state', css_class='mb-1'),
+                Field('country', css_class='mb-1'),
+                css_class='mb-3'
+            ),    
+
+            Fieldset(
+                '🔏 Privacy Settings',  
+                Row(
+                    Column(
+                        Field('is_private_name', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('is_private_email', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
+                        Field('is_private_location', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),                
+                    css_class='form-row'
+                ),
+                Div( 
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Privacy settings determine what is visible to users. </strong><br>
+                                    Checking <i>private name</i> hides your name on all public pages. &nbsp;If you join a club, club members will see your name on club pages.<br>
+                                    Checking <i>private email</i> or <i>private location</i> hides this personal data from all users.</small>
+                        </div>
+                    """),      
+                ),                  
+                css_class='mb-3 section-bordered'
+            ),         
+
+            Fieldset(
+                '👤 Preferences',  
+                Row(
+                    Column(
+                        Field('prefer_tile_view', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),            
+                    css_class='form-row'
+                ),
+                Div( 
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Choosing the Tile View preference displays Aquarist Fishrooms in Tile View by default. </strong><br>
+                                    Unchecking <i>Tile View</i> displays Fishrooms as <i>List View</i> by default.<br>
+                                    When viewing Fishroom pages you can toggle between Tile and List Views at any time. 
+                        </div>
+                    """),      
+                ),                  
+                css_class='mb-3 section-bordered'
+            ),         
+
+
+            Fieldset(
+                '🌐 Social Media',
+                Div(
+                    Field('instagram_url', css_class='mb-1'),
+                    Field('facebook_url', css_class='mb-1'),
+                    Field('youtube_url', css_class='mb-1'),
+                    css_class='social-media-fields-custom'  # Add custom class
+                ), 
+                Div( 
+                    HTML("""
+                        <div class="alert alert-info mb-3">
+                            <small>💡 <strong>Customize your Profile with links to your Social Media pages. &nbsp;&nbsp;</strong> 
+                                    These links will be displayed on your <i>Fishroom</i> page.</small>
+                        </div>
+                    """),      
+                ),                                
+                css_class='mb-3 section-bordered'
+            ),
+            # Submit Buttons
+            FormActions(
+                Submit('submit', 'Save Profile', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )
         
 class EmailAquaristForm (ModelForm):
     class Meta:

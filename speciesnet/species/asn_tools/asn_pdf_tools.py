@@ -17,7 +17,6 @@ def generatePdfLabels (formset: SpeciesInstanceLabelFormSet, label_set, request,
             label_num = []
             for form in formset:
                 if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                    # assume order is maintained TODO find a better way to do this
                     si_label = label_set[label_counter]
                     si_label.name = form.cleaned_data['name']
                     si_label.text_line1 = form.cleaned_data['text_line1']
@@ -96,8 +95,6 @@ def generatePdfLabels (formset: SpeciesInstanceLabelFormSet, label_set, request,
             response.write(pdf)
 
         except Exception as e:
-            # TODO Log the error.
-            # logging.error(traceback.format_exc())
             error_msg = ("Error processing PDF file: " + str(e))
             messages.error (request, error_msg)
 

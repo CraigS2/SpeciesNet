@@ -2,6 +2,13 @@
 Species views package
 """
 
+### Adding Views requires:
+### 1: importing the view from the appropriate file -- see IMPORT
+### 2: making the view available from the package   -- see PACKAGE
+
+
+### IMPORT from view .py files
+
 # User & Authentication
 from .views_user import (
     userProfile, editUserProfile, aquarist, AquaristListView,
@@ -16,13 +23,23 @@ from .views_species import (
     exportSpecies, importSpecies
 )
 
+# Species (Species Profiles)
+from .views_cares import (
+    caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
+    caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
+    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, 
+    editCaresSpecies2, editCaresRegistrationAdmin, registrationLookup,
+    caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers,
+    exportCaresRegistrations, importCaresRegistrations,
+)
+
 # Species Instance (Aquarist Species)
 from .views_species_instance import (
     speciesInstance, createSpeciesInstance, editSpeciesInstance, deleteSpeciesInstance,
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
-    editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, speciesInstancesWithPhotos,
-    speciesInstancesWithLabels, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
-    reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances
+    editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
+    reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances,
+    registerCaresSpeciesInstance
 )
 
 # Maintenance Logs
@@ -40,16 +57,18 @@ from .views_club import (
     aquaristClubs, aquaristClub, createAquaristClub, editAquaristClub,
     deleteAquaristClub, aquaristClubAdmin, AquaristClubMemberListView,
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
-    deleteAquaristClubMember
+    deleteAquaristClubMember, AquaristClubCaresLiaisonListView,
+    exportAquaristClubs, exportAquaristClubMembers, importAquaristClubs
 )
 
 # CLub BAP
 from .views_bap import (
     bapSubmission, createBapSubmission, editBapSubmission, deleteBapSubmission,
-    BapSubmissionsView, BapLeaderboardView, BapGenusView, BapSpeciesView,
-    BapGenusSpeciesView, editBapGenus, deleteBapGenus, createBapSpecies,
-    editBapSpecies, deleteBapSpecies, importClubBapGenus, exportClubBapGenus, 
-    bap_submissions_overview
+    BapSubmissionsView, bap_submissions_overview,
+    BapLeaderboardView, BapGenusView, BapSpeciesView, BapGenusSpeciesView,
+    createBapSpecies, editBapSpecies, deleteBapSpecies, 
+    editBapGenus, deleteBapGenus,
+    importClubBapGenus, exportClubBapGenus, exportBapSubmissions
 )
 
 # User Experience
@@ -60,11 +79,15 @@ from .views_ux import (
 
 # Admin Tools
 from .views_tools import (
+    speciesProfilesWithPhotos, speciesInstancesWithPhotos, speciesInstancesWithLabels, 
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
+    collectSpeciesData, 
     tools, tools2, dirtyDeed
 )
 
-# Make all views available at package level
+
+### PACKAGE view declarations
+
 __all__ = [
     # User
     'userProfile', 'editUserProfile', 'aquarist', 'AquaristListView',
@@ -81,6 +104,7 @@ __all__ = [
     'createSpeciesAndInstance', 'speciesInstanceLog', 'createSpeciesInstanceLogEntry',
     'editSpeciesInstanceLogEntry', 'deleteSpeciesInstanceLogEntry', 'speciesInstancesWithLabels', 
     'speciesInstancesWithPhotos','chooseSpeciesInstancesForLabels', 'editSpeciesInstanceLabels',
+    'registerCaresSpeciesInstance',
        
     # Maintenance Logs
     'speciesMaintenanceLogs', 'speciesMaintenanceLog', 'createSpeciesMaintenanceLog',
@@ -94,7 +118,12 @@ __all__ = [
     'aquaristClubs', 'aquaristClub', 'createAquaristClub', 'editAquaristClub',
     'deleteAquaristClub', 'aquaristClubAdmin', 'AquaristClubMemberListView',
     'aquaristClubMember', 'createAquaristClubMember', 'editAquaristClubMember',
-    'deleteAquaristClubMember',
+    'deleteAquaristClubMember', AquaristClubCaresLiaisonListView,
+
+    # Cares
+    'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 
+    'caresApprover', 'createCaresApprover', 'editCaresApprover', 'deleteCaresApprover',
+    'registerCaresSelectSpecies', 'registerCaresSpecies', 'registrationLookup',
     
     # BAP
     'bapSubmission', 'createBapSubmission', 'editBapSubmission', 'deleteBapSubmission',
@@ -114,4 +143,4 @@ __all__ = [
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',
     'tools', 'tools2',  'dirtyDeed'
-]
+] # type: ignore

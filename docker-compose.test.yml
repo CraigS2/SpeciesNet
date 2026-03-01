@@ -13,6 +13,8 @@ services:
       tmpfs: 
         - /var/lib/mysql
       command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      networks:
+        - asn_test_network
 
     test_django:
       container_name: ASN_TEST_DJANGO
@@ -26,7 +28,7 @@ services:
         DATABASE_NAME: test_speciesnet
         DATABASE_USER: root
         DATABASE_PASSWORD: test_root_password
-        DATABASE_PORT:  3306
+        DATABASE_PORT: 3306
         DATABASE_ROOT_PASSWORD: test_root_password
         DEBUG: "1"
         DEBUG_TOOLBAR: "0"
@@ -34,10 +36,17 @@ services:
         ALLOWED_HOST1: "localhost"
         ALLOWED_HOST2: "127.0.0.1"
         ALLOWED_HOST3: "testserver"
+        ALLOWED_HOST4: "testserver2"
         CSRF_TRUSTED_ORIGIN1: "http://localhost"
         CSRF_TRUSTED_ORIGIN2: "http://127.0.0.1"
         CSRF_TRUSTED_ORIGIN3: "http://testserver"
-        EMAIL_BACKEND: "django.core. mail.backends.console.EmailBackend"
+        EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"
       entrypoint: []
-      command: sh /entrypoint.test.sh        
-      #entrypoint:  ["sh", "/entrypoint.test.sh"]
+      command: sh /entrypoint.test.sh
+      networks:
+        - asn_test_network
+
+networks:
+  asn_test_network:
+    name: asn_test_network
+    driver: bridge

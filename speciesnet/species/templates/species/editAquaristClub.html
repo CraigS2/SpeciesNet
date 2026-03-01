@@ -1,32 +1,34 @@
 {% extends 'main.html' %}
 <!--context = {'form': form, 'aquaristClub': aquaristClub}-->
 {% block content %}
-<div class="container">
-    <h3><b>Edit:</b> {{ aquaristClub.name }}</h3>
-    <div>
-        <table>
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{form.as_table}}
-                <tr>
-                    <td></td>
-                    <td style="text-align: left; padding-top: 1em;">
-                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            value="Save Changes">
-                    </td>  
-                </tr>
-                <tr>
-                    <td></td>
-                    <td style="text-align:left; padding-top:1em;">
-                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
-                            onclick="window.location.href='{% url 'deleteAquaristClub' aquaristClub.id %}';" 
-                            type="button">&nbsp;Delete Club&nbsp;
-                        </button>
-                    </td>   
-                </tr>                
-            </form>
-        </table>
+{% load crispy_forms_tags %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">Edit Club: <i>{{ aquaristClub.name }}</i></h4>
+                </div>
+                <div class="card-body px-4 py-3">
+                    {% crispy form %}
+                </div>
+            </div>            
+
+            <!-- Delete button -->
+            <div><p>&nbsp;</p></div>
+            <div class="card shadow-sm">
+                <div class="card-body px-4 py-3">
+                    <h4 class="my-0">Delete Club</h4> 
+                    <p class="text-muted mb-3">This action cannot be undone. All associated data will be permanently removed.</p>
+                    <a href="{% url 'deleteAquaristClub' form.instance.pk %}" 
+                        class="btn btn-secondary"
+                    style="color: darkred !important; margin-left: 14%;">
+                        Delete Club
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-    <p><small>&nbsp;</small></p>
 </div>
 {% endblock content %}

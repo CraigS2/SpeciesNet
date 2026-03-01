@@ -1,22 +1,81 @@
-{% extends 'main.html' %}
-
+{% extends "main.html" %}
+{% load crispy_forms_tags %}
 {% block content %}
-<div class="container">
-    <h3>Edit {{aquarist.get_display_name}} Profile: </h3>
-    <small>&nbsp;</small>
-    <p>Configure your Name, location (State, Country) and privacy settings below. </p>
-    <p>Choosing <b>private name</b> hides your first and last name on all shared pages. Your username will be displayed.<br>
-    Choosing <b>private email</b> hides your email on your Aquarist page. Users will still be able to contact you using the <b>Contact</b> option.<br>
-    Choosing <b>private location</b> hides your State and Country location on your Aquarist page.</p>
 
-    <div>
-        <table>
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{form.as_table}}
-                <td> </td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
-            </form>
-        </table>
+<style>
+    /* Card background - 25% lighter than ASN Blue */
+    .species-instance-card .card {
+        background-color: rgb(189, 219, 241);
+        border: 2px solid rgb(132, 179, 211);
+    }
+    
+    .species-instance-card .card-body {
+        background-color: rgb(189, 219, 241);
+    }
+
+    .species-instance-card .card-header {
+        background-color: rgb(132, 179, 211); /* !important */
+        color:lightslategrey !important;
+        border-bottom: 2px solid rgb(112, 159, 191);
+    }
+    
+    /* Bordered sections (e.g. Media) */
+    .section-bordered {
+        background-color: rgb(212, 231, 247);
+        border: 2px solid rgb(162, 189, 221);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .section-bordered legend {
+        background-color: rgb(212, 231, 247) !important;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        border: none !important;
+        width: auto;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* General Info section (no border) */
+    .general-info-section {
+        background-color: transparent;
+        padding: 0;
+    }
+
+    /* All fieldset legends */
+    fieldset legend,
+    .section-bordered legend {
+        color: #495057 !important;  /* Match General Info gray */
+        font-weight: 400;
+    }
+
+    /* Override label/field widths for Media section only */
+    .media-fields-custom .col-md-2 {
+        flex: 0 0 25%;  /* Make label wider (was ~17%) */
+        max-width: 25%;
+    }
+
+    .media-fields-custom .col-md-10 {
+        flex: 0 0 75%;  /* Make field narrower (was ~83%) */
+        max-width: 75%;
+    }    
+        
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background-color: #e9ebee";">
+                    <h2 class="my-0">Edit Profile: <i>{{ user.username }}</i></h2>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock content %}

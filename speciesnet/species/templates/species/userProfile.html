@@ -2,51 +2,99 @@
 <!-- context = {'aquarist': aquarist} -->
 {% block content %}
 
-<div class="container">
-    <h1>{{aquarist.get_display_name}}</h1>
-    <large>
-        <p><B>Username:</B> &nbsp;{{aquarist.get_display_name}}</p>
-        <p><B>Aquarist Page:</B> <a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}} Fish Room</a></p>
-        <p><B>Name:</B> &nbsp;{{aquarist.first_name}} {{aquarist.last_name}}</p>
-        <p><B>Email:</B> &nbsp;{{aquarist.email}}</p>
-        <p><B>State:</B> &nbsp;{{aquarist.state}}</p>
-        <p><B>Country:</B> &nbsp;{{aquarist.country}}</p>
-        <p>The following settings are <i>'Private'</i> or <i>'Shared'</i>. <b>Private</b> settings remain hidden from all users.<br>
-            <b>Shared</b> settings are displayed on AquaristSpecies.net pages for signed-in users.</p>
-        {% if aquarist.is_private_name %}
-            <p><B>Name: </B>&nbsp;<i>Private</i></p>
-        {% else %}
-            <p><B>Name: </B>&nbsp;<i>Shared</i></p>
-        {% endif %}
-        {% if aquarist.is_private_email %}
-            <p><B>Email: </B>&nbsp;<i>Private</i></p>
-        {% else %}
-            <p><B>Email: </B>&nbsp;<i>Shared</i></p>
-        {% endif %}
-        {% if aquarist.is_private_location %}
-            <p><B>Location: </B>&nbsp;<i>Private</i></p>
-        {% else %}
-            <p><B>Location: </B>&nbsp;<i>Shared</i></i></p>
-        {% endif %}
-        <p><B>Member since:</B> &nbsp;{{aquarist.date_joined|date:"M d, Y" }}</p>
-    </large>
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3>User Profile: &nbsp;<i>{{aquarist.get_display_name}}</i></h3>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}} Fish Room</a></h5>
+                    <h5><b>Name:</b> &nbsp;{{aquarist.get_full_name}}</h5>
+                    <h5><b>Username:</b> &nbsp;{{aquarist.get_display_name}}</h5>
+                    <h5><b>Email:</b> &nbsp;{{aquarist.email}}</h5>
+                    <h5><b>State:</b> &nbsp;{{aquarist.state}}</h5>
+                    <h5><b>Country:</b> &nbsp;{{aquarist.country}}</h5>
+                    <small>&nbsp;</small>
 
-    <!--p><h5><a href="{% url 'editUserProfile' %}">Edit {{request.user}} Profile</a></h5></p-->
-    <p><a class="btn btn-secondary" href="{% url 'editUserProfile' %}" role="button">&nbsp;Edit Profile&nbsp;</a></p>
+                    <div class="mb-3 section-bordered">
+                        <h4>🔏 Privacy Settings</h4> 
+                        {% if aquarist.is_private_name %}
+                            <p><b>Name: </b>&nbsp;<i>Private</i></p>
+                        {% else %}
+                            <p><b>Name: </b>&nbsp;<i>Shared</i></p>
+                        {% endif %}
+                        {% if aquarist.is_private_email %}
+                            <p><b>Email: </b>&nbsp;<i>Private</i></p>
+                        {% else %}
+                            <p><b>Email: </b>&nbsp;<i>Shared</i></p>
+                        {% endif %}
+                        {% if aquarist.is_private_location %}
+                            <p><b>Location: </b>&nbsp;<i>Private</i></p>
+                        {% else %}
+                            <p><b>Location: </b>&nbsp;<i>Shared</i></i></p>
+                        {% endif %}
+                    </div>
 
-    <!--p><h5><a href="{% url 'account_logout' %}">Sign out {{request.user}}</a></h5></p-->
-    <p><a class="btn btn-secondary" href="{% url 'account_logout' %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;Sign out&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
-    <!--hr-->
+                    <div class="mb-3 section-bordered">
+                        <h4>👤 Preferences</h4> 
+                        {% if aquarist.prefer_tile_view %}
+                            <p><b>Tile or List View Preference: </b>&nbsp;<i>Tile</i></p>
+                        {% else %}
+                            <p><b>Tile or List View Preference: </b>&nbsp;<i>List</i></p>
+                        {% endif %}
+                    </div>                    
 
-    {% if aquarist.id == 1 or aquarist.id == 2 %}
-        <div class="div-line-above">
-            <h2>Admin Tools</h2>
-            <p><a class="btn btn-secondary" href="{% url 'tools2' %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tools2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
-            {% if aquarist.id == 1 %}
-                <p><a class="btn btn-secondary" href="{% url 'admin:index' %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Admin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>
-            {% endif %}
+                    {% if aquarist.instagram_url or aquarist.facebook_url or aquarist.youtube_url  %}
+                        <div class="mb-3 section-bordered">
+                            <h4>Social Media
+                                {% if aquarist.instagram_url %}
+                                    &nbsp;&nbsp;<a href="{{ aquarist.instagram_url }}" target="_blank" rel="noopener noreferrer" 
+                                    class="text-decoration-none" title="Instagram">
+                                        <i class="bi bi-instagram" style="font-size: 1.5rem; color: #E4405F;"></i>
+                                    </a>
+                                {% endif %}
+
+                                {% if aquarist.facebook_url %}
+                                    &nbsp;&nbsp;<a href="{{ aquarist.facebook_url }}" target="_blank" rel="noopener noreferrer" 
+                                    class="text-decoration-none" title="Facebook">
+                                        <i class="bi bi-facebook" style="font-size: 1.5rem; color: #1877F2;"></i>
+                                    </a>
+                                {% endif %}
+                                
+                                {% if aquarist.youtube_url %}
+                                    &nbsp;&nbsp;<a href="{{ aquarist.youtube_url }}" target="_blank" rel="noopener noreferrer" 
+                                    class="text-decoration-none" title="YouTube">
+                                        <i class="bi bi-youtube" style="font-size: 1.5rem; color: #FF0000;"></i>
+                                    </a>
+                                {% endif %}  
+                            </h4>                          
+                        </div>
+                    {% endif %}
+
+                    <p><a class="btn btn-secondary" href="{% url 'editUserProfile' %}" role="button">&nbsp;Edit Profile&nbsp;</a></p>
+
+                    {% if request.user.is_species_admin or request.user.is_staff or request.user.is_admin %}
+                        <div class="mb-3 section-bordered">
+                            <h4>Admin Tools &nbsp;&nbsp;</h4>
+                            <!--div class ="d-flex justify-content-between align-items-start"-->
+                            <a class="btn btn-secondary" href="{% url 'tools' %}" role="button">&nbsp;&nbsp;Species Tools&nbsp;&nbsp;</a>
+                            {% if request.user.is_species_admin or request.user.is_staff %}
+                                &nbsp;&nbsp;
+                                <a class="btn btn-secondary" href="{% url 'tools2' %}" role="button">&nbsp;&nbsp;Power Tools&nbsp;&nbsp;</a>
+                            {% endif %}
+                            {% if aquarist.id == 1 or aquarist.id == 2 %}
+                                &nbsp;&nbsp;
+                                <a class="btn btn-secondary" href="{% url 'admin:index' %}" role="button">&nbsp;&nbsp;Advanced Admin&nbsp;&nbsp;</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    <p class="text-muted"><b><i>Member since:</b> &nbsp;{{aquarist.date_joined|date:"M d, Y" }}</i></p>
+                </div>
+            </div>
         </div>
-    {% endif %}
+    </div>
 </div>
 
 {% endblock content %}

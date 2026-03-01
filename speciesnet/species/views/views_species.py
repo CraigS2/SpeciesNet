@@ -5,12 +5,13 @@ Species-related views: CRUD operations, search, comments, reference links
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from django.conf import settings
 
 ### View Species
 
 def species(request, pk):
     species = get_object_or_404(Species, pk=pk)
-    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+    renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesComments = SpeciesComment.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
@@ -44,7 +45,7 @@ def species(request, pk):
         'userCanEdit': userCanEdit,
         'cform': cform
     }
-    return render(request, 'species/species2.html', context)
+    return render(request, 'species/species.html', context)
 
 
 ### Search Species
@@ -105,7 +106,7 @@ def createSpecies(request):
                 
                 # Assure unique species names - prevent duplicates
                 if not Species.objects.filter(name=species_name).exists():
-                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.created_by = request.user
                     species.save()
                     if species.species_image:
@@ -129,7 +130,7 @@ def createSpecies(request):
             messages.error(request, 'Please correct the errors highlighted below.')
     
     context = {'form': form}
-    return render(request, 'species/editSpecies2.html', context)
+    return render(request, 'species/editSpecies.html', context)
 
 
 ### Edit Species
@@ -147,7 +148,7 @@ def editSpecies(request, pk):
         if form.is_valid():
             try:
                 species = form.save(commit=False)
-                species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                 species.last_edited_by = request.user
                 species.save()
                 if species.species_image:
@@ -164,11 +165,10 @@ def editSpecies(request, pk):
         else:
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    else:
-        form = SpeciesForm2(instance=species)
-
+    
+    form = SpeciesForm2(instance=species)
     context = {'form': form, 'species': species}
-    return render(request, 'species/editSpecies2.html', context)
+    return render(request, 'species/editSpecies.html', context)
 
 
 ### Delete Species
@@ -190,7 +190,12 @@ def deleteSpecies(request, pk):
     if request.method == 'POST': 
         logger.info('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
-        return redirect('speciesSearch')
+
+        site_id = getattr(settings, 'SITE_ID', 1)
+        if site_id == 2:
+            return redirect('caresSpeciesSearch')
+        else:
+            return redirect('speciesSearch')
     
     context = {'species': species}
     return render(request, 'species/deleteSpecies.html', context)

@@ -255,7 +255,14 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
         
         return context
 
-
+@login_required(login_url='login')
+def exportBapSubmissions(request, pk):
+    club = AquaristClub.objects.get(id=pk)
+    userCanEdit = user_can_edit_club(request.user, club)
+    if not userCanEdit:
+        raise PermissionDenied()     
+    return export_csv_bap_submissions(club.id)
+    
 ### BAP Leaderboard
 
 class BapLeaderboardView(LoginRequiredMixin, ListView):
@@ -731,7 +738,11 @@ def importClubBapGenus(request, pk):
 @login_required(login_url='login')
 def exportClubBapGenus(request, pk):
     club = AquaristClub.objects.get(id=pk)
+    userCanEdit = user_can_edit_club(request.user, club)
+    if not userCanEdit:
+        raise PermissionDenied()    
     return export_csv_bap_genus(club.id)
+
 
 
 ### BAP Overview Page

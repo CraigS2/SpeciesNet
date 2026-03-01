@@ -1,0 +1,25 @@
+{% extends 'main.html' %}
+<!-- context = cares_approvers, userCanEdit -->
+{% block content %}
+<div class="container">
+    <h3>Cares Approvers ({{cares_approvers|length}})</h3>
+    {% if cares_approvers|length > 0%}
+        <table>
+            <tr>
+                <td><b>Approver</b></td>
+                <td><b>CARES Classification</b></td>
+            </tr>              
+            {% for approver in cares_approvers %}
+                <tr>
+                    <td><a href="{% url 'caresApprover' approver.id %}">{{approver.approver.first_name}} {{approver.approver.last_name}}</a></td>
+                    <td>&nbsp;&nbsp;{{approver.get_specialty_display}}</td>
+                </tr>                  
+            {% endfor %}       
+        </table>
+
+    {% else %} 
+        <p>None</p>
+    {% endif %}  
+</div>
+
+{% endblock content %}

@@ -1,0 +1,19 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container">
+    <div>
+        <h3><b>CARES Approver</b></h3>
+        <h5>
+            Approver: &nbsp;{{cares_approver.approver.first_name}} {{cares_approver.approver.last_name}} &nbsp;&nbsp;({{cares_approver.approver.get_display_name}})
+        </h5>
+        <h5>
+            Classification: &nbsp;{{cares_approver.get_specialty_display}}</a>
+        </h5>        
+        <small>&nbsp;</small>
+        {% if userCanEdit %}
+            <p><a class="btn btn-secondary" href="{% url 'editCaresApprover' cares_approver.id  %}" role="button">&nbsp;Edit CARES Approver&nbsp;</a></p>
+        {% endif %}        
+    </div>
+</div>
+{% endblock content %}

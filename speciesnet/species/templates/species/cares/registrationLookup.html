@@ -1,0 +1,113 @@
+{% extends 'main.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Check Your CARES Registrations</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Enter your email address to view your CARES species registrations
+                    </p>
+                    
+                    <!-- Display messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Email lookup form -->
+                    <form method="post" id="email-lookup-form" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input 
+                                type="email" 
+                                class="form-control" 
+                                id="email" 
+                                name="email" 
+                                placeholder="your.email@example.com"
+                                required
+                                maxlength="500"
+                                autocomplete="email"
+                            >
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
+                            </div>
+                            <div class="form-text">
+                                Use the email address associated with your CARES registrations.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-secondary btn-lg"><i class="bi bi-search"></i> Submit Email</button>
+                        </div>
+                        
+                    </form>
+                    <div class="text-center">
+                        <p class="small text-muted mb-2">
+                            <strong>Privacy Notice:</strong> Your email is only used to manage CARES registrations. 
+                        </p>
+                    </div>                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Client-side validation for better UX
+    (function() {
+        'use strict';
+        
+        const form = document.getElementById('email-lookup-form');
+        const emailInput = document.getElementById('email');
+        
+        // Basic email regex pattern
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        form.addEventListener('submit', function(event) {
+            const email = emailInput.value.trim();
+            
+            // Clear previous validation states
+            emailInput.classList.remove('is-invalid', 'is-valid');
+            
+            // Validate email
+            if (!email || !emailPattern.test(email)) {
+                event.preventDefault();
+                event.stopPropagation();
+                emailInput.classList.add('is-invalid');
+                return false;
+            }
+            
+            emailInput.classList.add('is-valid');
+        });
+        
+        // Real-time validation as user types
+        emailInput.addEventListener('blur', function() {
+            const email = emailInput.value.trim();
+            
+            if (email) {
+                if (emailPattern.test(email)) {
+                    emailInput.classList.remove('is-invalid');
+                    emailInput.classList.add('is-valid');
+                } else {
+                    emailInput.classList.remove('is-valid');
+                    emailInput.classList.add('is-invalid');
+                }
+            } else {
+                emailInput.classList.remove('is-valid', 'is-invalid');
+            }
+        });
+    })();
+</script>
+{% endblock content %}

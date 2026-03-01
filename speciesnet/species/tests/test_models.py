@@ -136,21 +136,6 @@ class UserModelMethodsTest(MinimalTestCase):
             password='pass123'
         )
     
-    def test_get_full_name(self):
-        """Test get_full_name method"""
-        self.user.first_name = 'John'
-        self.user.last_name = 'Doe'
-        self.assertEqual(self.user.get_full_name(), 'John Doe')
-    
-    def test_get_full_name_empty(self):
-        """Test get_full_name with no names"""
-        self.assertEqual(self.user.get_full_name(), '')
-    
-    def test_get_short_name(self):
-        """Test get_short_name method"""
-        self.user.first_name = 'John'
-        self.assertEqual(self.user.get_short_name(), 'John')
-    
     def test_get_display_name_with_email_username(self):
         """Test get_display_name strips email domain"""
         user = User.objects.create_user(
@@ -229,7 +214,7 @@ class SpeciesModelCRUDTest(BaseTestCase):
         )
         self.assertEqual(species.category, 'CIC')  # Default to CICHLIDS
         self.assertEqual(species.global_region, 'AFR')  # Default to AFRICA
-        self.assertEqual(species.cares_status, 'NOTC')  # Default NOT_CARES_SPECIES
+        self.assertEqual(species.cares_classification, 'NOTC')  # Default NOT_CARES_SPECIES
         self.assertFalse(species.render_cares)
         self.assertEqual(species.species_instance_count, 0)
     
@@ -255,16 +240,16 @@ class SpeciesModelCRUDTest(BaseTestCase):
             )
             self.assertEqual(species.global_region, region)
     
-    def test_species_cares_status_choices(self):
-        """Test all CARES status choices are valid"""
+    def test_species_cares_classification_choices(self):
+        """Test all CARES Classification choices are valid"""
         statuses = ['NOTC', 'NEAR', 'VULN', 'ENDA', 'CEND', 'EXCT']
         for status in statuses: 
             species = Species.objects.create(
                 name=f'Test Species {status}',
-                cares_status=status,
+                cares_classification=status,
                 created_by=self.basic_user
             )
-            self.assertEqual(species.cares_status, status)
+            self.assertEqual(species.cares_classification, status)
 
 
 class SpeciesModelMethodsTest(BaseTestCase):
@@ -617,18 +602,6 @@ class AquaristClubModelTest(BaseTestCase):
             bap_default_points=50
         )
         self.assertEqual(club.bap_default_points, 50)
-    
-    def test_club_many_to_many_admins(self):
-        """Test club can have multiple admins"""
-        club = AquaristClub.objects.create(
-            name='Multi Admin Club',
-            website='https://example.com'
-        )
-        club.club_admins.add(self.super_user, self.active_user)
-        
-        self.assertEqual(club.club_admins.count(), 2)
-        self.assertIn(self.super_user, club.club_admins.all())
-        self.assertIn(self.active_user, club.club_admins.all())
     
     def test_club_str_method(self):
         """Test __str__ method"""

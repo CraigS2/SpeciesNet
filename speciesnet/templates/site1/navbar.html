@@ -10,7 +10,9 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarMain" style="background-color: rgb(152, 199, 231);">        
+            <div class="collapse navbar-collapse" id="navbarMain" style="background-color: rgb(152, 199, 231);"> 
+                
+                <!-- Main Navbar Menus and Direct Links -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <!-- About (Direct Link) -->
                     <li class="nav-item">
@@ -28,13 +30,13 @@
                         href="{% url 'aquarists' %}">&nbsp;Aquarists&nbsp;</a>
                     </li> 
                     {% if user.is_authenticated %}
-                        <!-- Clubs (Dropdown) -->
+                        <!-- Community (Dropdown) -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {% if 'club' in request.path %}active{% endif %}" 
                             href="#" id="clubsDropdown" role="button" 
                             data-bs-toggle="dropdown" aria-expanded="false">&nbsp;Community&nbsp;</a>
                             <ul class="dropdown-menu" aria-labelledby="clubsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">BAP Clubs</a></li>
+                                <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">Aquarist Clubs</a></li>
                                 <li><a class="dropdown-item" href="{% url 'bap_overview' %}">BAP Program Overview</a></li>
                                 <li><a class="dropdown-item" href="{% url 'cares_overview' %}">CARES Preservation Program</a></li>
                                 <li><a class="dropdown-item" href="{% url 'speciesMaintenanceLogs' %}">Species Maintenance Groups</a></li>
@@ -53,9 +55,12 @@
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                                 <li><a class="dropdown-item" href="{% url 'userProfile' %}">Profile</a></li>
                                 <li><a class="dropdown-item" href="{% url 'aquarist' user.id %}">Fishroom</a></li>
-                                {% if user.is_staff %}
+                                {% if request.user.is_species_admin or request.user.is_staff or request.user.is_species_admin %}
                                     <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
                                 {% endif %}
+                                {% if request.user.is_species_admin or request.user.is_staff %}
+                                    <li><a class="dropdown-item" href="{% url 'tools2' %}">Tools2</a></li>
+                                {% endif %}                                
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
                             </ul>

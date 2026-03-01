@@ -50,7 +50,7 @@ def speciesInstance(request, pk):
         else:
             isBapParticipant = False
 
-    renderCares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+    renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     
     if request.user.is_authenticated:
@@ -68,7 +68,7 @@ def speciesInstance(request, pk):
         'renderCares':  renderCares,
         'userCanEdit': userCanEdit
     }
-    return render(request, 'species/speciesInstance2.html', context)
+    return render(request, 'species/speciesInstance.html', context)
 
 
 ### Create Species Instance
@@ -101,7 +101,7 @@ def createSpeciesInstance(request, pk):
 
     form = SpeciesInstanceForm2(initial={"name": species.name, "species": species.id})
     context = {'form': form}
-    return render(request, 'species/editSpeciesInstance2.html', context)
+    return render(request, 'species/editSpeciesInstance.html', context)
 
 
 ### Edit Species Instance
@@ -146,7 +146,7 @@ def editSpeciesInstance(request, pk):
         form = SpeciesInstanceForm2(instance=speciesInstance)
 
     context = {'form': form, 'speciesInstance': speciesInstance, 'speciesMaintenanceLog': speciesMaintenanceLog}
-    return render(request, 'species/editSpeciesInstance2.html', context)
+    return render(request, 'species/editSpeciesInstance.html', context)
 
 
 ### Delete Species Instance
@@ -154,14 +154,21 @@ def editSpeciesInstance(request, pk):
 @login_required(login_url='login')
 def deleteSpeciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
+    species = speciesInstance.species
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     if not userCanEdit:
         raise PermissionDenied()
     
     if request.method == 'POST':
+        messages.success (request, 'Deleted Aquarist Species: ' + speciesInstance.name)
         logger.info('User %s deleted speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
         speciesInstance.delete()
-        return redirect('speciesSearch')
+
+        site_id = getattr(settings, 'SITE_ID', 1)
+        if site_id == 2:
+            return redirect('caresSpeciesSearch')
+        else:
+            return redirect('speciesSearch')
     
     context = {'speciesInstance': speciesInstance}
     return render(request, 'species/deleteSpeciesInstance.html', context)
@@ -209,13 +216,13 @@ def createSpeciesAndInstance(request):
                     description=form.cleaned_data['species_description'],
                     category=form.cleaned_data['category'],
                     global_region=form.cleaned_data['global_region'],
-                    cares_status=form.cleaned_data['cares_status'],
+                    cares_classification=form.cleaned_data['cares_classification'],
                     created_by=request.user,
                     last_edited_by=request.user
                 )
                 
                 if species: 
-                    species.render_cares = species.cares_status != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.save()
 
                     # Create SpeciesInstance with Species as foreign key
@@ -232,8 +239,8 @@ def createSpeciesAndInstance(request):
                     
                     if speciesInstance:
                         speciesInstance.save()
-                        species.species_instance_count = 1
-                        species.save()
+                        # species.species_instance_count = 1
+                        # species.save()
 
                     messages.success(request, f'Successfully created species "{species.name}" and your Aquarist Species!')
                     logger.info('User %s added species: %s (%s) and speciesInstance: %s (%s)', 
@@ -353,24 +360,6 @@ def deleteSpeciesInstanceLogEntry(request, pk):
     context = {'object_type': object_type, 'object_name': object_name}
     return render(request, 'species/deleteConfirmation.html', context)
 
-### Species Instances with Photos 
-
-@login_required(login_url='login')
-def speciesInstancesWithPhotos(request):
-    si_with_photos = SpeciesInstance.objects.exclude(aquarist_species_image__in=['', None])
-
-    context = {'si_with_photos': si_with_photos}
-    return render(request, 'species/speciesInstancesWithPhotos.html', context)
-
-
-### Species Instance Labels (QR Codes)
-
-@login_required(login_url='login')
-def speciesInstancesWithLabels(request):
-    si_labels = SpeciesInstanceLabel.objects.all()
-    context = {'si_labels': si_labels}
-    return render(request, 'species/speciesInstancesWithLabels.html', context)
-
 
 @login_required(login_url='login')
 def chooseSpeciesInstancesForLabels(request, pk):
@@ -399,6 +388,7 @@ def chooseSpeciesInstancesForLabels(request, pk):
     context = {'form': form}
     return render(request, 'species/chooseSpeciesInstancesForLabels.html', context)
 
+### Species Instance Labels
 
 @login_required(login_url='login')
 def editSpeciesInstanceLabels(request):
@@ -456,6 +446,14 @@ def editSpeciesInstanceLabels(request):
     return render(request, 'species/editSpeciesInstanceLabels.html', {'formset': formset})
 
 
+### Register Cares Species - from Species Instance
+
+@login_required(login_url='login')
+def registerCaresSpeciesInstance(request, pk):
+    print ('WARNING: TODO registerCaresSpeciesInstance')
+    return ()
+
+
 ### Import/Export Species Instances
 
 @login_required(login_url='login')
@@ -466,13 +464,16 @@ def exportSpeciesInstances(request):
 @login_required(login_url='login')
 def importSpeciesInstances(request):
     current_user = request.user
-    form = ImportCsvForm()
+    userCanEdit = user_is_admin (request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
     
     if request.method == 'POST':
-        form2 = ImportCsvForm(request.POST, request.FILES)
-        if form2.is_valid():
-            import_archive = form2.save()
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save()
             import_csv_speciesInstances(import_archive, current_user)
             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
-    
+        
+    form = ImportCsvForm()
     return render(request, "species/importSpecies.html", {"form": form})

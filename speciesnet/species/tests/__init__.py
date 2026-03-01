@@ -105,7 +105,7 @@ class BaseTestCase(TestCase):
             name='Ptychochromis insolitus',
             category='CIC',
             global_region='AFR',
-            cares_status='EXCT',  # Extinct in the wild
+            cares_classification='EXCT',  # Extinct in the wild
             render_cares=True,
             description='Critically endangered Malagasy cichlid',
             created_by=cls.super_user
@@ -123,7 +123,6 @@ class BaseTestCase(TestCase):
             cares_muliplier=2,
             require_member_approval=True
         )
-        cls.basic_club.club_admins.add(cls.active_user)
     
     def setUp(self):
         """

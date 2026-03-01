@@ -1,0 +1,30 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Register Your Species</h3>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h2>How to Register your CARES Species</h2>
+                    <large>
+                        <p>To register your fish, select your CARES Species from the Priority List and click the 'Register Species' button.</p>
+                        <p>1. Navigate to <b>CARES Species</b> (top menu) and use search options to find your species. </p>
+                        <p>2. Click on the <b>Species Name</b> to load the species page.</p>
+                        <p>3. Scroll to the bottom of the page and click the <b><i>Register This Species</i></b> button.</p>
+                    
+                        <p><a class="btn btn-secondary" href="{% url 'caresSpeciesSearch' %}" role="button">&nbsp;Go to CARES Species Search now&nbsp;</a></p>
+                        <small>&nbsp;</small>
+                    </large>
+                    <p style="text-align:left;"><a href="{% url 'caresSpeciesSearch'%}"><img src={% static 'images\cares_logo_200x200_transparent_bg.png' %}></a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

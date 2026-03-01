@@ -6,10 +6,12 @@
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card shadow-sm">
-                <div class="card-header" style="background-color: #e9ebee;">
+                <!--div class="card-header" style="background-color: #e9ebee;"-->
+                <div class="card-header">
                     <h3>Aquarist Species: &nbsp;<i>{{speciesInstance.name}}</i></h3>
                 </div>
-                <div class="card-body px-4 py-3" style="background-color: #b6d7ef;">
+                <!--div class="card-body px-4 py-3" style="background-color: #b6d7ef;"-->
+                <div class="card-body px-4 py-3">
                     <h4>Aquarist: <a href="{% url 'aquarist' speciesInstance.user.id %}">{{speciesInstance.user.get_display_name}}</a></h4>
                     
                     <!-- Species Profile -->
@@ -31,7 +33,7 @@
                         <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
                         <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
                         {% if renderCares %}
-                            <p><b>CARES Status:</b> &nbsp;&nbsp;{{species.get_cares_status_display}}</p>
+                            <p><b>CARES Classification:</b> &nbsp;&nbsp;{{species.get_cares_classification_display}}</p>
                         {% endif %}                        
                     </div>
 
@@ -84,7 +86,7 @@
 
                         {% if speciesInstance.enable_species_log %}
                             <div class="css_class='mb-3 section-bordered">
-                                <h5><b>Species Logs</b></h5>
+                                <h5>Species Logs</h5>
                                 <p>Aquarist Species Logs are linked pages aquarists can use to add additional notes, images, and embed YouTube videos.</p>
                                 {% if userCanEdit or not speciesInstance.log_is_private %}
                                     <p><a class="btn btn-secondary" href="{% url 'speciesInstanceLog' speciesInstance.id %}" role="button">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; View Species Log &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></p>

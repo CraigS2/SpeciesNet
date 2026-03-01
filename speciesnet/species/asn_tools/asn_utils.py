@@ -9,7 +9,14 @@ from django.utils import timezone
 from urllib.parse import urlparse
 import logging, bleach, re
 
-# user_can_edit
+# user_can_edit | user_is_admin
+
+def user_is_admin (cur_user: User):
+    user_is_admin = False
+    if cur_user.is_authenticated:
+        if cur_user.is_admin:
+            user_is_admin = True
+    return user_is_admin
 
 def user_can_edit (cur_user: User):
     userCanEdit = False
@@ -32,7 +39,7 @@ def user_can_edit_s (cur_user: User, species: Species):
     today_date = datetime.today().date()
     userCanEdit = False
     if cur_user.is_authenticated:
-        if cur_user.is_staff or cur_user.is_admin:   # is_admin have 'species edit' permissions, is_staff has full edit permissions
+        if cur_user.is_staff or cur_user.is_admin or cur_user.is_species_admin: 
             userCanEdit = True
         elif created_date == today_date:
             if species.created_by == cur_user:
@@ -87,8 +94,9 @@ def user_can_edit_club (cur_user: User, club: AquaristClub):
             print ('user_can_edit_club: seeing if member exists')
             try:
                 member = AquaristClubMember.objects.get(user=cur_user, club=club) 
-                userCanEdit = member.is_club_admin
-                print ('Club Member is club admin: ' + cur_user.username)
+                if (member.is_club_admin or member.is_cares_admin):
+                    userCanEdit = True
+                    print ('Club Member is club admin: ' + cur_user.username)
             except ObjectDoesNotExist:
                 pass # user is not a member 
                 print ('Club Member not found: ' + cur_user.username + ' can join')
@@ -213,7 +221,6 @@ def get_youtube_embedded_id(video_url):
 
 def get_youtube_embedded_url_from_id(video_id):
     if video_id:
-        #video_url = 'https://www.youtube.com/embed/' + video_id
         video_url = f"https://www.youtube.com/embed/{video_id}"
         return video_url
     return None
@@ -227,5 +234,87 @@ def processVideoURL (video_url_field: URLField):
         video_url = get_youtube_embedded_url_from_id (video_id)
         print ('Revised video URL: ' + str(video_url))
     return video_url
+
+### validate and clean-normalize social media urls ###
+
+def normalize_url(url):
+    if not url:
+        return None
+    url = url.strip()
+    if not url:
+        return None   
+    if not url.startswith(('http://', 'https://')):
+        url = f'https://{url}'
+    if url.startswith('http://'):
+        url = url.replace('http://', 'https://', 1)
+    return url
+
+# the following validation methods utilize 'urlparse' 
+# e.g. the url "https://www.instagram.com/username?ref=badge"
+# yields the following for 'parsed = urlparse(url)'
+# ParseResult(scheme='https', netloc='www.instagram.com', path='/username',
+#             params='', query='ref=badge', fragment='')
+# netloc is what needs to match social media domains
+
+def validate_normalize_instagram_url(url):
+    # netloc must be 'instagram.com' or 'instagr.am'
+    url = normalize_url(url)
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc.split(':')[0].lower()  # Remove port if present
+        if domain.startswith('www.'):
+            domain = domain[4:]  # Remove 'www.'
+        if domain.startswith('m.'):
+            domain = domain[2:]  # Remove 'm.'
+        print('Domain is ' + str(domain))
+        if domain not in ('instagram.com', 'instagr.am'):
+            return None
+    except:
+        return None
+    return url
+    # if not url:
+    #     return None
+    # try:
+    #     parsed = urlparse(url)
+    #     #domain = parsed.netloc.split(':')[0].lower().replace('www.', '').replace('m.', '') - covers cases with ports e.g. :8080
+    #     domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
+    #     print ('Domain is ' + str(domain))
+    #     if domain not in ('instagram.com', 'instagr.am'):
+    #         return None
+    # except:
+    #     return None
+    # return url
+
+
+def validate_normalize_facebook_url(url):
+    # netloc must be 'facebook.com' or 'fb.com'
+    url = normalize_url(url)
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
+        if domain not in ('facebook.com', 'fb.com'):
+            return None
+    except:
+        return None
+    return url
+
+
+def validate_normalize_youtube_url(url):
+    # netloc must be 'youtube.com' or 'youtu.be'
+    url = normalize_url(url)
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
+        if domain not in ('youtube.com', 'youtu.be'):
+            return None
+    except:
+        return None
+    return url
  
     
