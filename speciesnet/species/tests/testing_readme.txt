@@ -7,7 +7,9 @@
 #
 #  To run the full suite of tests using a separate Docker file and docker-compose.test.yml file:
 # 
-#     Modify the .env file to keep DEBUG=1 but set DEBUG_TOOLBAR=False as the toolbar is incompatible with the test framework
+#  Modify the .env file to keep DEBUG=1 but set DEBUG_TOOLBAR=False as the toolbar is incompatible with the test framework. Run the usual docker containers
+#  bringing up nginx, django gunicorn, the maria db, and the network containers. Stop them - leaving the network container for the test environment to use. 
+#
 #     docker-compose -f docker-compose.test.yml up --build           # builds and runs all tests
 #     CTRL-C                                                         # stops the Django and DB containers
 #     docker-compose -f docker-compose.test.yml down -v              # removes the Django and DB containers

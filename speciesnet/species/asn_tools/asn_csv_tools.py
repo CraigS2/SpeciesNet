@@ -421,8 +421,8 @@ def export_csv_species():
         'category', 'global_region', 'local_distribution', 
        # cares_family            iucn_red_list    cares_classification   render_cares
         'cares_classification', 'iucn_red_list', 'cares_classification', 'render_cares', 
-       # species_instance_count    created   created_by     lastUpdated    last_edited_by    
-        'species_instance_count', 'created', 'created_by', 'lastUpdated', 'last_edited_by' 
+       # created   created_by     lastUpdated    last_edited_by    
+        'created', 'created_by', 'lastUpdated', 'last_edited_by' 
         ])
     
     for species in speciesSet:
@@ -433,8 +433,8 @@ def export_csv_species():
             species.category, species.global_region, species.local_distribution, 
             #       cares_family          iucn_red_list          cares_classification          render_cares
             species.cares_family, species.iucn_red_list, species.cares_classification, species.render_cares,
-            #       species_instance_count          created          created_by          lastUpdated          last_edited_by    
-            species.species_instance_count, species.created, species.created_by, species.lastUpdated, species.last_edited_by
+            #       created          created_by          lastUpdated          last_edited_by    
+            species.created, species.created_by, species.lastUpdated, species.last_edited_by
             ])
     
     return response

@@ -57,7 +57,7 @@ def createAquaristClub(request):
     if request.method == 'POST': 
         form = AquaristClubForm(request.POST, request.FILES)
         if form.is_valid():
-            aquaristClub = form2.save(commit=True)
+            aquaristClub = form.save(commit=True)
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             logger.info('User %s created club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
