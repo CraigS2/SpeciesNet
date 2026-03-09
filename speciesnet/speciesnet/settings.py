@@ -315,10 +315,10 @@ WSGI_APPLICATION = 'speciesnet.wsgi.application'
 # }
 
 # mariadb production Database
-_db_engine = os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql')
+db_engine = os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql')
 DATABASES = {
     'default': {
-        'ENGINE': _db_engine,
+        'ENGINE': db_engine,
         'NAME': os.environ.get('DATABASE_NAME', 'speciesnet'),
         'USER': os.environ.get('DATABASE_USER', 'mysqluser'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'unsecure'),
@@ -326,7 +326,7 @@ DATABASES = {
         'PORT': os.environ.get('DATABASE_PORT', '3306'),
     }
 }
-if 'mysql' in _db_engine:
+if 'mysql' in db_engine:
     DATABASES['default']['OPTIONS'] = {'charset': 'utf8mb4'}
 
 ### Custom User Model ###

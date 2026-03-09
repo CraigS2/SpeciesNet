@@ -1,7 +1,7 @@
-import logging
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from species.services.species_sync import SpeciesSyncService
 
@@ -41,13 +41,13 @@ class Command(BaseCommand):
         since = None
 
         if options['last_week']:
-            since = datetime.now(tz=dt_timezone.utc) - timedelta(days=7)
+            since = datetime.now(tz=timezone.utc) - timedelta(days=7)
             self.stdout.write(f'Syncing species updated in the last 7 days (since {since.date()})')
         elif options['since']:
             parsed = parse_date(options['since'])
             if parsed is None:
                 raise CommandError(f'Invalid date format: {options["since"]}. Use YYYY-MM-DD.')
-            since = datetime(parsed.year, parsed.month, parsed.day, tzinfo=dt_timezone.utc)
+            since = datetime(parsed.year, parsed.month, parsed.day, tzinfo=timezone.utc)
             self.stdout.write(f'Syncing species updated since {parsed}')
         else:
             self.stdout.write('Syncing all CARES species')

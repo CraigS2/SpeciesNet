@@ -3,12 +3,38 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_datetime, parse_date
 from django.utils import timezone
 from species.models import Species
 from .serializers import SpeciesSyncSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_since_param(since_param):
+    """
+    Parse a `since` query parameter string into an aware datetime.
+
+    Handles:
+    - ISO 8601 datetime strings (with optional timezone)
+    - Date-only strings (YYYY-MM-DD), interpreted as midnight UTC
+    - '+' sign encoded as space (common in URL query parameters)
+
+    Returns an aware datetime, or None if parsing fails.
+    """
+    # URL query params decode '+' as space; restore it for timezone offsets
+    normalized = since_param.replace(' ', '+')
+    dt = parse_datetime(normalized)
+    if dt is None:
+        parsed_date = parse_date(normalized)
+        if parsed_date:
+            dt = timezone.datetime(
+                parsed_date.year, parsed_date.month, parsed_date.day,
+                tzinfo=timezone.utc,
+            )
+    if dt is not None and timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.utc)
+    return dt
 
 
 class SpeciesSyncViewSet(viewsets.ReadOnlyModelViewSet):
@@ -33,21 +59,8 @@ class SpeciesSyncViewSet(viewsets.ReadOnlyModelViewSet):
 
         since_param = self.request.query_params.get('since')
         if since_param:
-            # URL query params decode '+' as space; restore it for timezone offsets
-            since_param_normalized = since_param.replace(' ', '+')
-            since_dt = parse_datetime(since_param_normalized)
-            if since_dt is None:
-                # Try parsing as date only (YYYY-MM-DD)
-                from django.utils.dateparse import parse_date
-                parsed_date = parse_date(since_param_normalized)
-                if parsed_date:
-                    since_dt = timezone.datetime(
-                        parsed_date.year, parsed_date.month, parsed_date.day,
-                        tzinfo=timezone.utc
-                    )
+            since_dt = _parse_since_param(since_param)
             if since_dt is not None:
-                if timezone.is_naive(since_dt):
-                    since_dt = timezone.make_aware(since_dt, timezone.utc)
                 queryset = queryset.filter(lastUpdated__gte=since_dt)
                 logger.info('species-sync list filtered by since=%s', since_param)
             else:
@@ -64,29 +77,15 @@ class SpeciesSyncViewSet(viewsets.ReadOnlyModelViewSet):
         """Return statistics about the CARES species available for sync."""
         logger.info('species-sync stats requested by user=%s', request.user.username)
         total_cares = Species.objects.filter(render_cares=True).count()
+
         since_param = request.query_params.get('since')
+        recent_count = None
         if since_param:
-            # URL query params decode '+' as space; restore it for timezone offsets
-            since_param_normalized = since_param.replace(' ', '+')
-            since_dt = parse_datetime(since_param_normalized)
-            if since_dt is None:
-                from django.utils.dateparse import parse_date
-                parsed_date = parse_date(since_param_normalized)
-                if parsed_date:
-                    since_dt = timezone.datetime(
-                        parsed_date.year, parsed_date.month, parsed_date.day,
-                        tzinfo=timezone.utc
-                    )
+            since_dt = _parse_since_param(since_param)
             if since_dt is not None:
-                if timezone.is_naive(since_dt):
-                    since_dt = timezone.make_aware(since_dt, timezone.utc)
                 recent_count = Species.objects.filter(
                     render_cares=True, lastUpdated__gte=since_dt
                 ).count()
-            else:
-                recent_count = None
-        else:
-            recent_count = None
 
         data = {
             'total_cares_species': total_cares,

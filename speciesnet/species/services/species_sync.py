@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -140,7 +140,7 @@ class SpeciesSyncService:
         from django.utils.dateparse import parse_datetime
         dt = parse_datetime(value)
         if dt is not None and timezone.is_naive(dt):
-            dt = timezone.make_aware(dt, dt_timezone.utc)
+            dt = timezone.make_aware(dt, timezone.utc)
         return dt
 
     @transaction.atomic
@@ -163,7 +163,7 @@ class SpeciesSyncService:
         # Species exists – compare timestamps
         local_last_updated = local.lastUpdated
         if local_last_updated is not None and timezone.is_naive(local_last_updated):
-            local_last_updated = timezone.make_aware(local_last_updated, dt_timezone.utc)
+            local_last_updated = timezone.make_aware(local_last_updated, timezone.utc)
 
         if remote_last_updated is not None and local_last_updated is not None:
             if remote_last_updated <= local_last_updated:
