@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -143,11 +142,32 @@ class SpeciesSyncService:
             dt = timezone.make_aware(dt, timezone.utc)
         return dt
 
+    def _fields_match(self, local, remote):
+        """
+        Return True if the local Species record already reflects the remote data.
+
+        Comparing field values directly is more reliable than comparing lastUpdated
+        timestamps.  Species.lastUpdated uses auto_now=True, so any save (including
+        a previous sync) would set it to the save time rather than the original
+        Site2 timestamp, causing a timestamp-based comparison to skip species that
+        actually need updating.
+
+        Fields where the remote sends None are skipped – None in the API response
+        means "no data provided" rather than "clear this field", and the
+        SpeciesSyncSerializer only returns non-nullable CharField/BooleanField
+        values (empty strings for optional text fields, True for render_cares).
+        """
+        for field in SYNC_FIELDS:
+            remote_val = remote.get(field)
+            if remote_val is not None and getattr(local, field) != remote_val:
+                return False
+        if not local.render_cares:
+            return False
+        return True
+
     @transaction.atomic
     def _sync_one(self, remote, name, stats, dry_run):
         """Process a single species record from Site2."""
-        remote_last_updated = self._parse_remote_dt(remote.get('lastUpdated'))
-
         try:
             local = Species.objects.get(name=name)
         except Species.DoesNotExist:
@@ -160,20 +180,15 @@ class SpeciesSyncService:
             stats['created'] += 1
             return
 
-        # Species exists – compare timestamps
-        local_last_updated = local.lastUpdated
-        if local_last_updated is not None and timezone.is_naive(local_last_updated):
-            local_last_updated = timezone.make_aware(local_last_updated, timezone.utc)
-
-        if remote_last_updated is not None and local_last_updated is not None:
-            if remote_last_updated <= local_last_updated:
-                # Even when skipping by timestamp, ensure render_cares is correct on
-                # species that exist locally but were marked non-CARES before the sync.
-                if not local.render_cares and not dry_run:
-                    Species.objects.filter(pk=local.pk).update(render_cares=True)
-                logger.debug('Skipping "%s": Site1 is up to date', name)
-                stats['skipped'] += 1
-                return
+        # Species exists – compare field values to decide whether an update is needed.
+        # Timestamp comparison (remote.lastUpdated vs local.lastUpdated) is intentionally
+        # avoided here: Species.lastUpdated uses auto_now=True, so a previous sync could
+        # have written the local timestamp as the sync time rather than the Site2 value,
+        # causing the species to be perpetually skipped even when Site2 has newer data.
+        if self._fields_match(local, remote):
+            logger.debug('Skipping "%s": all fields already up to date', name)
+            stats['skipped'] += 1
+            return
 
         if not dry_run:
             self._update_species(local, remote)
