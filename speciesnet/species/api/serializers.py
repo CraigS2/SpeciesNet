@@ -19,6 +19,7 @@ class SpeciesSyncSerializer(serializers.ModelSerializer):
             'cares_family',
             'iucn_red_list',
             'cares_classification',
+            'render_cares',
             'created',
             'lastUpdated',
         ]

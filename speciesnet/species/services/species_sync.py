@@ -167,6 +167,10 @@ class SpeciesSyncService:
 
         if remote_last_updated is not None and local_last_updated is not None:
             if remote_last_updated <= local_last_updated:
+                # Even when skipping by timestamp, ensure render_cares is correct on
+                # species that exist locally but were marked non-CARES before the sync.
+                if not local.render_cares and not dry_run:
+                    Species.objects.filter(pk=local.pk).update(render_cares=True)
                 logger.debug('Skipping "%s": Site1 is up to date', name)
                 stats['skipped'] += 1
                 return
@@ -184,18 +188,28 @@ class SpeciesSyncService:
                 kwargs[field] = remote[field]
         # render_cares=True since we only receive CARES species from Site2
         kwargs['render_cares'] = True
-        Species.objects.create(**kwargs)
+        species = Species.objects.create(**kwargs)
+        # Preserve the remote lastUpdated so future syncs compare correctly.
+        # Species.lastUpdated uses auto_now=True which would otherwise overwrite
+        # the timestamp with the sync time, causing every subsequent sync to skip
+        # this species (since the local timestamp would always be newer).
+        remote_last_updated = self._parse_remote_dt(remote.get('lastUpdated'))
+        if remote_last_updated is not None:
+            Species.objects.filter(pk=species.pk).update(lastUpdated=remote_last_updated)
 
     def _update_species(self, local, remote):
         """Update an existing Species record from remote data."""
-        changed = False
+        update_kwargs = {}
         for field in SYNC_FIELDS:
             if field in remote and remote[field] is not None:
                 if getattr(local, field) != remote[field]:
-                    setattr(local, field, remote[field])
-                    changed = True
+                    update_kwargs[field] = remote[field]
         if not local.render_cares:
-            local.render_cares = True
-            changed = True
-        if changed:
-            local.save(update_fields=SYNC_FIELDS + ['render_cares'])
+            update_kwargs['render_cares'] = True
+        # Preserve the remote lastUpdated via QuerySet.update() which bypasses
+        # auto_now, so future syncs can correctly detect whether Site2 is newer.
+        remote_last_updated = self._parse_remote_dt(remote.get('lastUpdated'))
+        if remote_last_updated is not None:
+            update_kwargs['lastUpdated'] = remote_last_updated
+        if update_kwargs:
+            Species.objects.filter(pk=local.pk).update(**update_kwargs)

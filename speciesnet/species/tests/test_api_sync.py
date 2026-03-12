@@ -41,7 +41,7 @@ class SpeciesSyncSerializerTest(MinimalTestCase):
         expected_fields = {
             'name', 'alt_name', 'description', 'global_region',
             'local_distribution', 'cares_family', 'iucn_red_list',
-            'cares_classification', 'created', 'lastUpdated',
+            'cares_classification', 'render_cares', 'created', 'lastUpdated',
         }
         self.assertEqual(set(data.keys()), expected_fields)
 
@@ -52,6 +52,7 @@ class SpeciesSyncSerializerTest(MinimalTestCase):
         self.assertEqual(data['name'], 'Ptychochromis insolitus')
         self.assertEqual(data['global_region'], 'AFR')
         self.assertEqual(data['iucn_red_list'], 'CR')
+        self.assertTrue(data['render_cares'])
 
     def test_serializer_read_only(self):
         """Serializer should be read-only and not accept writes."""
@@ -173,13 +174,12 @@ class SpeciesSyncAPITest(BaseTestCase):
         expected_fields = {
             'name', 'alt_name', 'description', 'global_region',
             'local_distribution', 'cares_family', 'iucn_red_list',
-            'cares_classification', 'created', 'lastUpdated',
+            'cares_classification', 'render_cares', 'created', 'lastUpdated',
         }
         self.assertEqual(set(record.keys()), expected_fields)
         # Sensitive/irrelevant fields should not appear
         self.assertNotIn('species_image', record)
         self.assertNotIn('created_by', record)
-        self.assertNotIn('render_cares', record)
 
 
 class SpeciesSyncServiceTest(MinimalTestCase):
@@ -345,6 +345,124 @@ class SpeciesSyncServiceTest(MinimalTestCase):
         stats = service.sync()
         self.assertEqual(stats['errors'], 1)
         self.assertEqual(stats['created'], 0)
+
+    @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_sync_preserves_remote_last_updated_on_create(self, mock_fetch):
+        """
+        Created species should have lastUpdated set to the remote value, not the
+        sync time.  Without this, every subsequent sync would see a local timestamp
+        newer than the remote one and perpetually skip the species.
+        """
+        remote_time = timezone.now() - timedelta(hours=2)
+        mock_fetch.return_value = [
+            self._make_remote('Nothobranchius guentheri', last_updated=remote_time.isoformat())
+        ]
+        service = SpeciesSyncService()
+        service.sync(dry_run=False)
+        species = Species.objects.get(name='Nothobranchius guentheri')
+        # lastUpdated should match the remote value (within 1 second tolerance)
+        diff = abs((species.lastUpdated - remote_time).total_seconds())
+        self.assertLess(diff, 1, 'lastUpdated should be preserved from remote data, not overwritten by sync time')
+
+    @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_sync_preserves_remote_last_updated_on_update(self, mock_fetch):
+        """
+        Updated species should have lastUpdated set to the remote value, not the
+        sync time.  Without this, every subsequent sync would perpetually skip.
+        """
+        old_time = timezone.now() - timedelta(days=10)
+        local = Species.objects.create(
+            name='Nothobranchius guentheri',
+            description='Old description',
+            global_region='AFR',
+            render_cares=True,
+            created_by=self.user,
+        )
+        Species.objects.filter(pk=local.pk).update(lastUpdated=old_time)
+
+        remote_time = timezone.now() - timedelta(hours=1)
+        mock_fetch.return_value = [
+            self._make_remote(
+                'Nothobranchius guentheri',
+                last_updated=remote_time.isoformat(),
+                description='Updated description',
+            )
+        ]
+        service = SpeciesSyncService()
+        service.sync(dry_run=False)
+        local.refresh_from_db()
+        diff = abs((local.lastUpdated - remote_time).total_seconds())
+        self.assertLess(diff, 1, 'lastUpdated should be preserved from remote data, not overwritten by sync time')
+
+    @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_sync_no_perpetual_skip_after_create(self, mock_fetch):
+        """
+        After a species is created by the sync, a subsequent sync with the same
+        remote lastUpdated should skip it (nothing changed), but a later sync
+        with a newer remote lastUpdated should update it.
+        """
+        remote_time = timezone.now() - timedelta(hours=3)
+        remote_data = self._make_remote(
+            'Nothobranchius guentheri',
+            last_updated=remote_time.isoformat(),
+            description='Original',
+        )
+        mock_fetch.return_value = [remote_data]
+        service = SpeciesSyncService()
+        # First sync: creates the species
+        stats1 = service.sync(dry_run=False)
+        self.assertEqual(stats1['created'], 1)
+
+        # Second sync with same remote data: should skip (already up to date)
+        mock_fetch.return_value = [remote_data]
+        stats2 = service.sync(dry_run=False)
+        self.assertEqual(stats2['skipped'], 1, 'Same remote data should be skipped, not re-created')
+
+        # Third sync with newer remote data: should update
+        newer_time = timezone.now() - timedelta(hours=1)
+        mock_fetch.return_value = [
+            self._make_remote(
+                'Nothobranchius guentheri',
+                last_updated=newer_time.isoformat(),
+                description='Newer description',
+            )
+        ]
+        stats3 = service.sync(dry_run=False)
+        self.assertEqual(stats3['updated'], 1, 'Newer remote data should trigger an update')
+
+    @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_sync_fixes_render_cares_on_skip(self, mock_fetch):
+        """
+        When a species exists locally with render_cares=False but timestamps
+        mean the sync would otherwise skip it, render_cares should still be
+        corrected to True (the species appeared in the CARES API so it is CARES).
+        """
+        # Create a local species with render_cares=False and a newer timestamp
+        future_time = timezone.now() + timedelta(days=1)
+        local = Species.objects.create(
+            name='Nothobranchius guentheri',
+            description='Local description',
+            global_region='AFR',
+            render_cares=False,
+            created_by=self.user,
+        )
+        # Force lastUpdated to be in the future so the timestamp skip fires
+        Species.objects.filter(pk=local.pk).update(lastUpdated=future_time)
+
+        # Remote has an older timestamp → sync would normally skip
+        remote_time = timezone.now() - timedelta(hours=1)
+        mock_fetch.return_value = [
+            self._make_remote(
+                'Nothobranchius guentheri',
+                last_updated=remote_time.isoformat(),
+            )
+        ]
+        service = SpeciesSyncService()
+        stats = service.sync(dry_run=False)
+        self.assertEqual(stats['skipped'], 1)
+
+        local.refresh_from_db()
+        self.assertTrue(local.render_cares, 'render_cares should be True even when sync skips by timestamp')
 
 
 class CreateApiUserCommandTest(MinimalTestCase):
