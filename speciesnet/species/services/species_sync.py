@@ -30,11 +30,11 @@ class SpeciesSyncService:
         stats = service.sync(since=datetime(...), dry_run=False)
     """
 
-    def __init__(self, target_url=None, username=None, password=None):
+    def __init__(self, target_url=None, email=None, password=None):
         self.target_url = (target_url or getattr(settings, 'TARGET_API_URL', 'http://localhost:8001')).rstrip('/')
-        self.username = username or getattr(settings, 'API_SERVICE_USERNAME', 'api_service')
+        self.email = email or getattr(settings, 'API_SERVICE_EMAIL', 'api_service@localhost')
         self.password = password or getattr(settings, 'API_SERVICE_PASSWORD', 'changeme_in_production')
-        self.auth = HTTPBasicAuth(self.username, self.password)
+        self.auth = HTTPBasicAuth(self.email, self.password)
 
     def _build_url(self, path):
         return f'{self.target_url}{path}'

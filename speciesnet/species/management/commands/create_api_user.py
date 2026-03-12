@@ -7,13 +7,18 @@ class Command(BaseCommand):
     help = 'Create API service account for use with the species-sync REST API'
 
     def handle(self, *args, **options):
-        username = getattr(settings, 'API_SERVICE_USERNAME', 'api_service')
+        email = getattr(settings, 'API_SERVICE_EMAIL', 'api_service@localhost')
         password = getattr(settings, 'API_SERVICE_PASSWORD', 'changeme_in_production')
 
+        # Derive a username from the email local part (before '@')
+        username = email.split('@')[0]
+
+        # Look up by email because USERNAME_FIELD = 'email' on the custom User model.
+        # HTTP Basic Authentication also uses the email as the credential, not the username.
         user, created = User.objects.get_or_create(
-            username=username,
+            email=email,
             defaults={
-                'email': f'{username}@localhost',
+                'username': username,
                 'is_staff': True,
                 'is_active': True,
             }
@@ -23,7 +28,7 @@ class Command(BaseCommand):
             user.set_password(password)
             user.save()
             self.stdout.write(
-                self.style.SUCCESS(f'Created API service user: {username}')
+                self.style.SUCCESS(f'Created API service user: {email}')
             )
         else:
             # Update password and staff status in case they changed
@@ -32,10 +37,11 @@ class Command(BaseCommand):
             user.is_active = True
             user.save()
             self.stdout.write(
-                self.style.SUCCESS(f'Updated API service user: {username}')
+                self.style.SUCCESS(f'Updated API service user: {email}')
             )
 
-        self.stdout.write(f'  username: {username}')
+        self.stdout.write(f'  email   : {email}')
+        self.stdout.write(f'  username: {user.username}')
         self.stdout.write(f'  is_staff: {user.is_staff}')
         self.stdout.write(self.style.WARNING(
             'Remember to set a secure password via the API_SERVICE_PASSWORD environment variable '

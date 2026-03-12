@@ -345,3 +345,91 @@ class SpeciesSyncServiceTest(MinimalTestCase):
         stats = service.sync()
         self.assertEqual(stats['errors'], 1)
         self.assertEqual(stats['created'], 0)
+
+
+class CreateApiUserCommandTest(MinimalTestCase):
+    """Test the create_api_user management command."""
+
+    def _run_command(self, **settings_overrides):
+        """Helper: call the command with optional settings overrides."""
+        from io import StringIO
+        from django.core.management import call_command
+        out = StringIO()
+        with self.settings(**settings_overrides):
+            call_command('create_api_user', stdout=out, stderr=StringIO())
+        return out.getvalue()
+
+    def test_creates_user_with_email_as_username_field(self):
+        """Command should create a user looked up by email (USERNAME_FIELD)."""
+        self._run_command(
+            API_SERVICE_EMAIL='sync@example.com',
+            API_SERVICE_PASSWORD='SyncPass123!',
+        )
+        user = User.objects.get(email='sync@example.com')
+        self.assertEqual(user.email, 'sync@example.com')
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_active)
+
+    def test_derived_username_is_email_local_part(self):
+        """Username should be derived from the local part of the email address."""
+        self._run_command(
+            API_SERVICE_EMAIL='api_service@example.com',
+            API_SERVICE_PASSWORD='SyncPass123!',
+        )
+        user = User.objects.get(email='api_service@example.com')
+        self.assertEqual(user.username, 'api_service')
+
+    def test_idempotent_run_updates_existing_user(self):
+        """Running the command twice should update the existing user, not create a duplicate."""
+        settings_kwargs = dict(
+            API_SERVICE_EMAIL='idempotent@example.com',
+            API_SERVICE_PASSWORD='FirstPass123!',
+        )
+        self._run_command(**settings_kwargs)
+        self.assertEqual(User.objects.filter(email='idempotent@example.com').count(), 1)
+
+        # Run again with a new password
+        self._run_command(
+            API_SERVICE_EMAIL='idempotent@example.com',
+            API_SERVICE_PASSWORD='NewPass456!',
+        )
+        self.assertEqual(User.objects.filter(email='idempotent@example.com').count(), 1)
+        user = User.objects.get(email='idempotent@example.com')
+        self.assertTrue(user.check_password('NewPass456!'))
+
+    def test_user_can_authenticate_via_basic_auth(self):
+        """The created user should authenticate via HTTP Basic Auth (email as credential)."""
+        self._run_command(
+            API_SERVICE_EMAIL='basicauth@example.com',
+            API_SERVICE_PASSWORD='BasicPass123!',
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION='Basic ' + self._b64('basicauth@example.com:BasicPass123!'))
+        response = client.get('/api/species-sync/stats/')
+        # 200 OK — the email-based credential is accepted
+        self.assertEqual(response.status_code, 200)
+
+    @staticmethod
+    def _b64(s):
+        import base64
+        return base64.b64encode(s.encode()).decode()
+
+
+class SpeciesSyncServiceEmailTest(MinimalTestCase):
+    """Test that SpeciesSyncService uses the email credential (not a plain username)."""
+
+    def test_service_uses_api_service_email_setting(self):
+        """SpeciesSyncService should read API_SERVICE_EMAIL from settings."""
+        with self.settings(API_SERVICE_EMAIL='sync@site2.example.com', API_SERVICE_PASSWORD='pw'):
+            service = SpeciesSyncService()
+        self.assertEqual(service.email, 'sync@site2.example.com')
+
+    def test_service_accepts_explicit_email(self):
+        """SpeciesSyncService should accept an explicit email argument."""
+        service = SpeciesSyncService(email='custom@example.com', password='pw')
+        self.assertEqual(service.email, 'custom@example.com')
+
+    def test_service_basic_auth_uses_email(self):
+        """The auth object should use the email as the username credential."""
+        service = SpeciesSyncService(email='auth@example.com', password='secret')
+        self.assertEqual(service.auth.username, 'auth@example.com')

@@ -123,7 +123,7 @@ CERTBOT_EMAIL = 'admin@localhost'
 STAGING = 1
 
 # API sync settings
-API_SERVICE_USERNAME = 'api_service'
+API_SERVICE_EMAIL = 'api_service@localhost'
 API_SERVICE_PASSWORD = 'SyncPass123!'
 TARGET_API_URL       = 'http://localhost:8000'
 
@@ -170,7 +170,7 @@ CERTBOT_EMAIL = 'admin@localhost'
 STAGING = 1
 
 # API sync settings — Site1 connects *to* Site2 for sync
-API_SERVICE_USERNAME = 'api_service'
+API_SERVICE_EMAIL = 'api_service@localhost'
 API_SERVICE_PASSWORD = 'SyncPass123!'
 TARGET_API_URL       = 'http://localhost:8001'
 
@@ -178,8 +178,10 @@ SITE1_URL = 'http://localhost:80'
 SITE2_URL = 'http://localhost:81'
 ```
 
-> **Important:** Both sites must use the **same** `API_SERVICE_PASSWORD` value
-> because Site1 logs in to Site2 using this credential.
+> **Important:** Both sites must use the **same** `API_SERVICE_EMAIL` and `API_SERVICE_PASSWORD`
+> values because Site1 logs in to Site2 using this email address and password via HTTP Basic Auth.
+> The custom User model uses `email` as its `USERNAME_FIELD`, so the email address is what
+> DRF's Basic Authentication uses to look up the account.
 
 ### 2.3 Start Both Stacks
 
@@ -234,7 +236,7 @@ Open <http://localhost> — you should see the **Aquarist Species** home page.
 ### 2.4 Create API Service Accounts
 
 The `create_api_user` management command must be run on **both** sites to
-create the `api_service` user that the sync uses.
+create the `api_service@localhost` (or your configured email) user that the sync uses.
 
 ```bash
 # Create the API user on Site2 (CARES — the source)
@@ -245,7 +247,8 @@ docker compose --project-name site2 exec django_gunicorn python manage.py create
 
 Expected output:
 ```
-Created API service user: api_service
+Created API service user: api_service@localhost
+  email   : api_service@localhost
   username: api_service
   is_staff: True
   Remember to set a secure password via the API_SERVICE_PASSWORD environment variable...
@@ -315,13 +318,13 @@ exit()
 
 ### 2.6 Test the Site2 API Endpoints with curl
 
-All endpoints require **HTTP Basic Authentication** using the `api_service`
-account.
+All endpoints require **HTTP Basic Authentication** using the `api_service@localhost`
+(or whatever `API_SERVICE_EMAIL` is set to) account.
 
 **a) Stats endpoint** — quick sanity check that auth and the API work:
 
 ```bash
-curl -u api_service:SyncPass123! \
+curl -u api_service@localhost:SyncPass123! \
      http://localhost:81/api/species-sync/stats/
 ```
 
@@ -336,7 +339,7 @@ Expected response:
 **b) List all CARES species** (paginated, 100 per page):
 
 ```bash
-curl -u api_service:SyncPass123! \
+curl -u api_service@localhost:SyncPass123! \
      http://localhost:81/api/species-sync/
 ```
 
@@ -367,7 +370,7 @@ Expected response (truncated):
 **c) Filter by date** — returns only species updated since a given date:
 
 ```bash
-curl -u api_service:SyncPass123! \
+curl -u api_service@localhost:SyncPass123! \
      "http://localhost:81/api/species-sync/?since=2024-01-01"
 ```
 
@@ -574,7 +577,7 @@ CSRF_TRUSTED_ORIGIN2 = 'http://localhost'
 CSRF_TRUSTED_ORIGIN3 = 'http://localhost'
 
 # API sync settings
-API_SERVICE_USERNAME = 'api_service'
+API_SERVICE_EMAIL    = 'api_service@site2-staging.example.com'
 API_SERVICE_PASSWORD = '<strong-shared-password>'
 TARGET_API_URL       = 'https://site1-staging.example.com'
 
@@ -599,7 +602,7 @@ CSRF_TRUSTED_ORIGIN2 = 'http://localhost'
 CSRF_TRUSTED_ORIGIN3 = 'http://localhost'
 
 # API sync settings — Site1 connects *to* Site2
-API_SERVICE_USERNAME = 'api_service'
+API_SERVICE_EMAIL    = 'api_service@site2-staging.example.com'  # Same email as Site2
 API_SERVICE_PASSWORD = '<strong-shared-password>'   # Same password as Site2
 TARGET_API_URL       = 'https://site2-staging.example.com'
 
@@ -608,10 +611,10 @@ SITE1_URL = 'https://site1-staging.example.com'
 SITE2_URL = 'https://site2-staging.example.com'
 ```
 
-> **Security note:** The `API_SERVICE_PASSWORD` is the credential Site1 uses
-> to authenticate against Site2's API.  Use a strong, unique password and keep
-> it out of version control.  Both servers must use the **same value** for this
-> variable.
+> **Security note:** The `API_SERVICE_EMAIL` and `API_SERVICE_PASSWORD` are the credentials
+> Site1 uses to authenticate against Site2's API via HTTP Basic Auth.  Use a strong, unique
+> password and keep it out of version control.  Both servers must use the **same values** for
+> these variables.
 
 ### 3.4 Create API Service Accounts
 
@@ -640,7 +643,7 @@ returns the expected data:
 
 ```bash
 # Run this on Server B (Site1 staging):
-curl -u api_service:<strong-shared-password> \
+curl -u api_service@site2-staging.example.com:<strong-shared-password> \
      https://site2-staging.example.com/api/species-sync/stats/
 ```
 
@@ -654,7 +657,7 @@ the Site2 firewall allows inbound HTTPS on port 443.
 
 ```bash
 # Also test the list endpoint:
-curl -u api_service:<strong-shared-password> \
+curl -u api_service@site2-staging.example.com:<strong-shared-password> \
      https://site2-staging.example.com/api/species-sync/
 ```
 
@@ -706,9 +709,10 @@ Returns a paginated list of all CARES species (`render_cares=True`).
 
 **Example:**
 ```bash
-curl -u api_service:PASSWORD http://site2/api/species-sync/
-curl -u api_service:PASSWORD "http://site2/api/species-sync/?since=2024-06-01"
-curl -u api_service:PASSWORD "http://site2/api/species-sync/?page=2"
+curl -u api_service@localhost:PASSWORD http://site2/api/species-sync/
+curl -u api_service@localhost:PASSWORD "http://site2/api/species-sync/?since=2024-06-01"
+curl -u api_service@localhost:PASSWORD "http://site2/api/species-sync/?page=2"
+# Replace 'api_service@localhost' with your API_SERVICE_EMAIL value
 ```
 
 **Response fields per species:**
@@ -752,7 +756,7 @@ Returns aggregate counts useful for monitoring the sync.
 
 | Variable | Default | Set on | Description |
 |----------|---------|--------|-------------|
-| `API_SERVICE_USERNAME` | `api_service` | Both sites | Username for the API service account |
+| `API_SERVICE_EMAIL` | `api_service@localhost` | Both sites | Email address for the API service account (used as HTTP Basic Auth username) |
 | `API_SERVICE_PASSWORD` | `changeme_in_production` | Both sites | Password for the API service account — **must match on both sites** |
 | `TARGET_API_URL` | `http://localhost:8001` | Site1 only | URL of the Site2 API that Site1 will sync from |
 | `SITE1_URL` | _(empty)_ | Both sites | Full URL of Site1, added to CORS allowed origins on Site2 |
@@ -760,9 +764,10 @@ Returns aggregate counts useful for monitoring the sync.
 
 ### Built-in defaults for local development
 
-When `API_SERVICE_PASSWORD` is not set, the default `changeme_in_production`
-is used.  The `TARGET_API_URL` defaults to `http://localhost:8001`, which
-matches the local two-stack setup described in Section 2.
+When `API_SERVICE_EMAIL` / `API_SERVICE_PASSWORD` are not set, the defaults
+(`api_service@localhost` / `changeme_in_production`) are used.  The `TARGET_API_URL`
+defaults to `http://localhost:8001`, which matches the local two-stack setup
+described in Section 2.
 
 ---
 
@@ -796,10 +801,10 @@ TARGET_API_URL=http://host.docker.internal:8001
 
 ### `403 Forbidden` when calling the API
 
-- Confirm the `api_service` user was created on Site2:
+- Confirm the `api_service@localhost` (or your configured email) user was created on Site2:
   ```bash
   docker compose --project-name site2 exec django_gunicorn \
-      python manage.py shell -c "from species.models import User; u=User.objects.get(username='api_service'); print(u.is_staff)"
+      python manage.py shell -c "from species.models import User; u=User.objects.get(email='api_service@localhost'); print(u.is_staff)"
   # Should print: True
   ```
 - Confirm the password in the `curl` command matches `API_SERVICE_PASSWORD`

@@ -411,7 +411,7 @@ if SITE2_URL:
 
 ### API Service Account ###
 
-API_SERVICE_USERNAME = os.environ.get('API_SERVICE_USERNAME', 'api_service')
+API_SERVICE_EMAIL = os.environ.get('API_SERVICE_EMAIL', 'api_service@localhost')
 API_SERVICE_PASSWORD = os.environ.get('API_SERVICE_PASSWORD', 'changeme_in_production')
 
 ### Target API URL (Site2 URL for Site1, Site1 URL for Site2) ###
