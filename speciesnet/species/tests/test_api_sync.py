@@ -222,6 +222,38 @@ class SpeciesSyncServiceTest(MinimalTestCase):
         self.assertTrue(Species.objects.filter(name='Nothobranchius guentheri').exists())
 
     @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_sync_new_species_unique_to_site2_is_created(self, mock_fetch):
+        """
+        Core sync invariant: a species that exists on Site2 but has NEVER been
+        added to Site1 (the Site1 database is completely empty for that name) MUST
+        be created on Site1 with created=1, updated=0, skipped=0, errors=0.
+
+        Species are matched by name only.  Database IDs are ignored.  This test
+        replicates the live scenario where a brand-new species is added to Site2
+        and the sync is expected to bring it across to Site1 for the first time.
+        """
+        # Any name that is genuinely absent from Site1 must be created, never skipped.
+        unique_name = 'Nothobranchius unique test species'
+        self.assertFalse(
+            Species.objects.filter(name=unique_name).exists(),
+            f'Pre-condition failed: "{unique_name}" already exists in Site1 database',
+        )
+
+        mock_fetch.return_value = [self._make_remote(unique_name)]
+        service = SpeciesSyncService()
+        stats = service.sync(dry_run=False)
+
+        # All counters must reflect a clean creation with no skips
+        self.assertEqual(stats['created'], 1,  f'Expected created=1, got {stats}')
+        self.assertEqual(stats['updated'], 0,  f'Expected updated=0, got {stats}')
+        self.assertEqual(stats['skipped'], 0,  f'Expected skipped=0, got {stats}')
+        self.assertEqual(stats['errors'],  0,  f'Expected errors=0, got {stats}')
+
+        # The species must now be present in Site1 with render_cares=True
+        created = Species.objects.get(name=unique_name)
+        self.assertTrue(created.render_cares, 'Synced species must have render_cares=True')
+
+    @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_updates_older_local_species(self, mock_fetch):
         """Sync should update local species when Site2 is newer."""
         old_time = timezone.now() - timedelta(days=10)

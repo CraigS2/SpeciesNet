@@ -85,10 +85,15 @@ class SpeciesSyncService:
         Synchronize CARES species from Site2 to Site1.
 
         For each species received from Site2:
-          - If the species does not exist on Site1: create it.
-          - If the species exists on Site1:
-              - If Site2 lastUpdated is newer: update the fields.
-              - Otherwise: skip.
+          1. Look up the species on Site1 by name (the only reliable shared key).
+          2. If the species does NOT exist on Site1: create it.
+          3. If the species DOES exist on Site1:
+               - Compare the SYNC_FIELDS values and render_cares flag.
+               - If any field differs: update Site1 to match Site2.
+               - If all fields already match: skip (nothing to do).
+
+        Species are matched by name only.  Database IDs are not used because they
+        are assigned independently on each site and cannot be relied upon.
 
         All database writes are performed inside a single transaction.
         In dry_run mode, no database changes are made.
@@ -174,25 +179,26 @@ class SpeciesSyncService:
             local = None
 
         if local is None:
+            # Species does not exist on Site1 at all – create it unconditionally.
             if not dry_run:
                 self._create_species(remote, name)
-            logger.info('[%s] Created species "%s"', 'DRY-RUN' if dry_run else 'SYNC', name)
+            logger.info('[%s] Created species "%s" (new – not found in Site1)', 'DRY-RUN' if dry_run else 'SYNC', name)
             stats['created'] += 1
             return
 
-        # Species exists – compare field values to decide whether an update is needed.
-        # Timestamp comparison (remote.lastUpdated vs local.lastUpdated) is intentionally
-        # avoided here: Species.lastUpdated uses auto_now=True, so a previous sync could
-        # have written the local timestamp as the sync time rather than the Site2 value,
-        # causing the species to be perpetually skipped even when Site2 has newer data.
+        # Species found in Site1 – compare field values to decide whether to update.
+        # Timestamp comparison is intentionally avoided: Species.lastUpdated uses
+        # auto_now=True, so any previous save could have set it to the save time
+        # rather than the Site2 value, causing perpetual skips even when fields differ.
+        logger.info('"%s" already exists in Site1 – comparing fields', name)
         if self._fields_match(local, remote):
-            logger.debug('Skipping "%s": all fields already up to date', name)
+            logger.info('Skipping "%s": all fields already match Site2', name)
             stats['skipped'] += 1
             return
 
         if not dry_run:
             self._update_species(local, remote)
-        logger.info('[%s] Updated species "%s"', 'DRY-RUN' if dry_run else 'SYNC', name)
+        logger.info('[%s] Updated species "%s" (fields differ from Site2)', 'DRY-RUN' if dry_run else 'SYNC', name)
         stats['updated'] += 1
 
     def _create_species(self, remote, name):
