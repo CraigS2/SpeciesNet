@@ -175,10 +175,13 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'django_recaptcha',
     'django.contrib.sites',
+    'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -312,17 +315,19 @@ WSGI_APPLICATION = 'speciesnet.wsgi.application'
 # }
 
 # mariadb production Database
+db_engine = os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql')
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql'),
+        'ENGINE': db_engine,
         'NAME': os.environ.get('DATABASE_NAME', 'speciesnet'),
         'USER': os.environ.get('DATABASE_USER', 'mysqluser'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'unsecure'),
         'HOST': os.environ.get('DATABASE_HOST', 'db'),
         'PORT': os.environ.get('DATABASE_PORT', '3306'),
-        'OPTIONS': {'charset': 'utf8mb4'},
     }
 }
+if 'mysql' in db_engine:
+    DATABASES['default']['OPTIONS'] = {'charset': 'utf8mb4'}
 
 ### Custom User Model ###
 
@@ -375,4 +380,41 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#LOGOUT_REDIRECT_URL = 'home'
+### Django REST Framework ###
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAdminUser',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100,
+}
+
+### CORS Configuration ###
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+    'http://localhost:8001',
+]
+
+# Allow additional production origins via environment variables
+SITE1_URL = os.environ.get('SITE1_URL', '')
+SITE2_URL = os.environ.get('SITE2_URL', '')
+if SITE1_URL:
+    CORS_ALLOWED_ORIGINS.append(SITE1_URL)
+if SITE2_URL:
+    CORS_ALLOWED_ORIGINS.append(SITE2_URL)
+
+### API Service Account ###
+
+API_SERVICE_EMAIL = os.environ.get('API_SERVICE_EMAIL', 'api_service@localhost')
+API_SERVICE_PASSWORD = os.environ.get('API_SERVICE_PASSWORD', 'changeme_in_production')
+
+### Target API URL (Site2 URL for Site1, Site1 URL for Site2) ###
+
+TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
+

@@ -32,7 +32,16 @@ python manage.py migrate --no-input
 python manage.py collectstatic --no-input
 #python manage.py collectstatic --noinput --clear
 
-#DJANGO_SUPERUSER_PASSWORD=$SUPER_USER_PASSWORD python manage.py createsuperuser --username $SUPER_USER_NAME --email $SUPER_USER_EMAIL --noinput
+if [ ! -z "$SUPER_USER_NAME" ] && [ ! -z "$SUPER_USER_EMAIL" ] && [ ! -z "$SUPER_USER_PASSWORD" ]; then
+    DJANGO_SUPERUSER_PASSWORD=$SUPER_USER_PASSWORD python manage.py createsuperuser --username $SUPER_USER_NAME --email $SUPER_USER_EMAIL --noinput 2>/dev/null \
+        || echo "Superuser already exists or creation skipped"
+fi
+
+# Create API service user if environment credentials are set
+if [ ! -z "$API_SERVICE_EMAIL" ] && [ ! -z "$API_SERVICE_PASSWORD" ]; then
+    echo "Creating/updating API service user..."
+    python manage.py create_api_user
+fi
 
 if [ "${DEBUG}" != "1" ]; then
     echo Starting in production mode
