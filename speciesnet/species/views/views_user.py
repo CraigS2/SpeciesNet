@@ -106,7 +106,7 @@ class AquaristListView(ListView):
     model = User
     template_name = "species/aquarists.html"
     context_object_name = "aquarist_list"
-    paginate_by = 200
+    paginate_by = 100
 
     def get_queryset(self):
         queryset = super().get_queryset()

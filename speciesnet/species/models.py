@@ -55,6 +55,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     country    = models.CharField (max_length=100, blank=True)
 
     date_joined = models.DateTimeField (auto_now_add=True) 
+    #last_login  = models.DateTimeField(blank=True, null=True)  #TODO add this 'back in' for django backend mgmt - next migration
 
     is_private_name      = models.BooleanField (default=False)
     is_private_email     = models.BooleanField (default=True)

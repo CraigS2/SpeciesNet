@@ -14,6 +14,8 @@ class UserAdmin(BaseUserAdmin):
         ('Privacy',      {'fields': ('is_private_name', 'is_private_location', 'is_proxy'),}       ),
         ('Social Media', {'fields': ('instagram_url', 'facebook_url', 'youtube_url'),} ),
     )
+    #readonly_fields = ('date_joined', 'last_login')  # TODO enable when last_login is added back to the model 
+    readonly_fields = ('date_joined',)  # Must be readonly
     list_filter  = BaseUserAdmin.list_filter +  ('is_admin', 'is_species_admin', 'is_private_name', 'is_private_location', 'is_proxy',)
     list_display = BaseUserAdmin.list_display + ('is_admin', 'is_species_admin',)
 
@@ -36,4 +38,3 @@ admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
-
