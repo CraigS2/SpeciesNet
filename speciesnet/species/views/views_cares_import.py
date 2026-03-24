@@ -128,7 +128,6 @@ def reviewCaresImportDetail(request, staging_id):
         'alt_name':           'Alternate Name',
         'common_name':        'Common Name',
         'description':        'Description',
-        'photo_credit':       'Photo Credit',
         'category':           'Category',
         'global_region':      'Global Region',
         'local_distribution': 'Local Distribution',

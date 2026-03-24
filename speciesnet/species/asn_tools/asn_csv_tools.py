@@ -20,8 +20,18 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------------------------
-# Field-level import rules for CARES species staging import
+# Field-level import rules for species staging import
 # -------------------------------------------------------------------------
+
+# Required CSV columns – rows missing these will be skipped with an error
+SPECIES_IMPORT_REQUIRED_FIELDS = ['name', 'category', 'global_region']
+
+# Default values applied when an optional enum cell is blank
+SPECIES_IMPORT_ENUM_DEFAULTS = {
+    'cares_family':         Species.CaresFamily.UNDEFINED,
+    'iucn_red_list':        Species.IucnRedList.UNDEFINED,
+    'cares_classification': Species.CaresStatus.NOT_CARES_SPECIES,
+}
 
 # Fields that are always overwritten on UPDATE (high-trust authoritative data)
 CARES_ALWAYS_UPDATE_FIELDS = [
@@ -37,14 +47,11 @@ CARES_UPDATE_IF_EMPTY_FIELDS = [
     'common_name',
     'alt_name',
     'description',
-    'photo_credit',
     'local_distribution',
 ]
 
 # Fields that are never overwritten on UPDATE (managed locally)
-CARES_NEVER_UPDATE_FIELDS = [
-    'species_image',
-]
+CARES_NEVER_UPDATE_FIELDS: list = []
 
 # All tracked species fields (used for change detection)
 CARES_TRACKED_FIELDS = (
@@ -658,7 +665,6 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
         'common_name':          'common_name',
         'alt_name':             'alt_name',
         'description':          'description',
-        'photo_credit':         'photo_credit',
         'local_distribution':   'local_distribution',
     }
     changed = {}
@@ -672,7 +678,14 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
 
 def import_csv_cares_species_to_staging(import_archive: ImportArchive, current_user: User) -> dict:
     """
-    Parse a CARES species CSV and create SpeciesImportStaging records for review.
+    Parse a species CSV and create SpeciesImportStaging records for review.
+
+    Required CSV columns: name, category, global_region
+    Optional columns (blank cells use defaults):
+      - alt_name, common_name, description, local_distribution  → blank string
+      - cares_family          → UDF (Undefined)
+      - iucn_red_list         → UN  (Undefined)
+      - cares_classification  → NOTC (Not a CARES Species)
 
     Returns a summary dict with counts: new, update, skip, conflict, error.
     """
@@ -690,15 +703,20 @@ def import_csv_cares_species_to_staging(import_archive: ImportArchive, current_u
             species_name = import_row.get('name', '').strip()
             notes = ''
 
-            # Basic form validation (reuse existing SpeciesForm)
-            species_form = SpeciesForm(import_row)
-            if not species_form.is_valid():
-                validation_errors = species_form.errors.as_text()
-                logger.warning('CARES staging row %d validation failed: %s', row_number, validation_errors)
-                notes = f'Validation error: {validation_errors}'
+            # Validate required fields
+            missing = [f for f in SPECIES_IMPORT_REQUIRED_FIELDS if not import_row.get(f, '').strip()]
+            if missing or not species_name:
+                all_missing = (['name'] if not species_name else []) + [f for f in missing if f != 'name']
+                notes = f'Missing required field(s): {", ".join(all_missing)}'
+                logger.warning('Species staging row %d skipped: %s', row_number, notes)
                 summary['error'] += 1
                 csv_report_writer.writerow([row_number, species_name, 'ERROR', 'N/A', '', notes])
                 continue
+
+            # Apply defaults for optional enum fields when cell is blank
+            for field, default in SPECIES_IMPORT_ENUM_DEFAULTS.items():
+                if not import_row.get(field, '').strip():
+                    import_row[field] = default
 
             existing = _find_existing_species(species_name)
 
@@ -733,8 +751,6 @@ def import_csv_cares_species_to_staging(import_archive: ImportArchive, current_u
                 new_alt_name=import_row.get('alt_name', ''),
                 new_common_name=import_row.get('common_name', ''),
                 new_description=import_row.get('description', ''),
-                new_species_image=import_row.get('species_image', ''),
-                new_photo_credit=import_row.get('photo_credit', ''),
                 new_category=import_row.get('category', ''),
                 new_global_region=import_row.get('global_region', ''),
                 new_local_distribution=import_row.get('local_distribution', ''),
@@ -800,7 +816,6 @@ def commit_cares_import_staging(import_archive: ImportArchive, current_user: Use
                         alt_name=staging.new_alt_name,
                         common_name=staging.new_common_name,
                         description=staging.new_description,
-                        photo_credit=staging.new_photo_credit,
                         local_distribution=staging.new_local_distribution,
                         cares_family=staging.new_cares_family or Species.CaresFamily.UNDEFINED,
                         iucn_red_list=staging.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
@@ -830,7 +845,6 @@ def commit_cares_import_staging(import_archive: ImportArchive, current_user: Use
                         'common_name':          staging.new_common_name,
                         'alt_name':             staging.new_alt_name,
                         'description':          staging.new_description,
-                        'photo_credit':         staging.new_photo_credit,
                         'local_distribution':   staging.new_local_distribution,
                     }
 

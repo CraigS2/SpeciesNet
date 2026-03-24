@@ -10,10 +10,18 @@
                 </div>
                 <div class="card-body px-4 py-3">
                     <p class="text-muted">
-                        Upload a CSV file to stage CARES species for review before committing to the database.
+                        Upload a CSV file to stage species for review before committing to the database.
                         The CSV must include the following columns:
-                        <code>name, alt_name, common_name, description, species_image, photo_credit,
-                        category, global_region, local_distribution, cares_family, iucn_red_list, cares_classification</code>
+                    </p>
+                    <p>
+                        <strong>Required</strong> (column must exist; each row must have a valid value):<br>
+                        <code>name, category, global_region</code>
+                    </p>
+                    <p>
+                        <strong>Optional</strong> (blank cells use defaults shown):<br>
+                        <code>alt_name, common_name, description, local_distribution,
+                        cares_family (default: UDF), iucn_red_list (default: UN),
+                        cares_classification (default: NOTC)</code>
                     </p>
                     <form method="POST" enctype="multipart/form-data">
                         {% csrf_token %}

@@ -620,8 +620,6 @@ class SpeciesImportStaging (models.Model):
     new_alt_name           = models.CharField(max_length=240, blank=True)
     new_common_name        = models.CharField(max_length=240, blank=True)
     new_description        = models.TextField(blank=True)
-    new_species_image      = models.CharField(max_length=500, blank=True)  # store path as string
-    new_photo_credit       = models.CharField(max_length=200, blank=True)
     new_category           = models.CharField(max_length=3, blank=True)
     new_global_region      = models.CharField(max_length=3, blank=True)
     new_local_distribution = models.CharField(max_length=200, blank=True)
