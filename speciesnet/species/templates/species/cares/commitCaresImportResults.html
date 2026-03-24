@@ -1,0 +1,61 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">CARES Import Commit Results</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col">
+                            <h5>{{ results.added }}</h5>
+                            <p class="text-muted">Added</p>
+                        </div>
+                        <div class="col">
+                            <h5>{{ results.updated }}</h5>
+                            <p class="text-muted">Updated</p>
+                        </div>
+                        <div class="col">
+                            <h5>{{ results.skipped }}</h5>
+                            <p class="text-muted">Skipped</p>
+                        </div>
+                        <div class="col">
+                            <h5>{{ results.errors }}</h5>
+                            <p class="text-muted">Errors</p>
+                        </div>
+                        <div class="col">
+                            <h5>{{ results.total }}</h5>
+                            <p class="text-muted">Total</p>
+                        </div>
+                    </div>
+
+                    {% if results.errors > 0 %}
+                    <div class="alert alert-warning">
+                        Some records could not be committed. Review the import log for details.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        All approved records committed successfully.
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'importArchiveResults' import_archive.pk %}" class="btn btn-outline-secondary">
+                            View Import Log
+                        </a>
+                        <a href="{% url 'reviewCaresImport' import_archive.pk %}" class="btn btn-outline-primary">
+                            Back to Review
+                        </a>
+                        <a href="{% url 'caresSpeciesSearch' %}" class="btn btn-primary">
+                            Browse CARES Species
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

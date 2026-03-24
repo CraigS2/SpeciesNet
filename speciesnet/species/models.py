@@ -595,3 +595,59 @@ class ImportArchive (models.Model):
 
     def __str__(self):
         return self.name
+
+
+### SpeciesImportStaging - staging table for CARES species import review/approve workflow
+
+class SpeciesImportStaging (models.Model):
+
+    import_archive    = models.ForeignKey(ImportArchive, on_delete=models.CASCADE, related_name='staging_records')
+    import_row_number = models.IntegerField()
+
+    class ImportAction (models.TextChoices):
+        NEW      = 'NEW',      _('New species to add')
+        UPDATE   = 'UPDATE',   _('Update existing species')
+        SKIP     = 'SKIP',     _('Skip - no changes')
+        CONFLICT = 'CONFLICT', _('Requires review')
+
+    action = models.CharField(max_length=10, choices=ImportAction.choices)
+
+    # Reference to existing species (null for NEW actions)
+    existing_species = models.ForeignKey(Species, null=True, blank=True, on_delete=models.SET_NULL, related_name='import_staging')
+
+    # Proposed values mirroring Species model fields
+    new_name               = models.CharField(max_length=240)
+    new_alt_name           = models.CharField(max_length=240, blank=True)
+    new_common_name        = models.CharField(max_length=240, blank=True)
+    new_description        = models.TextField(blank=True)
+    new_species_image      = models.CharField(max_length=500, blank=True)  # store path as string
+    new_photo_credit       = models.CharField(max_length=200, blank=True)
+    new_category           = models.CharField(max_length=3, blank=True)
+    new_global_region      = models.CharField(max_length=3, blank=True)
+    new_local_distribution = models.CharField(max_length=200, blank=True)
+    new_cares_family       = models.CharField(max_length=3, blank=True)
+    new_iucn_red_list      = models.CharField(max_length=2, blank=True)
+    new_cares_classification = models.CharField(max_length=4, blank=True)
+
+    class ReviewStatus (models.TextChoices):
+        PENDING  = 'PENDING',  _('Pending review')
+        APPROVED = 'APPROVED', _('Approved')
+        REJECTED = 'REJECTED', _('Rejected')
+
+    review_status = models.CharField(max_length=10, choices=ReviewStatus.choices, default=ReviewStatus.PENDING)
+    reviewed_by   = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviewed_imports')
+    reviewed_at   = models.DateTimeField(null=True, blank=True)
+    review_notes  = models.TextField(blank=True)
+
+    # Field-level change tracking: {'field_name': {'old': value, 'new': value}}
+    changed_fields = models.JSONField(default=dict, blank=True)
+
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['import_row_number']
+        verbose_name = 'Species Import Staging'
+        verbose_name_plural = 'Species Import Staging'
+
+    def __str__(self):
+        return f"Staging: {self.new_name} ({self.get_action_display()})"

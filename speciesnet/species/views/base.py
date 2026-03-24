@@ -33,7 +33,7 @@ from species.models import (
     SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLabel,
     SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry,
     ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies, 
-    CaresRegistration, CaresApprover
+    CaresRegistration, CaresApprover, SpeciesImportStaging
 )
 
 # Local forms

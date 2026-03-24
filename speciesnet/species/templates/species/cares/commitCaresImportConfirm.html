@@ -1,0 +1,27 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="my-0">Commit CARES Import</h4>
+                </div>
+                <div class="card-body">
+                    <p>
+                        You are about to commit <strong>{{ approved_count }}</strong> approved staging
+                        record(s) from archive <strong>#{{ import_archive.pk }}</strong> to the Species database.
+                    </p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Commit {{ approved_count }} Record(s)</button>
+                        <a href="{% url 'reviewCaresImport' import_archive.pk %}" class="btn btn-secondary ms-2">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
