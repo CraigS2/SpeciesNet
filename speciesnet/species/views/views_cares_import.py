@@ -138,8 +138,10 @@ def reviewCaresImportDetail(request, staging_id):
     }
     comparison = []
     for field, label in field_labels.items():
-        current_val = str(getattr(staging.existing_species, field, '') or '') if staging.existing_species else ''
-        new_val = str(getattr(staging, f'new_{field}', '') or '')
+        raw_current = getattr(staging.existing_species, field, None) if staging.existing_species else None
+        current_val = str(raw_current) if raw_current is not None else ''
+        raw_new = getattr(staging, f'new_{field}', None)
+        new_val = str(raw_new) if raw_new is not None else ''
         changed = current_val != new_val
         comparison.append({
             'field': field,

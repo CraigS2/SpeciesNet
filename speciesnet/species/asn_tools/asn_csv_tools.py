@@ -836,12 +836,14 @@ def commit_cares_import_staging(import_archive: ImportArchive, current_user: Use
 
                     updated_fields_list = []
                     for field in CARES_ALWAYS_UPDATE_FIELDS:
-                        if new_vals.get(field):
-                            setattr(species, field, new_vals[field])
+                        new_val = new_vals.get(field)
+                        if new_val is not None and new_val != '':
+                            setattr(species, field, new_val)
                             updated_fields_list.append(field)
                     for field in CARES_UPDATE_IF_EMPTY_FIELDS:
-                        if new_vals.get(field) and not getattr(species, field, ''):
-                            setattr(species, field, new_vals[field])
+                        new_val = new_vals.get(field)
+                        if new_val is not None and new_val != '' and not getattr(species, field, ''):
+                            setattr(species, field, new_val)
                             updated_fields_list.append(field)
                     # CARES_NEVER_UPDATE_FIELDS are intentionally skipped
 
@@ -859,8 +861,7 @@ def commit_cares_import_staging(import_archive: ImportArchive, current_user: Use
                     results['skipped'] += 1
                     csv_report_writer.writerow([staging.import_row_number, staging.new_name, staging.action, 'Skipped', ''])
 
-                # Mark staging record as committed
-                staging.review_status = SpeciesImportStaging.ReviewStatus.APPROVED
+                # Update staging record's reviewed_at timestamp
                 staging.reviewed_at = timezone.now()
                 staging.save(update_fields=['existing_species', 'reviewed_at'])
 
