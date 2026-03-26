@@ -179,6 +179,15 @@ urlpatterns = [
     path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),                   # admin-only
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
+    ### CARES Species Import Workflow ###
+
+    path('cares/import/staging/', views.importCaresSpeciesStaging, name="importCaresSpeciesStaging"),
+    path('cares/import/review/<str:pk>/', views.reviewCaresImport, name="reviewCaresImport"),
+    path('cares/import/review/detail/<str:staging_id>/', views.reviewCaresImportDetail, name="reviewCaresImportDetail"),
+    path('cares/import/approve/<str:pk>/', views.approveCaresImportBatch, name="approveCaresImportBatch"),
+    path('cares/import/reject/<str:pk>/', views.rejectCaresImportBatch, name="rejectCaresImportBatch"),
+    path('cares/import/commit/<str:pk>/', views.commitCaresImport, name="commitCaresImport"),
+
 
     # django: re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),

@@ -85,6 +85,12 @@ from .views_tools import (
     tools, tools2, dirtyDeed
 )
 
+# CARES Import Workflow
+from .views_cares_import import (
+    importCaresSpeciesStaging, reviewCaresImport, reviewCaresImportDetail,
+    approveCaresImportBatch, rejectCaresImportBatch, commitCaresImport,
+)
+
 
 ### PACKAGE view declarations
 
@@ -142,5 +148,9 @@ __all__ = [
 
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',
-    'tools', 'tools2',  'dirtyDeed'
+    'tools', 'tools2',  'dirtyDeed',
+
+    # CARES Import Workflow
+    'importCaresSpeciesStaging', 'reviewCaresImport', 'reviewCaresImportDetail',
+    'approveCaresImportBatch', 'rejectCaresImportBatch', 'commitCaresImport',
 ] # type: ignore
