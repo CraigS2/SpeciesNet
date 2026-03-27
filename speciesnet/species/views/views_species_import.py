@@ -6,10 +6,7 @@ from .base import *
 from django.utils import timezone
 from species.models import SpeciesImportStaging
 from species.forms import SpeciesImportStagingForm
-from species.asn_tools.asn_csv_tools import (
-    import_csv_cares_species_to_staging,
-    commit_cares_import_staging,
-)
+from species.asn_tools.asn_csv_tools import (import_csv_species_to_staging, commit_species_import_staging,)
 
 
 # ---------------------------------------------------------------------------
@@ -17,7 +14,7 @@ from species.asn_tools.asn_csv_tools import (
 # ---------------------------------------------------------------------------
 
 @login_required(login_url='login')
-def importCaresSpeciesStaging(request):
+def importSpeciesToStaging(request):
     """Upload a CARES species CSV and parse it into staging records for review."""
     if not user_is_admin(request.user):
         raise PermissionDenied()
@@ -31,7 +28,7 @@ def importCaresSpeciesStaging(request):
             import_archive.name = f"{request.user.username}_cares_species_staging"
             import_archive.save()
 
-            summary = import_csv_cares_species_to_staging(import_archive, request.user)
+            summary = import_csv_species_to_staging(import_archive, request.user)
             logger.info(
                 'User %s created CARES staging import %s: %s',
                 request.user.username, import_archive.pk, summary,
@@ -42,18 +39,18 @@ def importCaresSpeciesStaging(request):
                 f"{summary['update']} updates, {summary['conflict']} conflicts, "
                 f"{summary['skip']} unchanged, {summary['error']} errors.",
             )
-            return HttpResponseRedirect(reverse('reviewCaresImport', args=[import_archive.pk]))
+            return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[import_archive.pk]))
 
     context = {'form': form}
-    return render(request, 'species/cares/importCaresSpeciesStaging.html', context)
+    return render(request, 'species/import/importSpeciesStaging.html', context)
 
 
 # ---------------------------------------------------------------------------
-# Step 2: Review all staging records for an import archive
+# Step 2a: Review all staging records for an import archive
 # ---------------------------------------------------------------------------
 
 @login_required(login_url='login')
-def reviewCaresImport(request, pk):
+def reviewSpeciesImport(request, pk):
     """Display all staging records for an ImportArchive with summary stats."""
     if not user_is_admin(request.user):
         raise PermissionDenied()
@@ -91,7 +88,7 @@ def reviewCaresImport(request, pk):
         'action_choices': SpeciesImportStaging.ImportAction.choices,
         'status_choices': SpeciesImportStaging.ReviewStatus.choices,
     }
-    return render(request, 'species/cares/reviewCaresImport.html', context)
+    return render(request, 'species/import/reviewSpeciesImport.html', context)
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +96,7 @@ def reviewCaresImport(request, pk):
 # ---------------------------------------------------------------------------
 
 @login_required(login_url='login')
-def reviewCaresImportDetail(request, staging_id):
+def reviewSpeciesImportDetail(request, staging_id):
     """Side-by-side comparison and approve/reject of an individual staging record."""
     if not user_is_admin(request.user):
         raise PermissionDenied()
@@ -120,7 +117,7 @@ def reviewCaresImportDetail(request, staging_id):
                 request.user.username, staging.pk, updated.review_status,
             )
             messages.success(request, f'Staging record updated to {updated.get_review_status_display()}.')
-            return HttpResponseRedirect(reverse('reviewCaresImport', args=[import_archive.pk]))
+            return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[import_archive.pk]))
 
     # Build field comparison rows for the template
     field_labels = {
@@ -156,7 +153,7 @@ def reviewCaresImportDetail(request, staging_id):
         'form': form,
         'comparison': comparison,
     }
-    return render(request, 'species/cares/reviewCaresImportDetail.html', context)
+    return render(request, 'species/import/reviewSpeciesImportDetail.html', context)
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +161,7 @@ def reviewCaresImportDetail(request, staging_id):
 # ---------------------------------------------------------------------------
 
 @login_required(login_url='login')
-def approveCaresImportBatch(request, pk):
+def approveSpeciesImportBatch(request, pk):
     """Bulk-approve all PENDING staging records for an ImportArchive."""
     if not user_is_admin(request.user):
         raise PermissionDenied()
@@ -186,7 +183,7 @@ def approveCaresImportBatch(request, pk):
         logger.info('User %s bulk-approved %d staging records for archive %s', request.user.username, count, pk)
         messages.success(request, f'{count} staging record(s) approved.')
 
-    return HttpResponseRedirect(reverse('reviewCaresImport', args=[pk]))
+    return HttpResponseRedirect(reverse('species/import/reviewSpeciesImport', args=[pk]))
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +191,7 @@ def approveCaresImportBatch(request, pk):
 # ---------------------------------------------------------------------------
 
 @login_required(login_url='login')
-def rejectCaresImportBatch(request, pk):
+def rejectSpeciesImportBatch(request, pk):
     """Bulk-reject all PENDING staging records for an ImportArchive."""
     if not user_is_admin(request.user):
         raise PermissionDenied()
@@ -216,7 +213,7 @@ def rejectCaresImportBatch(request, pk):
         logger.info('User %s bulk-rejected %d staging records for archive %s', request.user.username, count, pk)
         messages.success(request, f'{count} staging record(s) rejected.')
 
-    return HttpResponseRedirect(reverse('reviewCaresImport', args=[pk]))
+    return HttpResponseRedirect(reverse('species/import/reviewSpeciesImport', args=[pk]))
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +221,7 @@ def rejectCaresImportBatch(request, pk):
 # ---------------------------------------------------------------------------
 
 @login_required(login_url='login')
-def commitCaresImport(request, pk):
+def commitSpeciesImport(request, pk):
     """Commit all APPROVED staging records to the Species table."""
     if not user_is_admin(request.user):
         raise PermissionDenied()
@@ -236,7 +233,7 @@ def commitCaresImport(request, pk):
     ).count()
 
     if request.method == 'POST':
-        results = commit_cares_import_staging(import_archive, request.user)
+        results = commit_species_import_staging(import_archive, request.user)
         logger.info(
             'User %s committed CARES import archive %s: %s',
             request.user.username, pk, results,
@@ -245,11 +242,11 @@ def commitCaresImport(request, pk):
             'import_archive': import_archive,
             'results': results,
         }
-        return render(request, 'species/cares/commitCaresImportResults.html', context)
+        return render(request, 'species/import/commitSpeciesImportResults.html', context)
 
     # GET: show confirmation page
     context = {
         'import_archive': import_archive,
         'approved_count': approved_count,
     }
-    return render(request, 'species/cares/commitCaresImportConfirm.html', context)
+    return render(request, 'species/import/commitSpeciesImportConfirm.html', context)

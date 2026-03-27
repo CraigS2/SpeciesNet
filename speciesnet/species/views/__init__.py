@@ -20,7 +20,7 @@ from .views_species import (
     species, createSpecies, editSpecies, deleteSpecies, SpeciesListView, 
     createSpeciesReferenceLink, editSpeciesReferenceLink, deleteSpeciesReferenceLink,
     speciesReferenceLinks, speciesComments, editSpeciesComment, deleteSpeciesComment,
-    exportSpecies, importSpecies
+    exportSpecies#, importSpecies
 )
 
 # Species (Species Profiles)
@@ -38,7 +38,7 @@ from .views_species_instance import (
     speciesInstance, createSpeciesInstance, editSpeciesInstance, deleteSpeciesInstance,
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
     editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
-    reassignSpeciesInstance, exportSpeciesInstances, importSpeciesInstances,
+    reassignSpeciesInstance, exportSpeciesInstances,
     registerCaresSpeciesInstance
 )
 
@@ -58,7 +58,7 @@ from .views_club import (
     deleteAquaristClub, aquaristClubAdmin, AquaristClubMemberListView,
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
     deleteAquaristClubMember, AquaristClubCaresLiaisonListView,
-    exportAquaristClubs, exportAquaristClubMembers, importAquaristClubs
+    exportAquaristClubs, exportAquaristClubMembers
 )
 
 # CLub BAP
@@ -85,10 +85,10 @@ from .views_tools import (
     tools, tools2, dirtyDeed
 )
 
-# CARES Import Workflow
-from .views_cares_import import (
-    importCaresSpeciesStaging, reviewCaresImport, reviewCaresImportDetail,
-    approveCaresImportBatch, rejectCaresImportBatch, commitCaresImport,
+# Species Import with Review-Approve Workflow
+from .views_species_import import (
+    importSpeciesToStaging, reviewSpeciesImport, reviewSpeciesImportDetail,
+    approveSpeciesImportBatch, rejectSpeciesImportBatch, commitSpeciesImport,
 )
 
 
@@ -138,8 +138,8 @@ __all__ = [
     'editBapSpecies', 'deleteBapSpecies',
     
     # Import
-    'exportSpecies', 'importSpecies', 'exportAquarists', 'exportSpeciesInstances',
-    'importSpeciesInstances', 'importClubBapGenus', 'exportClubBapGenus',
+    'exportSpecies', 'exportAquarists', 'exportSpeciesInstances',
+    'importClubBapGenus', 'exportClubBapGenus',
     'importArchiveResults',
     
     # UX
@@ -151,6 +151,6 @@ __all__ = [
     'tools', 'tools2',  'dirtyDeed',
 
     # CARES Import Workflow
-    'importCaresSpeciesStaging', 'reviewCaresImport', 'reviewCaresImportDetail',
-    'approveCaresImportBatch', 'rejectCaresImportBatch', 'commitCaresImport',
+    'importSpeciesToStaging', 'reviewSpeciesImport', 'reviewSpeciesImportDetail',
+    'approveSpeciesImportBatch', 'rejectSpeciesImportBatch', 'commitSpeciesImport',
 ] # type: ignore

@@ -84,23 +84,23 @@
         </div>
         <div class="col-auto">
             <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
-            <a href="{% url 'reviewCaresImport' import_archive.pk %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            <a href="{% url 'reviewSpeciesImport' import_archive.pk %}" class="btn btn-sm btn-outline-secondary">Clear</a>
         </div>
     </form>
 
     <!-- Bulk action buttons -->
     <div class="mb-3 d-flex gap-2 flex-wrap">
-        <form method="POST" action="{% url 'approveCaresImportBatch' import_archive.pk %}">
+        <form method="POST" action="{% url 'approveSpeciesImportBatch' import_archive.pk %}">
             {% csrf_token %}
             {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
             <button type="submit" class="btn btn-success btn-sm">Approve All Pending</button>
         </form>
-        <form method="POST" action="{% url 'rejectCaresImportBatch' import_archive.pk %}">
+        <form method="POST" action="{% url 'rejectSpeciesImportBatch' import_archive.pk %}">
             {% csrf_token %}
             {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
             <button type="submit" class="btn btn-warning btn-sm">Reject All Pending</button>
         </form>
-        <a href="{% url 'commitCaresImport' import_archive.pk %}" class="btn btn-primary btn-sm">
+        <a href="{% url 'commitSpeciesImport' import_archive.pk %}" class="btn btn-primary btn-sm">
             Commit Approved ({{ summary.approved }})
         </a>
         <a href="{% url 'importArchiveResults' import_archive.pk %}" class="btn btn-outline-secondary btn-sm">
@@ -150,7 +150,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'reviewCaresImportDetail' record.pk %}" class="btn btn-xs btn-outline-primary btn-sm">Review</a>
+                        <a href="{% url 'reviewSpeciesImportDetail' record.pk %}" class="btn btn-xs btn-outline-primary btn-sm">Review</a>
                     </td>
                 </tr>
             {% endfor %}

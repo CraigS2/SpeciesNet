@@ -342,21 +342,21 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
         return context
 
 
-@login_required(login_url='login')
-def importAquaristClubs(request):
-    userCanEdit = user_is_admin (request.user)
-    if not userCanEdit:
-        raise PermissionDenied()
+# @login_required(login_url='login')
+# def importAquaristClubs(request):
+#     userCanEdit = user_is_admin (request.user)
+#     if not userCanEdit:
+#         raise PermissionDenied()
     
-    if request.method == 'POST':
-        form = ImportCsvForm(request.POST, request.FILES)
-        if form.is_valid():
-            import_archive = form.save()
-            import_csv_aquarist_clubs(import_archive, current_user)
-            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+#     if request.method == 'POST':
+#         form = ImportCsvForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             import_archive = form.save()
+#             import_csv_aquarist_clubs(import_archive, current_user)
+#             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
         
-    form = ImportCsvForm()
-    return render(request, "species/importSpecies.html", {"form": form})
+#     form = ImportCsvForm()
+#     return render(request, "species/importAquaristClubs.html", {"form": form})
 
 @login_required(login_url='login')
 def exportAquaristClubs(request):

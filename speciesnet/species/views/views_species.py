@@ -327,16 +327,16 @@ def exportSpecies(request):
     return export_csv_species()
 
 
-@login_required(login_url='login')
-def importSpecies(request):
-    current_user = request.user
-    form = ImportCsvForm()
+# @login_required(login_url='login')
+# def importSpecies(request):
+#     current_user = request.user
+#     form = ImportCsvForm()
     
-    if request.method == 'POST':
-        form2 = ImportCsvForm(request.POST, request.FILES)
-        if form2.is_valid():
-            import_archive = form2.save()
-            import_csv_species(import_archive, current_user)
-            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+#     if request.method == 'POST':
+#         form2 = ImportCsvForm(request.POST, request.FILES)
+#         if form2.is_valid():
+#             import_archive = form2.save()
+#             import_csv_species(import_archive, current_user)
+#             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
     
-    return render(request, "species/importSpecies.html", {"form": form})
+#     return render(request, "species/importSpecies.html", {"form": form})

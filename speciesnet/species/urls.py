@@ -31,7 +31,7 @@ urlpatterns = [
     path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
     path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
     path('exportAquaristClubs/', views.exportAquaristClubs, name="exportAquaristClubs"),
-    path('importAquaristClubs/', views.importAquaristClubs, name="importAquaristClubs"),
+    #path('importAquaristClubs/', views.importAquaristClubs, name="importAquaristClubs"),
 
     path('aquaristClubMember/<int:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
     path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
@@ -65,7 +65,7 @@ urlpatterns = [
     path('bap_overview/', views.bap_overview, name="bap_overview"),
     path('bap_submissions_overview/', views.bap_submissions_overview, name="bap_submissions_overview"),
 
-    path('importClubBapGenus/<str:pk>/', views.importClubBapGenus, name="importClubBapGenus"),
+    path('species/import/importClubBapGenus/<str:pk>/', views.importClubBapGenus, name="importClubBapGenus"),
     path('exportClubBapGenus/<str:pk>/', views.exportClubBapGenus, name="exportClubBapGenus"),
 
     ### Species == 'Species Profiles' (UX) ###
@@ -111,7 +111,7 @@ urlpatterns = [
     path('registrationLookup/', views.registrationLookup, name="registrationLookup"),                            # annonymous user reg check
 
     path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
-    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
+    #path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
@@ -123,7 +123,7 @@ urlpatterns = [
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
-    path('importSpecies/', views.importSpecies, name="importSpecies"),
+    #path('importSpecies/', views.importSpecies, name="importSpecies"),
 
     ### Species Instance == Aquarist Species (UX) ###
 
@@ -158,7 +158,7 @@ urlpatterns = [
     path('deleteSpeciesMaintenanceLogEntry/<str:pk>/', views.deleteSpeciesMaintenanceLogEntry, name="deleteSpeciesMaintenanceLogEntry"),
 
     path('exportSpeciesInstances/', views.exportSpeciesInstances, name="exportSpeciesInstances"),
-    path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
+    #path('importSpeciesInstances/', views.importSpeciesInstances, name="importSpeciesInstances"),
 
     path('addSpeciesInstanceWizard1/', views.addSpeciesInstanceWizard1, name="addSpeciesInstanceWizard1"),
     path('addSpeciesInstanceWizard2/', views.addSpeciesInstanceWizard2, name="addSpeciesInstanceWizard2"),
@@ -175,19 +175,18 @@ urlpatterns = [
     path('speciesInstancesWithPhotos/', views.speciesInstancesWithPhotos, name="speciesInstancesWithPhotos"),
     path('speciesProfilesWithPhotos/', views.speciesProfilesWithPhotos, name="speciesProfilesWithPhotos"),
 
-    path('importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),    # admin-only
+    path('species/import/importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),    # admin-only
     path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),                   # admin-only
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
-    ### CARES Species Import Workflow ###
+    ### Species Import Workflow ###
 
-    path('cares/import/staging/', views.importCaresSpeciesStaging, name="importCaresSpeciesStaging"),
-    path('cares/import/review/<str:pk>/', views.reviewCaresImport, name="reviewCaresImport"),
-    path('cares/import/review/detail/<str:staging_id>/', views.reviewCaresImportDetail, name="reviewCaresImportDetail"),
-    path('cares/import/approve/<str:pk>/', views.approveCaresImportBatch, name="approveCaresImportBatch"),
-    path('cares/import/reject/<str:pk>/', views.rejectCaresImportBatch, name="rejectCaresImportBatch"),
-    path('cares/import/commit/<str:pk>/', views.commitCaresImport, name="commitCaresImport"),
-
+    path('speciesImportToStaging/', views.importSpeciesToStaging, name="importSpeciesToStaging"),
+    path('speciesImportReview/<str:pk>/', views.reviewSpeciesImport, name="reviewSpeciesImport"),
+    path('speciesImportReviewDetail/<str:staging_id>/', views.reviewSpeciesImportDetail, name="reviewSpeciesImportDetail"),
+    path('species/import/approve/<str:pk>/', views.approveSpeciesImportBatch, name="approveSpeciesImportBatch"),
+    path('species/import/reject/<str:pk>/', views.rejectSpeciesImportBatch, name="rejectSpeciesImportBatch"),
+    path('species/import/commit/<str:pk>/', views.commitSpeciesImport, name="commitSpeciesImport"),
 
     # django: re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),

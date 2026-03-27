@@ -112,7 +112,7 @@ def importArchiveResults(request, pk):
                 'report_row':  report_row,
                 'dict_reader': dict_reader
             }
-            return render(request, 'species/importArchiveResults.html', context)
+            return render(request, 'species/import/importArchiveResults.html', context)
     except Exception as e:
         error_msg = f"An error occurred reading Import Archive.  \nException: {str(e)}"
         messages.error(request, error_msg)

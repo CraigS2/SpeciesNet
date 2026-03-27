@@ -34,7 +34,7 @@ SPECIES_IMPORT_ENUM_DEFAULTS = {
 }
 
 # Fields that are always overwritten on UPDATE (high-trust authoritative data)
-CARES_ALWAYS_UPDATE_FIELDS = [
+SPECIES_ALWAYS_UPDATE_FIELDS = [
     'cares_classification',
     'iucn_red_list',
     'cares_family',
@@ -43,7 +43,7 @@ CARES_ALWAYS_UPDATE_FIELDS = [
 ]
 
 # Fields written only when the existing value is blank/empty
-CARES_UPDATE_IF_EMPTY_FIELDS = [
+SPECIES_UPDATE_IF_EMPTY_FIELDS = [
     'common_name',
     'alt_name',
     'description',
@@ -51,13 +51,13 @@ CARES_UPDATE_IF_EMPTY_FIELDS = [
 ]
 
 # Fields that are never overwritten on UPDATE (managed locally)
-CARES_NEVER_UPDATE_FIELDS: list = []
+SPECIES_NEVER_UPDATE_FIELDS: list = []
 
 # All tracked species fields (used for change detection)
-CARES_TRACKED_FIELDS = (
-    CARES_ALWAYS_UPDATE_FIELDS
-    + CARES_UPDATE_IF_EMPTY_FIELDS
-    + CARES_NEVER_UPDATE_FIELDS
+SPECIES_TRACKED_FIELDS = (
+    SPECIES_ALWAYS_UPDATE_FIELDS
+    + SPECIES_UPDATE_IF_EMPTY_FIELDS
+    + SPECIES_NEVER_UPDATE_FIELDS
 )
 
 # Import Species List
@@ -639,6 +639,7 @@ def export_csv_caresRegistrations():
 
 def _find_existing_species(name: str):
     """Return an existing Species record matching *name* (case-insensitive) or None."""
+    print ('Species Import - Lookup of existing species: ' + name)
     try:
         return Species.objects.get(name__iexact=name)
     except Species.DoesNotExist:
@@ -676,7 +677,7 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
     return changed
 
 
-def import_csv_cares_species_to_staging(import_archive: ImportArchive, current_user: User) -> dict:
+def import_csv_species_to_staging(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Parse a species CSV and create SpeciesImportStaging records for review.
 
@@ -784,14 +785,14 @@ def import_csv_cares_species_to_staging(import_archive: ImportArchive, current_u
     return summary
 
 
-def commit_cares_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
+def commit_species_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Commit all APPROVED staging records for *import_archive* to the Species table.
 
     Respects field-level import rules:
-    - CARES_ALWAYS_UPDATE_FIELDS: always written on UPDATE
-    - CARES_UPDATE_IF_EMPTY_FIELDS: written only when existing value is blank
-    - CARES_NEVER_UPDATE_FIELDS: never written on UPDATE
+    - SPECIES_ALWAYS_UPDATE_FIELDS: always written on UPDATE
+    - SPECIES_UPDATE_IF_EMPTY_FIELDS: written only when existing value is blank
+    - SPECIES_NEVER_UPDATE_FIELDS: never written on UPDATE
 
     Returns a results dict with counts: added, updated, skipped, errors.
     """
@@ -849,17 +850,17 @@ def commit_cares_import_staging(import_archive: ImportArchive, current_user: Use
                     }
 
                     updated_fields_list = []
-                    for field in CARES_ALWAYS_UPDATE_FIELDS:
+                    for field in SPECIES_ALWAYS_UPDATE_FIELDS:
                         new_val = new_vals.get(field)
                         if new_val is not None and new_val != '':
                             setattr(species, field, new_val)
                             updated_fields_list.append(field)
-                    for field in CARES_UPDATE_IF_EMPTY_FIELDS:
+                    for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
                         new_val = new_vals.get(field)
                         if new_val is not None and new_val != '' and not getattr(species, field, ''):
                             setattr(species, field, new_val)
                             updated_fields_list.append(field)
-                    # CARES_NEVER_UPDATE_FIELDS are intentionally skipped
+                    # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
 
                     species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.last_edited_by = current_user
