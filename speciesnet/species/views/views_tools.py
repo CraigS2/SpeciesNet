@@ -340,6 +340,43 @@ def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
             reg.save()
     return
 
+
+def dirtyDeedMigrateCaresClassifications ():
+    species_set = Species.objects.all()
+    for species in species_set:
+ 
+        if species.cares_classification == Species.CaresStatus.CRIT_ENDANGERED:
+            species.cares_classification = Species.CaresStatus.CARES_CRIT_ENDGR
+            species.save()
+        elif species.cares_classification == Species.CaresStatus.ENDANGERED:
+            species.cares_classification = Species.CaresStatus.CARES_ENDANGERED 
+            species.save()            
+        elif species.cares_classification == Species.CaresStatus.VULNERABLE:
+            species.cares_classification = Species.CaresStatus.CARES_VULNERABLE 
+            species.save()
+        elif species.cares_classification == Species.CaresStatus.NEAR_THREATENED:
+            species.cares_classification = Species.CaresStatus.CARES_NEAR_THREAT  
+            species.save()
+        elif species.cares_classification == Species.CaresStatus.EXTINCT_IN_WILD:
+            species.cares_classification = Species.CaresStatus.CARES_EXT_IN_WILD
+            species.save()
+        else:
+            print ('Dirty Deed Cleanup - checked CARES Classification no change for ' + species.name)                            
+    return  
+
+def dirtyDeedCleanBogusAssessmentDates():
+    clear_cares_date_species_set = Species.objects.filter(cares_assessment_date='1900-01-01')
+    for species in clear_cares_date_species_set:
+        species.cares_assessment_date = None
+        species.save()
+        print ('Dirty Deed Cleanup - set cares_assessment_date to None for ' + species.name)
+
+    clear_iucn_date_species_set = Species.objects.filter(iucn_assessment_date='1900-01-01')
+    for species in clear_iucn_date_species_set:
+        species.iucn_assessment_date = None
+        species.save()
+        print ('Dirty Deed Cleanup - set iucn_assessment_date to None for ' + species.name) 
+
 def dirtyDeed(request):
     """
     One-off admin utility for database maintenance tasks
@@ -355,10 +392,12 @@ def dirtyDeed(request):
         raise PermissionDenied()
     
     # Dirty deed goes here ...  then return to tools2
+    dirtyDeedMigrateCaresClassifications()
+    dirtyDeedCleanBogusAssessmentDates()
 
-    ### Registration dev-only migration work in progress ###
-    modify_db = True
-    dirtyDeedMigrateWorkingRegistrations (modify_db)
+    # ### Registration dev-only migration work in progress ###
+    # modify_db = True
+    # dirtyDeedMigrateWorkingRegistrations (modify_db)
 
     ### DB NULL - Empty String Cleanup ###
     #modify_db = True

@@ -121,16 +121,18 @@ def reviewSpeciesImportDetail(request, staging_id):
 
     # Build field comparison rows for the template
     field_labels = {
-        'name':               'Scientific Name',
-        'alt_name':           'Alternate Name',
-        'common_name':        'Common Name',
-        'description':        'Description',
-        'category':           'Category',
-        'global_region':      'Global Region',
-        'local_distribution': 'Local Distribution',
-        'cares_family':       'CARES Family',
-        'iucn_red_list':      'IUCN Red List',
-        'cares_classification': 'CARES Classification',
+        'name':                  'Scientific Name',
+        'alt_name':              'Alternate Name',
+        'common_name':           'Common Name',
+        'description':           'Description',
+        'category':              'Category',
+        'global_region':         'Global Region',
+        'local_distribution':    'Local Distribution',
+        'cares_family':          'CARES Family',
+        'cares_assessment_date': 'CARES Assessment Date',        
+        'cares_classification':  'CARES Classification',
+        'iucn_red_list':         'IUCN Red List Status',
+        'iucn_assessment_date':  'IUCN Assessment Date',
     }
     comparison = []
     for field, label in field_labels.items():
@@ -183,7 +185,8 @@ def approveSpeciesImportBatch(request, pk):
         logger.info('User %s bulk-approved %d staging records for archive %s', request.user.username, count, pk)
         messages.success(request, f'{count} staging record(s) approved.')
 
-    return HttpResponseRedirect(reverse('species/import/reviewSpeciesImport', args=[pk]))
+    #return HttpResponseRedirect(reverse('species/import/reviewSpeciesImport', args=[pk]))
+    return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[pk]))
 
 
 # ---------------------------------------------------------------------------

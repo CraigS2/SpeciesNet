@@ -28,13 +28,19 @@
                     <p>{{species.description|linebreaks}}</p>
                     <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
                     <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
-                    <p><b>IUCN Red List:</b> &nbsp;&nbsp;{{species.get_iucn_red_list_display}}</p>
 
-                    <p><b>CARES Family:</b> &nbsp;&nbsp;{{species.get_cares_family_display}}</p>
+                    <p><b>IUCN Red List:</b> &nbsp;&nbsp;{{species.get_iucn_red_list_display}}</p>
+                    {% if species.iucn_assessment_date %}
+                        <p><b>IUCN Assessment:</b> &nbsp;&nbsp;{{species.iucn_assessment_date}}</p>
+                    {% endif %}
+                    <p><b>CARES Family:</b> &nbsp;&nbsp;{{species.get_cares_family_display}}</p>     
                     <p><b>CARES Classification:</b> &nbsp;&nbsp;{{species.get_cares_classification_display}}</p>
+                    {% if species.cares_assessment_date %}
+                        <p><b>CARES Assessment:</b> &nbsp;&nbsp;{{species.cares_assessment_date}}</p>
+                    {% endif %}
 
                     {% if speciesReferenceLinks.all.count > 0  %}
-                    <h4>Reference Links</h4>
+                        <h4>Reference Links</h4>
                         {% for speciesReferenceLink in speciesReferenceLinks %}
                             <p style = "display: flex; justify-content: space-between;">
                                 <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>

@@ -55,7 +55,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     country    = models.CharField (max_length=100, blank=True)
 
     date_joined = models.DateTimeField (auto_now_add=True) 
-    #last_login  = models.DateTimeField(blank=True, null=True)  #TODO add this 'back in' for django backend mgmt - next migration
+    last_login  = models.DateTimeField(blank=True, null=True)
 
     is_private_name      = models.BooleanField (default=False)
     is_private_email     = models.BooleanField (default=True)
@@ -159,29 +159,40 @@ class Species (models.Model):
     local_distribution  = models.CharField (max_length=200, blank=True)
 
     class CaresFamily (models.TextChoices):
-        RICEFISH        = 'RIC', _('Adrianichthyidae (Ricefish)')
-        ANABANTIDS      = 'ANA', _('Anabantidae (Climbing Gouramies)')
-        EUROKILLIFISH   = 'EKF', _('Aphaniidae (Eurasian Killifish)')
-        MADAKILLIFISH   = 'MKF', _('Bedotiidae (Madagascan Killifish)')
-        KILLIFISH       = 'OKF', _('Killifish (Other Killifish)')
-        CHARACINS       = 'CHA', _('Characidae (Tetras)')
-        CICHLIDS        = 'CIC', _('Cichlidae (Cichlids)')
-        LOACHES         = 'LCH', _('Cobitidae (Loaches)')
-        CYPRINDAE       = 'CYP', _('Cyprinidae (Minnows and Carps)')
-        PUPFISH         = 'PUP', _('Cyprinodontidae (Pupfish)')
-        GOBIES          = 'GOB', _('Gobiidae (Gobies)')
-        GOODEIDS        = 'GOO', _('Goodeidae (Splitfins)')
-        LORICARIIDAE    = 'LOR', _('Loricariidae (Armoured Catfish)')
-        RAINBOWFISH     = 'RBF', _('Melanotaeniidae (Rainbowfish)')
-        SQUEEKERS       = 'SQU', _('Mochokidae (Squeakers)')
-        TOOTHCARPS      = 'TCA', _('Nothobranchiidae (Toothcarps)')
-        LIVEBEARERS     = 'LVB', _('Poeciliidae (Livebearers)')
-        BLUEEYES        = 'BLE', _('Pseudomugilidae (Blue Eyes)')
-        RIVULUS         = 'RIV', _('Rivulidae (Rivulus)')
-        VALENCIAS       = 'VLC', _('Valenciidae (Valencias)')
-        UNDEFINED       = 'UDF', _('Undefined')
+        RICEFISH        = 'RICE',  _('Adrianichthyidae - Ricefish')
+        ANABANTIDS      = 'ANAB',  _('Anabantidae - Climbing Gouramies')
+        EURAKILLIFISH   = 'EUKIL', _('Aphaniidae - Eurasian Killifish')                      # Aphaniidae — Eurasian Killifish
+        SEASKILLIFISH   = 'SAKIL', _('Aplocheilidae - SE Asia Killifish')                    # Aplocheilidae — Southeast Asian killifish
+        MADRAINBOWS     = 'MRAIN', _('Bedotiidae - Madagascar Rainbowfish')
+        CHARACINS       = 'CHAR',  _('Characidae - Tetras')
+        AS_CICHLIDS     = 'ASCIC', _('Cichlidae - Asia')
+        CA_CICHLIDS     = 'CACIC', _('Cichlidae - Central America')
+        EA_CICHLIDS     = 'EACIC', _('Cichlidae - East Africa')
+        LM_CICHLIDS     = 'LMCIC', _('Cichlidae - Lake Malawi')
+        LT_CICHLIDS     = 'LTCIC', _('Cichlidae - Lake Tanganyika')
+        LV_CICHLIDS     = 'LVCIC', _('Cichlidae - Lake Victoria')
+        MA_CICHLIDS     = 'MACIC', _('Cichlidae - Madagascar')
+        NA_CICHLIDS     = 'NACIC', _('Cichlidae - North Africa')
+        SA_CICHLIDS     = 'SACIC', _('Cichlidae - South Africa')
+        WA_CICHLIDS     = 'WACIC', _('Cichlidae - West Africa')
+        LOACHES         = 'COBI',  _('Cobitidae - True Loaches')
+        CYPRINDAE       = 'CYPR',  _('Cyprinidae - Minnows and Carps')
+        PUPFISH         = 'CYKIL', _('Cyprinodontidae - Small Killifish (Pupfish)')
+        FUNDULUS        = 'FUND',  _('Fundulidae - North American Killifish')
+        GOBIES          = 'GOBI',  _('Gobiidae - Gobies')
+        GOODEIDS        = 'GOOD',  _('Goodeidae - Splitfin Livebearers')
+        LORICARIIDAE    = 'LORI',  _('Loricariidae - Armoured Catfish')
+        RAINBOWFISH     = 'RAIN',  _('Melanotaeniidae - Oceania Rainbowfish')
+        SQUEEKERS       = 'SQUE',  _('Mochokidae - Upside-down Catfish (Squeakers)')
+        TOOTHCARPS      = 'NOTH',  _('Nothobranchiidae - African Killifish')
+        BETTAS          = 'BETT',  _('Osphronemidae - Bettas')        
+        LIVEBEARERS     = 'POEC',  _('Poeciliidae - Livebearers')
+        BLUEEYES        = 'PSMU',  _('Pseudomugilidae - Blue-eyed Rainbowfish')
+        RIVULUS         = 'RIVU',  _('Rivulidae - South American Killifish')
+        VALENCIAS       = 'VALE',  _('Valenciidae - Mediteranean Killifish')
+        UNDEFINED       = 'UDF',   _('Undefined')
 
-    cares_family  = models.CharField (max_length=3, choices=CaresFamily.choices, default=CaresFamily.UNDEFINED)
+    cares_family  = models.CharField (max_length=5, choices=CaresFamily.choices, default=CaresFamily.UNDEFINED)
 
     class IucnRedList (models.TextChoices):
         UNDEFINED         = 'UN', _('Undefined')
@@ -196,18 +207,26 @@ class Species (models.Model):
         EXTINCT           = 'EX', _('Extinct')
     
     iucn_red_list         = models.CharField (max_length=2, choices=IucnRedList.choices, default=IucnRedList.UNDEFINED)
+    iucn_assessment_date  = models.DateField (null=True, blank=True)    
 
     class CaresStatus (models.TextChoices):
         NOT_CARES_SPECIES = 'NOTC', _('Undefined')
-        NEAR_THREATENED   = 'NEAR', _('Near Threatened')
-        VULNERABLE        = 'VULN', _('Vulnerable')
-        ENDANGERED        = 'ENDA', _('Endangered')
-        CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')
-        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')     
+        NEAR_THREATENED   = 'NEAR', _('Near Threatened')               #TODO Delete after migration
+        VULNERABLE        = 'VULN', _('Vulnerable')                    #TODO Delete after migration           
+        ENDANGERED        = 'ENDA', _('Endangered')                    #TODO Delete after migration
+        CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')         #TODO Delete after migration
+        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')           #TODO Delete after migration
+        CARES_NEAR_THREAT = 'CNT', _ ('CARES Extinct in the Wild')   
+        CARES_VULNERABLE  = 'CVU', _ ('CARES Vulnerable')   
+        CARES_ENDANGERED  = 'CEN', _ ('CARES Endangered')   
+        CARES_CRIT_ENDGR  = 'CCR', _ ('CARES Critically Endangered')   
+        CARES_EXT_IN_WILD = 'CEW', _ ('CARES Extinct in the Wild')   
+          
     
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
+    cares_assessment_date     = models.DateField (null=True, blank=True)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    #species_instance_count    = models.PositiveIntegerField (default=0)       # TODO use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
+    #species_instance_count    = models.PositiveIntegerField (default=0)      # use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
@@ -439,7 +458,7 @@ class CaresApprover (models.Model):
     #TODO Rename CaresAuthority
     name              = models.CharField (max_length=240)
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
-    specialty         = models.CharField (max_length=3, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
+    specialty         = models.CharField (max_length=5, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
     last_updated      = models.DateTimeField(auto_now=True)
     last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters') 
     created           = models.DateTimeField (auto_now_add=True)
@@ -616,16 +635,18 @@ class SpeciesImportStaging (models.Model):
     existing_species = models.ForeignKey(Species, null=True, blank=True, on_delete=models.SET_NULL, related_name='import_staging')
 
     # Proposed values mirroring Species model fields
-    new_name               = models.CharField(max_length=240)
-    new_alt_name           = models.CharField(max_length=240, blank=True)
-    new_common_name        = models.CharField(max_length=240, blank=True)
-    new_description        = models.TextField(blank=True)
-    new_category           = models.CharField(max_length=3, blank=True)
-    new_global_region      = models.CharField(max_length=3, blank=True)
-    new_local_distribution = models.CharField(max_length=200, blank=True)
-    new_cares_family       = models.CharField(max_length=3, blank=True)
-    new_iucn_red_list      = models.CharField(max_length=2, blank=True)
-    new_cares_classification = models.CharField(max_length=4, blank=True)
+    new_name                  = models.CharField(max_length=240)
+    new_alt_name              = models.CharField(max_length=240, blank=True)
+    new_common_name           = models.CharField(max_length=240, blank=True)
+    new_description           = models.TextField(blank=True)
+    new_category              = models.CharField(max_length=3,   blank=True)
+    new_global_region         = models.CharField(max_length=3,   blank=True)
+    new_local_distribution    = models.CharField(max_length=200, blank=True)
+    new_cares_family          = models.CharField(max_length=5,   blank=True)
+    new_cares_classification  = models.CharField(max_length=4,   blank=True)
+    new_cares_assessment_date = models.CharField(max_length=10,  blank=True)
+    new_iucn_red_list         = models.CharField(max_length=2,   blank=True)
+    new_iucn_assessment_date  = models.CharField(max_length=10,  blank=True)
 
     class ReviewStatus (models.TextChoices):
         PENDING  = 'PENDING',  _('Pending review')

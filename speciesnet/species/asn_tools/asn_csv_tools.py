@@ -398,7 +398,7 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
     return
 
 
-#Export Species List, SpeciesInstances, Aquarists
+#Export Species List, SpeciesInstances, Aquarists, Clubs, BAP
 
 def export_csv_bap_genus(bap_club: AquaristClub):
     bapGenusSet = BapGenus.objects.filter(club=bap_club)
@@ -475,8 +475,10 @@ def export_csv_species():
             species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
             #       category          global_region          local_distribution 
             species.category, species.global_region, species.local_distribution, 
-            #       cares_family          iucn_red_list          cares_classification          render_cares
-            species.cares_family, species.iucn_red_list, species.cares_classification, species.render_cares,
+            #       cares_family          cares_classification          cares_assessment_date          render_cares
+            species.cares_family, species.cares_classification, species.cares_assessment_date, species.render_cares,
+            #       iucn_red_list          iucn_assessment_date
+            species.iucn_red_list, species.iucn_assessment_date,
             #       created          created_by          lastUpdated          last_edited_by    
             species.created, species.created_by, species.lastUpdated, species.last_edited_by
             ])
@@ -658,15 +660,17 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
     of changed fields:  {'field': {'old': old_val, 'new': new_val}}
     """
     field_map = {
-        'cares_classification': 'cares_classification',
-        'iucn_red_list':        'iucn_red_list',
-        'cares_family':         'cares_family',
-        'global_region':        'global_region',
-        'category':             'category',
-        'common_name':          'common_name',
-        'alt_name':             'alt_name',
-        'description':          'description',
-        'local_distribution':   'local_distribution',
+        'cares_family':          'cares_family',
+        'cares_assessment_date': 'cares_assessment_date',
+        'cares_classification':  'cares_classification',
+        'iucn_red_list':         'iucn_red_list',
+        'iucn_assessment_date':  'iucn_assessment_date',        
+        'global_region':         'global_region',
+        'category':              'category',
+        'common_name':           'common_name',
+        'alt_name':              'alt_name',
+        'description':           'description',
+        'local_distribution':    'local_distribution',
     }
     changed = {}
     for csv_field, model_field in field_map.items():
@@ -756,8 +760,10 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
                 new_global_region=import_row.get('global_region', ''),
                 new_local_distribution=import_row.get('local_distribution', ''),
                 new_cares_family=import_row.get('cares_family', ''),
-                new_iucn_red_list=import_row.get('iucn_red_list', ''),
                 new_cares_classification=import_row.get('cares_classification', ''),
+                new_cares_assessment_date=import_row.get('cares_assessment_date', ''),
+                new_iucn_red_list=import_row.get('iucn_red_list', ''),
+                new_iucn_assessment_date=import_row.get('iucn_assessment_date', ''),
                 changed_fields=changed_fields,
                 review_status=SpeciesImportStaging.ReviewStatus.PENDING,
             )
@@ -808,45 +814,60 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
     csv_report_writer.writerow(['Row', 'Species', 'Action', 'Result', 'Notes'])
 
     with transaction.atomic():
-        for staging in approved_records:
+        for staged_changes in approved_records:
             results['total'] += 1
             try:
-                if staging.action == SpeciesImportStaging.ImportAction.NEW:
+                if staged_changes.action == SpeciesImportStaging.ImportAction.NEW:
+                    logger.info('Species import saving staged changes to NEW species: %s', staged_changes.new_name)
+
+                    # #TODO explore a better solution for empty cell input dates
+                    # if staging.new_cares_assessment_date == '1900-01-00':
+                    #     staging.new_cares_assessment_date = None
+                    # if staging.new_iucn_assessment_date == '1900-01-00':
+                    #     staging.new_iucn_assessment_date = None     
+
                     species = Species(
-                        name=staging.new_name,
-                        alt_name=staging.new_alt_name,
-                        common_name=staging.new_common_name,
-                        description=staging.new_description,
-                        local_distribution=staging.new_local_distribution,
-                        cares_family=staging.new_cares_family or Species.CaresFamily.UNDEFINED,
-                        iucn_red_list=staging.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
-                        cares_classification=staging.new_cares_classification or Species.CaresStatus.NOT_CARES_SPECIES,
-                        category=staging.new_category or Species.Category.CICHLIDS,
-                        global_region=staging.new_global_region or Species.GlobalRegion.AFRICA,
+                        name=staged_changes.new_name,
+                        alt_name=staged_changes.new_alt_name,
+                        common_name=staged_changes.new_common_name,
+                        description=staged_changes.new_description,
+                        local_distribution=staged_changes.new_local_distribution,
+                        cares_family=staged_changes.new_cares_family or Species.CaresFamily.UNDEFINED,
+                        cares_classification=staged_changes.new_cares_classification or Species.CaresStatus.NOT_CARES_SPECIES,
+                        cares_assessment_date=staged_changes.new_cares_assessment_date or None,
+                        iucn_red_list=staged_changes.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
+                        iucn_assessment_date=staged_changes.new_iucn_assessment_date or None,
+                        category=staged_changes.new_category or Species.Category.CICHLIDS,
+                        global_region=staged_changes.new_global_region or Species.GlobalRegion.AFRICA,
                         created_by=current_user,
                         last_edited_by=current_user,
                     )
                     species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                    print ('Committing Species: ' + staged_changes.new_name)
                     species.save()
-                    staging.existing_species = species
+                    staged_changes.existing_species = species
                     results['added'] += 1
-                    csv_report_writer.writerow([staging.import_row_number, staging.new_name, 'NEW', 'Added', ''])
+                    csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, 'NEW', 'Added', ''])
 
-                elif staging.action in (SpeciesImportStaging.ImportAction.UPDATE, SpeciesImportStaging.ImportAction.CONFLICT):
-                    species = staging.existing_species
+                elif staged_changes.action in (SpeciesImportStaging.ImportAction.UPDATE, SpeciesImportStaging.ImportAction.CONFLICT):
+                    species = staged_changes.existing_species
+                    logger.info('Species import saving staged changes to existing species: %s', species.name)
+
                     if species is None:
-                        raise ObjectDoesNotExist(f"existing_species is None for staging pk={staging.pk}")
+                        raise ObjectDoesNotExist(f"existing_species is None for staging pk={staged_changes.pk}")
 
                     new_vals = {
-                        'cares_classification': staging.new_cares_classification,
-                        'iucn_red_list':        staging.new_iucn_red_list,
-                        'cares_family':         staging.new_cares_family,
-                        'global_region':        staging.new_global_region,
-                        'category':             staging.new_category,
-                        'common_name':          staging.new_common_name,
-                        'alt_name':             staging.new_alt_name,
-                        'description':          staging.new_description,
-                        'local_distribution':   staging.new_local_distribution,
+                        'cares_classification':  staged_changes.new_cares_classification,
+                        'cares_family':          staged_changes.new_cares_family,
+                        'cares_assessment_date': staged_changes.new_cares_assessment_date,
+                        'iucn_red_list':         staged_changes.new_iucn_red_list,
+                        'iucn_assessment_date':  staged_changes.new_iucn_assessment_date,
+                        'global_region':         staged_changes.new_global_region,
+                        'category':              staged_changes.new_category,
+                        'common_name':           staged_changes.new_common_name,
+                        'alt_name':              staged_changes.new_alt_name,
+                        'description':           staged_changes.new_description,
+                        'local_distribution':    staged_changes.new_local_distribution,
                     }
 
                     updated_fields_list = []
@@ -867,23 +888,23 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                     species.save()
                     results['updated'] += 1
                     csv_report_writer.writerow([
-                        staging.import_row_number, staging.new_name, staging.action,
+                        staged_changes.import_row_number, staged_changes.new_name, staged_changes.action,
                         'Updated', f"fields: {', '.join(updated_fields_list)}"
                     ])
 
                 else:
                     # SKIP action – shouldn't normally be APPROVED, but handle gracefully
                     results['skipped'] += 1
-                    csv_report_writer.writerow([staging.import_row_number, staging.new_name, staging.action, 'Skipped', ''])
+                    csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'Skipped', ''])
 
                 # Update staging record's reviewed_at timestamp
-                staging.reviewed_at = timezone.now()
-                staging.save(update_fields=['existing_species', 'reviewed_at'])
+                staged_changes.reviewed_at = timezone.now()
+                staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
 
             except Exception as exc:
-                logger.error('Error committing staging pk=%s: %s', staging.pk, exc, exc_info=True)
+                logger.error('Error committing staging pk=%s: %s', staged_changes.pk, exc, exc_info=True)
                 results['errors'] += 1
-                csv_report_writer.writerow([staging.import_row_number, staging.new_name, staging.action, 'ERROR', str(exc)])
+                csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'ERROR', str(exc)])
 
     # Persist commit report
     csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))

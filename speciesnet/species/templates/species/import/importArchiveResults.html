@@ -10,15 +10,21 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Genus</th>
-                        <th>Import Status</th>
+                        <th>Row</th>
+                        <th>Species</th>
+                        <th>Action</th>
+                        <th>Result</th> 
+                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody>
             {% endif %}
                     <tr>
-                        <td>{{ report_row.Genus }}</td>
-                        <td>{{ report_row.Import_Status }}</td>
+                        <td>{{ report_row.Row }}</td>
+                        <td>{{ report_row.Species }}</td>
+                        <td>{{ report_row.Action }}</td>
+                        <td>{{ report_row.Result }}</td>
+                        <td>{{ report_row.Notes }}</td>
                     </tr>
             {% if forloop.last %}
                 </tbody>
