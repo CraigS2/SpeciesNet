@@ -136,6 +136,8 @@
                     <td>
                         {% if record.review_status == 'APPROVED' %}
                             <span class="badge bg-success">{{ record.get_review_status_display }}</span>
+                        {% elif record.review_status == 'OVERRIDE' %}
+                            <span class="badge bg-warning text-dark">{{ record.get_review_status_display }}</span>
                         {% elif record.review_status == 'REJECTED' %}
                             <span class="badge bg-danger">{{ record.get_review_status_display }}</span>
                         {% else %}

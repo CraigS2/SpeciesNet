@@ -8,6 +8,8 @@
             <span class="badge bg-secondary ms-2">{{ staging.get_action_display }}</span>
             {% if staging.review_status == 'APPROVED' %}
                 <span class="badge bg-success ms-1">{{ staging.get_review_status_display }}</span>
+            {% elif staging.review_status == 'OVERRIDE' %}
+                <span class="badge bg-warning text-dark ms-1">{{ staging.get_review_status_display }}</span>
             {% elif staging.review_status == 'REJECTED' %}
                 <span class="badge bg-danger ms-1">{{ staging.get_review_status_display }}</span>
             {% else %}
