@@ -11,6 +11,7 @@ from django.core.files import File
 from django.utils import timezone
 from io import BytesIO
 import csv
+import datetime
 import logging
 from csv import DictReader
 from io import StringIO, TextIOWrapper
@@ -36,7 +37,9 @@ SPECIES_IMPORT_ENUM_DEFAULTS = {
 # Fields that are always overwritten on UPDATE (high-trust authoritative data)
 SPECIES_ALWAYS_UPDATE_FIELDS = [
     'cares_classification',
+    'cares_assessment_date',
     'iucn_red_list',
+    'iucn_assessment_date',
     'cares_family',
     'global_region',
     'category',
@@ -639,6 +642,25 @@ def export_csv_caresRegistrations():
 # CARES Species Import – Phase 2: Staging and Commit
 # ---------------------------------------------------------------------------
 
+# DateField names on Species that are stored as text in SpeciesImportStaging.
+# These require explicit string→date conversion when committing to the Species table.
+SPECIES_DATE_FIELDS = {'cares_assessment_date', 'iucn_assessment_date'}
+
+
+def _parse_date(value: str) -> 'datetime.date | None':
+    """Convert a *yyyy-mm-dd* string to a :class:`datetime.date`.
+
+    Returns ``None`` if *value* is blank, ``None``, or not a valid ISO date.
+    """
+    if not value or not value.strip():
+        return None
+    try:
+        return datetime.date.fromisoformat(value.strip())
+    except (ValueError, TypeError):
+        logger.warning('Species import: could not parse date value %r', value)
+        return None
+
+
 def _find_existing_species(name: str):
     """Return an existing Species record matching *name* (case-insensitive) or None."""
     print ('Species Import - Lookup of existing species: ' + name)
@@ -806,7 +828,10 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
 
     approved_records = SpeciesImportStaging.objects.filter(
         import_archive=import_archive,
-        review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+        review_status__in=[
+            SpeciesImportStaging.ReviewStatus.APPROVED,
+            SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
+        ],
     ).select_related('existing_species')
 
     csv_report_buffer = StringIO()
@@ -820,12 +845,6 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                 if staged_changes.action == SpeciesImportStaging.ImportAction.NEW:
                     logger.info('Species import saving staged changes to NEW species: %s', staged_changes.new_name)
 
-                    # #TODO explore a better solution for empty cell input dates
-                    # if staging.new_cares_assessment_date == '1900-01-00':
-                    #     staging.new_cares_assessment_date = None
-                    # if staging.new_iucn_assessment_date == '1900-01-00':
-                    #     staging.new_iucn_assessment_date = None     
-
                     species = Species(
                         name=staged_changes.new_name,
                         alt_name=staged_changes.new_alt_name,
@@ -834,9 +853,9 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                         local_distribution=staged_changes.new_local_distribution,
                         cares_family=staged_changes.new_cares_family or Species.CaresFamily.UNDEFINED,
                         cares_classification=staged_changes.new_cares_classification or Species.CaresStatus.NOT_CARES_SPECIES,
-                        cares_assessment_date=staged_changes.new_cares_assessment_date or None,
+                        cares_assessment_date=_parse_date(staged_changes.new_cares_assessment_date),
                         iucn_red_list=staged_changes.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
-                        iucn_assessment_date=staged_changes.new_iucn_assessment_date or None,
+                        iucn_assessment_date=_parse_date(staged_changes.new_iucn_assessment_date),
                         category=staged_changes.new_category or Species.Category.CICHLIDS,
                         global_region=staged_changes.new_global_region or Species.GlobalRegion.AFRICA,
                         created_by=current_user,
@@ -871,17 +890,37 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                     }
 
                     updated_fields_list = []
-                    for field in SPECIES_ALWAYS_UPDATE_FIELDS:
-                        new_val = new_vals.get(field)
-                        if new_val is not None and new_val != '':
-                            setattr(species, field, new_val)
-                            updated_fields_list.append(field)
-                    for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
-                        new_val = new_vals.get(field)
-                        if new_val is not None and new_val != '' and not getattr(species, field, ''):
-                            setattr(species, field, new_val)
-                            updated_fields_list.append(field)
-                    # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
+                    is_override = staged_changes.review_status == SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE
+
+                    if is_override:
+                        # APPROVED_OVERRIDE: force-write every field that was detected as changed.
+                        for field, vals in staged_changes.changed_fields.items():
+                            new_val = vals.get('new')
+                            if new_val is None:
+                                continue
+                            if field in SPECIES_DATE_FIELDS:
+                                setattr(species, field, _parse_date(new_val))
+                                updated_fields_list.append(field)
+                            elif new_val != '':
+                                setattr(species, field, new_val)
+                                updated_fields_list.append(field)
+                    else:
+                        # APPROVED: respect the standard field-level update rules.
+                        for field in SPECIES_ALWAYS_UPDATE_FIELDS:
+                            new_val = new_vals.get(field)
+                            if field in SPECIES_DATE_FIELDS:
+                                if new_val:
+                                    setattr(species, field, _parse_date(new_val))
+                                    updated_fields_list.append(field)
+                            elif new_val is not None and new_val != '':
+                                setattr(species, field, new_val)
+                                updated_fields_list.append(field)
+                        for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
+                            new_val = new_vals.get(field)
+                            if new_val is not None and new_val != '' and not getattr(species, field, ''):
+                                setattr(species, field, new_val)
+                                updated_fields_list.append(field)
+                        # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
 
                     species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.last_edited_by = current_user

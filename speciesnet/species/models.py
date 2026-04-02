@@ -649,9 +649,10 @@ class SpeciesImportStaging (models.Model):
     new_iucn_assessment_date  = models.CharField(max_length=10,  blank=True)
 
     class ReviewStatus (models.TextChoices):
-        PENDING  = 'PENDING',  _('Pending review')
-        APPROVED = 'APPROVED', _('Approved')
-        REJECTED = 'REJECTED', _('Rejected')
+        PENDING           = 'PENDING',   _('Pending review')
+        APPROVED          = 'APPROVED',  _('Approved')
+        APPROVED_OVERRIDE = 'OVERRIDE',  _('Approved with Override')
+        REJECTED          = 'REJECTED',  _('Rejected')
 
     review_status = models.CharField(max_length=10, choices=ReviewStatus.choices, default=ReviewStatus.PENDING)
     reviewed_by   = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviewed_imports')
