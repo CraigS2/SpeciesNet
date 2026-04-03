@@ -489,6 +489,27 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
 
             reference_link_name = name_prefix + ': ' + matched_species.name
 
+            # Check for duplicates using database queries (more efficient than loading all links)
+            if SpeciesReferenceLink.objects.filter(species=matched_species, name=reference_link_name).exists():
+                error_message = f'Duplicate name: "{reference_link_name}" already exists'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+                continue
+
+            if SpeciesReferenceLink.objects.filter(species=matched_species, reference_url=reference_url).exists():
+                error_message = f'Duplicate URL: "{reference_url}" already exists for this species'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+                continue
+
             new_reference_link = SpeciesReferenceLink()
             new_reference_link.species = matched_species
             new_reference_link.user = current_user
