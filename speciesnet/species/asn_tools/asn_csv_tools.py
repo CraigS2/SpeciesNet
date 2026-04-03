@@ -409,9 +409,7 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
 def import_csv_species_reference_links(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Process a CSV file to import SpeciesReferenceLink objects.
-
     Expected CSV columns: species, reference_url, name_prefix
-
     Returns a summary dict with keys:
         success_count  - number of rows imported successfully
         error_count    - number of rows that failed
@@ -431,13 +429,14 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
     with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
         for import_row in DictReader(import_file):
             row_count = row_count + 1
-
-            # Step 1 – Species lookup (exact case-insensitive match after trimming spaces)
             raw_species_name = import_row.get('species', '')
             species_name = raw_species_name.strip()
+            print ('CSV Reference Link Import Species: ' + species_name)
 
             try:
                 matched_species = Species.objects.get(name__iexact=species_name)
+                print ('CSV Reference Link Import Species Match: ' + matched_species.name)
+
             except ObjectDoesNotExist:
                 error_message = f'Species not found: "{species_name}"'
                 errors.append((row_count, species_name, error_message))
@@ -457,12 +456,13 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                 )
                 continue
 
-            # Step 2 – URL validation (trim spaces, validate as http/https URL)
             raw_reference_url = import_row.get('reference_url', '')
             reference_url = raw_reference_url.strip()
+            print ('CSV Reference Link Import Reference Link: ' + reference_url)
 
             try:
                 url_validator(reference_url)
+                print ('CSV Reference Link Import Reference Link Validated: ' + reference_url)
             except ValidationError as validation_error:
                 error_message = f'Invalid reference URL: "{reference_url}" – {validation_error.message}'
                 errors.append((row_count, species_name, error_message))
@@ -473,9 +473,9 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                 )
                 continue
 
-            # Step 3 – name_prefix validation (non-empty after trimming spaces)
             raw_name_prefix = import_row.get('name_prefix', '')
             name_prefix = raw_name_prefix.strip()
+            print ('CSV Reference Link Import Previx: ' + name_prefix)
 
             if not name_prefix:
                 error_message = 'name_prefix is empty or missing'
@@ -487,7 +487,6 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                 )
                 continue
 
-            # Step 4 – Create and save a new SpeciesReferenceLink
             reference_link_name = name_prefix + ': ' + matched_species.name
 
             new_reference_link = SpeciesReferenceLink()
@@ -504,6 +503,8 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                     'User %s imported species reference link row %d: "%s"',
                     current_user.username, row_count, reference_link_name,
                 )
+                print ('CSV Reference Link Import Success: ' + reference_link_name)
+
             except Exception as save_error:
                 error_message = f'Save failed: {str(save_error)}'
                 errors.append((row_count, species_name, error_message))
@@ -513,12 +514,10 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                     current_user.username, row_count, species_name, error_message,
                 )
 
-    # Persist the results CSV as the import archive results file
     csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
     csv_report_filename = current_user.username + '_species_reference_link_import_log.csv'
     import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
-    # Update ImportArchive status based on results
     error_count = len(errors)
     if success_count == 0:
         import_archive.import_status = ImportArchive.ImportStatus.FAIL
