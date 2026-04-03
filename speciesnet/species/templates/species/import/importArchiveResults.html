@@ -1,18 +1,18 @@
 {% extends 'main.html' %}
 {% block content %}
 <div class="container">
-    <h3>Import Results Summary</h3>
+    <h3>Import Results</h3>
 
     <div class="alert alert-{{ status_class }}">
         <h4>Status: {{ import_archive.get_import_status_display }}</h4>
-        <p>Total Records: {{ total_count }}</p>
-        <p class="text-success"><strong>&#10003; Successful: {{ success_count }}</strong></p>
-        <p class="text-danger"><strong>&#10007; Failed: {{ error_count }}</strong></p>
+        <p>Total Records: {{ total_count }} &nbsp;|&nbsp;
+           <span class="text-success"><strong>&#10003; Successful: {{ success_count }}</strong></span> &nbsp;|&nbsp;
+           <span class="text-danger"><strong>&#10007; Failed: {{ error_count }}</strong></span>
+        </p>
     </div>
 
-    {% if success_list %}
-    <h4>Successful Imports ({{ success_count }})</h4>
-    <table class="table table-success">
+    {% if results %}
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Row</th>
@@ -21,63 +21,17 @@
             </tr>
         </thead>
         <tbody>
-        {% for item in success_list %}
+        {% for item in results %}
             <tr>
                 <td>{{ item.row }}</td>
                 <td>{{ item.species }}</td>
-                <td>{{ item.status }}</td>
+                <td{% if item.is_error %} class="text-danger"{% endif %}>{{ item.status }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+    {% else %}
+    <p>No import records found.</p>
     {% endif %}
-
-    {% if error_list %}
-    <h4>Failed Imports ({{ error_count }})</h4>
-    <table class="table table-danger">
-        <thead>
-            <tr>
-                <th>Row</th>
-                <th>Species</th>
-                <th>Error</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for item in error_list %}
-            <tr>
-                <td>{{ item.row }}</td>
-                <td>{{ item.species }}</td>
-                <td>{{ item.error }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-
-    <details>
-        <summary>View Full Import Log</summary>
-        {% if rows %}
-        <table class="table table-striped mt-2">
-            <thead>
-                <tr>
-                    {% for key in rows.0.keys %}
-                    <th>{{ key }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-            {% for row in rows %}
-                <tr>
-                    {% for value in row.values %}
-                    <td>{{ value }}</td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p>No log data available.</p>
-        {% endif %}
-    </details>
 </div>
 {% endblock content %}

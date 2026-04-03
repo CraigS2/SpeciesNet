@@ -99,17 +99,18 @@ def addSpeciesInstanceWizard2(request):
 @login_required(login_url='login')
 def importArchiveResults(request, pk):
     """
-    Display results of CSV import operations with a summary of successes and failures.
+    Display results of CSV import operations with all rows in processing order.
     """
     import_archive = ImportArchive.objects.get(id=pk)
 
     try:
         with open(import_archive.import_results_file.path, 'r', encoding='utf-8') as csv_file:
-            rows = list(DictReader(csv_file))
+            raw_rows = list(DictReader(csv_file))
 
-        success_list = []
-        error_list = []
-        for row in rows:
+        results = []
+        success_count = 0
+        error_count = 0
+        for row in raw_rows:
             # Support both 3-column (Row, Species, Import_Status) and legacy formats
             status_value = (
                 row.get('Import_Status', '')
@@ -122,22 +123,24 @@ def importArchiveResults(request, pk):
             #   'Species Instance Name' - species instance imports
             #   'Genus' - aquarist club / BAP genus imports
             species_val = row.get('Species', '') or row.get('Species Instance Name', '') or row.get('Genus', '')
-            if status_value.startswith('SUCCESS'):
-                success_list.append({'row': row_num, 'species': species_val, 'status': status_value})
-            elif status_value.startswith('ERROR'):
-                error_list.append({'row': row_num, 'species': species_val, 'error': status_value})
+            is_error = status_value.startswith('ERROR')
+            if is_error:
+                error_count += 1
+            elif status_value.startswith('SUCCESS'):
+                success_count += 1
+            results.append({
+                'row': row_num,
+                'species': species_val,
+                'status': status_value,
+                'is_error': is_error,
+            })
 
-        total_count = len(rows)
-        success_count = len(success_list)
-        error_count = len(error_list)
-
+        total_count = len(results)
         status_class = 'success' if error_count == 0 else ('danger' if success_count == 0 else 'warning')
 
         context = {
             'import_archive': import_archive,
-            'rows': rows,
-            'success_list': success_list,
-            'error_list': error_list,
+            'results': results,
             'total_count': total_count,
             'success_count': success_count,
             'error_count': error_count,
