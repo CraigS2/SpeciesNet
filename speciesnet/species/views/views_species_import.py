@@ -74,7 +74,10 @@ def reviewSpeciesImport(request, pk):
         'conflict': all_staging.filter(action=SpeciesImportStaging.ImportAction.CONFLICT).count(),
         'skip':     all_staging.filter(action=SpeciesImportStaging.ImportAction.SKIP).count(),
         'pending':  all_staging.filter(review_status=SpeciesImportStaging.ReviewStatus.PENDING).count(),
-        'approved': all_staging.filter(review_status=SpeciesImportStaging.ReviewStatus.APPROVED).count(),
+        'approved': all_staging.filter(review_status__in=[
+            SpeciesImportStaging.ReviewStatus.APPROVED,
+            SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
+        ]).count(),        
         'rejected': all_staging.filter(review_status=SpeciesImportStaging.ReviewStatus.REJECTED).count(),
         'total':    all_staging.count(),
     }
@@ -232,7 +235,10 @@ def commitSpeciesImport(request, pk):
     import_archive = get_object_or_404(ImportArchive, pk=pk)
     approved_count = SpeciesImportStaging.objects.filter(
         import_archive=import_archive,
-        review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+        review_status__in=[
+            SpeciesImportStaging.ReviewStatus.APPROVED,
+            SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
+        ],
     ).count()
 
     if request.method == 'POST':
