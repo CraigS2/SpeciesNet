@@ -13,7 +13,7 @@ from allauth.account.models import EmailAddress
 class EmailAddressInline(admin.TabularInline):
     model = EmailAddress
     extra = 0
-    readonly_fields = ('email', 'verified', 'primary')
+    readonly_fields = ('email',)
     can_delete = True
     fields = ('email', 'verified', 'primary')
 
