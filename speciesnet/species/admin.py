@@ -80,8 +80,4 @@ admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
-try:
-    admin.site.unregister(EmailAddress)
-except admin.sites.NotRegistered:
-    pass
-admin.site.register(EmailAddress, EmailAddressAdmin)
+
