@@ -89,6 +89,7 @@ from .views_tools import (
 from .views_species_import import (
     importSpeciesToStaging, reviewSpeciesImport, reviewSpeciesImportDetail,
     approveSpeciesImportBatch, rejectSpeciesImportBatch, commitSpeciesImport,
+    importSpeciesReferenceLinks,
 )
 
 
@@ -153,4 +154,7 @@ __all__ = [
     # CARES Import Workflow
     'importSpeciesToStaging', 'reviewSpeciesImport', 'reviewSpeciesImportDetail',
     'approveSpeciesImportBatch', 'rejectSpeciesImportBatch', 'commitSpeciesImport',
+
+    # Species Reference Link Import
+    'importSpeciesReferenceLinks',
 ] # type: ignore

@@ -187,6 +187,7 @@ urlpatterns = [
     path('species/import/approve/<str:pk>/', views.approveSpeciesImportBatch, name="approveSpeciesImportBatch"),
     path('species/import/reject/<str:pk>/', views.rejectSpeciesImportBatch, name="rejectSpeciesImportBatch"),
     path('species/import/commit/<str:pk>/', views.commitSpeciesImport, name="commitSpeciesImport"),
+    path('species/import/referenceLinks/', views.importSpeciesReferenceLinks, name="importSpeciesReferenceLinks"),
 
     # django: re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),

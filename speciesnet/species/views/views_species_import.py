@@ -6,7 +6,8 @@ from .base import *
 from django.utils import timezone
 from species.models import SpeciesImportStaging
 from species.forms import SpeciesImportStagingForm
-from species.asn_tools.asn_csv_tools import (import_csv_species_to_staging, commit_species_import_staging,)
+from species.asn_tools.asn_csv_tools import (import_csv_species_to_staging, commit_species_import_staging,
+                                              import_csv_species_reference_links,)
 
 
 # ---------------------------------------------------------------------------
@@ -259,3 +260,44 @@ def commitSpeciesImport(request, pk):
         'approved_count': approved_count,
     }
     return render(request, 'species/import/commitSpeciesImportConfirm.html', context)
+
+
+# ---------------------------------------------------------------------------
+# Species Reference Link CSV Import
+# ---------------------------------------------------------------------------
+
+@login_required(login_url='login')
+def importSpeciesReferenceLinks(request):
+    """Upload a CSV file and import SpeciesReferenceLink objects row by row.
+
+    Expected CSV columns: species, reference_url, name_prefix
+    """
+    if not user_is_admin(request.user):
+        raise PermissionDenied()
+
+    form = ImportCsvForm()
+    summary = None
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = f"{request.user.username}_species_reference_link_import"
+            import_archive.save()
+
+            summary = import_csv_species_reference_links(import_archive, request.user)
+
+            logger.info(
+                'User %s completed species reference link import %s: %d succeeded, %d errors',
+                request.user.username,
+                import_archive.pk,
+                summary['success_count'],
+                summary['error_count'],
+            )
+
+    context = {
+        'form': form,
+        'summary': summary,
+    }
+    return render(request, 'species/import/importSpeciesReferenceLinks.html', context)

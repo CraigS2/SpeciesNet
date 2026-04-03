@@ -1,4 +1,4 @@
-from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus, ImportArchive, SpeciesImportStaging, User
+from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus, ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User
 from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 from django.db import transaction
 from django.db.models import FileField, Q
@@ -16,7 +16,8 @@ import logging
 from csv import DictReader
 from io import StringIO, TextIOWrapper
 from django.core.files.base import ContentFile
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
+from django.core.validators import URLValidator
 
 logger = logging.getLogger(__name__)
 
@@ -399,6 +400,141 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
         import_archive.name = current_user.username + '_' + bap_club.acronym + '_species_import'
         import_archive.save()
     return
+
+
+# Import Species Reference Links from CSV
+# Iterate through CSV rows, look up each species by name (case-insensitive exact match),
+# validate the reference URL and name_prefix, then create and save a SpeciesReferenceLink.
+
+def import_csv_species_reference_links(import_archive: ImportArchive, current_user: User) -> dict:
+    """
+    Process a CSV file to import SpeciesReferenceLink objects.
+
+    Expected CSV columns: species, reference_url, name_prefix
+
+    Returns a summary dict with keys:
+        success_count  - number of rows imported successfully
+        error_count    - number of rows that failed
+        errors         - list of (row_number, species_value, error_message) tuples
+    """
+    url_validator = URLValidator(schemes=['http', 'https'])
+
+    # Prepare results CSV report for archiving
+    csv_report_buffer = StringIO()
+    csv_report_writer = csv.writer(csv_report_buffer)
+    csv_report_writer.writerow(['Row', 'Species', 'Import_Status'])
+
+    row_count = 0
+    success_count = 0
+    errors = []
+
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+        for import_row in DictReader(import_file):
+            row_count = row_count + 1
+
+            # Step 1 – Species lookup (exact case-insensitive match after trimming spaces)
+            raw_species_name = import_row.get('species', '')
+            species_name = raw_species_name.strip()
+
+            try:
+                matched_species = Species.objects.get(name__iexact=species_name)
+            except ObjectDoesNotExist:
+                error_message = f'Species not found: "{species_name}"'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d: %s',
+                    current_user.username, row_count, error_message,
+                )
+                continue
+            except MultipleObjectsReturned:
+                error_message = f'Multiple species found for name: "{species_name}"'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d: %s',
+                    current_user.username, row_count, error_message,
+                )
+                continue
+
+            # Step 2 – URL validation (trim spaces, validate as http/https URL)
+            raw_reference_url = import_row.get('reference_url', '')
+            reference_url = raw_reference_url.strip()
+
+            try:
+                url_validator(reference_url)
+            except ValidationError as validation_error:
+                error_message = f'Invalid reference URL: "{reference_url}" – {validation_error.message}'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d: %s',
+                    current_user.username, row_count, error_message,
+                )
+                continue
+
+            # Step 3 – name_prefix validation (non-empty after trimming spaces)
+            raw_name_prefix = import_row.get('name_prefix', '')
+            name_prefix = raw_name_prefix.strip()
+
+            if not name_prefix:
+                error_message = 'name_prefix is empty or missing'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+                continue
+
+            # Step 4 – Create and save a new SpeciesReferenceLink
+            reference_link_name = name_prefix + ': ' + matched_species.name
+
+            new_reference_link = SpeciesReferenceLink()
+            new_reference_link.species = matched_species
+            new_reference_link.user = current_user
+            new_reference_link.reference_url = reference_url
+            new_reference_link.name = reference_link_name
+
+            try:
+                new_reference_link.save()
+                success_count = success_count + 1
+                csv_report_writer.writerow([row_count, species_name, f'SUCCESS: Created "{reference_link_name}"'])
+                logger.info(
+                    'User %s imported species reference link row %d: "%s"',
+                    current_user.username, row_count, reference_link_name,
+                )
+            except Exception as save_error:
+                error_message = f'Save failed: {str(save_error)}'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.error(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+
+    # Persist the results CSV as the import archive results file
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+    csv_report_filename = current_user.username + '_species_reference_link_import_log.csv'
+    import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+    # Update ImportArchive status based on results
+    error_count = len(errors)
+    if success_count == 0:
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+    elif error_count > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+    else:
+        import_archive.import_status = ImportArchive.ImportStatus.FULL
+
+    import_archive.name = current_user.username + '_species_reference_link_import'
+    import_archive.save()
+
+    return {
+        'success_count': success_count,
+        'error_count': error_count,
+        'errors': errors,
+    }
 
 
 #Export Species List, SpeciesInstances, Aquarists, Clubs, BAP
