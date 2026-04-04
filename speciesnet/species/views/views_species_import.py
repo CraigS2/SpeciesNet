@@ -41,7 +41,7 @@ def importSpeciesToStaging(request):
                 f"{summary['skip']} unchanged, {summary['error']} errors.",
             )
             return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[import_archive.pk]))
-
+        
     context = {'form': form}
     return render(request, 'species/import/importSpeciesStaging.html', context)
 
@@ -295,6 +295,7 @@ def importSpeciesReferenceLinks(request):
                 summary['success_count'],
                 summary['error_count'],
             )
+        return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
 
     context = {
         'form': form,
