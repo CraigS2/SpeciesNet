@@ -14,7 +14,7 @@ def species(request, pk):
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesComments = SpeciesComment.objects.filter(species=species)
-    speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
+    speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     cur_user = request.user
     userCanEdit = user_can_edit_s(request.user, species)
     
@@ -295,7 +295,11 @@ def editSpeciesReferenceLink(request, pk):
             validate_url(str(form.instance.reference_url))
             form.save()
             logger.info('User %s edited speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
-            return HttpResponseRedirect(reverse("species", args=[species.id]))
+            site_id = getattr(settings, 'SITE_ID', 1)
+            if site_id == 2:
+                return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
+            else:
+                return HttpResponseRedirect(reverse("species", args=[species.id]))
     
     context = {'form': form, 'speciesReferenceLink': speciesReferenceLink}
     return render(request, 'species/editSpeciesReferenceLink.html', context)

@@ -14,7 +14,7 @@ def caresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     speciesInstances = SpeciesInstance.objects.filter(species=species)
-    speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species)
+    speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     userCanEdit = user_can_edit_s(request.user, species)
    
     if request.user.is_authenticated:

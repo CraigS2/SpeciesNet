@@ -150,7 +150,7 @@ class Species (models.Model):
         CENTRAL_AMERICA = 'CAM', _('Central America')
         NORTH_AMERICA   = 'NAM', _('North America')
         AFRICA          = 'AFR', _('Africa')
-        SOUTHEAST_ASIA  = 'SEA', _('Southeast Asia')
+        ASIA            = 'SEA', _('Asia')
         OCEANIA         = 'AUS', _('Oceania')
         EUROPE          = 'EUR', _('Europe')
         OTHER           = 'OTH', _('Other Region')
