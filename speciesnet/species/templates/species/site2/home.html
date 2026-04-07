@@ -10,11 +10,6 @@
     <p style="text-align:center;"><a href="{% url 'caresSpeciesSearch'%}"><img src={% static 'images\cares_logo_400x400.jpg' %}></a></p>
     <p>&nbsp;</p>
     <h4 style="text-align:center;">For more information see <a href="https://caresforfish.org">CaresForFish.org</a></h4>
-    <h5 style="text-align:center;">** Beta Site | Under Development **</h5>
-    {% if request.user.is_authenticated %}
-        <h4 style="text-align:center;">&nbsp;</h4>
-    {% else %}
-        <h4 style="text-align:center;"><a href="{% url 'account_login' %}">Sign in or Create New Account</a></h4>
-    {% endif %}
+    <h5 style="text-align:center;"><font style="color:#860404;" >** Beta Site | Under Development **</font></h5>
 </div>
 {% endblock content %}

@@ -216,11 +216,11 @@ class Species (models.Model):
         ENDANGERED        = 'ENDA', _('Endangered')                    #TODO Delete after migration
         CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')         #TODO Delete after migration
         EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')           #TODO Delete after migration
-        CARES_NEAR_THREAT = 'CNT', _ ('CARES Extinct in the Wild')   
-        CARES_VULNERABLE  = 'CVU', _ ('CARES Vulnerable')   
-        CARES_ENDANGERED  = 'CEN', _ ('CARES Endangered')   
-        CARES_CRIT_ENDGR  = 'CCR', _ ('CARES Critically Endangered')   
-        CARES_EXT_IN_WILD = 'CEW', _ ('CARES Extinct in the Wild')   
+        CARES_NEAR_THREAT = 'CNT', _ ('Near Threatened')   
+        CARES_VULNERABLE  = 'CVU', _ ('Vulnerable')   
+        CARES_ENDANGERED  = 'CEN', _ ('Endangered')   
+        CARES_CRIT_ENDGR  = 'CCR', _ ('Critically Endangered')   
+        CARES_EXT_IN_WILD = 'CEW', _ ('Extinct in the Wild')   
           
     
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
