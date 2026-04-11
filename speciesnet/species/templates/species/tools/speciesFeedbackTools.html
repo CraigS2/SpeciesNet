@@ -1,0 +1,115 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-4">
+    <h3>Species Feedback Tools</h3>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Filter controls -->
+    <div class="mb-3">
+        <a class="btn btn-sm {% if filter_status == 'all' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?filter=all">All</a>
+        <a class="btn btn-sm {% if filter_status == 'pending' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?filter=pending">Pending</a>
+        <a class="btn btn-sm {% if filter_status == 'approved' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?filter=approved">Approved</a>
+    </div>
+
+    {% if page_obj %}
+        <p class="text-muted"><small>Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</small></p>
+
+        {% for feedback in page_obj %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-start">
+                <div>
+                    <a href="{% if feedback.species.render_cares %}{% url 'caresSpecies' feedback.species.id %}{% else %}{% url 'species' feedback.species.id %}{% endif %}">
+                        <strong><i>{{ feedback.species.name }}</i></strong>
+                    </a>
+                    &nbsp;&mdash;&nbsp;
+                    {% if feedback.user %}
+                        <span class="text-muted">{{ feedback.user.username }}</span>
+                    {% else %}
+                        <span class="text-muted">{{ feedback.email }}</span>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if feedback.approved %}
+                        <span class="badge bg-success">Approved</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <p>
+                    {% if feedback.comment|length > 300 %}
+                        <span class="comment-short-{{ feedback.id }}">{{ feedback.comment|truncatechars:300 }}
+                            <a href="#" onclick="document.querySelector('.comment-short-{{ feedback.id }}').style.display='none'; document.querySelector('.comment-full-{{ feedback.id }}').style.display='inline'; return false;">read&nbsp;more</a>
+                        </span>
+                        <span class="comment-full-{{ feedback.id }}" style="display:none;">{{ feedback.comment }}</span>
+                    {% else %}
+                        {{ feedback.comment }}
+                    {% endif %}
+                </p>
+
+                {% if feedback.species_image %}
+                    <div class="mb-2">
+                        <img src="{{ feedback.species_image.url }}" alt="Submitted species image" style="max-height: 150px; max-width: 100%;">
+                        {% if feedback.species_photo_credit %}
+                            <br><small class="text-muted">Photo by: {{ feedback.species_photo_credit }}</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <p class="text-muted mb-1"><small>Submitted: {{ feedback.created|date:"Y-m-d H:i" }}</small></p>
+                {% if feedback.approved and feedback.reviewed_by %}
+                    <p class="text-muted mb-1"><small>Approved by {{ feedback.reviewed_by.username }} on {{ feedback.reviewed_at|date:"Y-m-d H:i" }}</small></p>
+                {% endif %}
+
+                <div class="d-flex gap-2 mt-2">
+                    {% if not feedback.approved %}
+                        <form method="POST" action="{% url 'approveSpeciesFeedback' feedback.id %}?filter={{ filter_status }}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                        </form>
+                    {% endif %}
+                    <a class="btn btn-sm btn-danger" href="{% url 'deleteSpeciesFeedback' feedback.id %}?filter={{ filter_status }}">Delete</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Feedback pagination">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?filter={{ filter_status }}&page={{ page_obj.previous_page_number }}">Previous</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?filter={{ filter_status }}&page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?filter={{ filter_status }}&page={{ page_obj.next_page_number }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <p>No feedback submissions found.</p>
+    {% endif %}
+
+</div>
+
+{% endblock content %}

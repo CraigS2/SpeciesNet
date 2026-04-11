@@ -80,9 +80,10 @@
                             <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
                             <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
                         </div>
-                    {% endif %}     
+                    {% endif %}
                     <p>
                         <a class="btn btn-secondary" href="{% url 'registerCaresSpecies' species.id  %}" role="button">&nbsp;<b>Register This Species</b>&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
+                        <a class="btn btn-secondary" href="{% url 'submitSpeciesFeedback' species.id %}" role="button">&nbsp;Species Feedback&nbsp;</a>
                     </p>                                  
 
                 </div>
