@@ -8,7 +8,7 @@ from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HT
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
 from django.core.validators import MinValueValidator
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
-from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive
+from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
 from allauth.account.forms import SignupForm, ResetPasswordForm
@@ -1355,4 +1355,14 @@ class CustomResetPasswordForm(ResetPasswordForm):
     pass
     # TODO: add captcha
     #captcha = ReCaptchaField(widget=ReCaptchaV2Invisible)
+
+
+class SpeciesImportStagingForm(ModelForm):
+    """Form for reviewing and approving/rejecting an individual staging record."""
+    class Meta:
+        model = SpeciesImportStaging
+        fields = ['review_status', 'review_notes']
+        widgets = {
+            'review_notes': forms.Textarea(attrs={'rows': 3, 'cols': 60}),
+        }
 

@@ -13,7 +13,7 @@
                 <!--div class="card-body px-4 py-3" style="background-color: #b6d7ef;"-->
                 <div class="card-body px-4 py-3">
                     {% if species.alt_name %}
-                        <p><b>Alternate Name:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
+                        <p><b>Synonym:</b> &nbsp;&nbsp;{{species.alt_name}}</p>
                     {% endif %}
                     {% if species.common_name %}
                         <p><b>Common Name:</b>&nbsp;&nbsp;{{species.common_name}}</p>
@@ -25,33 +25,46 @@
                         <p>Photo by:<i> &nbsp;{{species.photo_credit}}</i> </p>
                     {% endif %}
                     <h4>Description</h4>
-                    <p>{{species.description|linebreaks}}</p>
+                        <p>{{species.description|linebreaks}}</p>
+
+                    <p><b>CARES Family:</b> &nbsp;&nbsp;{{species.get_cares_family_display}}</p>     
                     <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
                     <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
-                    <p><b>IUCN Red List:</b> &nbsp;&nbsp;{{species.get_iucn_red_list_display}}</p>
+                    <small>&nbsp;</small>
 
-                    <p><b>CARES Family:</b> &nbsp;&nbsp;{{species.get_cares_family_display}}</p>
-                    <p><b>CARES Classification:</b> &nbsp;&nbsp;{{species.get_cares_classification_display}}</p>
+                    {% if species.render_cares %}
+                        <div class="mb-3 section-bordered">
+                            <h4>Conservation Status</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">                             
+                                <span><b>CARES Classification:</b>&nbsp;&nbsp;{{species.get_cares_classification_display}}</span>
+                                <span><b>CARES Assessment Date:</b>&nbsp;&nbsp;{{species.cares_assessment_date}}</span>
+                            </div>              
+                            {% if species.iucn_red_list != Species.IucnRedList.UNDEFINED and species.iucn_red_list != Species.IucnRedList.NOT_EVALUATED %}   
+                                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">                             
+                                    <span><b>IUCN Red List:</b>&nbsp;&nbsp;{{species.get_iucn_red_list_display}}</span>
+                                    <span><b>IUCN Assessment Date:</b>&nbsp;&nbsp;{{species.iucn_assessment_date}}&nbsp;&nbsp;</span>
+                                </div>  
+                            {% endif %}      
+                        </div>
+                    {% endif %}            
 
                     {% if speciesReferenceLinks.all.count > 0  %}
-                    <h4>Reference Links</h4>
-                        {% for speciesReferenceLink in speciesReferenceLinks %}
-                            <p style = "display: flex; justify-content: space-between;">
-                                <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>
-                                {% if speciesComment.user == request.user or userCanEdit %}
-                                    <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
-                                    <!--a class="btn btn-secondary" href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id  %}" role="button">&nbsp;Edit Link&nbsp;</a-->
-                                {% endif %}  
-                            </p>  
-                        {% endfor %}  
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4>Reference Links</h4>
+                            {% for speciesReferenceLink in speciesReferenceLinks %}
+                                <p style = "display: flex; justify-content: space-between;">
+                                    <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer"><b>{{speciesReferenceLink.name}}</b></a></span>
+                                    {% if speciesComment.user == request.user or userCanEdit %}
+                                        <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
+                                        <!--a class="btn btn-secondary" href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id  %}" role="button">&nbsp;Edit Link&nbsp;</a-->
+                                    {% endif %}  
+                                </p>  
+                            {% endfor %}  
+                    </div>
                     {% endif %}
 
-                    <p>
-                        <a class="btn btn-secondary" href="{% url 'registerCaresSpecies' species.id  %}" role="button">&nbsp;Register This Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
-                    </p>
                     {% if userCanEdit %}
-                        <small>&nbsp;</small>
-                        <div class="css_class='mb-3 section-bordered">
+                        <!--div class="css_class='mb-3 section-bordered">
                             <h4>Registrations</h4>
                             {% if species.registrations.all.count > 0  %}
                                 {% for registration in registration %}
@@ -61,14 +74,16 @@
                             {% else %}
                                 <p><b>None</b></p>
                             {% endif %}
-                    </div>
-                        
-                    <div class="css_class='mb-3 section-bordered">
-                        <h4>Edit</h4>
-                        <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
-                        <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
-                    </div>
-                    {% endif %}                      
+                        </div-->
+                        <div class="css_class='mb-3 section-bordered">
+                            <h4>Edit</h4>
+                            <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
+                            <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
+                        </div>
+                    {% endif %}     
+                    <p>
+                        <a class="btn btn-secondary" href="{% url 'registerCaresSpecies' species.id  %}" role="button">&nbsp;<b>Register This Species</b>&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
+                    </p>                                  
 
                 </div>
             </div>

@@ -1,20 +1,68 @@
-from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus, ImportArchive, User
+from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus, ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User
 from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
-from django.db.models import FileField
+from django.db import transaction
+from django.db.models import FileField, Q
+from django.db.models.functions import Lower
 #from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.views.generic.base import View
 from django.http import HttpResponse
 from django.core.files import File
+from django.utils import timezone
 from io import BytesIO
 import csv
+import datetime
 import logging
 from csv import DictReader
 from io import StringIO, TextIOWrapper
 from django.core.files.base import ContentFile
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
+from django.core.validators import URLValidator
 
 logger = logging.getLogger(__name__)
+
+# -------------------------------------------------------------------------
+# Field-level import rules for species staging import
+# -------------------------------------------------------------------------
+
+# Required CSV columns – rows missing these will be skipped with an error
+SPECIES_IMPORT_REQUIRED_FIELDS = ['name', 'category', 'global_region']
+
+# Default values applied when an optional enum cell is blank
+SPECIES_IMPORT_ENUM_DEFAULTS = {
+    'cares_family':         Species.CaresFamily.UNDEFINED,
+    'iucn_red_list':        Species.IucnRedList.UNDEFINED,
+    'cares_classification': Species.CaresStatus.NOT_CARES_SPECIES,
+}
+
+# Fields that are always overwritten on UPDATE (high-trust authoritative data)
+SPECIES_ALWAYS_UPDATE_FIELDS = [
+    'cares_classification',
+    'cares_assessment_date',
+    'iucn_red_list',
+    'iucn_assessment_date',
+    'cares_family',
+    'global_region',
+    'category',
+]
+
+# Fields written only when the existing value is blank/empty
+SPECIES_UPDATE_IF_EMPTY_FIELDS = [
+    'common_name',
+    'alt_name',
+    'description',
+    'local_distribution',
+]
+
+# Fields that are never overwritten on UPDATE (managed locally)
+SPECIES_NEVER_UPDATE_FIELDS: list = []
+
+# All tracked species fields (used for change detection)
+SPECIES_TRACKED_FIELDS = (
+    SPECIES_ALWAYS_UPDATE_FIELDS
+    + SPECIES_UPDATE_IF_EMPTY_FIELDS
+    + SPECIES_NEVER_UPDATE_FIELDS
+)
 
 # Import Species List
 # iterate through csv rows add only valid and non-duplicate species to DB
@@ -354,7 +402,162 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
     return
 
 
-#Export Species List, SpeciesInstances, Aquarists
+# Import Species Reference Links from CSV
+# Iterate through CSV rows, look up each species by name (case-insensitive exact match),
+# validate the reference URL and name_prefix, then create and save a SpeciesReferenceLink.
+
+def import_csv_species_reference_links(import_archive: ImportArchive, current_user: User) -> dict:
+    """
+    Process a CSV file to import SpeciesReferenceLink objects.
+    Expected CSV columns: species, reference_url, name_prefix
+    Returns a summary dict with keys:
+        success_count  - number of rows imported successfully
+        error_count    - number of rows that failed
+        errors         - list of (row_number, species_value, error_message) tuples
+    """
+    url_validator = URLValidator(schemes=['http', 'https'])
+
+    # Prepare results CSV report for archiving
+    csv_report_buffer = StringIO()
+    csv_report_writer = csv.writer(csv_report_buffer)
+    csv_report_writer.writerow(['Row', 'Species', 'Import_Status'])
+
+    row_count = 0
+    success_count = 0
+    errors = []
+
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+        for import_row in DictReader(import_file):
+            row_count = row_count + 1
+            raw_species_name = import_row.get('species', '')
+            species_name = raw_species_name.strip()
+            print ('CSV Reference Link Import Species: ' + species_name)
+
+            try:
+                matched_species = Species.objects.get(name__iexact=species_name)
+                print ('CSV Reference Link Import Species Match: ' + matched_species.name)
+
+            except ObjectDoesNotExist:
+                error_message = f'Species not found: "{species_name}"'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d: %s',
+                    current_user.username, row_count, error_message,
+                )
+                continue
+            except MultipleObjectsReturned:
+                error_message = f'Multiple species found for name: "{species_name}"'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d: %s',
+                    current_user.username, row_count, error_message,
+                )
+                continue
+
+            raw_reference_url = import_row.get('reference_url', '')
+            reference_url = raw_reference_url.strip()
+            print ('CSV Reference Link Import Reference Link: ' + reference_url)
+
+            try:
+                url_validator(reference_url)
+                print ('CSV Reference Link Import Reference Link Validated: ' + reference_url)
+            except ValidationError as validation_error:
+                error_message = f'Invalid reference URL: "{reference_url}" – {validation_error.message}'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d: %s',
+                    current_user.username, row_count, error_message,
+                )
+                continue
+
+            raw_name_prefix = import_row.get('name_prefix', '')
+            name_prefix = raw_name_prefix.strip()
+            print ('CSV Reference Link Import Previx: ' + name_prefix)
+
+            if not name_prefix:
+                error_message = 'name_prefix is empty or missing'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+                continue
+
+            reference_link_name = name_prefix + ': ' + matched_species.name
+
+            # Check for duplicates using database queries (more efficient than loading all links)
+            if SpeciesReferenceLink.objects.filter(species=matched_species, name=reference_link_name).exists():
+                error_message = f'Duplicate name: "{reference_link_name}" already exists'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+                continue
+
+            if SpeciesReferenceLink.objects.filter(species=matched_species, reference_url=reference_url).exists():
+                error_message = f'Duplicate URL: "{reference_url}" already exists for this species'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.warning(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+                continue
+
+            new_reference_link = SpeciesReferenceLink()
+            new_reference_link.species = matched_species
+            new_reference_link.user = current_user
+            new_reference_link.reference_url = reference_url
+            new_reference_link.name = reference_link_name
+
+            try:
+                new_reference_link.save()
+                success_count = success_count + 1
+                csv_report_writer.writerow([row_count, species_name, f'SUCCESS: Created "{reference_link_name}"'])
+                logger.info(
+                    'User %s imported species reference link row %d: "%s"',
+                    current_user.username, row_count, reference_link_name,
+                )
+                print ('CSV Reference Link Import Success: ' + reference_link_name)
+
+            except Exception as save_error:
+                error_message = f'Save failed: {str(save_error)}'
+                errors.append((row_count, species_name, error_message))
+                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
+                logger.error(
+                    'User %s importing species reference links row %d species "%s": %s',
+                    current_user.username, row_count, species_name, error_message,
+                )
+
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+    csv_report_filename = current_user.username + '_species_reference_link_import_log.csv'
+    import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+    error_count = len(errors)
+    if success_count == 0:
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+    elif error_count > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+    else:
+        import_archive.import_status = ImportArchive.ImportStatus.FULL
+
+    import_archive.name = current_user.username + '_species_reference_link_import'
+    import_archive.save()
+
+    return {
+        'success_count': success_count,
+        'error_count': error_count,
+        'errors': errors,
+    }
+
+
+#Export Species List, SpeciesInstances, Aquarists, Clubs, BAP
 
 def export_csv_bap_genus(bap_club: AquaristClub):
     bapGenusSet = BapGenus.objects.filter(club=bap_club)
@@ -431,8 +634,10 @@ def export_csv_species():
             species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
             #       category          global_region          local_distribution 
             species.category, species.global_region, species.local_distribution, 
-            #       cares_family          iucn_red_list          cares_classification          render_cares
-            species.cares_family, species.iucn_red_list, species.cares_classification, species.render_cares,
+            #       cares_family          cares_classification          cares_assessment_date          render_cares
+            species.cares_family, species.cares_classification, species.cares_assessment_date, species.render_cares,
+            #       iucn_red_list          iucn_assessment_date
+            species.iucn_red_list, species.iucn_assessment_date,
             #       created          created_by          lastUpdated          last_edited_by    
             species.created, species.created_by, species.lastUpdated, species.last_edited_by
             ])
@@ -587,3 +792,327 @@ def export_csv_caresRegistrations():
         ])
 
     return response
+
+
+# ---------------------------------------------------------------------------
+# CARES Species Import – Phase 2: Staging and Commit
+# ---------------------------------------------------------------------------
+
+# DateField names on Species that are stored as text in SpeciesImportStaging.
+# These require explicit string→date conversion when committing to the Species table.
+SPECIES_DATE_FIELDS = {'cares_assessment_date', 'iucn_assessment_date'}
+
+
+def _parse_date(value: str) -> 'datetime.date | None':
+    """Convert a *yyyy-mm-dd* string to a :class:`datetime.date`.
+
+    Returns ``None`` if *value* is blank, ``None``, or not a valid ISO date.
+    """
+    if not value or not value.strip():
+        return None
+    try:
+        return datetime.date.fromisoformat(value.strip())
+    except (ValueError, TypeError):
+        logger.warning('Species import: could not parse date value %r', value)
+        return None
+
+
+def _find_existing_species(name: str):
+    """Return an existing Species record matching *name* (case-insensitive) or None."""
+    print ('Species Import - Lookup of existing species: ' + name)
+    try:
+        return Species.objects.get(name__iexact=name)
+    except Species.DoesNotExist:
+        pass
+    # Alternate name match
+    try:
+        return Species.objects.get(alt_name__iexact=name)
+    except (Species.DoesNotExist, Species.MultipleObjectsReturned):
+        pass
+    return None
+
+
+def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
+    """
+    Compare *import_row* values against *existing_species* and return a dict
+    of changed fields:  {'field': {'old': old_val, 'new': new_val}}
+    """
+    field_map = {
+        'cares_family':          'cares_family',
+        'cares_assessment_date': 'cares_assessment_date',
+        'cares_classification':  'cares_classification',
+        'iucn_red_list':         'iucn_red_list',
+        'iucn_assessment_date':  'iucn_assessment_date',        
+        'global_region':         'global_region',
+        'category':              'category',
+        'common_name':           'common_name',
+        'alt_name':              'alt_name',
+        'description':           'description',
+        'local_distribution':    'local_distribution',
+    }
+    changed = {}
+    for csv_field, model_field in field_map.items():
+        new_val = import_row.get(csv_field, '')
+        old_val = str(getattr(existing_species, model_field, '') or '')
+        if new_val != old_val:
+            changed[csv_field] = {'old': old_val, 'new': new_val}
+    return changed
+
+
+def import_csv_species_to_staging(import_archive: ImportArchive, current_user: User) -> dict:
+    """
+    Parse a species CSV and create SpeciesImportStaging records for review.
+
+    Required CSV columns: name, category, global_region
+    Optional columns (blank cells use defaults):
+      - alt_name, common_name, description, local_distribution  → blank string
+      - cares_family          → UDF (Undefined)
+      - iucn_red_list         → UN  (Undefined)
+      - cares_classification  → NOTC (Not a CARES Species)
+
+    Returns a summary dict with counts: new, update, skip, conflict, error.
+    """
+    summary = {'new': 0, 'update': 0, 'skip': 0, 'conflict': 0, 'error': 0, 'total': 0}
+
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+        csv_report_buffer = StringIO()
+        csv_report_writer = csv.writer(csv_report_buffer)
+        csv_report_writer.writerow(['Row', 'Species', 'Action', 'Review_Status', 'Changed_Fields', 'Notes'])
+
+        row_number = 0
+        for import_row in DictReader(import_file):
+            row_number += 1
+            summary['total'] += 1
+            species_name = import_row.get('name', '').strip()
+            notes = ''
+
+            # Validate required fields
+            missing = [f for f in SPECIES_IMPORT_REQUIRED_FIELDS if not import_row.get(f, '').strip()]
+            if missing or not species_name:
+                all_missing = (['name'] if not species_name else []) + [f for f in missing if f != 'name']
+                notes = f'Missing required field(s): {", ".join(all_missing)}'
+                logger.warning('Species staging row %d skipped: %s', row_number, notes)
+                summary['error'] += 1
+                csv_report_writer.writerow([row_number, species_name, 'ERROR', 'N/A', '', notes])
+                continue
+
+            # Apply defaults for optional enum fields when cell is blank
+            for field, default in SPECIES_IMPORT_ENUM_DEFAULTS.items():
+                if not import_row.get(field, '').strip():
+                    import_row[field] = default
+
+            existing = _find_existing_species(species_name)
+
+            if existing is None:
+                # New species
+                action = SpeciesImportStaging.ImportAction.NEW
+                changed_fields = {}
+                summary['new'] += 1
+            else:
+                changed_fields = _build_changed_fields(existing, import_row)
+                if not changed_fields:
+                    action = SpeciesImportStaging.ImportAction.SKIP
+                    summary['skip'] += 1
+                else:
+                    # Determine if any change is a potential conflict (non-empty to non-empty)
+                    has_conflict = any(
+                        v['old'] and v['new'] and v['old'] != v['new']
+                        for v in changed_fields.values()
+                    )
+                    action = SpeciesImportStaging.ImportAction.CONFLICT if has_conflict else SpeciesImportStaging.ImportAction.UPDATE
+                    if action == SpeciesImportStaging.ImportAction.CONFLICT:
+                        summary['conflict'] += 1
+                    else:
+                        summary['update'] += 1
+
+            staging = SpeciesImportStaging(
+                import_archive=import_archive,
+                import_row_number=row_number,
+                action=action,
+                existing_species=existing,
+                new_name=species_name,
+                new_alt_name=import_row.get('alt_name', ''),
+                new_common_name=import_row.get('common_name', ''),
+                new_description=import_row.get('description', ''),
+                new_category=import_row.get('category', ''),
+                new_global_region=import_row.get('global_region', ''),
+                new_local_distribution=import_row.get('local_distribution', ''),
+                new_cares_family=import_row.get('cares_family', ''),
+                new_cares_classification=import_row.get('cares_classification', ''),
+                new_cares_assessment_date=import_row.get('cares_assessment_date', ''),
+                new_iucn_red_list=import_row.get('iucn_red_list', ''),
+                new_iucn_assessment_date=import_row.get('iucn_assessment_date', ''),
+                changed_fields=changed_fields,
+                review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+            )
+            staging.save()
+
+            changed_fields_str = ', '.join(changed_fields.keys()) if changed_fields else ''
+            csv_report_writer.writerow([row_number, species_name, action, 'PENDING', changed_fields_str, notes])
+
+    # Persist import summary report
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+    csv_report_filename = f"{current_user.username}_cares_species_staging_log.csv"
+    import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+    # Update import archive status
+    if summary['error'] > 0 and (summary['new'] + summary['update'] + summary['skip'] + summary['conflict']) == 0:
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+    elif summary['error'] > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+    else:
+        import_archive.import_status = ImportArchive.ImportStatus.FULL
+    import_archive.name = f"{current_user.username}_cares_species_staging"
+    import_archive.save()
+
+    logger.info('CARES species staging import complete: %s', summary)
+    return summary
+
+
+def commit_species_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
+    """
+    Commit all APPROVED staging records for *import_archive* to the Species table.
+
+    Respects field-level import rules:
+    - SPECIES_ALWAYS_UPDATE_FIELDS: always written on UPDATE
+    - SPECIES_UPDATE_IF_EMPTY_FIELDS: written only when existing value is blank
+    - SPECIES_NEVER_UPDATE_FIELDS: never written on UPDATE
+
+    Returns a results dict with counts: added, updated, skipped, errors.
+    """
+    results = {'added': 0, 'updated': 0, 'skipped': 0, 'errors': 0, 'total': 0}
+
+    approved_records = SpeciesImportStaging.objects.filter(
+        import_archive=import_archive,
+        review_status__in=[
+            SpeciesImportStaging.ReviewStatus.APPROVED,
+            SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
+        ],
+    ).select_related('existing_species')
+
+    csv_report_buffer = StringIO()
+    csv_report_writer = csv.writer(csv_report_buffer)
+    csv_report_writer.writerow(['Row', 'Species', 'Action', 'Result', 'Notes'])
+
+    with transaction.atomic():
+        for staged_changes in approved_records:
+            results['total'] += 1
+            try:
+                if staged_changes.action == SpeciesImportStaging.ImportAction.NEW:
+                    logger.info('Species import saving staged changes to NEW species: %s', staged_changes.new_name)
+
+                    species = Species(
+                        name=staged_changes.new_name,
+                        alt_name=staged_changes.new_alt_name,
+                        common_name=staged_changes.new_common_name,
+                        description=staged_changes.new_description,
+                        local_distribution=staged_changes.new_local_distribution,
+                        cares_family=staged_changes.new_cares_family or Species.CaresFamily.UNDEFINED,
+                        cares_classification=staged_changes.new_cares_classification or Species.CaresStatus.NOT_CARES_SPECIES,
+                        cares_assessment_date=_parse_date(staged_changes.new_cares_assessment_date),
+                        iucn_red_list=staged_changes.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
+                        iucn_assessment_date=_parse_date(staged_changes.new_iucn_assessment_date),
+                        category=staged_changes.new_category or Species.Category.CICHLIDS,
+                        global_region=staged_changes.new_global_region or Species.GlobalRegion.AFRICA,
+                        created_by=current_user,
+                        last_edited_by=current_user,
+                    )
+                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                    print ('Committing Species: ' + staged_changes.new_name)
+                    species.save()
+                    staged_changes.existing_species = species
+                    results['added'] += 1
+                    csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, 'NEW', 'Added', ''])
+
+                elif staged_changes.action in (SpeciesImportStaging.ImportAction.UPDATE, SpeciesImportStaging.ImportAction.CONFLICT):
+                    species = staged_changes.existing_species
+                    logger.info('Species import saving staged changes to existing species: %s', species.name)
+
+                    if species is None:
+                        raise ObjectDoesNotExist(f"existing_species is None for staging pk={staged_changes.pk}")
+
+                    new_vals = {
+                        'cares_classification':  staged_changes.new_cares_classification,
+                        'cares_family':          staged_changes.new_cares_family,
+                        'cares_assessment_date': staged_changes.new_cares_assessment_date,
+                        'iucn_red_list':         staged_changes.new_iucn_red_list,
+                        'iucn_assessment_date':  staged_changes.new_iucn_assessment_date,
+                        'global_region':         staged_changes.new_global_region,
+                        'category':              staged_changes.new_category,
+                        'common_name':           staged_changes.new_common_name,
+                        'alt_name':              staged_changes.new_alt_name,
+                        'description':           staged_changes.new_description,
+                        'local_distribution':    staged_changes.new_local_distribution,
+                    }
+
+                    updated_fields_list = []
+                    is_override = staged_changes.review_status == SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE
+
+                    if is_override:
+                        # APPROVED_OVERRIDE: force-write every field that was detected as changed.
+                        for field, vals in staged_changes.changed_fields.items():
+                            new_val = vals.get('new')
+                            if new_val is None:
+                                continue
+                            if field in SPECIES_DATE_FIELDS:
+                                setattr(species, field, _parse_date(new_val))
+                                updated_fields_list.append(field)
+                            elif new_val != '':
+                                setattr(species, field, new_val)
+                                updated_fields_list.append(field)
+                    else:
+                        # APPROVED: respect the standard field-level update rules.
+                        for field in SPECIES_ALWAYS_UPDATE_FIELDS:
+                            new_val = new_vals.get(field)
+                            if field in SPECIES_DATE_FIELDS:
+                                if new_val:
+                                    setattr(species, field, _parse_date(new_val))
+                                    updated_fields_list.append(field)
+                            elif new_val is not None and new_val != '':
+                                setattr(species, field, new_val)
+                                updated_fields_list.append(field)
+                        for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
+                            new_val = new_vals.get(field)
+                            if new_val is not None and new_val != '' and not getattr(species, field, ''):
+                                setattr(species, field, new_val)
+                                updated_fields_list.append(field)
+                        # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
+
+                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                    species.last_edited_by = current_user
+                    species.save()
+                    results['updated'] += 1
+                    csv_report_writer.writerow([
+                        staged_changes.import_row_number, staged_changes.new_name, staged_changes.action,
+                        'Updated', f"fields: {', '.join(updated_fields_list)}"
+                    ])
+
+                else:
+                    # SKIP action – shouldn't normally be APPROVED, but handle gracefully
+                    results['skipped'] += 1
+                    csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'Skipped', ''])
+
+                # Update staging record's reviewed_at timestamp
+                staged_changes.reviewed_at = timezone.now()
+                staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
+
+            except Exception as exc:
+                logger.error('Error committing staging pk=%s: %s', staged_changes.pk, exc, exc_info=True)
+                results['errors'] += 1
+                csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'ERROR', str(exc)])
+
+    # Persist commit report
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+    csv_report_filename = f"{current_user.username}_cares_species_commit_log.csv"
+    import_archive.import_results_file.save(csv_report_filename, csv_report_file, save=False)
+
+    if results['errors'] > 0 and results['added'] + results['updated'] == 0:
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+    elif results['errors'] > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+    else:
+        import_archive.import_status = ImportArchive.ImportStatus.FULL
+    import_archive.save()
+
+    logger.info('CARES species commit complete: %s', results)
+    return results

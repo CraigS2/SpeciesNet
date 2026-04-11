@@ -99,23 +99,57 @@ def addSpeciesInstanceWizard2(request):
 @login_required(login_url='login')
 def importArchiveResults(request, pk):
     """
-    Display results of CSV import operations
+    Display results of CSV import operations with all rows in processing order.
     """
     import_archive = ImportArchive.objects.get(id=pk)
-    
+
     try:
-        with open(import_archive.import_results_file.path, 'r', encoding="utf-8") as csv_file:
-            dict_reader = DictReader(csv_file)
-            report_row = "Status:  "
-            context = {
-                'import_archive': import_archive,
-                'report_row':  report_row,
-                'dict_reader': dict_reader
-            }
-            return render(request, 'species/importArchiveResults.html', context)
+        with open(import_archive.import_results_file.path, 'r', encoding='utf-8') as csv_file:
+            raw_rows = list(DictReader(csv_file))
+
+        results = []
+        success_count = 0
+        error_count = 0
+        for row in raw_rows:
+            # Support both 3-column (Row, Species, Import_Status) and legacy formats
+            status_value = (
+                row.get('Import_Status', '')
+                or row.get('Result', '')
+                or ''
+            )
+            row_num = row.get('Row', '')
+            # Column name varies by import type:
+            #   'Species' - species reference link and species imports (Row, Species, Import_Status)
+            #   'Species Instance Name' - species instance imports
+            #   'Genus' - aquarist club / BAP genus imports
+            species_val = row.get('Species', '') or row.get('Species Instance Name', '') or row.get('Genus', '')
+            is_error = status_value.startswith('ERROR')
+            if is_error:
+                error_count += 1
+            elif status_value.startswith('SUCCESS'):
+                success_count += 1
+            results.append({
+                'row': row_num,
+                'species': species_val,
+                'status': status_value,
+                'is_error': is_error,
+            })
+
+        total_count = len(results)
+        status_class = 'success' if error_count == 0 else ('danger' if success_count == 0 else 'warning')
+
+        context = {
+            'import_archive': import_archive,
+            'results': results,
+            'total_count': total_count,
+            'success_count': success_count,
+            'error_count': error_count,
+            'status_class': status_class,
+        }
+        return render(request, 'species/import/importArchiveResults.html', context)
     except Exception as e:
         error_msg = f"An error occurred reading Import Archive.  \nException: {str(e)}"
         messages.error(request, error_msg)
         logger.error('Error reading import archive %s:  %s', str(pk), str(e))
-    
+
     return redirect('home')

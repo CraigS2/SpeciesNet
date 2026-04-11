@@ -732,7 +732,7 @@ def importClubBapGenus(request, pk):
             import_csv_bap_genus(import_archive, current_user, bap_club)
             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
     
-    return render(request, "species/importClubBapGenus.html", {"form": form})
+    return render(request, "species/import/importClubBapGenus.html", {"form": form})
 
 
 @login_required(login_url='login')

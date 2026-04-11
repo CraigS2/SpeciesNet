@@ -1,0 +1,37 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+    <h3>Import Results</h3>
+
+    <div class="alert alert-{{ status_class }}">
+        <h4>Status: {{ import_archive.get_import_status_display }}</h4>
+        <p>Total Records: {{ total_count }} &nbsp;|&nbsp;
+           <span class="text-success"><strong>&#10003; Successful: {{ success_count }}</strong></span> &nbsp;|&nbsp;
+           <span class="text-danger"><strong>&#10007; Failed: {{ error_count }}</strong></span>
+        </p>
+    </div>
+
+    {% if results %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Row</th>
+                <th>Species</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in results %}
+            <tr>
+                <td>{{ item.row }}</td>
+                <td>{{ item.species }}</td>
+                <td{% if item.is_error %} class="text-danger"{% endif %}>{{ item.status }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No import records found.</p>
+    {% endif %}
+</div>
+{% endblock content %}
