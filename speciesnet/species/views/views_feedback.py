@@ -20,7 +20,7 @@ _FILTER_QUERY_STRINGS = {
 
 def _safe_filter_query(value):
     """Return a hardcoded query string for a validated filter value."""
-    return _FILTER_QUERY_STRINGS.get(value, '?filter=all') if value in VALID_FILTER_VALUES else '?filter=all'
+    return _FILTER_QUERY_STRINGS.get(value, '?filter=all')
 
 
 ### Submit Species Feedback (accessible to all users, anonymous and logged-in)
