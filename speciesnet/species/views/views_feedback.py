@@ -8,6 +8,21 @@ from species.forms import SpeciesFeedbackForm
 from django.core.paginator import Paginator
 
 
+VALID_FILTER_VALUES = {'all', 'pending', 'approved'}
+
+# Mapping from validated filter values to hardcoded query strings (prevents URL injection)
+_FILTER_QUERY_STRINGS = {
+    'all': '?filter=all',
+    'pending': '?filter=pending',
+    'approved': '?filter=approved',
+}
+
+
+def _safe_filter_query(value):
+    """Return a hardcoded query string for a validated filter value."""
+    return _FILTER_QUERY_STRINGS.get(value, '?filter=all') if value in VALID_FILTER_VALUES else '?filter=all'
+
+
 ### Submit Species Feedback (accessible to all users, anonymous and logged-in)
 
 def submitSpeciesFeedback(request, pk):
@@ -71,24 +86,24 @@ def speciesFeedbackTools(request):
     if not request.user.is_staff:
         raise PermissionDenied()
 
-    filter_status = request.GET.get('filter', 'all')
-
+    raw_filter = request.GET.get('filter', 'all')
+    display_filter = raw_filter if raw_filter in VALID_FILTER_VALUES else 'all'
     feedback_qs = SpeciesFeedback.objects.select_related('species', 'user', 'reviewed_by').all()
 
-    if filter_status == 'pending':
+    if display_filter == 'pending':
         feedback_qs = feedback_qs.filter(approved=False)
-    elif filter_status == 'approved':
+    elif display_filter == 'approved':
         feedback_qs = feedback_qs.filter(approved=True)
 
     paginator = Paginator(feedback_qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    logger.info('Staff user %s visited speciesFeedbackTools page (filter=%s)', request.user.username, filter_status)
+    logger.info('Staff user %s visited speciesFeedbackTools page (filter=%s)', request.user.username, display_filter)
 
     context = {
         'page_obj': page_obj,
-        'filter_status': filter_status,
+        'filter_status': display_filter,
     }
     return render(request, 'species/tools/speciesFeedbackTools.html', context)
 
@@ -110,8 +125,8 @@ def approveSpeciesFeedback(request, pk):
         logger.info('Staff user %s approved feedback %s for species: %s', request.user.username, pk, feedback.species.name)
         messages.success(request, f'Feedback from "{feedback.name}" has been approved.')
 
-    filter_status = request.GET.get('filter', 'all')
-    return redirect(f"{reverse('speciesFeedbackTools')}?filter={filter_status}")
+    filter_query = _safe_filter_query(request.GET.get('filter', 'all'))
+    return redirect(reverse('speciesFeedbackTools') + filter_query)
 
 
 ### Delete Species Feedback (staff-only)
@@ -129,10 +144,11 @@ def deleteSpeciesFeedback(request, pk):
         feedback.delete()
         logger.info('Staff user %s deleted feedback "%s" for species: %s', request.user.username, feedback_name, species_name)
         messages.success(request, f'Feedback "{feedback_name}" has been deleted.')
-        filter_status = request.POST.get('filter', 'all')
-        return redirect(f"{reverse('speciesFeedbackTools')}?filter={filter_status}")
+        filter_query = _safe_filter_query(request.POST.get('filter', 'all'))
+        return redirect(reverse('speciesFeedbackTools') + filter_query)
 
-    filter_status = request.GET.get('filter', 'all')
+    raw_filter = request.GET.get('filter', 'all')
+    filter_status = raw_filter if raw_filter in VALID_FILTER_VALUES else 'all'
     context = {
         'feedback': feedback,
         'filter_status': filter_status,
