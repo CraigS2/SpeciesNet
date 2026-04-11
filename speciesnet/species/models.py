@@ -494,7 +494,8 @@ class CaresRegistration (models.Model):
     
     approver_notes            = models.TextField (blank=True)
     status                    = models.CharField (max_length=4, choices=CaresRegistrationStatus.choices, default=CaresRegistrationStatus.OPEN)
-    
+    asn_imported              = models.BooleanField (default=False)
+
     last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates') 
     last_report_date          = models.DateField (null=True, blank=True)
 

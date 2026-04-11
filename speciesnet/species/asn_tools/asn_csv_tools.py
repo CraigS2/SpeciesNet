@@ -622,8 +622,8 @@ def export_csv_species():
         'id', 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit', 
        # category    global_region    local_distribution 
         'category', 'global_region', 'local_distribution', 
-       # cares_family            iucn_red_list    cares_classification   render_cares
-        'cares_classification', 'iucn_red_list', 'cares_classification', 'render_cares', 
+       # cares_family            cares_classification     cares_assessment_date     iucn_red_list   iucn_assessment_date    
+        'cares_family',         'cares_classification',  'cares_assessment_date',  'iucn_red_list', 'iucn_assessment_date', 
        # created   created_by     lastUpdated    last_edited_by    
         'created', 'created_by', 'lastUpdated', 'last_edited_by' 
         ])
@@ -634,10 +634,8 @@ def export_csv_species():
             species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
             #       category          global_region          local_distribution 
             species.category, species.global_region, species.local_distribution, 
-            #       cares_family          cares_classification          cares_assessment_date          render_cares
-            species.cares_family, species.cares_classification, species.cares_assessment_date, species.render_cares,
-            #       iucn_red_list          iucn_assessment_date
-            species.iucn_red_list, species.iucn_assessment_date,
+            #       cares_family          cares_classification          cares_assessment_date          iucn_red_list          iucn_assessment_date    
+            species.cares_family, species.cares_classification, species.cares_assessment_date, species.iucn_red_list, species.iucn_assessment_date,
             #       created          created_by          lastUpdated          last_edited_by    
             species.created, species.created_by, species.lastUpdated, species.last_edited_by
             ])
