@@ -74,13 +74,20 @@
 
                 <div class="d-flex gap-2 mt-2">
                     {% if not feedback.approved %}
-                        <form method="POST" action="{% url 'approveSpeciesFeedback' feedback.id %}?filter={{ filter_status }}" style="display:inline;">
+                        {% if feedback.species_image %}
+                            <form method="POST" action="{% url 'applySpeciesFeedbackPhoto' feedback.id %}?filter={{ filter_status }}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-primary">Apply Photo</button>
+                            </form>
+                        {% endif %}
+                        <form method="POST" action="{% url 'archiveSpeciesFeedback' feedback.id %}?filter={{ filter_status }}" style="display:inline;">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            <button type="submit" class="btn btn-sm btn-success">Archive</button>
                         </form>
                     {% endif %}
                     <a class="btn btn-sm btn-danger" href="{% url 'deleteSpeciesFeedback' feedback.id %}?filter={{ filter_status }}">Delete</a>
                 </div>
+
             </div>
         </div>
         {% endfor %}

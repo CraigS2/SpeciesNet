@@ -20,8 +20,8 @@
                         {% endfor %}
                     {% endif %}
 
-                    <p>Use this form to submit feedback, corrections, or additional information about <i>{{species.name}}</i>. Your submission will be reviewed by our staff before any changes are made to the site.</p>
-                    <p class="text-muted"><small>All feedback is private and visible only to staff administrators. It will never be displayed publicly.</small></p>
+                    <p>Use this form to submit feedback, corrections, or additional information about <i>{{species.name}}</i>.</p> 
+                    <p class="text-muted"><small><i>** All feedback is private and visible only to staff administrators. It will never be displayed publicly. **</i></small></p>
 
                     <form method="POST" enctype="multipart/form-data" action="">
                         {% csrf_token %}
@@ -45,31 +45,40 @@
                             {% if form.comment.errors %}
                                 <div class="text-danger"><small>{{ form.comment.errors }}</small></div>
                             {% endif %}
-                            <div class="form-text">
-                                <span id="char-counter">2500</span> characters remaining (maximum 2,500 characters).
-                            </div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_species_image" class="form-label fw-bold">Species Image <small class="text-muted">(optional)</small></label>
+                            <p>
+                                <b>Note: </b>If you would like to submit a photo for consideration as the species profile photo, you can upload it here. 
+                                Please state this in your comment so we understand this is your intent.
+                            </p>                            
+                            <label for="id_species_image" class="form-label fw-bold">Species Image <small class="text-muted"></small></label>
                             {{ form.species_image }}
                             {% if form.species_image.errors %}
                                 <div class="text-danger"><small>{{ form.species_image.errors }}</small></div>
                             {% endif %}
-                            <div class="form-text">Upload an image of this species for staff consideration.</div>
+                            <div class="form-text">
+                                </div>
+                                <p class="text-muted">
+                                    <small>
+                                    <i> ** Be sure any photos uploaded are yours or you have permission to use them. All species photos require <i>Photo Credit</i> **</i>
+                                    </small>
+                                </p>
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_species_photo_credit" class="form-label fw-bold">Photo Credit <small class="text-muted">(optional)</small></label>
+                            <label for="id_species_photo_credit" class="form-label fw-bold">Photo Credit <small class="text-muted"></small></label>
                             {{ form.species_photo_credit }}
                             {% if form.species_photo_credit.errors %}
                                 <div class="text-danger"><small>{{ form.species_photo_credit.errors }}</small></div>
                             {% endif %}
+                            <p><small>&nbsp;</small></p>
                         </div>
 
                         <div class="d-flex gap-2 mt-3">
-                            <input type="submit" class="btn btn-secondary" value="&nbsp;&nbsp;Submit Feedback&nbsp;&nbsp;" />
-                            <a class="btn btn-outline-secondary" href="javascript:history.back()">Cancel</a>
+                            <p><input type="submit" class="btn btn-secondary" value="&nbsp;&nbsp;Submit Feedback&nbsp;&nbsp;"/>
+                                <a class="btn btn-outline-secondary" href="javascript:history.back()">Cancel</a>
+                            </p>
                         </div>
                     </form>
                 </div>

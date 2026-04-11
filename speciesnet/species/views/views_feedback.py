@@ -27,21 +27,39 @@ def _safe_filter_query(value):
 
 def submitSpeciesFeedback(request, pk):
     species = get_object_or_404(Species, pk=pk)
+    print ('Requesting User Feedback for species: ' + species.name)
 
     if request.method == 'POST':
         register_heif_opener()
+
+        # print ('Processing User Feedback ... ')
+        # post_data = request.POST.copy()  # Make a mutable copy
+        # if request.user.is_authenticated:
+        #     post_data['user'] = request.user.id  # Set the user ID in form data
+        #     post_data['email'] = ''
+
         form = SpeciesFeedbackForm(request.POST, request.FILES, user=request.user)
+        if request.user.is_authenticated:
+            form.instance.user = request.user
+            form.instance.email = ''
+            print(f'Authenticated user: {request.user.username} - set user on form instance')
+
         if form.is_valid():
             try:
                 feedback = form.save(commit=False)
                 feedback.species = species
 
+                print ('Feedback form submitted and validated for species: ' + species.name)
+
                 if request.user.is_authenticated:
                     feedback.user = request.user
                     feedback.email = ''
+                    print(f'Set feedback.user to: {request.user.username}')
                 else:
                     feedback.user = None
+                    print(f'Anonymous submission with email: {feedback.email}')
 
+                print(f'Before full_clean - user: {feedback.user}, email: "{feedback.email}"')
                 feedback.full_clean()
                 feedback.save()
 
@@ -61,13 +79,41 @@ def submitSpeciesFeedback(request, pk):
                 return redirect('species', pk=species.id)
 
             except ValidationError as e:
-                for field, errors in e.message_dict.items() if hasattr(e, 'message_dict') else [('__all__', e.messages)]:
-                    for error in errors:
+                print('='*50)
+                print('Feedback form validation failure (from full_clean):')
+                print('ValidationError object:', e)
+                print('='*50)
+                
+                # Handle both dict-style and list-style validation errors
+                if hasattr(e, 'message_dict'):
+                    for field, errors in e.message_dict.items():
+                        print(f'Field "{field}": {errors}')
+                        for error in errors:
+                            messages.error(request, f'{field}: {error}' if field != '__all__' else error)
+                else:
+                    print(f'General errors: {e.messages}')
+                    for error in e.messages:
                         messages.error(request, error)
-            except IntegrityError:
-                messages.error(request, 'You have already submitted feedback for this species.')
-                logger.warning('Duplicate feedback submission blocked for species %s', species.name)
+                        
+            # except IntegrityError:
+            #     messages.error(request, 'You have already submitted feedback for species %s', species.name)
+            #     logger.warning('Duplicate feedback submission blocked for species %s', species.name)
         else:
+            print('='*50)
+            print('Form data fails validation!')
+            print('Form errors:', form.errors)
+            print('Form errors as JSON:', form.errors.as_json())
+            print('='*50)
+            
+            # Add each field error to messages
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        print(f'Field "{field}" error: {error}')
+                        messages.error(request, f'{field}: {error}')
+            
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
         form = SpeciesFeedbackForm(user=request.user)
@@ -77,7 +123,6 @@ def submitSpeciesFeedback(request, pk):
         'form': form,
     }
     return render(request, 'species/speciesFeedbackForm.html', context)
-
 
 ### Species Feedback Tools (staff-only)
 
@@ -110,24 +155,79 @@ def speciesFeedbackTools(request):
 
 ### Approve Species Feedback (staff-only)
 
+# @login_required(login_url='login')
+# def approveSpeciesFeedback(request, pk):
+#     if not request.user.is_staff:
+#         raise PermissionDenied()
+
+#     feedback = get_object_or_404(SpeciesFeedback, pk=pk)
+
+#     if request.method == 'POST':
+#         feedback.approved = True
+#         feedback.reviewed_by = request.user
+#         feedback.reviewed_at = timezone.now()
+#         feedback.save()
+#         logger.info('Staff user %s approved feedback %s for species: %s', request.user.username, pk, feedback.species.name)
+#         messages.success(request, f'Feedback from "{feedback.name}" has been approved.')
+
+#     filter_query = _safe_filter_query(request.GET.get('filter', 'all'))
+#     return redirect(reverse('speciesFeedbackTools') + filter_query)
+
+### Apply Species Feedback Photo to Species Profile (staff-only)
+
 @login_required(login_url='login')
-def approveSpeciesFeedback(request, pk):
+def applySpeciesFeedbackPhoto(request, pk):
     if not request.user.is_staff:
         raise PermissionDenied()
-
+    
     feedback = get_object_or_404(SpeciesFeedback, pk=pk)
+    
+    if request.method == 'POST':
+        if feedback.species_image:
+            # Apply the photo to the species
+            species = feedback.species
+            species.species_image = feedback.species_image
+            if feedback.species_photo_credit:
+                species.photo_credit = feedback.species_photo_credit
+            species.last_edited_by = request.user
+            species.save()
+            
+            # Mark feedback as approved
+            feedback.approved = True
+            feedback.reviewed_by = request.user
+            feedback.reviewed_at = timezone.now()
+            feedback.save()
+            
+            logger.info('Staff user %s applied photo from feedback %s to species: %s', 
+                       request.user.username, pk, feedback.species.name)
+            messages.success(request, f'Photo from "{feedback.name}" has been applied to {species.name}.')
+        else:
+            messages.error(request, 'No photo attached to this feedback.')
+    
+    filter_query = _safe_filter_query(request.GET.get('filter', 'all'))
+    return redirect(reverse('speciesFeedbackTools') + filter_query)
 
+
+### Archive Species Feedback (staff-only)
+
+@login_required(login_url='login')
+def archiveSpeciesFeedback(request, pk):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    
+    feedback = get_object_or_404(SpeciesFeedback, pk=pk)
+    
     if request.method == 'POST':
         feedback.approved = True
         feedback.reviewed_by = request.user
         feedback.reviewed_at = timezone.now()
         feedback.save()
-        logger.info('Staff user %s approved feedback %s for species: %s', request.user.username, pk, feedback.species.name)
-        messages.success(request, f'Feedback from "{feedback.name}" has been approved.')
-
+        logger.info('Staff user %s archived feedback %s for species: %s', 
+                   request.user.username, pk, feedback.species.name)
+        messages.success(request, f'Feedback from "{feedback.name}" has been archived.')
+    
     filter_query = _safe_filter_query(request.GET.get('filter', 'all'))
     return redirect(reverse('speciesFeedbackTools') + filter_query)
-
 
 ### Delete Species Feedback (staff-only)
 

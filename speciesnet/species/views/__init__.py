@@ -94,7 +94,8 @@ from .views_species_import import (
 
 # Species Feedback
 from .views_feedback import (
-    submitSpeciesFeedback, speciesFeedbackTools, approveSpeciesFeedback, deleteSpeciesFeedback,
+    submitSpeciesFeedback, speciesFeedbackTools, 
+    applySpeciesFeedbackPhoto, archiveSpeciesFeedback, deleteSpeciesFeedback
 )
 
 

@@ -77,14 +77,17 @@
                         </div-->
                         <div class="css_class='mb-3 section-bordered">
                             <h4>Edit</h4>
-                            <p><a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;Edit Species&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
-                            <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
+                            <div class="d-flex justify-content-between">
+                                <a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;&nbsp;Edit Species&nbsp;&nbsp;</a>
+                                <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a>
+                            </div>
                         </div>
                     {% endif %}
-                    <p>
-                        <a class="btn btn-secondary" href="{% url 'registerCaresSpecies' species.id  %}" role="button">&nbsp;<b>Register This Species</b>&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
-                        <a class="btn btn-secondary" href="{% url 'submitSpeciesFeedback' species.id %}" role="button">&nbsp;Species Feedback&nbsp;</a>
-                    </p>                                  
+
+                    <div class="d-flex justify-content-between">
+                        <a class="btn btn-secondary" href="{% url 'registerCaresSpecies' species.id  %}" role="button">&nbsp;<b>Register This Species</b>&nbsp;</a>
+                        <a class="btn btn-secondary" href="{% url 'submitSpeciesFeedback' species.id %}" role="button">&nbsp;<b>Submit Species Feedback</b>&nbsp;</a>
+                    </div>                                  
 
                 </div>
             </div>

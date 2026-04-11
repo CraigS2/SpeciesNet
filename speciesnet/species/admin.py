@@ -76,6 +76,11 @@ class EmailAddressAdmin(admin.ModelAdmin):
         self.message_user(request, f'{count} email(s) marked as unverified.')
     mark_as_unverified.short_description = 'Mark selected emails as unverified'
 
+class SpeciesFeedbackAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'species', 'user', 'email', 'approved', 'created')
+    list_filter   = ('approved', 'created')
+    search_fields = ('name', 'comment', 'email')
+    readonly_fields = ('name', 'created', 'reviewed_by', 'reviewed_at')
 
 admin.site.register (User, UserAdmin)  
 admin.site.register (UserEmail)
@@ -96,12 +101,4 @@ admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
-
-class SpeciesFeedbackAdmin(admin.ModelAdmin):
-    list_display  = ('name', 'species', 'user', 'email', 'approved', 'created')
-    list_filter   = ('approved', 'created')
-    search_fields = ('name', 'comment', 'email')
-    readonly_fields = ('name', 'created', 'reviewed_by', 'reviewed_at')
-
-
 admin.site.register(SpeciesFeedback, SpeciesFeedbackAdmin)

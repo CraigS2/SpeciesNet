@@ -126,7 +126,7 @@ class Species (models.Model):
     name                      = models.CharField (max_length=240)
     alt_name                  = models.CharField (max_length=240, blank=True)
     common_name               = models.CharField (max_length=240, blank=True)
-    description               = models.TextField (blank=True, max_length=2500, help_text="Maximum 2,500 characters (~1/2 page of text)")
+    description               = models.TextField (blank=True, max_length=2500)
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     photo_credit              = models.CharField (max_length=200, blank=True)
 
@@ -681,7 +681,7 @@ class SpeciesFeedback(models.Model):
     species             = models.ForeignKey(Species, on_delete=models.CASCADE, related_name='feedback_submissions')
     user                = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='species_feedback')
     email               = models.EmailField(max_length=254, blank=True)
-    comment             = models.TextField(max_length=2500, blank=False, help_text="Maximum 2,500 characters (~1/2 page of text)")
+    comment             = models.TextField(max_length=2500, blank=False)
     species_image       = models.ImageField(upload_to='feedback/%Y/%m/%d', null=True, blank=True)
     species_photo_credit = models.CharField(max_length=200, blank=True)
     approved            = models.BooleanField(default=False)
@@ -693,7 +693,7 @@ class SpeciesFeedback(models.Model):
         ordering = ['-created']
         verbose_name = 'Species Feedback'
         verbose_name_plural = 'Species Feedback'
-        unique_together = [['species', 'user'], ['species', 'email']]
+        #unique_together = [['species', 'user'], ['species', 'email']]
 
     def save(self, *args, **kwargs):
         if self.user:
@@ -704,12 +704,6 @@ class SpeciesFeedback(models.Model):
             identifier = 'Anonymous'
         self.name = f"{self.species.name} - {identifier}"
         super().save(*args, **kwargs)
-
-    def clean(self):
-        if not self.user and not self.email:
-            raise ValidationError(
-                "Either a user account (for logged-in users) or an email address (for anonymous users) must be provided."
-            )
 
     def __str__(self):
         return self.name

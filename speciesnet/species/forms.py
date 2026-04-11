@@ -1368,7 +1368,6 @@ class SpeciesImportStagingForm(ModelForm):
         }
 
 
-
 class SpeciesFeedbackForm(ModelForm):
     class Meta:
         model = SpeciesFeedback
@@ -1401,8 +1400,6 @@ class SpeciesFeedbackForm(ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if self.user and self.user.is_authenticated:
-            # Email not needed for authenticated users
-            self.fields['email'].required = False
-            self.fields['email'].widget = forms.HiddenInput()
+            del self.fields['email']
         else:
-            self.fields['email'].required = True
+            self.fields['email'].required = True            
