@@ -72,7 +72,11 @@
                             <p><a class="btn btn-secondary" href="{% url 'editSpecies' species.id  %}" role="button">&nbsp;Edit Species Profile&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
                             <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
                         </div>
-                    {% endif %}                      
+                    {% endif %}
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <p><a class="btn btn-secondary" href="{% url 'submitSpeciesFeedback' species.id %}" role="button">&nbsp;Species Feedback&nbsp;</a></p>
+                    </div>                      
 
                     {% if request.user.is_authenticated %}
                         <div class="css_class='mb-3 section-bordered">

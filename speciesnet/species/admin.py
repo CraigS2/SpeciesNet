@@ -7,6 +7,7 @@ from .models import Species, SpeciesComment, SpeciesReferenceLink
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
+from .models import SpeciesFeedback
 from allauth.account.models import EmailAddress
 
 
@@ -95,3 +96,12 @@ admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
+
+class SpeciesFeedbackAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'species', 'user', 'email', 'approved', 'created')
+    list_filter   = ('approved', 'created')
+    search_fields = ('name', 'comment', 'email')
+    readonly_fields = ('name', 'created', 'reviewed_by', 'reviewed_at')
+
+
+admin.site.register(SpeciesFeedback, SpeciesFeedbackAdmin)
