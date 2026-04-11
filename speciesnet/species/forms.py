@@ -177,6 +177,16 @@ class CaresSpeciesForm(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
+        self.fields['cares_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })
+        self.fields['iucn_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })        
                                 
         self.helper.layout = Layout(
             Fieldset(
@@ -189,7 +199,9 @@ class CaresSpeciesForm(ModelForm):
                 Field('local_distribution', css_class='mb-1'),
                 Field('cares_family', css_class='mb-1'),
                 Field('cares_classification', css_class='mb-1'),
-                Field('iucn_red_list', css_class='mb-1'),                
+                Field('cares_assessment_date', css_class='mb-1'),                            
+                Field('iucn_red_list', css_class='mb-1'),    
+                Field('iucn_assessment_date', css_class='mb-1'),
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
@@ -286,6 +298,16 @@ class CaresSpeciesForm2(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
+        self.fields['cares_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })
+        self.fields['iucn_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })        
                                 
         self.helper.layout = Layout(
             Fieldset(
@@ -299,7 +321,9 @@ class CaresSpeciesForm2(ModelForm):
                 Field('category', css_class='mb-1'),                
                 Field('cares_family', css_class='mb-1'),
                 Field('cares_classification', css_class='mb-1'),
-                Field('iucn_red_list', css_class='mb-1'),                
+                Field('cares_assessment_date', css_class='mb-1'),                            
+                Field('iucn_red_list', css_class='mb-1'),    
+                Field('iucn_assessment_date', css_class='mb-1'),                          
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
