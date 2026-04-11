@@ -53,7 +53,7 @@
                         <h4>Reference Links</h4>
                             {% for speciesReferenceLink in speciesReferenceLinks %}
                                 <p style = "display: flex; justify-content: space-between;">
-                                    <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer"><b>{{speciesReferenceLink.name}}</b></a></span>
+                                    <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>
                                     {% if speciesComment.user == request.user or userCanEdit %}
                                         <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
                                         <!--a class="btn btn-secondary" href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id  %}" role="button">&nbsp;Edit Link&nbsp;</a-->
