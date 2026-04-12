@@ -92,6 +92,12 @@ from .views_species_import import (
     importSpeciesReferenceLinks,
 )
 
+# Species Feedback
+from .views_feedback import (
+    submitSpeciesFeedback, speciesFeedbackTools, 
+    applySpeciesFeedbackPhoto, archiveSpeciesFeedback, deleteSpeciesFeedback
+)
+
 
 ### PACKAGE view declarations
 
@@ -157,4 +163,7 @@ __all__ = [
 
     # Species Reference Link Import
     'importSpeciesReferenceLinks',
+
+    # Species Feedback
+    'submitSpeciesFeedback', 'speciesFeedbackTools', 'approveSpeciesFeedback', 'deleteSpeciesFeedback',
 ] # type: ignore

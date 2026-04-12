@@ -126,7 +126,7 @@ class Species (models.Model):
     name                      = models.CharField (max_length=240)
     alt_name                  = models.CharField (max_length=240, blank=True)
     common_name               = models.CharField (max_length=240, blank=True)
-    description               = models.TextField (blank=True)
+    description               = models.TextField (blank=True, max_length=2500)
     species_image             = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     photo_credit              = models.CharField (max_length=200, blank=True)
 
@@ -494,7 +494,8 @@ class CaresRegistration (models.Model):
     
     approver_notes            = models.TextField (blank=True)
     status                    = models.CharField (max_length=4, choices=CaresRegistrationStatus.choices, default=CaresRegistrationStatus.OPEN)
-    
+    asn_imported              = models.BooleanField (default=False)
+
     last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates') 
     last_report_date          = models.DateField (null=True, blank=True)
 
@@ -671,3 +672,39 @@ class SpeciesImportStaging (models.Model):
 
     def __str__(self):
         return f"Staging: {self.new_name} ({self.get_action_display()})"
+
+
+### Species Feedback
+
+class SpeciesFeedback(models.Model):
+
+    name                = models.CharField(max_length=300, editable=False)
+    species             = models.ForeignKey(Species, on_delete=models.CASCADE, related_name='feedback_submissions')
+    user                = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='species_feedback')
+    email               = models.EmailField(max_length=254, blank=True)
+    comment             = models.TextField(max_length=2500, blank=False)
+    species_image       = models.ImageField(upload_to='feedback/%Y/%m/%d', null=True, blank=True)
+    species_photo_credit = models.CharField(max_length=200, blank=True)
+    approved            = models.BooleanField(default=False)
+    reviewed_by         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_feedback')
+    reviewed_at         = models.DateTimeField(null=True, blank=True)
+    created             = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created']
+        verbose_name = 'Species Feedback'
+        verbose_name_plural = 'Species Feedback'
+        #unique_together = [['species', 'user'], ['species', 'email']]
+
+    def save(self, *args, **kwargs):
+        if self.user:
+            identifier = self.user.username
+        elif self.email:
+            identifier = self.email.split('@')[0]
+        else:
+            identifier = 'Anonymous'
+        self.name = f"{self.species.name} - {identifier}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name

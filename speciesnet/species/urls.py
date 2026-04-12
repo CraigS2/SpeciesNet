@@ -189,6 +189,14 @@ urlpatterns = [
     path('species/import/commit/<str:pk>/', views.commitSpeciesImport, name="commitSpeciesImport"),
     path('species/import/referenceLinks/', views.importSpeciesReferenceLinks, name="importSpeciesReferenceLinks"),
 
+    ### Species Feedback ###
+
+    path('species/<int:pk>/feedback/', views.submitSpeciesFeedback, name='submitSpeciesFeedback'),
+    path('tools/species-feedback/', views.speciesFeedbackTools, name='speciesFeedbackTools'),
+    path('tools/species-feedback/<int:pk>/apply-photo/', views.applySpeciesFeedbackPhoto, name='applySpeciesFeedbackPhoto'),
+    path('tools/species-feedback/<int:pk>/archive/', views.archiveSpeciesFeedback, name='archiveSpeciesFeedback'),
+    path('tools/species-feedback/<int:pk>/delete/', views.deleteSpeciesFeedback, name='deleteSpeciesFeedback'),
+
     # django: re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),
 ]

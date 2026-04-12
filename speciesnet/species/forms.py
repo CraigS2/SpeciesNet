@@ -11,6 +11,7 @@ from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstan
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
+from .models import SpeciesFeedback
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -176,6 +177,16 @@ class CaresSpeciesForm(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
+        self.fields['cares_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })
+        self.fields['iucn_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })        
                                 
         self.helper.layout = Layout(
             Fieldset(
@@ -188,7 +199,9 @@ class CaresSpeciesForm(ModelForm):
                 Field('local_distribution', css_class='mb-1'),
                 Field('cares_family', css_class='mb-1'),
                 Field('cares_classification', css_class='mb-1'),
-                Field('iucn_red_list', css_class='mb-1'),                
+                Field('cares_assessment_date', css_class='mb-1'),                            
+                Field('iucn_red_list', css_class='mb-1'),    
+                Field('iucn_assessment_date', css_class='mb-1'),
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
@@ -285,6 +298,16 @@ class CaresSpeciesForm2(ModelForm):
             'class': 'form-control',
             'style': 'max-width: 500px;'
         })
+        self.fields['cares_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })
+        self.fields['iucn_assessment_date'].widget.attrs.update({
+            'class': 'form-control',
+            'style': 'max-width: 500px;',
+            'type': 'date'
+        })        
                                 
         self.helper.layout = Layout(
             Fieldset(
@@ -298,7 +321,9 @@ class CaresSpeciesForm2(ModelForm):
                 Field('category', css_class='mb-1'),                
                 Field('cares_family', css_class='mb-1'),
                 Field('cares_classification', css_class='mb-1'),
-                Field('iucn_red_list', css_class='mb-1'),                
+                Field('cares_assessment_date', css_class='mb-1'),                            
+                Field('iucn_red_list', css_class='mb-1'),    
+                Field('iucn_assessment_date', css_class='mb-1'),                          
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
@@ -1366,3 +1391,39 @@ class SpeciesImportStagingForm(ModelForm):
             'review_notes': forms.Textarea(attrs={'rows': 3, 'cols': 60}),
         }
 
+
+class SpeciesFeedbackForm(ModelForm):
+    class Meta:
+        model = SpeciesFeedback
+        fields = ['email', 'comment', 'species_image', 'species_photo_credit']
+        widgets = {
+            'comment': forms.Textarea(attrs={
+                'rows': 8,
+                'maxlength': '2500',
+                'placeholder': 'Please describe your feedback, suggested changes, or additional information about this species...',
+                'class': 'form-control',
+                'id': 'id_comment',
+            }),
+            'email': forms.EmailInput(attrs={
+                'placeholder': 'your@email.com',
+                'class': 'form-control',
+            }),
+            'species_photo_credit': forms.TextInput(attrs={
+                'placeholder': 'Name of photographer or source',
+                'class': 'form-control',
+            }),
+        }
+        labels = {
+            'email': 'Your Email Address',
+            'comment': 'Comment / Feedback',
+            'species_image': 'Species Image (optional)',
+            'species_photo_credit': 'Photo Credit (optional)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user and self.user.is_authenticated:
+            del self.fields['email']
+        else:
+            self.fields['email'].required = True            
