@@ -1,0 +1,51 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    {% if site_id == 2 %}
+                        <h4 class="my-0">Import ASN CARES Registrations</h4>
+                    {% else %}
+                        <h4 class="my-0">Import CARES Registration Status Updates</h4>
+                    {% endif %}
+                </div>
+                <div class="card-body px-4 py-3">
+                    {% if site_id == 2 %}
+                        <p class="text-muted">
+                            Upload a CSV file exported from the ASN site to create new CARES registrations.
+                            Each row will create a new registration record with the verification photo downloaded
+                            from the URL provided in the CSV. Rows for registrations that already exist will be
+                            skipped without error (safe for daily re-import).
+                        </p>
+                        <p class="text-muted small">
+                            Required columns:
+                            <code>aquarist_name, aquarist_email, species, species_source, collection_location,
+                            year_acquired, verification_photo_url, species_has_spawned, young_available,
+                            offspring_shared, asn_imported, date_requested</code>
+                        </p>
+                    {% else %}
+                        <p class="text-muted">
+                            Upload a CSV file exported from the CARES approval site (Site 2) to update the
+                            status and approver notes on existing registrations. Only existing registrations
+                            matched by email and species name will be updated.
+                        </p>
+                        <p class="text-muted small">
+                            Required columns:
+                            <code>aquarist_email, species, status, approver_notes</code>
+                        </p>
+                    {% endif %}
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary mt-2">Upload &amp; Import</button>
+                        <a href="{% url 'caresRegistrations' %}" class="btn btn-secondary mt-2 ms-2">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

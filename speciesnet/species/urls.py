@@ -111,7 +111,8 @@ urlpatterns = [
     path('registrationLookup/', views.registrationLookup, name="registrationLookup"),                            # annonymous user reg check
 
     path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
-    #path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
+    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
+    path('exportCaresRegistrationsPending/', views.exportCaresRegistrationsPending, name="exportCaresRegistrationsPending"),
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
