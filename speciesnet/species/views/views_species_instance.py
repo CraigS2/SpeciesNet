@@ -13,7 +13,7 @@ def speciesInstance(request, pk):
     speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
     species = speciesInstance.species
     
-    # TODO improve finding and displaying optional speciesMaintenanceLog
+    # TODO improve finding and displaying optional speciesMaintenanceLog - do single query with select_related('speciesMaintenanceLog')
     speciesMaintenanceLog = None
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.filter(species=species)
     if speciesMaintenanceLogs.count() > 0:
@@ -52,6 +52,15 @@ def speciesInstance(request, pk):
 
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
+
+    # TODO improve finding and displaying optional CARES registrations for speciesInstance owner or admin)
+    caresRegistration = None
+    if userCanEdit:
+        try:
+            caresRegistration = get_object_or_404(CaresRegistration, species=speciesInstance.species, aquarist_email=request.user.email)
+            print ('SpeciesInstance ' + speciesInstance.name + ' CaresRegistration found: ' + caresRegistration.name)
+        except: 
+            pass
     
     if request.user.is_authenticated:
         logger.info('User %s visited aquarist species page:  %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
@@ -66,6 +75,7 @@ def speciesInstance(request, pk):
         'bapEligibleMemberships': bapEligibleMemberships,
         'bapSubmissions': bapSubmissions,
         'renderCares':  renderCares,
+        'caresRegistration': caresRegistration,
         'userCanEdit': userCanEdit
     }
     return render(request, 'species/speciesInstance.html', context)
@@ -450,9 +460,8 @@ def editSpeciesInstanceLabels(request):
 
 @login_required(login_url='login')
 def registerCaresSpeciesInstance(request, pk):
-    print ('WARNING: TODO registerCaresSpeciesInstance')
-    return ()
-
+    print ('TODO registerCaresSpeciesInstance')
+    return HttpResponseRedirect(reverse("speciesInstance", args=[pk]))
 
 ### Import/Export Species Instances
 

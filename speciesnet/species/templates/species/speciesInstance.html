@@ -123,6 +123,22 @@
                                 {% endif %} 
                             </div>  
                         {% endif %}    
+
+                        {% if speciesInstance.species.render_cares %}
+                           <div class="css_class='mb-3 section-bordered">
+                                <h5>CARES Conservation Program</h5>
+                                {% if not caresRegistration %}
+                                    <p>The CARES Fish Preservation Program encourages aquarists to maintain, breed, and distribute offspring of at-risk species. 
+                                    If you have a breeding group or are keeping this species with the intent to breed them, consider registering the species with the CARES organization. 
+                                    </p>
+                                    <p><a class="btn btn-secondary" href="{% url 'registerCaresSpeciesInstance' speciesInstance.id %}" role="button">&nbsp;Register this CARES species&nbsp;</a></p>
+                                {% else %}
+                                    <p>Thank you for registering your CARES Species.</p>
+                                    <p><b>Registration Status: </b>&nbsp;&nbsp;<i>{{caresRegistration.get_status_display}}</i></p>
+                                {% endif %}
+                            </div>  
+                        {% endif %}    
+
                     {% endif %} 
                 </div>
             </div>

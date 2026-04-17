@@ -30,8 +30,11 @@
                     <p><b>Global Region:</b> &nbsp;&nbsp;{{species.get_global_region_display}}</p>
                     <p><b>Distribution:</b> &nbsp;&nbsp;{{species.local_distribution}}</p>
                     {% if renderCares %}
-                        <p><b>CARES Classification:</b> &nbsp;&nbsp;{{species.get_cares_classification_display}}</p>
-                    {% endif %}
+                        <p><b>CARES Classification:</b>&nbsp;&nbsp;<font style="color:#860404;">{{species.get_cares_classification_display}}</font></p>
+                        {% if species.iucn_red_list != Species.IucnRedList.UNDEFINED and species.iucn_red_list != Species.IucnRedList.NOT_EVALUATED %}   
+                            <p><b>IUCN Red List Status:</b>&nbsp;&nbsp;<font style="color:#860404;">{{species.get_iucn_red_list_display}}</font></p>
+                        {% endif %}      
+                    {% endif %}            
                     <small>&nbsp;</small>
 
                     {% if speciesReferenceLinks.all.count > 0  %}

@@ -294,7 +294,7 @@ class SpeciesInstance (models.Model):
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
-        WILD_CAUGHT     = 'WC', _('Wild Caught')
+        WILD_CAUGHT     = 'WC', _('F0 Wild Caught')
         F1              = 'F1', _('F1 First Generation')
         F2              = 'F2', _('F2 Second Generation')
         FX              = 'FX', _('FX 3rd or more Generation')
