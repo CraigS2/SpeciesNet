@@ -338,7 +338,8 @@ def createCaresRegistration(request, pk):
             registration.name = species.name + ' - ' + request.user.username
             registration.species = species
             registration.last_updated_by = request.user
-            registration.aquarist = request.user
+            registration.aquarist_name  = request.user.get_full_name() or request.user.username
+            registration.aquarist_email = request.user.email
             registration.save()
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
@@ -585,8 +586,36 @@ def exportCaresRegistrations(request):
 
 @login_required(login_url='login')
 def importCaresRegistrations(request):
-    print ('TODO: importCaresRegistrations view')
-    return()
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save()
+            summary = import_csv_caresRegistrations(import_archive, request.user)
+            site_id = getattr(settings, 'SITE_ID', 1)
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+                'site_id': site_id,
+            }
+            return render(request, 'species/cares/importCaresRegistrationsResults.html', context)
+    else:
+        form = ImportCsvForm()
+
+    site_id = getattr(settings, 'SITE_ID', 1)
+    context = {'form': form, 'site_id': site_id}
+    return render(request, 'species/cares/importCaresRegistrations.html', context)
+
+
+@login_required(login_url='login')
+def exportCaresRegistrationsPending(request):
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    return export_csv_caresRegistrations_asn_pending()
 
 
 

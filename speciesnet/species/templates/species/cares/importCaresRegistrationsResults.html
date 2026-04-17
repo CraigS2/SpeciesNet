@@ -1,0 +1,85 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    {% if site_id == 2 %}
+                        <h4 class="my-0">ASN CARES Registrations Import Results</h4>
+                    {% else %}
+                        <h4 class="my-0">CARES Registration Status Update Import Results</h4>
+                    {% endif %}
+                </div>
+                <div class="card-body px-4 py-3">
+
+                    {% if import_archive.import_status == 'FULL' %}
+                        <div class="alert alert-success">
+                            <strong>&#10003; Import Successful</strong> — all rows processed without errors.
+                        </div>
+                    {% elif import_archive.import_status == 'PART' %}
+                        <div class="alert alert-warning">
+                            <strong>&#9888; Partial Import</strong> — some rows had errors. See details below.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <strong>&#10007; Import Failed</strong> — no rows were successfully processed.
+                        </div>
+                    {% endif %}
+
+                    <h5>Summary</h5>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                {% if site_id == 2 %}
+                                    <th>Created</th>
+                                {% else %}
+                                    <th>Updated</th>
+                                {% endif %}
+                                <th>Skipped</th>
+                                <th>Errors</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {% if site_id == 2 %}
+                                    <td>{{ summary.created }}</td>
+                                {% else %}
+                                    <td>{{ summary.updated }}</td>
+                                {% endif %}
+                                <td>{{ summary.skipped }}</td>
+                                <td>{{ summary.errors }}</td>
+                                <td>{{ summary.total }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h5>Import Archive</h5>
+                    <table class="table table-bordered table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Name</th>
+                                <td>{{ import_archive.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>{{ import_archive.get_import_status_display }}</td>
+                            </tr>
+                            {% if import_archive.import_results_file %}
+                            <tr>
+                                <th>Results Log</th>
+                                <td><a href="{{ import_archive.import_results_file.url }}">Download results CSV</a></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+
+                    <a href="{% url 'caresRegistrations' %}" class="btn btn-secondary mt-2">Back to CARES Registrations</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
