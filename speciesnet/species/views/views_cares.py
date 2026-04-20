@@ -585,9 +585,36 @@ def exportCaresRegistrations(request):
 
 @login_required(login_url='login')
 def importCaresRegistrations(request):
-    print ('TODO: importCaresRegistrations view')
-    return()
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
 
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save()
+            summary = import_csv_caresRegistrations(import_archive, request.user)
+            site_id = getattr(settings, 'SITE_ID', 1)
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+                'site_id': site_id,
+            }
+            return render(request, 'species/cares/importCaresRegistrationsResults.html', context)
+    else:
+        form = ImportCsvForm()
+
+    site_id = getattr(settings, 'SITE_ID', 1)
+    context = {'form': form, 'site_id': site_id}
+    return render(request, 'species/cares/importCaresRegistrations.html', context)
+
+
+@login_required(login_url='login')
+def exportCaresRegistrationsPending(request):
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    return export_csv_caresRegistrations_asn_pending()
 
 
 ### Species Reference Links

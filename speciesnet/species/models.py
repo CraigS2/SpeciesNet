@@ -211,22 +211,18 @@ class Species (models.Model):
 
     class CaresStatus (models.TextChoices):
         NOT_CARES_SPECIES = 'NOTC', _('Undefined')
-        NEAR_THREATENED   = 'NEAR', _('Near Threatened')               #TODO Delete after migration
-        VULNERABLE        = 'VULN', _('Vulnerable')                    #TODO Delete after migration           
-        ENDANGERED        = 'ENDA', _('Endangered')                    #TODO Delete after migration
-        CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')         #TODO Delete after migration
-        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')           #TODO Delete after migration
         CARES_NEAR_THREAT = 'CNT', _ ('Near Threatened')   
         CARES_VULNERABLE  = 'CVU', _ ('Vulnerable')   
         CARES_ENDANGERED  = 'CEN', _ ('Endangered')   
         CARES_CRIT_ENDGR  = 'CCR', _ ('Critically Endangered')   
         CARES_EXT_IN_WILD = 'CEW', _ ('Extinct in the Wild')   
-          
     
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     cares_assessment_date     = models.DateField (null=True, blank=True)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
     #species_instance_count    = models.PositiveIntegerField (default=0)      # use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
+
+    external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
@@ -424,6 +420,7 @@ class AquaristClub (models.Model):
     bap_end_date              = models.DateField (null=True, blank=True)
     is_bap_club               = models.BooleanField (default=False)
     is_cares_club             = models.BooleanField (default=False)
+    external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -474,7 +471,7 @@ class CaresRegistration (models.Model):
     aquarist_name             = models.CharField (max_length=240, blank=False, default='')
     aquarist_email            = models.EmailField(max_length=50, null=True)  
     cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
-    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
+    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.CharField (max_length=200, blank=True)
     species_source            = models.TextField (blank=False, default='')
@@ -495,6 +492,7 @@ class CaresRegistration (models.Model):
     approver_notes            = models.TextField (blank=True)
     status                    = models.CharField (max_length=4, choices=CaresRegistrationStatus.choices, default=CaresRegistrationStatus.OPEN)
     asn_imported              = models.BooleanField (default=False)
+    external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
     last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates') 
     last_report_date          = models.DateField (null=True, blank=True)
