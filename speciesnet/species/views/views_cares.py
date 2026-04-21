@@ -579,12 +579,52 @@ def caresApprovers(request):
     context = {'cares_approvers': cares_approvers, 'userCanEdit': userCanEdit}
     return render(request, 'species/cares/caresApprovers.html', context)
 
+
 @login_required(login_url='login')
 def exportCaresRegistrations(request):
-    return export_csv_caresRegistrations()
+    #TODO Site1 asn export Site2 cso export branching
+    return export_csv_caresRegistrations_asn()
+
+
+# @login_required(login_url='login')
+# def importCaresRegistrations(request):
+#     """
+#     CSO Site2 import: receive a CSV of CaresRegistration approval responses from CSO.
+#     Matches rows to existing ASN registrations via external_id and updates status/notes.
+#     """
+#     #TODO Site1 asn Site 2 Cares logical branching if needed
+#     userCanEdit = user_can_edit(request.user)
+#     if not userCanEdit:
+#         raise PermissionDenied()
+
+#     if request.method == 'POST':
+#         form = ImportCsvForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             import_archive = form.save(commit=False)
+#             import_archive.aquarist = request.user
+#             import_archive.name = 'CARES Registration Import - ' + str(request.user)
+#             import_archive.save()
+#             summary = import_csv_caresRegistrations_cso(import_archive, request.user)
+#             site_id = getattr(settings, 'SITE_ID', 1)
+#             context = {
+#                 'import_archive': import_archive,
+#                 'summary': summary,
+#                 'site_id': site_id,
+#             }
+#             return render(request, 'species/cares/importCaresRegistrationsResults.html', context)
+#     else:
+#         form = ImportCsvForm()
+
+#     site_id = getattr(settings, 'SITE_ID', 1)
+#     context = {'form': form, 'site_id': site_id}
+#     return render(request, 'species/cares/importCaresRegistrations.html', context)
 
 @login_required(login_url='login')
 def importCaresRegistrations(request):
+    """
+    CSO Site2 import: receive a CSV of CaresRegistration records from ASN.
+    Also handles approval response imports from CSO back to ASN.
+    """
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
         raise PermissionDenied()
@@ -592,8 +632,24 @@ def importCaresRegistrations(request):
     if request.method == 'POST':
         form = ImportCsvForm(request.POST, request.FILES)
         if form.is_valid():
-            import_archive = form.save()
-            summary = import_csv_caresRegistrations(import_archive, request.user)
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = 'CARES Registration Import - ' + str(request.user)
+            import_archive.save()
+
+            summary = import_csv_caresRegistrations_cso(import_archive, request.user)
+
+            # Update import_archive status based on summary results
+            total  = summary.get('total', 0)
+            errors = summary.get('errors', [])
+            if total > 0 and not errors:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+            elif total > 0 and errors:
+                import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+            else:
+                import_archive.import_status = ImportArchive.ImportStatus.FAIL
+            import_archive.save(update_fields=['import_status'])
+
             site_id = getattr(settings, 'SITE_ID', 1)
             context = {
                 'import_archive': import_archive,

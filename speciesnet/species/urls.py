@@ -112,8 +112,7 @@ urlpatterns = [
 
     path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
     path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
-    #path('exportCaresRegistrationsPending/', views.exportCaresRegistrationsPending, name="exportCaresRegistrationsPending"),
-    path('exportCaresRegistrationsPending/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
+    #path('exportCaresRegistrationsPending/', views.exportCaresRegistrations, name="exportCaresRegistrations"),   # naming inconsistency
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
