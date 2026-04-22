@@ -4,14 +4,14 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from species.models import PageViewCount, PageViewMonthlySummary
+from species.models import PageViewCount, 
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
     help = (
-        'Snapshot monthly page view counts into PageViewMonthlySummary and reset '
+        'Snapshot monthly page view counts into PageViewMonthlySnapshot and reset '
         'PageViewCount.count to 0. Defaults to the previous calendar month.'
     )
 
@@ -89,7 +89,7 @@ class Command(BaseCommand):
             for row in qs:
                 delta = row.count
 
-                summary, created = PageViewMonthlySummary.objects.get_or_create(
+                summary, created = PageViewMonthlySnapshot.objects.get_or_create(
                     page_type=row.page_type,
                     object_id=row.object_id,
                     visitor_type=row.visitor_type,

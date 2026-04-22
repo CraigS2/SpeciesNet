@@ -8,7 +8,7 @@ from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEnt
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback
-from .models import PageViewCount, PageViewMonthlySummary
+from .models import PageViewCount, PageViewMonthlySnapshot
 from allauth.account.models import EmailAddress
 
 
@@ -120,4 +120,4 @@ class PageViewMonthlySummaryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(PageViewCount, PageViewCountAdmin)
-admin.site.register(PageViewMonthlySummary, PageViewMonthlySummaryAdmin)
+admin.site.register(PageViewMonthlySnapshot, PageViewMonthlySummaryAdmin)

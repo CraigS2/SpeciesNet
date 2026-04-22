@@ -220,7 +220,7 @@ class Species (models.Model):
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     cares_assessment_date     = models.DateField (null=True, blank=True)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    #species_instance_count    = models.PositiveIntegerField (default=0)      # use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
+    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to speed speciesSearch list views
 
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
@@ -709,7 +709,7 @@ class PageViewCount(models.Model):
         return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.count}'
 
 
-class PageViewMonthlySummary(models.Model):
+class PageViewMonthlySnapshot(models.Model):
     """
     Monthly delta snapshot of page views per object, split by visitor type.
     Each row records the number of views that occurred during that specific month.

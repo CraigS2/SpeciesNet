@@ -341,28 +341,28 @@ def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
     return
 
 
-def dirtyDeedMigrateCaresClassifications ():
-    species_set = Species.objects.all()
-    for species in species_set:
+# def dirtyDeedMigrateCaresClassifications ():
+#     species_set = Species.objects.all()
+#     for species in species_set:
  
-        if species.cares_classification == Species.CaresStatus.CRIT_ENDANGERED:
-            species.cares_classification = Species.CaresStatus.CARES_CRIT_ENDGR
-            species.save()
-        elif species.cares_classification == Species.CaresStatus.ENDANGERED:
-            species.cares_classification = Species.CaresStatus.CARES_ENDANGERED 
-            species.save()            
-        elif species.cares_classification == Species.CaresStatus.VULNERABLE:
-            species.cares_classification = Species.CaresStatus.CARES_VULNERABLE 
-            species.save()
-        elif species.cares_classification == Species.CaresStatus.NEAR_THREATENED:
-            species.cares_classification = Species.CaresStatus.CARES_NEAR_THREAT  
-            species.save()
-        elif species.cares_classification == Species.CaresStatus.EXTINCT_IN_WILD:
-            species.cares_classification = Species.CaresStatus.CARES_EXT_IN_WILD
-            species.save()
-        else:
-            print ('Dirty Deed Cleanup - checked CARES Classification no change for ' + species.name)                            
-    return  
+#         if species.cares_classification == Species.CaresStatus.CRIT_ENDANGERED:
+#             species.cares_classification = Species.CaresStatus.CARES_CRIT_ENDGR
+#             species.save()
+#         elif species.cares_classification == Species.CaresStatus.ENDANGERED:
+#             species.cares_classification = Species.CaresStatus.CARES_ENDANGERED 
+#             species.save()            
+#         elif species.cares_classification == Species.CaresStatus.VULNERABLE:
+#             species.cares_classification = Species.CaresStatus.CARES_VULNERABLE 
+#             species.save()
+#         elif species.cares_classification == Species.CaresStatus.NEAR_THREATENED:
+#             species.cares_classification = Species.CaresStatus.CARES_NEAR_THREAT  
+#             species.save()
+#         elif species.cares_classification == Species.CaresStatus.EXTINCT_IN_WILD:
+#             species.cares_classification = Species.CaresStatus.CARES_EXT_IN_WILD
+#             species.save()
+#         else:
+#             print ('Dirty Deed Cleanup - checked CARES Classification no change for ' + species.name)                            
+#     return  
 
 def dirtyDeedCleanBogusAssessmentDates():
     clear_cares_date_species_set = Species.objects.filter(cares_assessment_date='1900-01-01')
@@ -392,7 +392,7 @@ def dirtyDeed(request):
         raise PermissionDenied()
     
     # Dirty deed goes here ...  then return to tools2
-    dirtyDeedMigrateCaresClassifications()
+    #dirtyDeedMigrateCaresClassifications()
     dirtyDeedCleanBogusAssessmentDates()
 
     # ### Registration dev-only migration work in progress ###
