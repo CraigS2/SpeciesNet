@@ -100,4 +100,4 @@ def record_page_view(page_type, object_id, is_authenticated):
         )
         PageViewCount.objects.filter(pk=obj.pk).update(count=F('count') + 1)
     except Exception:
-        pass
+        logger.warning('record_page_view failed for page_type=%s object_id=%s', page_type, object_id, exc_info=True)
