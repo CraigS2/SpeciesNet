@@ -43,6 +43,7 @@ def aquaristClub(request, pk):
         'userIsMember': userIsMember,
         'userIsPending': userIsPending
     }
+    record_page_view(PageViewCount.PageType.AQUARIST_CLUB, club.id, request.user.is_authenticated)
     return render(request, 'species/aquaristClub.html', context)
 
 
