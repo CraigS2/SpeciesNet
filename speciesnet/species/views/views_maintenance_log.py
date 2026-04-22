@@ -37,6 +37,7 @@ def speciesMaintenanceLog(request, pk):
         'collaborators': collaborators,
         'userCanEdit': userCanEdit
     }
+    record_page_view(PageViewCount.PageType.SPECIES_MAINTENANCE_LOG, speciesMaintenanceLog.id, request.user.is_authenticated)
     return render(request, 'species/speciesMaintenanceLog.html', context)
 
 

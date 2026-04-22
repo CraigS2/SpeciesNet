@@ -45,6 +45,7 @@ def species(request, pk):
         'userCanEdit': userCanEdit,
         'cform': cform
     }
+    record_page_view(PageViewCount.PageType.SPECIES, species.id, request.user.is_authenticated)
     return render(request, 'species/species.html', context)
 
 

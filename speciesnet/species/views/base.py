@@ -33,8 +33,10 @@ from species.models import (
     SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLabel,
     SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry,
     ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies, 
-    CaresRegistration, CaresApprover, SpeciesImportStaging
+    CaresRegistration, CaresApprover, SpeciesImportStaging,
+    PageViewCount
 )
+from django.db.models import F
 
 # Local forms
 from species.forms import (
@@ -80,3 +82,22 @@ from species.asn_tools.asn_species_aggregation import collect_species_data_as_cs
 
 # Logger
 logger = logging.getLogger(__name__)
+
+
+def record_page_view(page_type, object_id, is_authenticated):
+    """
+    Increment the PageViewCount for the given page_type + object_id + visitor_type.
+    Uses get_or_create + F() expression update to avoid race conditions.
+    Silently swallows any exception so a tracking failure never breaks a page load.
+    """
+    try:
+        visitor_type = PageViewCount.VisitorType.AUTHENTICATED if is_authenticated else PageViewCount.VisitorType.ANONYMOUS
+        obj, _ = PageViewCount.objects.get_or_create(
+            page_type=page_type,
+            object_id=object_id,
+            visitor_type=visitor_type,
+            defaults={'count': 0}
+        )
+        PageViewCount.objects.filter(pk=obj.pk).update(count=F('count') + 1)
+    except Exception:
+        pass

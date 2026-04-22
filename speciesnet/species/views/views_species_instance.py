@@ -78,6 +78,7 @@ def speciesInstance(request, pk):
         'caresRegistration': caresRegistration,
         'userCanEdit': userCanEdit
     }
+    record_page_view(PageViewCount.PageType.SPECIES_INSTANCE, speciesInstance.id, request.user.is_authenticated)
     return render(request, 'species/speciesInstance.html', context)
 
 

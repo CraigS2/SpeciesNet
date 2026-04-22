@@ -672,6 +672,70 @@ class SpeciesImportStaging (models.Model):
         return f"Staging: {self.new_name} ({self.get_action_display()})"
 
 
+### Page View Tracking
+
+class PageViewCount(models.Model):
+    """
+    Running total page view counters per object, split by visitor type.
+    Exactly 2 rows per tracked object (anonymous + authenticated).
+    Updated on every qualifying page visit via F() expression increment.
+    Counts are reset to 0 after each monthly snapshot by the snapshot_monthly_views management command.
+    """
+
+    class PageType(models.TextChoices):
+        USER                    = 'USER', _('Aquarist')
+        SPECIES                 = 'SPEC', _('Species')
+        SPECIES_INSTANCE        = 'SPIN', _('Aquarist Species')
+        SPECIES_MAINTENANCE_LOG = 'SPML', _('Species Maintenance Log')
+        AQUARIST_CLUB           = 'AQCL', _('Aquarist Club')
+        BAP_LEADERBOARD         = 'BAPL', _('BAP Leaderboard')
+
+    class VisitorType(models.TextChoices):
+        ANONYMOUS       = 'AN', _('Anonymous')
+        AUTHENTICATED   = 'AU', _('Authenticated')
+
+    page_type    = models.CharField(max_length=4, choices=PageType.choices)
+    object_id    = models.IntegerField()
+    visitor_type = models.CharField(max_length=2, choices=VisitorType.choices)
+    count        = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together     = [('page_type', 'object_id', 'visitor_type')]
+        indexes             = [models.Index(fields=['page_type', 'object_id'])]
+        verbose_name        = 'Page View Count'
+        verbose_name_plural = 'Page View Counts'
+
+    def __str__(self):
+        return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.count}'
+
+
+class PageViewMonthlySummary(models.Model):
+    """
+    Monthly delta snapshot of page views per object, split by visitor type.
+    Each row records the number of views that occurred during that specific month.
+    Populated by the snapshot_monthly_views management command, which reads
+    PageViewCount totals, writes the delta here, then resets PageViewCount.count to 0.
+    """
+
+    page_type    = models.CharField(max_length=4, choices=PageViewCount.PageType.choices)
+    object_id    = models.IntegerField()
+    visitor_type = models.CharField(max_length=2, choices=PageViewCount.VisitorType.choices)
+    year         = models.PositiveSmallIntegerField()   # e.g. 2026
+    month        = models.PositiveSmallIntegerField()   # 1–12
+
+    count        = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together     = [('page_type', 'object_id', 'visitor_type', 'year', 'month')]
+        indexes             = [models.Index(fields=['page_type', 'object_id', 'year', 'month'])]
+        ordering            = ['-year', '-month']
+        verbose_name        = 'Page View Monthly Summary'
+        verbose_name_plural = 'Page View Monthly Summaries'
+
+    def __str__(self):
+        return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.year}/{self.month:02d} = {self.count}'
+
+
 ### Species Feedback
 
 class SpeciesFeedback(models.Model):
