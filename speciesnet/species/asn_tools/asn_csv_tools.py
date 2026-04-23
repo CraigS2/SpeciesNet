@@ -611,16 +611,21 @@ def import_csv_caresRegistrations_cso(import_archive, current_user):
         last_updated_by, last_report_date
     """
     created   = 0
-    updated   = 0
+    #updated   = 0
     skipped   = 0
     errors    = []
+    error_count = 0
+
+    csv_report_buffer = StringIO()
+    csv_report_writer = csv.writer(csv_report_buffer)
+    csv_report_writer.writerow(['Row', 'External_ID', 'Species', 'Import_Status'])
 
     try:
         with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
             decoded = import_file.read()
     except Exception as e:
         logger.error(f"CSO registration import: failed to read file: {e}")
-        return {'created': 0, 'updated': 0, 'skipped': 0, 'total': 0, 'errors': [str(e)]}
+        return {'created': 0, 'skipped': 0, 'total': 0, 'errors': [str(e)]}
 
     reader = DictReader(decoded.splitlines())
     for row_num, row in enumerate(reader, start=2):
@@ -633,59 +638,92 @@ def import_csv_caresRegistrations_cso(import_archive, current_user):
         try:
             external_id = int(external_id_raw)
         except ValueError:
-            errors.append(f"Row {row_num}: invalid external_id '{external_id_raw}'")
-            skipped += 1
+            error_msg = f"Row {row_num}: invalid external_id '{external_id_raw}'"
+            errors.append(error_msg)
+            error_count += 1
+            csv_report_writer.writerow([row_num, external_id_raw, '', f'ERROR: {error_msg}'])
+            logger.warning(f"CSO import ERROR: {error_msg}")
             continue
 
-        # --- find existing or prepare new ---
+        # --- only import new CaresRegistrations ---
         try:
             reg = CaresRegistration.objects.get(external_id=external_id)
-            is_new = False
+            species_name = row.get('species', '').strip()
+            skipped += 1
+            csv_report_writer.writerow([f'{row_num}', f'{external_id}', species_name,
+                                        'SKIPPED: registration already exists on Site2'])
+            logger.info(f"CSO import: skipping existing registration external_id={external_id}")
+            continue
         except CaresRegistration.DoesNotExist:
-            reg = CaresRegistration()
-            reg.external_id = external_id
-            reg.asn_imported = True
-            is_new = True
+            pass
+        
+        reg = CaresRegistration()
+        reg.external_id = external_id
+        reg.asn_imported = True            
 
         try:
-            # --- verification photo: download and save via Django field ---
             photo_url = row.get('verification_photo_url', '').strip()
+            photo_saved = False
             if photo_url:
                 filename, content_file = _download_media_file(photo_url)
                 if filename and content_file:
                     reg.verification_photo.save(filename, content_file, save=False)
+                    photo_saved = True
+            if not photo_saved:
+                species_name = row.get('species', '').strip()  
+                error_msg = f"Row {row_num}: Required verification photo failure for external_id={external_id} species='{species_name}'"
+                errors.append(error_msg)
+                error_count += 1
+                csv_report_writer.writerow([row_num, external_id, species_name, f'ERROR: {error_msg}'])
+                logger.warning(f"CSO import ERROR: {error_msg}")
+                continue
 
-            # --- fields set on create only ---
-            if is_new:
-                reg.aquarist_name       = row.get('aquarist_name', '').strip()
-                reg.aquarist_email      = row.get('aquarist_email', '').strip()
-                reg.collection_location = row.get('collection_location', '').strip()
-                reg.species_source      = row.get('species_source', '').strip()
-                reg.species_has_spawned = row.get('species_has_spawned', '').strip().lower() == 'true'
-                reg.young_available     = row.get('young_available', '').strip().lower() == 'true'
-                year_raw                = row.get('year_acquired', '').strip()
-                reg.year_acquired       = int(year_raw) if year_raw.isdigit() else None
+            reg.aquarist_name       = row.get('aquarist_name', '').strip()
+            reg.aquarist_email      = row.get('aquarist_email', '').strip()
+            reg.collection_location = row.get('collection_location', '').strip()
+            reg.species_source      = row.get('species_source', '').strip()
+            reg.species_has_spawned = row.get('species_has_spawned', '').strip().lower() == 'true'
+            reg.young_available     = row.get('young_available', '').strip().lower() == 'true'
+            year_raw                = row.get('year_acquired', '').strip()
+            reg.year_acquired       = int(year_raw) if year_raw.isdigit() else None
 
-                species_name = row.get('species', '').strip()
-                if species_name:
-                    try:
-                        reg.species = Species.objects.get(name__iexact=species_name)
-                    except Species.DoesNotExist:
-                        logger.warning(f"CSO import: species '{species_name}' not found for external_id={external_id}")
-                    except Species.MultipleObjectsReturned:
-                        logger.warning(f"CSO import: multiple species match '{species_name}' for external_id={external_id}")
+            species_name = row.get('species', '').strip()
+            if species_name:
+                try:
+                    reg.species = Species.objects.get(name__iexact=species_name)
+                except Species.DoesNotExist:
+                    error_msg = f"Row {row_num}: No Species name match found: '{species_name}' for external_id={external_id}"
+                    errors.append(error_msg)
+                    error_count += 1
+                    csv_report_writer.writerow([row_num, external_id, species_name, f'ERROR: {error_msg}'])
+                    logger.warning(f"CSO import ERROR:  {error_msg}")
+                    continue
+                except Species.MultipleObjectsReturned:
+                    error_msg = f"Row {row_num}: Multiple Species name matches found: '{species_name}' for external_id={external_id}"
+                    errors.append(error_msg)
+                    error_count += 1
+                    csv_report_writer.writerow([row_num, external_id, species_name, f'ERROR: {error_msg}'])
+                    logger.warning(f"CSO import ERROR: multiple species match '{species_name}' for external_id={external_id}")
+                    continue                        
+            else:
+                error_msg = f"Row {row_num}: No Species name match found (species field is empty) for external_id={external_id}"
+                errors.append(error_msg)
+                error_count += 1
+                csv_report_writer.writerow([f'{row_num}', f'{external_id}', '', f'ERROR: {error_msg}'])
+                logger.warning(f"CSO import ERROR: {error_msg}")
+                continue
 
-                club_name = row.get('affiliate_club', '').strip()
-                if club_name:
-                    try:
-                        reg.affiliate_club = AquaristClub.objects.get(name__iexact=club_name)
-                    except AquaristClub.DoesNotExist:
-                        pass  # Leave null — club may not exist on CSO
+            club_name = row.get('affiliate_club', '').strip()
+            if club_name:
+                try:
+                    reg.affiliate_club = AquaristClub.objects.get(name__iexact=club_name)
+                except AquaristClub.DoesNotExist:
+                    reg.affiliate_club_id = 1            # Set default internal Club 'Cares For Individuals' always id=1
+                    pass  
 
-                aquarist_name = reg.aquarist_name or 'Unknown'
-                reg.name = f"{species_name} - {aquarist_name}" if species_name else aquarist_name
+            aquarist_name = reg.aquarist_name
+            reg.name = f"{species_name} - {aquarist_name}"
 
-            # --- fields updated on both create and update ---
             new_status = row.get('status', '').strip()
             valid_statuses = [s[0] for s in CaresRegistration.CaresRegistrationStatus.choices]
             if new_status and new_status in valid_statuses:
@@ -695,41 +733,42 @@ def import_csv_caresRegistrations_cso(import_archive, current_user):
             if notes:
                 reg.approver_notes = notes
 
-            last_report_raw = row.get('last_report_date', '').strip()
-            if last_report_raw:
-                try:
-                    reg.last_report_date = datetime.date.fromisoformat(last_report_raw)
-                except ValueError:
-                    errors.append(f"Row {row_num}: invalid last_report_date '{last_report_raw}' for external_id={external_id}")
-
-            approver_name = row.get('cares_approver_name', '').strip()
-            if approver_name:
-                try:
-                    reg.cares_approver = CaresApprover.objects.get(name__iexact=approver_name)
-                except (CaresApprover.DoesNotExist, CaresApprover.MultipleObjectsReturned):
-                    logger.warning(f"CSO import: approver '{approver_name}' not found or ambiguous for external_id={external_id}")
-
             reg.last_updated_by = current_user
             reg.save()
-
-            if is_new:
-                created += 1
-                logger.info(f"CSO import: created registration external_id={external_id} '{reg.name}'")
-            else:
-                updated += 1
-                logger.info(f"CSO import: updated registration external_id={external_id} '{reg.name}' status={reg.status}")
-
+            created += 1
+            logger.info(f"CSO import: created registration external_id={external_id} '{reg.name}'")
+ 
         except Exception as e:
-            logger.error(f"CSO import: failed to save row {row_num} external_id={external_id}: {e}", exc_info=True)
-            errors.append(f"Row {row_num} external_id={external_id}: {str(e)}")
+            exc_msg = f"Row {row_num} external_id={external_id}: {str(e)}"
+            logger.error(f"CSO import ERROR: failed to save row {row_num} external_id={external_id}: {e}", exc_info=True)
+            errors.append(exc_msg)
+            error_count += 1
+            csv_report_writer.writerow([row_num, external_id, '', f'ERROR: {exc_msg}'])
+
+    # --- persist CSV report ---
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+    csv_report_filename = current_user.username + '_cares_reg_cso_import_log.csv'
+    import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+    # --- set import archive status ---
+    if error_count > 0 and (created) == 0:
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+    elif error_count > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+    else:
+        import_archive.import_status = ImportArchive.ImportStatus.FULL
+
+    import_archive.name = current_user.username + '_cares_reg_cso_import'
+    import_archive.save()
 
     summary = {
-        'created':  created,
-        'updated':  updated,
-        'skipped':  skipped,
-        'total':    created + updated,
-        'errors':   errors,
+        'created':    created,
+        'skipped':    skipped,
+        'errors':     error_count,
+        'error_detail': errors,
+        'total':      created + skipped + error_count,
     }
+
     logger.info(f"CSO registration import complete: {summary}")
     return summary
 
