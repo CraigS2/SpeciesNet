@@ -10,7 +10,8 @@ from django.conf import settings
 from django.contrib import messages
 
 
-def processUploadedImageFile (image_field: ImageField, species_or_instance_name, request):
+#def processUploadedImageFile (image_field: ImageField, species_or_instance_name, request):
+def processUploadedImageFile(image_field: ImageField, species_or_instance_name, request, delete_original_file=True):
     #register_heif_opener() # must be done before form upload or rejects heic files
     img = Image.open(image_field.path)
 
@@ -71,10 +72,11 @@ def processUploadedImageFile (image_field: ImageField, species_or_instance_name,
         memBlob.seek(0)
         img.save(memBlob, 'JPEG', quality=95)
 
-        # update Django image_field to newly saved file - deletes the old image
-        image_field.delete (save=False) # deletes old file and sets image_field empty
+        # update Django image_field to newly saved file - delete the original uploaded image
+        if delete_original_file:
+            image_field.delete (save=False) # deletes old file and sets image_field empty
+            
         image_field.save(new_image_name, File(memBlob))
-
         img.close()
 
     except OSError:

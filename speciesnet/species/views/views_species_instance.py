@@ -507,7 +507,13 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.save(update_fields=['external_id'])
 
                 if cares_reg.verification_photo:
-                    processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
+                    # .name is the relative path within MEDIA_ROOT
+                    if (cares_reg.verification_photo.name == species_instance.aquarist_species_image.name):
+                        print ('CaresRegistration from SpeciesInstance: preserve species_image file')
+                        processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request, False)
+                    else:
+                        print ('CaresRegistration from SpeciesInstance: delete uploaded original image file')
+                        processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
                 else:
                     messages.error(request, 'Verification Photo is required for CARES Registration.')
                     return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))

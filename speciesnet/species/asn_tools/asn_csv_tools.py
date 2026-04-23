@@ -120,7 +120,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
                         newly_added_species.species_image = species_image
                         newly_added_species.save()
 
-                    #special case: update bool 'render_cares' value if species is 'Not a CARES Species' ('NOTC')
+                    #special case: update bool 'render_cares' value if species is not 'Not a CARES Species' ('NOTC')
                     if species_cares_classification != "NOTC":
                         species.render_cares = True
                         newly_added_species.save()
@@ -732,112 +732,6 @@ def import_csv_caresRegistrations_cso(import_archive, current_user):
     }
     logger.info(f"CSO registration import complete: {summary}")
     return summary
-
-# def import_csv_caresRegistrations_cso(import_archive, current_user):
-#     """
-#     CSO Site2 → ASN Site1 import:
-#     Reads a CSV of CaresRegistration approval responses from CaresSpecies.org.
-#     Matches each row to an existing ASN CaresRegistration via external_id.
-#     Updates: status, approver_notes, cares_approver (by name lookup), last_report_date.
-
-#     Expected CSV columns:
-#         external_id, status, approver_notes, cares_approver_name, last_report_date
-#     """
-#     updated   = 0
-#     skipped   = 0
-#     not_found = 0
-#     errors    = []
-
-#     try:
-#         with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
-#             decoded = import_file.read()
-#         reader = DictReader(decoded.splitlines())
-#         for row_num, row in enumerate(reader, start=2):
-#             is_new = True
-
-#             # manage external_id
-#             print ('import_csv_caresRegistrations_cso - reading csv external_id')
-#             external_id_raw = row.get('external_id', '').strip()
-#             if not external_id_raw:
-#                 skipped += 1
-#                 continue
-#             try:
-#                 external_id = int(external_id_raw)
-#             except ValueError:
-#                 errors.append(f"Row {row_num}: invalid external_id '{external_id_raw}'")
-#                 skipped += 1
-#                 continue
-#             try:
-#                 reg = CaresRegistration.objects.get(external_id=external_id)
-#                 is_new = False
-#             except CaresRegistration.DoesNotExist:
-#                 reg = CaresRegistration()
-#             reg.external_id = external_id
-
-#             # download verification photo
-#             print ('import_csv_caresRegistrations_cso - reading csv verification_photo_url')
-#             photo_url = row.get('verification_photo_url', '').strip()
-#             if photo_url:
-#                 try:
-#                     filename, content_file = _download_media_file(photo_url)
-#                     if filename and content_file:
-#                         # field.save() applies upload_to='images/%Y/%m/%d' using today's date
-#                         reg.verification_photo.save(filename, content_file, save=False)
-#                 except Exception as e:
-#                     errors.append(f"Row {row_num}: could not download photo for external_id={external_id}: {e}")
-
-#             if is_new:
-#                 reg.aquarist_name  = row.get('aquarist_name', '').strip()
-#                 reg.aquarist_email = row.get('aquarist_email', '').strip()
-#                 species_name = row.get('species', '').strip()
-#                 print ('import_csv_caresRegistrations_cso - new registration: ' + reg.name)
-#                 print ('import_csv_caresRegistrations_cso - new reg species: ' + species_name)
-#                 if species_name:
-#                     try:
-#                         reg.species = Species.objects.get(name__iexact=species_name)
-#                     except Species.DoesNotExist:
-#                         logger.warning(f"CSO registration import: species '{species_name}' not found for external_id={external_id}")
-#                     except Species.MultipleObjectsReturned:
-#                         logger.warning(f"CSO registration import: multiple species match '{species_name}' for external_id={external_id}")
-                
-#                 reg.name = f"{species_name} - {reg.aquarist_name}"
-#                 year_raw = row.get('year_acquired', '').strip()
-#                 reg.collection_location = row.get('collection_location', '').strip()
-#                 reg.species_source      = row.get('species_source', '').strip()
-#                 reg.species_has_spawned = row.get('species_has_spawned', '').strip().lower() == 'true'
-#                 reg.young_available     = row.get('young_available', '').strip().lower() == 'true'
-#                 reg.year_acquired       = int(year_raw) if year_raw.isdigit() else None
-
-#                 # Resolve affiliate club by name
-#                 club_name = row.get('affiliate_club', '').strip()
-#                 if club_name:
-#                     try:
-#                         reg.affiliate_club = AquaristClub.objects.get(name__iexact=club_name)
-#                     except AquaristClub.DoesNotExist:
-#                         pass  # Leave null — club may not exist on CSO yet
-    
-
-#             reg.last_updated_by = current_user
-#             reg.save()
-#             logger.info(
-#                 f"CSO registration import: {'created' if is_new else 'updated'} "
-#                 f"reg external_id={external_id}, status={reg.status}"
-#             )
-#             updated += 1
-
-#         summary = {
-#             'updated':   updated,
-#             'skipped':   skipped,
-#             'not_found': not_found,
-#             'errors':    errors,
-#         }
-
-#     except Exception as e:
-#         logger.error(f"CSO registration import: failed to read file: {e}")
-#         return {'updated': 0, 'skipped': 0, 'not_found': 0, 'errors': [str(e)]}
-
-#     logger.info(f"CSO registration import complete: {summary}")
-#     return summary
 
 
 #Export Species List, SpeciesInstances, Aquarists, Clubs, BAP
