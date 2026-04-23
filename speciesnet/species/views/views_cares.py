@@ -582,15 +582,15 @@ def caresApprovers(request):
 
 @login_required(login_url='login')
 def exportCaresRegistrations(request):
-    #TODO Site1 asn export Site2 cso export branching
-    return export_csv_caresRegistrations_asn()
+    return export_csv_caresRegistrations()
 
 
 @login_required(login_url='login')
 def importCaresRegistrations(request):
     """
-    CSO Site2 import: receive a CSV of CaresRegistration records from ASN.
-    Also handles approval response imports from CSO back to ASN.
+    CARES Registration import: branches on SITE_ID.
+    SITE_ID=1 (ASN): update status/notes on existing registrations from Site2 export.
+    SITE_ID=2 (CSO): create new registrations from ASN Site1 export.
     """
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
@@ -604,11 +604,11 @@ def importCaresRegistrations(request):
             import_archive.name = 'CARES Registration Import - ' + str(request.user)
             import_archive.save()
 
-            summary = import_csv_caresRegistrations_cso(import_archive, request.user)
+            summary = import_csv_caresRegistrations(import_archive, request.user)
 
             # Update import_archive status based on summary results
             total  = summary.get('total', 0)
-            errors = summary.get('errors', [])
+            errors = summary.get('errors', 0)
             if total > 0 and not errors:
                 import_archive.import_status = ImportArchive.ImportStatus.FULL
             elif total > 0 and errors:

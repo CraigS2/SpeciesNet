@@ -29,11 +29,13 @@
                         <p class="text-muted">
                             Upload a CSV file exported from the CARES approval site (Site 2) to update the
                             status and approver notes on existing registrations. Only existing registrations
-                            matched by email and species name will be updated.
+                            matched by <code>external_id</code> will be updated. Only
+                            <strong>Approved</strong> (APRV) or <strong>Declined</strong> (DECL) status
+                            rows will trigger an update; other statuses are silently skipped.
                         </p>
                         <p class="text-muted small">
                             Required columns:
-                            <code>aquarist_email, species, status, approver_notes</code>
+                            <code>external_id, status, approver_notes</code>
                         </p>
                     {% endif %}
                     <form method="POST" enctype="multipart/form-data">
