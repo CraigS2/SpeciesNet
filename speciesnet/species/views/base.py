@@ -59,10 +59,11 @@ from species.asn_tools.asn_img_tools import processUploadedImageFile, generate_q
 from species.asn_tools.asn_csv_tools import (
     export_csv_species, export_csv_speciesInstances, export_csv_aquarists,
     export_csv_aquaristClubs, export_csv_aquaristClubMembers,
-    # ASN Site1 CARES exports (use _asn_ suffix for clarity)
-    export_csv_caresRegistrations_asn, export_csv_caresRegistrations_asn_pending,
-    # CSO Site2 CARES import
-    import_csv_caresRegistrations_cso,
+    # CARES exports
+    export_csv_caresRegistrations, export_csv_caresRegistrations_asn,
+    export_csv_caresRegistrations_asn_pending, export_csv_caresRegistrations_cso,
+    # CARES imports
+    import_csv_caresRegistrations, import_csv_caresRegistrations_cso,
     import_csv_species, import_csv_speciesInstances, import_csv_aquarist_clubs,
     export_csv_bap_genus, import_csv_bap_genus, export_csv_bap_submissions
 )
