@@ -1326,7 +1326,7 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
 
             old_status = registration.status
             registration.status = new_status
-            registration.approver_notes = import_row.get('approver_notes', '')
+            registration.approver_notes = import_row.get('approver_notes', '').strip()
             registration.last_updated_by = current_user
             registration.save(update_fields=['status', 'approver_notes', 'last_updated_by', 'lastUpdated'])
 
