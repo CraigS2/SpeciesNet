@@ -554,14 +554,27 @@ class CaresRegistrationSubmitionAdminForm (ModelForm):
                     'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
 # registration review by approver - general workflow edit
-class CaresRegistrationApprovalForm (ModelForm):
+class CaresRegistrationApprovalForm(ModelForm):
     class Meta:
         model = CaresRegistration
-        fields = '__all__'
-        exclude = ['name', 'aquarist', 'species', 'collection_location', 'species_source', 
-                   'verification_photo', 'year_acquired', 'offspring_shared', 'last_updated_by', 'last_report_date']
-        widgets = {'approver_notes':          forms.Textarea(attrs={'rows':3,'cols':50}),}        
+        fields = ['cares_approver', 'affiliate_club', 'approver_notes', 'status']
+        widgets = {'approver_notes': forms.Textarea(attrs={'rows': 3, 'cols': 50})}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cares_approver'].required = False
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Field('cares_approver', css_class='mb-2'),
+            Field('affiliate_club', css_class='mb-2'),
+            Field('status', css_class='mb-2'),
+            Field('approver_notes', css_class='mb-2'),
+            FormActions(
+                Submit('submit', 'Save Changes', css_class='btn btn-success'),
+                HTML('<a href="{% url \'caresRegistration\' form.instance.pk %}" class="btn btn-secondary ms-2">Cancel</a>'),
+            )
+        )
 class CaresApproverForm (ModelForm):
     class Meta:
         model = CaresApprover
