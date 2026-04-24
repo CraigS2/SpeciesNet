@@ -138,7 +138,7 @@
                                         Your registration for <i>{{ caresRegistration.species.name }}</i> has been approved.
                                     </div>
                                     <p><a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a></p>
-                                {% elif caresRegistration.status == 'DECL' %}
+                                {% elif caresRegistration.status == caresRegistration.CaresRegistrationStatus.DECLINED %}
                                     <div class="alert alert-warning">
                                         <strong>⚠️ CARES Registration Declined</strong><br>
                                         {% if caresRegistration.approver_notes %}
@@ -147,6 +147,7 @@
                                     </div>
                                     <p>
                                         <a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a>
+                                        <a class="btn btn-warning ms-2" href="{% url 'registerCaresSpeciesInstance' speciesInstance.id %}" role="button">&nbsp;Re-submit Registration&nbsp;</a>
                                     </p>
                                 {% else %}
                                     {# OPEN or RESUBMIT #}
