@@ -55,13 +55,28 @@ def speciesInstance(request, pk):
 
     # TODO improve finding and displaying optional CARES registrations for speciesInstance owner or admin)
     caresRegistration = None
+    print ('Looking for CaresRegistration for SpeciesInstance, Species = ' + species.name)
     if userCanEdit:
         try:
-            caresRegistration = get_object_or_404(CaresRegistration, species=speciesInstance.species, aquarist_email=request.user.email)
+            #caresRegistration = get_object_or_404(CaresRegistration, species=speciesInstance.species, aquarist_email=request.user.email)
+            # will return the latest if multiple CaresRegistrations submitted by user - can happen in response to a 'decline' by Cares Authority
+            caresRegistration = CaresRegistration.objects.filter(species=speciesInstance.species, aquarist_email=speciesInstance.user.email).order_by('-date_requested').first()
             print ('SpeciesInstance ' + speciesInstance.name + ' CaresRegistration found: ' + caresRegistration.name)
         except: 
+            print ('Did not find CaresRegistration for SpeciesInstance, Species = ' + species.name)
             pass
-    
+
+        # the following code outputs 3 INFO lines example shown below
+        # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:71] CARES lookup: species_id=837, user_email=cstorms97@gmail.com
+        # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:73] CARES registrations for species: [(7, 'craig_storms@yahoo.com')]
+        # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:75] CARES match found: None
+        # if userCanEdit and request.user.is_authenticated:
+        #     logger.info('CARES lookup: species_id=%s, user_email=%s', speciesInstance.species.id, request.user.email)
+        #     qs = CaresRegistration.objects.filter(species=speciesInstance.species)
+        #     logger.info('CARES registrations for species: %s', [(r.id, r.aquarist_email) for r in qs])
+        #     caresRegistration = qs.filter(aquarist_email=request.user.email).order_by('-date_requested').first()
+        #     logger.info('CARES match found: %s', caresRegistration)
+        
     if request.user.is_authenticated:
         logger.info('User %s visited aquarist species page:  %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
     else:

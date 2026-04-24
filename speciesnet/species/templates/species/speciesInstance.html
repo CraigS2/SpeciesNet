@@ -132,12 +132,32 @@
                                     If you have a breeding group or are keeping this species with the intent to breed them, consider registering the species with the CARES organization. 
                                     </p>
                                     <p><a class="btn btn-secondary" href="{% url 'registerCaresSpeciesInstance' speciesInstance.id %}" role="button">&nbsp;Register this CARES species&nbsp;</a></p>
+                                {% elif caresRegistration.status == caresRegistration.CaresRegistrationStatus.APPROVED %}
+                                    <div class="alert alert-success">
+                                        <strong>✅ CARES Registration Approved</strong><br>
+                                        Your registration for <i>{{ caresRegistration.species.name }}</i> has been approved.
+                                    </div>
+                                    <p><a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a></p>
+                                {% elif caresRegistration.status == 'DECL' %}
+                                    <div class="alert alert-warning">
+                                        <strong>⚠️ CARES Registration Declined</strong><br>
+                                        {% if caresRegistration.approver_notes %}
+                                            <p class="mt-2"><b>Approver Comments:</b> {{ caresRegistration.approver_notes }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <p>
+                                        <a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a>
+                                    </p>
                                 {% else %}
-                                    <p>Thank you for registering your CARES Species.</p>
-                                    <p><b>Registration Status: </b>&nbsp;&nbsp;<i>{{caresRegistration.get_status_display}}</i></p>
+                                    {# OPEN or RESUBMIT #}
+                                    <div class="alert alert-info">
+                                        <strong>⏳ CARES Registration Pending</strong><br>
+                                        Your registration for <i>{{ caresRegistration.species.name }}</i> is currently under review.
+                                    </div>
+                                    <p><a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a></p>
                                 {% endif %}
                             </div>  
-                        {% endif %}    
+                        {% endif %}
 
                     {% endif %} 
                 </div>

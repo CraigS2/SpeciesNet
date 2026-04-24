@@ -72,7 +72,9 @@
                     <div class="css_class='mb-3 section-bordered">
                         <h4><b>Registration Detail</b></h4>    
                         <p><b>Status:</b> &nbsp;&nbsp;{{registration.get_status_display}}</p>
-                        <p><b>Approver:</b>&nbsp;&nbsp; {{ registration.cares_approver.name }}</p>
+                        {% if registration.approver %}
+                            <p><b>Approver:</b>&nbsp;&nbsp; {{ registration.cares_approver.name }}</p>
+                        {% endif %}                                                                        
                         <p><b>Notes:</b>&nbsp;&nbsp;
                         {% if registration.approver_notes %}
                             {{registration.approver_notes}}</p>
@@ -82,10 +84,10 @@
                         <p><b>Submitted:</b>&nbsp;&nbsp; {{ registration.date_requested | date:'Y-m-d' }}</p>  
                         {% if registration.lastUpdated %}
                             <p><b>Updated:</b>&nbsp;&nbsp; {{ registration.lastUpdated | date:'Y-m-d' }}</p>                        
-                            <p><b>Last Update by:</b>&nbsp;&nbsp; {{ registration.last_updated_by.first_name }} {{ registration.last_updated_by.last_name }}</p>                        
+                            <!--p><b>Last Update by:</b>&nbsp;&nbsp; {{ registration.last_updated_by.first_name }} {{ registration.last_updated_by.last_name }}</p-->                        
                         {% endif %}                                                                        
 
-                        {% if userCanEdit %}
+                        {% if request.user.is_superuser %}
                             <p><a class="btn btn-secondary" href="{% url 'editCaresRegistration' registration.id  %}" role="button">&nbsp;Edit Registration&nbsp;</a></p>
                         {% endif %}
                     </div>
