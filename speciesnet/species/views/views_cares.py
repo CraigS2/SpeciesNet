@@ -496,6 +496,15 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
 
         return context
 
+@login_required(login_url='login')
+def caresRegistrationsFromAsn(request):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    registrations = CaresRegistration.objects.all().order_by('-date_requested')
+    logger.info('Staff user %s viewed caresRegistrationsAdmin', request.user.username)
+    context = {'registrations': registrations}
+    return render(request, 'species/cares/caresRegistrationsFromAsn.html', context)
+
 ### View CARES Approver
 
 def caresApprover(request, pk):

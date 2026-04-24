@@ -30,7 +30,7 @@ from .views_cares import (
     CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, 
     editCaresSpecies2, editCaresRegistrationAdmin, registrationLookup,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers,
-    exportCaresRegistrations, importCaresRegistrations,
+    exportCaresRegistrations, importCaresRegistrations, caresRegistrationsFromAsn,
 )
 
 # Species Instance (Aquarist Species)

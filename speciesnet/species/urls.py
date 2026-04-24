@@ -89,6 +89,7 @@ urlpatterns = [
     path('cares_overview/', views.cares_overview, name="cares_overview"),
     path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
     path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
+    path('cares/caresRegistrationsFromAsn/', views.caresRegistrationsFromAsn, name="caresRegistrationsFromAsn"),
 
     ### CARES Site 2 Only ###
 
