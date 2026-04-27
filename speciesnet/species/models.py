@@ -504,8 +504,7 @@ class CaresRegistration (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist_name             = models.CharField (max_length=240, blank=False, default='')
     aquarist_email            = models.EmailField(max_length=50, null=True)  
-    #TODO next migration make cares_approver blank=True so it is not required in the admin panel - will fix this advanced edit scenario
-    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
+    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.CharField (max_length=200, blank=True)

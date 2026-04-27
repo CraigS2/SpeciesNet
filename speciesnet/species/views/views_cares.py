@@ -302,7 +302,7 @@ def registerCaresSpecies(request, pk):
                 cares_reg.species = cares_species
                 cares_reg.last_updated_by = None
                 cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
-                cares_reg.cares_approver  = None            #TODO manage approver assignment via cares family or genus matching
+                cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
                 cares_reg.save()
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
@@ -339,6 +339,11 @@ def createCaresRegistration(request, pk):
             registration.species = species
             registration.last_updated_by = request.user
             registration.aquarist = request.user
+            registration.cares_approver  = get_matching_cares_approver(species)
+            if registration.cares_approver:
+                print ('createCaresRegistration get_matching_cares_approver: ' + registration.cares_approver.name)
+            else:
+                print ('createCaresRegistration get_matching_cares_approver: NONE found')
             registration.save()
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)

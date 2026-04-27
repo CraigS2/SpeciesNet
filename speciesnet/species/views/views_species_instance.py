@@ -535,6 +535,7 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.aquarist_name   = species_instance.user.get_full_name() or request.user.username
                 cares_reg.aquarist_email  = species_instance.user.email
                 cares_reg.species         = cares_species
+                cares_reg.year_acquired   = species_instance.year_acquired                
                 cares_reg.name            = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.last_updated_by = request.user
                 cares_reg.cares_approver  = None   # assigned later by CARES admin

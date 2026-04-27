@@ -63,7 +63,7 @@ from species.asn_tools.asn_csv_tools import (
     export_csv_caresRegistrations, export_csv_caresRegistrations_asn,
     export_csv_caresRegistrations_asn_pending, export_csv_caresRegistrations_cso,
     # CARES imports
-    import_csv_caresRegistrations, import_csv_caresRegistrations_cso,
+    import_csv_caresRegistrations, #import_csv_caresRegistrations_cso,
     import_csv_species, import_csv_speciesInstances, import_csv_aquarist_clubs,
     export_csv_bap_genus, import_csv_bap_genus, export_csv_bap_submissions
 )
@@ -79,6 +79,7 @@ from species.asn_tools.asn_utils import (
     validate_normalize_youtube_url
 )
 from species.asn_tools.asn_pdf_tools import generatePdfLabels
+from species.asn_tools.asn_cares_tools import get_matching_cares_approver
 from species.asn_tools.asn_species_aggregation import collect_species_data_as_csv
 
 # Logger
