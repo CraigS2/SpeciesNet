@@ -302,7 +302,7 @@ def registerCaresSpecies(request, pk):
                 cares_reg.species = cares_species
                 cares_reg.last_updated_by = None
                 cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
-                cares_reg.cares_approver  = None            #TODO manage approver assignment via cares family or genus matching
+                cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
                 cares_reg.save()
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
@@ -339,6 +339,11 @@ def createCaresRegistration(request, pk):
             registration.species = species
             registration.last_updated_by = request.user
             registration.aquarist = request.user
+            registration.cares_approver  = get_matching_cares_approver(species)
+            if registration.cares_approver:
+                print ('createCaresRegistration get_matching_cares_approver: ' + registration.cares_approver.name)
+            else:
+                print ('createCaresRegistration get_matching_cares_approver: NONE found')
             registration.save()
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
@@ -496,6 +501,15 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
 
         return context
 
+@login_required(login_url='login')
+def caresRegistrationsFromAsn(request):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    registrations = CaresRegistration.objects.all().order_by('-date_requested')
+    logger.info('Staff user %s viewed caresRegistrationsAdmin', request.user.username)
+    context = {'registrations': registrations}
+    return render(request, 'species/cares/caresRegistrationsFromAsn.html', context)
+
 ### View CARES Approver
 
 def caresApprover(request, pk):
@@ -579,103 +593,63 @@ def caresApprovers(request):
     context = {'cares_approvers': cares_approvers, 'userCanEdit': userCanEdit}
     return render(request, 'species/cares/caresApprovers.html', context)
 
+
 @login_required(login_url='login')
 def exportCaresRegistrations(request):
     return export_csv_caresRegistrations()
 
+
 @login_required(login_url='login')
 def importCaresRegistrations(request):
-    print ('TODO: importCaresRegistrations view')
-    return()
+    """
+    CARES Registration import: branches on SITE_ID.
+    SITE_ID=1 (ASN): update status/notes on existing registrations from Site2 export.
+    SITE_ID=2 (CSO): create new registrations from ASN Site1 export.
+    """
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = 'CARES Registration Import - ' + str(request.user)
+            import_archive.save()
+
+            summary = import_csv_caresRegistrations(import_archive, request.user)
+
+            # Update import_archive status based on summary results
+            total  = summary.get('total', 0)
+            errors = summary.get('errors', 0)
+            if total > 0 and not errors:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+            elif total > 0 and errors:
+                import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+            else:
+                import_archive.import_status = ImportArchive.ImportStatus.FAIL
+            import_archive.save(update_fields=['import_status'])
+
+            site_id = getattr(settings, 'SITE_ID', 1)
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+                'site_id': site_id,
+            }
+            return render(request, 'species/cares/importCaresRegistrationsResults.html', context)
+    else:
+        form = ImportCsvForm()
+
+    site_id = getattr(settings, 'SITE_ID', 1)
+    context = {'form': form, 'site_id': site_id}
+    return render(request, 'species/cares/importCaresRegistrations.html', context)
 
 
+@login_required(login_url='login')
+def exportCaresRegistrationsPending(request):
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+    return export_csv_caresRegistrations_asn_pending()
 
-### Species Reference Links
-
-# @login_required(login_url='login')
-# def speciesReferenceLinks(request):
-#     speciesReferenceLinks = SpeciesReferenceLink.objects.all()
-#     if not request.user.is_staff:
-#         raise PermissionDenied()
-#     context = {'speciesReferenceLinks': speciesReferenceLinks}
-#     return render(request, 'species/speciesReferenceLinks.html', context)
-
-# @login_required(login_url='login')
-# def createSpeciesReferenceLink(request, pk):
-#     species = get_object_or_404(Species, pk=pk)
-#     form = SpeciesReferenceLinkForm(initial={"user": request.user, "species":  species})
-    
-#     if request.method == 'POST':
-#         form = SpeciesReferenceLinkForm(request.POST)
-#         form.instance.user = request.user
-#         form.instance.species = species
-#         if form.is_valid():
-#             validate_url(str(form.instance.reference_url))
-#             form.save()
-#             logger.info('User %s created speciesReferenceLink for species:  %s (%s)', request.user.username, species.name, str(species.id))
-#             return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
-#     context = {'form': form}
-#     return render(request, 'species/createSpeciesReferenceLink.html', context)
-
-
-# @login_required(login_url='login')
-# def editSpeciesReferenceLink(request, pk):
-#     speciesReferenceLink = get_object_or_404(SpeciesReferenceLink, pk=pk)
-#     species = speciesReferenceLink.species
-#     userCanEdit = user_can_edit_srl(request.user, speciesReferenceLink)
-#     if not userCanEdit:
-#         raise PermissionDenied()
-    
-#     form = SpeciesReferenceLinkForm(instance=speciesReferenceLink)
-#     if request.method == 'POST':
-#         form = SpeciesReferenceLinkForm(request.POST, request.FILES, instance=speciesReferenceLink)
-#         if form.is_valid:
-#             validate_url(str(form.instance.reference_url))
-#             form.save()
-#             logger.info('User %s edited speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))
-#             return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
-#     context = {'form': form, 'speciesReferenceLink': speciesReferenceLink}
-#     return render(request, 'species/editSpeciesReferenceLink.html', context)
-
-
-# @login_required(login_url='login')
-# def deleteSpeciesReferenceLink(request, pk):
-#     speciesReferenceLink = get_object_or_404(SpeciesReferenceLink, pk=pk)
-#     userCanEdit = user_can_edit_srl(request.user, speciesReferenceLink)
-#     if not userCanEdit: 
-#         raise PermissionDenied()
-    
-#     if request.method == 'POST':
-#         species = speciesReferenceLink.species
-#         logger.info('User %s deleted speciesReferenceLink for species:  %s (%s)', request.user.username, species.name, str(species.id))
-#         speciesReferenceLink.delete()
-#         return redirect('/species/' + str(species.id))
-    
-#     object_type = 'Reference Link'
-#     object_name = 'this Reference Link'
-#     context = {'object_type': object_type, 'object_name': object_name}
-#     return render(request, 'species/deleteConfirmation.html', context)
-
-
-### Import/Export Species
-
-# @login_required(login_url='login')
-# def exportSpecies(request):
-#     return export_csv_species()
-
-
-# @login_required(login_url='login')
-# def importSpecies(request):
-#     current_user = request.user
-#     form = ImportCsvForm()
-    
-#     if request.method == 'POST':
-#         form2 = ImportCsvForm(request.POST, request.FILES)
-#         if form2.is_valid():
-#             import_archive = form2.save()
-#             import_csv_species(import_archive, current_user)
-#             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
-    
-#     return render(request, "species/importSpecies.html", {"form": form})

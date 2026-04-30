@@ -76,24 +76,23 @@
                             {% for species in species_list %}
                                 <tr>
                                     <td>
+                                        <a href="{% url 'species' species.id %}">{{ species.name }}</a>
                                         {% if species.render_cares %}
-                                            <a href="{% url 'species' species.id %}">{{species.name}}</a> <font style="color:#860404;" >CARES</font>
-                                        {% else %}
-                                            <a href="{% url 'species' species.id %}">{{species.name}}</a>
-                                        {% endif %}                                        
+                                            <font style="color:#860404;">CARES</font>
+                                        {% endif %}
                                     </td>
                                     <td style='text-align:center'>
-                                        {% if species.species_instances.all.count > 0 %}
-                                            {{ species.species_instances.all.count }} 
+                                        {% if species.instance_count %}
+                                            {{ species.instance_count }}
                                         {% else %}
                                             &nbsp;
                                         {% endif %}
-                                    </td>                                    
+                                    </td>
                                     <td style='text-align:center'>{{ species.get_category_display }}</td>
                                     <td style='text-align:center'>{{ species.get_global_region_display }}</td>
                                     <td>{{ species.description|truncatewords:10 }}</td>
                                 </tr>
-                            {% endfor %}
+                            {% endfor %}                            
                         </tbody>
                     </table>
                 </div>

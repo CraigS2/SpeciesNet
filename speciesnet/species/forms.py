@@ -463,6 +463,75 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
             )
         )        
 
+# ASN SpeciesInstance easy CARES Reg form
+class CaresRegistrationFromInstanceForm(ModelForm):
+    """
+    ASN Site1: Register a CARES species from an existing SpeciesInstance.
+    Name, email, species, has_spawned, year_acquired, and collection_location
+    are all sourced directly from the SpeciesInstance/User in the view —
+    the aquarist only needs to supply affiliate_club, species_source,
+    and a verification_photo.
+    """
+    class Meta:
+        model = CaresRegistration
+        fields = ['affiliate_club', 'species_source', 'verification_photo']
+        widgets = {
+            'species_source': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, species_instance=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if species_instance and not self.instance.pk:
+            try:
+                default_club = AquaristClub.objects.get(name='None')
+                self.fields['affiliate_club'].initial = default_club.pk
+            except AquaristClub.DoesNotExist:
+                pass
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal registration-form'
+        self.helper.label_class = 'col-md-3 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-9'
+
+        self.fields['affiliate_club'].help_text = "CARES affiliate club if you are a member, otherwise leave blank or choose 'None'"
+        self.fields['affiliate_club'].widget.attrs.update({
+            'style': 'max-width: 350px;',
+            'class': 'form-control'
+        })
+        self.fields['species_source'].widget.attrs.update({
+            'placeholder': 'Describe where you obtained your fish ...',
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+        self.fields['verification_photo'].help_text = 'Upload a photo of your fish for CARES verification (required).'
+        self.fields['verification_photo'].widget.attrs.update({
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })
+
+        self.helper.layout = Layout(
+            Fieldset(
+                '🐟 CARES Registration Details',
+                Field('affiliate_club', css_class='mb-1'),
+                Field('species_source', css_class='mb-2'),
+                Field('verification_photo', css_class='mb-1'),
+                Div(
+                    HTML("""
+                        <div class="alert alert-info mb-2">
+                            <small>💡 <strong>Please upload a clear photo of your fish for CARES verification purposes.</strong></small>
+                        </div>
+                    """),
+                ),
+                css_class='mb-1'
+            ),
+            FormActions(
+                Submit('submit', 'Submit CARES Registration', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{{ cancel_url }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )
 
 # admin-only full access to normally hidden properties
 class CaresRegistrationAdminForm (ModelForm):
@@ -485,14 +554,27 @@ class CaresRegistrationSubmitionAdminForm (ModelForm):
                     'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
 # registration review by approver - general workflow edit
-class CaresRegistrationApprovalForm (ModelForm):
+class CaresRegistrationApprovalForm(ModelForm):
     class Meta:
         model = CaresRegistration
-        fields = '__all__'
-        exclude = ['name', 'aquarist', 'species', 'collection_location', 'species_source', 
-                   'verification_photo', 'year_acquired', 'offspring_shared', 'last_updated_by', 'last_report_date']
-        widgets = {'approver_notes':          forms.Textarea(attrs={'rows':3,'cols':50}),}        
+        fields = ['cares_approver', 'affiliate_club', 'approver_notes', 'status']
+        widgets = {'approver_notes': forms.Textarea(attrs={'rows': 3, 'cols': 50})}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cares_approver'].required = False
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Field('cares_approver', css_class='mb-2'),
+            Field('affiliate_club', css_class='mb-2'),
+            Field('status', css_class='mb-2'),
+            Field('approver_notes', css_class='mb-2'),
+            FormActions(
+                Submit('submit', 'Save Changes', css_class='btn btn-success'),
+                HTML('<a href="{% url \'caresRegistration\' form.instance.pk %}" class="btn btn-secondary ms-2">Cancel</a>'),
+            )
+        )
 class CaresApproverForm (ModelForm):
     class Meta:
         model = CaresApprover
@@ -1355,13 +1437,6 @@ class ImportCsvForm (ModelForm):
         model = ImportArchive
         fields = '__all__'
         exclude = ['name', 'aquarist', 'import_results_file', 'import_status']
-
-# class RegistrationForm (UserCreationForm):
-#     email = forms.EmailField(max_length=200, help_text='Required')
-#     class Meta:
-#         model = User
-#         fields = ('username', 'email', 'password1', 'password2')
-
 
 class CustomSignupForm(SignupForm):
     """To require firstname and lastname when signing up"""

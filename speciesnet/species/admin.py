@@ -8,6 +8,7 @@ from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEnt
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback
+from .models import PageViewCount, PageViewMonthlySnapshot
 from allauth.account.models import EmailAddress
 
 
@@ -102,3 +103,21 @@ admin.site.register (BapLeaderboard)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
 admin.site.register(SpeciesFeedback, SpeciesFeedbackAdmin)
+
+
+class PageViewCountAdmin(admin.ModelAdmin):
+    list_display    = ('page_type', 'object_id', 'visitor_type', 'count')
+    list_filter     = ('page_type', 'visitor_type')
+    ordering        = ('page_type', 'object_id')
+    readonly_fields = ('page_type', 'object_id', 'visitor_type', 'count')
+
+
+class PageViewMonthlySummaryAdmin(admin.ModelAdmin):
+    list_display    = ('page_type', 'object_id', 'visitor_type', 'year', 'month', 'count')
+    list_filter     = ('page_type', 'visitor_type', 'year', 'month')
+    ordering        = ('-year', '-month', 'page_type')
+    readonly_fields = ('page_type', 'object_id', 'visitor_type', 'year', 'month', 'count')
+
+
+admin.site.register(PageViewCount, PageViewCountAdmin)
+admin.site.register(PageViewMonthlySnapshot, PageViewMonthlySummaryAdmin)

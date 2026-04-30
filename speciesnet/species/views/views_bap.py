@@ -337,6 +337,7 @@ class BapLeaderboardView(LoginRequiredMixin, ListView):
         logger.info('User %s viewed bapLeaderboard', self.request.user.username)
         context = super().get_context_data(**kwargs)
         context['bap_club'] = self.get_bap_club()
+        record_page_view(PageViewCount.PageType.BAP_LEADERBOARD, self.get_bap_club().id, self.request.user.is_authenticated)
         return context
 
 

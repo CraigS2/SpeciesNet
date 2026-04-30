@@ -45,6 +45,7 @@ def species(request, pk):
         'userCanEdit': userCanEdit,
         'cform': cform
     }
+    record_page_view(PageViewCount.PageType.SPECIES, species.id, request.user.is_authenticated)
     return render(request, 'species/species.html', context)
 
 
@@ -57,16 +58,18 @@ class SpeciesListView(ListView):
     paginate_by = 200
 
     def get_queryset(self):
-        queryset = Species.objects.all()
-        category = self.request.GET.get('category', '')
+        queryset = Species.objects.annotate(
+            instance_count=Count('species_instances')
+        )
+        category     = self.request.GET.get('category', '')
         global_region = self.request.GET.get('global_region', '')
-        query_text = self.request.GET.get('q', '')
-        
+        query_text   = self.request.GET.get('q', '')
+
         if category:
             queryset = queryset.filter(category=category)
-        if global_region: 
+        if global_region:
             queryset = queryset.filter(global_region=global_region)
-        if query_text: 
+        if query_text:
             queryset = queryset.filter(
                 Q(name__icontains=query_text) |
                 Q(alt_name__icontains=query_text) |

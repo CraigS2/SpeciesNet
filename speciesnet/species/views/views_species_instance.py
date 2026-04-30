@@ -13,7 +13,7 @@ def speciesInstance(request, pk):
     speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
     species = speciesInstance.species
     
-    # TODO improve finding and displaying optional speciesMaintenanceLog
+    # TODO improve finding and displaying optional speciesMaintenanceLog - do single query with select_related('speciesMaintenanceLog')
     speciesMaintenanceLog = None
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.filter(species=species)
     if speciesMaintenanceLogs.count() > 0:
@@ -52,7 +52,39 @@ def speciesInstance(request, pk):
 
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
-    
+
+    # TODO improve finding and displaying optional CARES registrations for speciesInstance owner or admin)
+    caresRegistration = None
+    print ('Looking for CaresRegistration for SpeciesInstance, Species = ' + species.name)
+    if userCanEdit:
+        try:
+            #caresRegistration = get_object_or_404(CaresRegistration, species=speciesInstance.species, aquarist_email=request.user.email)
+            # will return the latest if multiple CaresRegistrations submitted by user - can happen in response to a 'decline' by Cares Authority
+            # caresRegistration = CaresRegistration.objects.filter(species=speciesInstance.species, aquarist_email=speciesInstance.user.email).order_by('-date_requested').first()
+            
+            caresRegistration = CaresRegistration.objects.filter(
+                species=speciesInstance.species,
+                aquarist_email=speciesInstance.user.email
+            ).exclude(
+                status=CaresRegistration.CaresRegistrationStatus.CLOSED
+            ).order_by('-date_requested').first()
+
+            print ('SpeciesInstance ' + speciesInstance.name + ' CaresRegistration found: ' + caresRegistration.name)
+        except: 
+            print ('Did not find CaresRegistration for SpeciesInstance, Species = ' + species.name)
+            pass
+
+        # the following code outputs 3 INFO lines example shown below
+        # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:71] CARES lookup: species_id=837, user_email=cstorms97@gmail.com
+        # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:73] CARES registrations for species: [(7, 'craig_storms@yahoo.com')]
+        # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:75] CARES match found: None
+        # if userCanEdit and request.user.is_authenticated:
+        #     logger.info('CARES lookup: species_id=%s, user_email=%s', speciesInstance.species.id, request.user.email)
+        #     qs = CaresRegistration.objects.filter(species=speciesInstance.species)
+        #     logger.info('CARES registrations for species: %s', [(r.id, r.aquarist_email) for r in qs])
+        #     caresRegistration = qs.filter(aquarist_email=request.user.email).order_by('-date_requested').first()
+        #     logger.info('CARES match found: %s', caresRegistration)
+        
     if request.user.is_authenticated:
         logger.info('User %s visited aquarist species page:  %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
     else:
@@ -66,8 +98,10 @@ def speciesInstance(request, pk):
         'bapEligibleMemberships': bapEligibleMemberships,
         'bapSubmissions': bapSubmissions,
         'renderCares':  renderCares,
+        'caresRegistration': caresRegistration,
         'userCanEdit': userCanEdit
     }
+    record_page_view(PageViewCount.PageType.SPECIES_INSTANCE, speciesInstance.id, request.user.is_authenticated)
     return render(request, 'species/speciesInstance.html', context)
 
 
@@ -450,8 +484,125 @@ def editSpeciesInstanceLabels(request):
 
 @login_required(login_url='login')
 def registerCaresSpeciesInstance(request, pk):
-    print ('WARNING: TODO registerCaresSpeciesInstance')
-    return ()
+    """
+    Easy CaresRegistration via SpeciesInstance for logged in users keeping CARES species. 
+    Known fields are populated, optional & editable fields displayed. Registration external_id
+    is set so later CSO import can link it back to ASN for status changes etc. 
+    """
+    from species.forms import CaresRegistrationFromInstanceForm
+
+    species_instance = get_object_or_404(SpeciesInstance, pk=pk)
+    if species_instance.user != request.user and not user_is_admin(request.user):
+        raise PermissionDenied()
+
+    cares_species = species_instance.species
+    if cares_species.cares_classification == Species.CaresStatus.NOT_CARES_SPECIES:
+        messages.error(request, f'"{cares_species.name}" is not classified as a CARES species and cannot be registered.')
+        return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
+
+    # TODO review and revise SpeciesInstance cares_registered usage - oversimplified?
+    # if species_instance.cares_registered:
+    #     messages.info(request, f'"{cares_species.name}" is already registered with CARES.')
+    #     return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
+
+    # use of existing_registration assumes any prior registrations are CLOSED or deleted
+    existing_registration = CaresRegistration.objects.filter(
+        species=cares_species,
+        aquarist_email=request.user.email,
+        status__in=[
+            CaresRegistration.CaresRegistrationStatus.OPEN,
+            CaresRegistration.CaresRegistrationStatus.APPROVED,
+            CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+        ]).first()
+    
+    if existing_registration:
+        messages.info(request, f'"{cares_species.name}" already has an active CARES registration.')
+        return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))    
+
+    register_heif_opener()
+    reg = CaresRegistration()
+    if species_instance.aquarist_species_image:
+        reg.verification_photo = species_instance.aquarist_species_image
+
+    if request.method == 'POST':
+        form = CaresRegistrationFromInstanceForm(
+            request.POST, request.FILES, instance=reg, species_instance=species_instance
+        )
+        if form.is_valid():
+            try:
+                cares_reg = form.save(commit=False)
+                # Fields supplied by the system (not editable by the aquarist on this form)
+                cares_reg.aquarist_name   = species_instance.user.get_full_name() or request.user.username
+                cares_reg.aquarist_email  = species_instance.user.email
+                cares_reg.species         = cares_species
+                cares_reg.year_acquired   = species_instance.year_acquired                
+                cares_reg.name            = cares_species.name + ' - ' + cares_reg.aquarist_name
+                cares_reg.last_updated_by = request.user
+                cares_reg.cares_approver  = None   # assigned later by CARES admin
+                cares_reg.save()
+
+                # Set external_id = own PK so CSO import can correlate approval responses
+                cares_reg.external_id = cares_reg.pk
+                cares_reg.save(update_fields=['external_id'])
+
+                if cares_reg.verification_photo:
+                    # .name is the relative path within MEDIA_ROOT
+                    if (cares_reg.verification_photo.name == species_instance.aquarist_species_image.name):
+                        print ('CaresRegistration from SpeciesInstance: preserve species_image file')
+                        processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request, False)
+                    else:
+                        print ('CaresRegistration from SpeciesInstance: delete uploaded original image file')
+                        processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
+                else:
+                    messages.error(request, 'Verification Photo is required for CARES Registration.')
+                    return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
+
+                # Flag the SpeciesInstance as registered
+                species_instance.cares_registered = True
+                species_instance.save(update_fields=['cares_registered'])
+
+                # set status on any prior declined registrations as CLOSED to and mark new reg status to RESUBMIT
+                prior_declined_reg = CaresRegistration.objects.filter(
+                    species=cares_species,
+                    aquarist_email=species_instance.user.email,
+                    status=CaresRegistration.CaresRegistrationStatus.DECLINED
+                )
+
+                if prior_declined_reg.exists():
+                    cares_reg.status = CaresRegistration.CaresRegistrationStatus.RESUBMIT
+                    cares_reg.save(update_fields=['status'])
+                    prior_declined_reg.update(status=CaresRegistration.CaresRegistrationStatus.CLOSED)                
+
+                logger.info(
+                    'User %s submitted CARES registration for species: %s (reg_id=%s)',
+                    request.user.username, cares_species.name, str(cares_reg.id)
+                )
+                messages.success(request, f'CARES registration for "{cares_species.name}" submitted successfully!')
+                return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
+
+            except IntegrityError as e:
+                logger.error(f"IntegrityError creating CARES registration: {str(e)}", exc_info=True)
+                messages.error(request, 'A registration conflict occurred (possibly a duplicate). Please contact support.')
+            except Exception as e:
+                logger.error(f"Unexpected error creating CARES registration: {str(e)}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {str(e)}')
+
+            # Validation failed or exception — fall through to re-render with reg instance intact
+            logger.warning(
+                f"CARES registration form validation failed for speciesInstance_id={pk}: {form.errors.as_text()}"
+            )
+            messages.error(request, 'Please correct the errors highlighted below.')
+    else:
+        form = CaresRegistrationFromInstanceForm(instance=reg, species_instance=species_instance)
+
+    cancel_url = reverse('speciesInstance', args=[species_instance.id])
+    context = {
+        'form': form,
+        'species_instance': species_instance,
+        'cares_species': cares_species,
+        'cancel_url': cancel_url,
+    }
+    return render(request, 'species/registerCaresSpeciesInstance.html', context)
 
 
 ### Import/Export Species Instances

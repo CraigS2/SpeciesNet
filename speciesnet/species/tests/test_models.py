@@ -242,7 +242,7 @@ class SpeciesModelCRUDTest(BaseTestCase):
     
     def test_species_cares_classification_choices(self):
         """Test all CARES Classification choices are valid"""
-        statuses = ['NOTC', 'NEAR', 'VULN', 'ENDA', 'CEND', 'EXCT']
+        statuses = ['NOTC', 'CNT', 'CVU', 'CEN', 'CCR', 'CEW']
         for status in statuses: 
             species = Species.objects.create(
                 name=f'Test Species {status}',

@@ -211,22 +211,18 @@ class Species (models.Model):
 
     class CaresStatus (models.TextChoices):
         NOT_CARES_SPECIES = 'NOTC', _('Undefined')
-        NEAR_THREATENED   = 'NEAR', _('Near Threatened')               #TODO Delete after migration
-        VULNERABLE        = 'VULN', _('Vulnerable')                    #TODO Delete after migration           
-        ENDANGERED        = 'ENDA', _('Endangered')                    #TODO Delete after migration
-        CRIT_ENDANGERED   = 'CEND', _('Critically Endangered')         #TODO Delete after migration
-        EXTINCT_IN_WILD   = 'EXCT', _('Extinct in the Wild')           #TODO Delete after migration
         CARES_NEAR_THREAT = 'CNT', _ ('Near Threatened')   
         CARES_VULNERABLE  = 'CVU', _ ('Vulnerable')   
         CARES_ENDANGERED  = 'CEN', _ ('Endangered')   
         CARES_CRIT_ENDGR  = 'CCR', _ ('Critically Endangered')   
         CARES_EXT_IN_WILD = 'CEW', _ ('Extinct in the Wild')   
-          
     
     cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
     cares_assessment_date     = models.DateField (null=True, blank=True)    
     render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    #species_instance_count    = models.PositiveIntegerField (default=0)      # use as cached value to eliminate N+1 queries in speciesSearch list view (or remove)
+    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to speed speciesSearch list views
+
+    external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
@@ -276,7 +272,41 @@ class SpeciesReferenceLink (models.Model):
 
     def __str__(self):
         return self.name
+    
+### Species Feedback
 
+class SpeciesFeedback(models.Model):
+
+    name                = models.CharField(max_length=300, editable=False)
+    species             = models.ForeignKey(Species, on_delete=models.CASCADE, related_name='feedback_submissions')
+    user                = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='species_feedback')
+    email               = models.EmailField(max_length=254, blank=True)
+    comment             = models.TextField(max_length=2500, blank=False)
+    species_image       = models.ImageField(upload_to='feedback/%Y/%m/%d', null=True, blank=True)
+    species_photo_credit = models.CharField(max_length=200, blank=True)
+    approved            = models.BooleanField(default=False)
+    reviewed_by         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_feedback')
+    reviewed_at         = models.DateTimeField(null=True, blank=True)
+    created             = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created']
+        verbose_name = 'Species Feedback'
+        verbose_name_plural = 'Species Feedback'
+        #unique_together = [['species', 'user'], ['species', 'email']]
+
+    def save(self, *args, **kwargs):
+        if self.user:
+            identifier = self.user.username
+        elif self.email:
+            identifier = self.email.split('@')[0]
+        else:
+            identifier = 'Anonymous'
+        self.name = f"{self.species.name} - {identifier}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name    
 
 ### SpeciesInstance (Aquarist Species)
 
@@ -294,7 +324,7 @@ class SpeciesInstance (models.Model):
 
     class GeneticLine (models.TextChoices):
         AQUARIUM_STRAIN = 'AS', _('Aquarium Strain')
-        WILD_CAUGHT     = 'WC', _('Wild Caught')
+        WILD_CAUGHT     = 'WC', _('F0 Wild Caught')
         F1              = 'F1', _('F1 First Generation')
         F2              = 'F2', _('F2 Second Generation')
         FX              = 'FX', _('FX 3rd or more Generation')
@@ -424,6 +454,7 @@ class AquaristClub (models.Model):
     bap_end_date              = models.DateField (null=True, blank=True)
     is_bap_club               = models.BooleanField (default=False)
     is_cares_club             = models.BooleanField (default=False)
+    external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -473,8 +504,8 @@ class CaresRegistration (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist_name             = models.CharField (max_length=240, blank=False, default='')
     aquarist_email            = models.EmailField(max_length=50, null=True)  
-    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, related_name='approver_cares_registrations') 
-    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_cares_registrations') 
+    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_cares_registrations') 
+    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.CharField (max_length=200, blank=True)
     species_source            = models.TextField (blank=False, default='')
@@ -495,6 +526,7 @@ class CaresRegistration (models.Model):
     approver_notes            = models.TextField (blank=True)
     status                    = models.CharField (max_length=4, choices=CaresRegistrationStatus.choices, default=CaresRegistrationStatus.OPEN)
     asn_imported              = models.BooleanField (default=False)
+    external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
     last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates') 
     last_report_date          = models.DateField (null=True, blank=True)
@@ -636,18 +668,19 @@ class SpeciesImportStaging (models.Model):
     existing_species = models.ForeignKey(Species, null=True, blank=True, on_delete=models.SET_NULL, related_name='import_staging')
 
     # Proposed values mirroring Species model fields
-    new_name                  = models.CharField(max_length=240)
-    new_alt_name              = models.CharField(max_length=240, blank=True)
-    new_common_name           = models.CharField(max_length=240, blank=True)
-    new_description           = models.TextField(blank=True)
-    new_category              = models.CharField(max_length=3,   blank=True)
-    new_global_region         = models.CharField(max_length=3,   blank=True)
-    new_local_distribution    = models.CharField(max_length=200, blank=True)
-    new_cares_family          = models.CharField(max_length=5,   blank=True)
-    new_cares_classification  = models.CharField(max_length=4,   blank=True)
-    new_cares_assessment_date = models.CharField(max_length=10,  blank=True)
-    new_iucn_red_list         = models.CharField(max_length=2,   blank=True)
-    new_iucn_assessment_date  = models.CharField(max_length=10,  blank=True)
+    new_name                   = models.CharField(max_length=240)
+    new_alt_name               = models.CharField(max_length=240, blank=True)
+    new_common_name            = models.CharField(max_length=240, blank=True)
+    new_description            = models.TextField(blank=True)
+    new_category               = models.CharField(max_length=3,   blank=True)
+    new_global_region          = models.CharField(max_length=3,   blank=True)
+    new_local_distribution     = models.CharField(max_length=200, blank=True)
+    new_cares_family           = models.CharField(max_length=5,   blank=True)
+    new_cares_classification   = models.CharField(max_length=4,   blank=True)
+    new_cares_assessment_date  = models.CharField(max_length=10,  blank=True)
+    new_iucn_red_list          = models.CharField(max_length=2,   blank=True)
+    new_iucn_assessment_date   = models.CharField(max_length=10,  blank=True)
+    #new_species_instance_count = models.PositiveIntegerField (default=0, blank=True)
 
     class ReviewStatus (models.TextChoices):
         PENDING           = 'PENDING',   _('Pending review')
@@ -674,37 +707,65 @@ class SpeciesImportStaging (models.Model):
         return f"Staging: {self.new_name} ({self.get_action_display()})"
 
 
-### Species Feedback
+### Page View Tracking
 
-class SpeciesFeedback(models.Model):
+class PageViewCount(models.Model):
+    """
+    Running total page view counters per object, split by visitor type.
+    Exactly 2 rows per tracked object (anonymous + authenticated).
+    Updated on every qualifying page visit via F() expression increment.
+    Counts are reset to 0 after each monthly snapshot by the snapshot_monthly_views management command.
+    """
 
-    name                = models.CharField(max_length=300, editable=False)
-    species             = models.ForeignKey(Species, on_delete=models.CASCADE, related_name='feedback_submissions')
-    user                = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='species_feedback')
-    email               = models.EmailField(max_length=254, blank=True)
-    comment             = models.TextField(max_length=2500, blank=False)
-    species_image       = models.ImageField(upload_to='feedback/%Y/%m/%d', null=True, blank=True)
-    species_photo_credit = models.CharField(max_length=200, blank=True)
-    approved            = models.BooleanField(default=False)
-    reviewed_by         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_feedback')
-    reviewed_at         = models.DateTimeField(null=True, blank=True)
-    created             = models.DateTimeField(auto_now_add=True)
+    class PageType(models.TextChoices):
+        USER                    = 'USER', _('Aquarist')
+        SPECIES                 = 'SPEC', _('Species')
+        SPECIES_INSTANCE        = 'SPIN', _('Aquarist Species')
+        SPECIES_MAINTENANCE_LOG = 'SPML', _('Species Maintenance Log')
+        AQUARIST_CLUB           = 'AQCL', _('Aquarist Club')
+        BAP_LEADERBOARD         = 'BAPL', _('BAP Leaderboard')
+
+    class VisitorType(models.TextChoices):
+        ANONYMOUS       = 'AN', _('Anonymous')
+        AUTHENTICATED   = 'AU', _('Authenticated')
+
+    page_type    = models.CharField(max_length=4, choices=PageType.choices)
+    object_id    = models.IntegerField()
+    visitor_type = models.CharField(max_length=2, choices=VisitorType.choices)
+    count        = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ['-created']
-        verbose_name = 'Species Feedback'
-        verbose_name_plural = 'Species Feedback'
-        #unique_together = [['species', 'user'], ['species', 'email']]
-
-    def save(self, *args, **kwargs):
-        if self.user:
-            identifier = self.user.username
-        elif self.email:
-            identifier = self.email.split('@')[0]
-        else:
-            identifier = 'Anonymous'
-        self.name = f"{self.species.name} - {identifier}"
-        super().save(*args, **kwargs)
+        unique_together     = [('page_type', 'object_id', 'visitor_type')]
+        indexes             = [models.Index(fields=['page_type', 'object_id'], name='species_pag_page_ty_idx')]
+        verbose_name        = 'Page View Count'
+        verbose_name_plural = 'Page View Counts'
 
     def __str__(self):
-        return self.name
+        return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.count}'
+
+
+class PageViewMonthlySnapshot(models.Model):
+    """
+    Monthly delta snapshot of page views per object, split by visitor type.
+    Each row records the number of views that occurred during that specific month.
+    Populated by the snapshot_monthly_views management command, which reads
+    PageViewCount totals, writes the delta here, then resets PageViewCount.count to 0.
+    """
+
+    page_type    = models.CharField(max_length=4, choices=PageViewCount.PageType.choices)
+    object_id    = models.IntegerField()
+    visitor_type = models.CharField(max_length=2, choices=PageViewCount.VisitorType.choices)
+    year         = models.PositiveSmallIntegerField()   # e.g. 2026
+    month        = models.PositiveSmallIntegerField()   # 1–12
+
+    count        = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together     = [('page_type', 'object_id', 'visitor_type', 'year', 'month')]
+        indexes             = [models.Index(fields=['page_type', 'object_id', 'year', 'month'], name='species_pag_page_ty_mo_idx')]
+        ordering            = ['-year', '-month']
+        verbose_name        = 'Page View Monthly Summary'
+        verbose_name_plural = 'Page View Monthly Summaries'
+
+    def __str__(self):
+        return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.year}/{self.month:02d} = {self.count}'

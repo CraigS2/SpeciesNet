@@ -98,6 +98,7 @@ def aquarist(request, pk):
         template = 'species/aquarist1.html'  # Tile view template
     else:
         template = 'species/aquarist2.html'   # List view template
+    record_page_view(PageViewCount.PageType.USER, aquarist.id, request.user.is_authenticated)
     return render(request, template, context)
 
 ### Aquarists Directory
