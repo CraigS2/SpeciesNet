@@ -1,0 +1,65 @@
+{% extends "main.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+
+<style>
+    .species-instance-card .card {
+        background-color: rgb(189, 219, 241);
+        border: 2px solid rgb(132, 179, 211);
+    }
+
+    .species-instance-card .card-body {
+        background-color: rgb(189, 219, 241);
+    }
+
+    .species-instance-card .card-header {
+        background-color: rgb(132, 179, 211);
+        color: lightslategrey !important;
+        border-bottom: 2px solid rgb(112, 159, 191);
+    }
+
+    .section-bordered {
+        background-color: rgb(212, 231, 247);
+        border: 2px solid rgb(162, 189, 221);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .section-bordered legend {
+        background-color: rgb(212, 231, 247) !important;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        border: none !important;
+        width: auto;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .general-info-section {
+        background-color: transparent;
+        padding: 0;
+    }
+
+    fieldset legend,
+    .section-bordered legend {
+        color: #495057 !important;
+        font-weight: 400;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background-color: #e9ebee;">
+                    <h2 class="my-0">Edit Profile: <i>{{ user.username }}</i></h2>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

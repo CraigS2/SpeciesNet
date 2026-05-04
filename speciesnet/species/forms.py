@@ -1423,6 +1423,55 @@ class UserProfileForm2(ModelForm):
                 css_class='mt-2'
             )
         )
+
+class UserProfileFormCares(ModelForm):
+    """Simplified user profile form for CARES Site 2 - no privacy, preferences, or social media fields."""
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'state', 'country']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal user-profile-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+
+        self.fields['first_name'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['last_name'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['state'].widget.attrs.update({
+            'placeholder': 'e.g. Massachusetts or MA (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['country'].widget.attrs.update({
+            'placeholder': 'e.g. USA, Canada, Norway ... (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+
+        self.helper.layout = Layout(
+            Div(
+                Field('first_name', css_class='mb-1'),
+                Field('last_name', css_class='mb-1'),
+                Field('state', css_class='mb-1'),
+                Field('country', css_class='mb-1'),
+                css_class='mb-3'
+            ),
+            FormActions(
+                Submit('submit', 'Save Profile', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{% url \'userProfile\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )
+
         
 class EmailAquaristForm (ModelForm):
     class Meta:
