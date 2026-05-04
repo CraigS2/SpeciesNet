@@ -87,7 +87,7 @@
                             <!--p><b>Last Update by:</b>&nbsp;&nbsp; {{ registration.last_updated_by.first_name }} {{ registration.last_updated_by.last_name }}</p-->                        
                         {% endif %}                                                                        
 
-                        {% if request.user.is_superuser %}
+                        {% if userCanEdit %}
                             <p><a class="btn btn-secondary" href="{% url 'editCaresRegistration' registration.id  %}" role="button">&nbsp;Edit Registration&nbsp;</a></p>
                         {% endif %}
                     </div>
