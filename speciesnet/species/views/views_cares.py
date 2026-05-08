@@ -220,7 +220,7 @@ class CaresSpeciesListView(ListView):
 
 def caresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
-    userCanEdit = user_can_edit(request.user)
+    userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if request.user.is_authenticated:
         logger.info('User %s visited CaresRegistration page: %s.', request.user.username, registration.name)
     else:
@@ -358,7 +358,7 @@ def createCaresRegistration(request, pk):
 @login_required(login_url='login')
 def editCaresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
-    userCanEdit = user_can_edit(request.user)
+    userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if not userCanEdit:
         raise PermissionDenied()  
     form = CaresRegistrationApprovalForm(instance=registration)        

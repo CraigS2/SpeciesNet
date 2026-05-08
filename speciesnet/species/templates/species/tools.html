@@ -4,10 +4,13 @@
 <div class="container">
     <div>
         <h3>Species Tools</h3>
-        <p><a href="{% url 'createSpecies'%}">Add Species</a></p>
-        <p><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></p>
+        <p><a href="{% url 'exportSpecies' %}">Export Species to CSV</a></p>
         <p><a href="{% url 'speciesProfilesWithPhotos' %}">View all Species with Photos</a></p>
         <p><a href="{% url 'speciesFeedbackTools' %}">Review Species Feedback Submissions</a></p>
-    </div>   
+    </div>
+    <div>
+        <h3>Registration Tools</h3>
+        <p><a href="{% url 'exportCaresRegistrations'%}">Export CARES Registrations to CSV</a></p>
+    </div>
 </div>
 {% endblock content %}

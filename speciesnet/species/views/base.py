@@ -70,7 +70,8 @@ from species.asn_tools.asn_csv_tools import (
 
 from species.asn_tools.asn_utils import (
     user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si,
-    user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club,
+    user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club, 
+    user_can_edit_cares_reg,
     user_is_admin, user_is_club_member, user_is_pending_club_member,
     get_sml_collaborator_choices, get_sml_speciesInstance_choices,
     validate_sml_collection, get_sml_available_collaborators,
