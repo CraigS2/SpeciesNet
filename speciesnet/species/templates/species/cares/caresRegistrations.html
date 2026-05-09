@@ -104,7 +104,7 @@
                                     {% if registration.last_report_date %}
                                         <td style='text-align:center'>R: {{ registration.last_report_date | date:'Y-m-d' }}</td>
                                     {% else %}
-                                        <td style='text-align:center'>U: {{ registration.lastUpdated | date:'Y-m-d' }}</td>
+                                        <td style='text-align:center'>{{ registration.lastUpdated | date:'Y-m-d' }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}

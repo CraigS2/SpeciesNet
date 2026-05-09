@@ -320,7 +320,8 @@ def registerCaresSpecies(request, pk):
                 cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
                 cares_reg.save()
                 if getattr(settings, 'SITE_ID', 1) == 2:
-                    send_new_registration_notification(cares_reg, request)
+                    #send_new_registration_notification(cares_reg, request)
+                    send_new_registration_notification(cares_reg)
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
@@ -363,7 +364,8 @@ def createCaresRegistration(request, pk):
                 print ('createCaresRegistration get_matching_cares_approver: NONE found')
             registration.save()
             if getattr(settings, 'SITE_ID', 1) == 2:
-                send_new_registration_notification(registration, request)
+                #send_new_registration_notification(registration, request)
+                send_new_registration_notification(registration)
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
             logger.info('User %s created caresRegistration: %s (%s)', request.user.username, registration.name, str(registration.id))

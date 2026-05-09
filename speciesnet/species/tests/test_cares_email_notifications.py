@@ -84,7 +84,8 @@ class CaresEmailNotificationTests(TestCase):
 
     def test_send_new_registration_notification_fanout_and_logs(self):
         request = self.factory.get('/registerCaresSpecies/1/')
-        send_new_registration_notification(self.registration, request)
+        #send_new_registration_notification(self.registration, request)
+        send_new_registration_notification(self.registration)
 
         self.assertEqual(len(mail.outbox), 2)
         recipients = sorted([msg.to[0] for msg in mail.outbox])

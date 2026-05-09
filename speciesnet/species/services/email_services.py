@@ -11,7 +11,7 @@ from species.models import UserEmail
 logger = logging.getLogger(__name__)
 
 
-def send_new_registration_notification(registration, request):
+def send_new_registration_notification(registration):
     """
     Send Site 2 new registration notifications to all matching CARES approvers.
     """
@@ -23,7 +23,10 @@ def send_new_registration_notification(registration, request):
         subject = f'New CARES Registration: {registration.species.name}'
         photo_url = None
         if registration.verification_photo:
-            photo_url = request.build_absolute_uri(registration.verification_photo.url)
+            #photo_url = request.build_absolute_uri(registration.verification_photo.url)
+            base_url = settings.SITE2_URL.rstrip('/')
+            photo_url = f'{base_url}{registration.verification_photo.url}'
+            print ('send_new_registration_notification - photo_url: ' + photo_url)       
 
         html_body = render_to_string(
             'species/cares/email_new_registration.html',
@@ -59,7 +62,7 @@ def send_new_registration_notification(registration, request):
                 email_message.content_subtype = 'html'
                 email_message.send(fail_silently=False)
 
-                archive_body = 'To: ' + approver_user.get_full_name() + '\n' + 'Email: ' + approver_user.email  + ' \n\n' +  plain_body
+                archive_body = 'To: ' + approver_user.get_full_name() + '\n' + 'Email: ' + approver_user.email  + '\n' +  plain_body
                 print ('send_new_registration_notification - archive_body: ' + archive_body)
                 UserEmail.objects.create(
                     name=f'CARES registration notification to {approver_user.username}',

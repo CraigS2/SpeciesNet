@@ -22,6 +22,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 from django.core.validators import URLValidator
 from django.conf import settings
 from species.asn_tools.asn_cares_tools import get_matching_cares_approver
+from species.services.email_services import send_new_registration_notification
 
 
 logger = logging.getLogger(__name__)
@@ -1160,6 +1161,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 continue
 
             try:
+                print ('_import_cares_registrations_from_asn - species name: ' + species_name)
                 matched_species = Species.objects.get(name__iexact=species_name)
             except ObjectDoesNotExist:
                 skip_count += 1
@@ -1263,6 +1265,10 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
 
             registration.save()
             create_count += 1
+
+            # send email notification to approvers
+            send_new_registration_notification(registration)
+
             status_txt = f'SUCCESS - created registration for {email} / {species_name}'
             csv_report_writer.writerow([row_count, email, species_name, status_txt])
             logger.info('CARES reg import row %d: %s', row_count, status_txt)
