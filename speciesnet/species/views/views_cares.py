@@ -382,10 +382,10 @@ def editCaresRegistration(request, pk):
         raise PermissionDenied()  
     form = CaresRegistrationApprovalForm(instance=registration)        
     if request.method == 'POST': 
+        old_status = registration.status
         form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
-                old_status = registration.status
                 registration = form.save(commit=False)
                 if registration.verification_photo:
                     processUploadedImageFile(registration.verification_photo, registration.name, request)
@@ -418,10 +418,10 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
         raise PermissionDenied()  
     form = CaresRegistrationAdminForm(instance=registration)        
     if request.method == 'POST': 
+        old_status = registration.status
         form = CaresRegistrationAdminForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
-                old_status = registration.status
                 registration = form.save(commit=False)
                 if registration.verification_photo:
                     processUploadedImageFile(registration.verification_photo, registration.name, request)
