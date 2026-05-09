@@ -7,6 +7,21 @@ Species-related views: CRUD operations, search, comments, reference links
 
 from .base import *
 from django.conf import settings
+from django.template.loader import render_to_string
+from species.services.email_services import send_new_registration_notification, send_status_change_email
+
+
+def _is_status_change_notification_transition(old_status, new_status):
+    return (
+        old_status in [
+            CaresRegistration.CaresRegistrationStatus.OPEN,
+            CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+        ]
+        and new_status in [
+            CaresRegistration.CaresRegistrationStatus.APPROVED,
+            CaresRegistration.CaresRegistrationStatus.DECLINED,
+        ]
+    )
 
 ### View CARES Species
 
@@ -304,6 +319,8 @@ def registerCaresSpecies(request, pk):
                 cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
                 cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
                 cares_reg.save()
+                if getattr(settings, 'SITE_ID', 1) == 2:
+                    send_new_registration_notification(cares_reg, request)
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
@@ -345,6 +362,8 @@ def createCaresRegistration(request, pk):
             else:
                 print ('createCaresRegistration get_matching_cares_approver: NONE found')
             registration.save()
+            if getattr(settings, 'SITE_ID', 1) == 2:
+                send_new_registration_notification(registration, request)
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
             logger.info('User %s created caresRegistration: %s (%s)', request.user.username, registration.name, str(registration.id))
@@ -366,6 +385,7 @@ def editCaresRegistration(request, pk):
         form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
+                old_status = registration.status
                 registration = form.save(commit=False)
                 if registration.verification_photo:
                     processUploadedImageFile(registration.verification_photo, registration.name, request)
@@ -374,6 +394,8 @@ def editCaresRegistration(request, pk):
                 registration.last_updated_by = request.user
                 registration.save()
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
+                if _is_status_change_notification_transition(old_status, registration.status):
+                    return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))
                 return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
             except IntegrityError as e:
                 logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
@@ -399,6 +421,7 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
         form = CaresRegistrationAdminForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
+                old_status = registration.status
                 registration = form.save(commit=False)
                 if registration.verification_photo:
                     processUploadedImageFile(registration.verification_photo, registration.name, request)
@@ -407,6 +430,8 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
                 registration.last_updated_by = request.user
                 registration.save()
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
+                if _is_status_change_notification_transition(old_status, registration.status):
+                    return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))
                 return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
             except IntegrityError as e:
                 logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
@@ -419,6 +444,50 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
             messages.error(request, 'Please correct the errors highlighted below.')
     context = {'form': form, 'registration': registration}
     return render(request, 'species/cares/editCaresRegistration.html', context)
+
+
+@login_required(login_url='login')
+def caresRegistrationNotifyAquarist(request, pk):
+    registration = get_object_or_404(CaresRegistration, pk=pk)
+    if not user_can_edit_cares_reg(request.user, registration) and not user_can_edit(request.user):
+        raise PermissionDenied()
+
+    status_label = registration.get_status_display()
+    default_subject = f'Your CARES Registration for {registration.species.name} has been {status_label}'
+    default_body = render_to_string(
+        'species/cares/email_status_change_body.html',
+        {'registration': registration, 'status_label': status_label},
+    ).strip()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'cancel':
+            return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+
+        if action == 'send':
+            subject = request.POST.get('subject', '').strip() or default_subject
+            body = request.POST.get('body', '').strip() or default_body
+            sent = send_status_change_email(registration, subject, body)
+            if sent:
+                messages.success(request, f'Email notification sent to {registration.aquarist_email}.')
+                return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+
+            messages.error(request, 'Unable to send email notification right now. Please try again.')
+            context = {
+                'registration': registration,
+                'subject': subject,
+                'body': body,
+                'status_label': status_label,
+            }
+            return render(request, 'species/cares/caresRegistrationNotifyAquarist.html', context)
+
+    context = {
+        'registration': registration,
+        'subject': default_subject,
+        'body': default_body,
+        'status_label': status_label,
+    }
+    return render(request, 'species/cares/caresRegistrationNotifyAquarist.html', context)
 
 ### Delete CARES Registration
 
@@ -652,4 +721,3 @@ def exportCaresRegistrationsPending(request):
     if not userCanEdit:
         raise PermissionDenied()
     return export_csv_caresRegistrations_asn_pending()
-
