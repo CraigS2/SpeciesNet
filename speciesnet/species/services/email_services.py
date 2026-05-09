@@ -33,16 +33,19 @@ def send_new_registration_notification(registration, request):
                 'photo_url': photo_url,
             },
         )
+        print ('send_new_registration_notification - html_body: ' + html_body)
         plain_body = strip_tags(html_body)
+        print ('send_new_registration_notification - plain_body: ' + plain_body)
+
         approvers = get_notification_approvers(registration.species)
 
-        for approver in approvers:
-            approver_user = approver.approver
+        for cares_approver in approvers:
+            approver_user = cares_approver.approver
             if approver_user is None or not approver_user.email:
                 logger.error(
                     'CARES approver notification skipped due to missing email. approver_id=%s approver_name=%s',
-                    approver.id,
-                    approver.name,
+                    cares_approver.id,
+                    cares_approver.name,
                 )
                 continue
 
@@ -55,23 +58,26 @@ def send_new_registration_notification(registration, request):
                 )
                 email_message.content_subtype = 'html'
                 email_message.send(fail_silently=False)
+
+                archive_body = 'To: ' + approver_user.get_full_name() + '\n' + 'Email: ' + approver_user.email  + ' \n\n' +  plain_body
+                print ('send_new_registration_notification - archive_body: ' + archive_body)
                 UserEmail.objects.create(
                     name=f'CARES registration notification to {approver_user.username}',
                     send_to=approver_user,
                     send_from=None,
                     email_subject=subject,
-                    email_text=plain_body,
+                    email_text=archive_body,
                 )
                 logger.info(
-                    'Sent new CARES registration notification for registration_id=%s to approver_user_id=%s',
+                    'Sent new CARES registration notification for registration_id=%s to cares_approver_user_id=%s',
                     registration.id,
                     approver_user.id,
                 )
             except Exception as e:
                 logger.error(
-                    'Failed sending new CARES registration notification for registration_id=%s approver_id=%s: %s',
+                    'Failed sending new CARES registration notification for registration_id=%s cares_approver_id=%s: %s',
                     registration.id,
-                    approver.id,
+                    cares_approver.id,
                     str(e),
                     exc_info=True,
                 )
@@ -94,7 +100,10 @@ def send_status_change_email(registration, subject, body):
         return False
 
     species_name = registration.species.name if registration.species else registration.name
+    print ('send_status_change_email - body: ' + body)
     escaped_body = escape(body).replace('\n', '<br>')
+    print ('send_status_change_email - escaped_body: ' + escaped_body)
+
     html_body = (
         "<html><body style=\"font-family: Arial, sans-serif; color: #212529;\">"
         f"<h3 style=\"margin-bottom: 1rem;\">CARES Registration Update: {species_name}</h3>"
@@ -103,6 +112,7 @@ def send_status_change_email(registration, subject, body):
         "This message was sent from CARES Species registration tools."
         "</p></body></html>"
     )
+    print ('send_status_change_email - html_body: ' + html_body)
 
     try:
         email_message = EmailMessage(
@@ -115,12 +125,13 @@ def send_status_change_email(registration, subject, body):
         email_message.content_subtype = 'html'
         email_message.send(fail_silently=False)
 
+        archive_body = 'To: ' + registration.aquarist_name + '\n Email: ' + registration.aquarist_email + '\n\n' + body
         UserEmail.objects.create(
             name=f'CARES status update to {registration.aquarist_name}',
             send_to=None,
             send_from=None,
             email_subject=subject,
-            email_text=body,
+            email_text=archive_body,
         )
         logger.info('Sent CARES status-change notification registration_id=%s', registration.id)
         return True
