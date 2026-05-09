@@ -94,10 +94,11 @@ def send_status_change_email(registration, subject, body):
         logger.error('Status change email not sent: missing registration or aquarist_email.')
         return False
 
+    species_name = registration.species.name if registration.species else registration.name
     escaped_body = escape(body).replace('\n', '<br>')
     html_body = (
         "<html><body style=\"font-family: Arial, sans-serif; color: #212529;\">"
-        f"<h3 style=\"margin-bottom: 1rem;\">CARES Registration Update: {registration.species.name}</h3>"
+        f"<h3 style=\"margin-bottom: 1rem;\">CARES Registration Update: {species_name}</h3>"
         f"<div style=\"line-height: 1.5;\">{escaped_body}</div>"
         "<p style=\"margin-top: 1.5rem; color: #6c757d;\">"
         "This message was sent from CARES Species registration tools."

@@ -453,10 +453,11 @@ def caresRegistrationNotifyAquarist(request, pk):
         raise PermissionDenied()
 
     status_label = registration.get_status_display()
-    default_subject = f'Your CARES Registration for {registration.species.name} has been {status_label}'
+    species_name = registration.species.name if registration.species else registration.name
+    default_subject = f'Your CARES Registration for {species_name} has been {status_label}'
     default_body = render_to_string(
         'species/cares/email_status_change_body.html',
-        {'registration': registration, 'status_label': status_label},
+        {'registration': registration, 'status_label': status_label, 'species_name': species_name},
     ).strip()
 
     if request.method == 'POST':
@@ -475,6 +476,7 @@ def caresRegistrationNotifyAquarist(request, pk):
             messages.error(request, 'Unable to send email notification right now. Please try again.')
             context = {
                 'registration': registration,
+                'species_name': species_name,
                 'subject': subject,
                 'body': body,
                 'status_label': status_label,
@@ -483,6 +485,7 @@ def caresRegistrationNotifyAquarist(request, pk):
 
     context = {
         'registration': registration,
+        'species_name': species_name,
         'subject': default_subject,
         'body': default_body,
         'status_label': status_label,
