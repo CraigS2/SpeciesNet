@@ -31,3 +31,13 @@ def get_matching_cares_approver(species):
         return fallback_approver
 
     return None
+
+
+def get_notification_approvers(species):
+    """Return all CaresApprovers whose specialty matches the species cares_family OR is Undefined ('UDF')."""
+    from django.db.models import Q
+    if species is None:
+        return CaresApprover.objects.none()
+    return CaresApprover.objects.filter(
+        Q(specialty=species.cares_family) | Q(specialty='UDF')
+    ).select_related('approver')

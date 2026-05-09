@@ -1,0 +1,28 @@
+<html>
+  <body style="font-family: Arial, sans-serif; color: #212529; line-height: 1.5;">
+    <div style="max-width: 680px; margin: 0 auto; border: 1px solid #d9dee3; border-radius: 6px; padding: 16px;">
+      <h2 style="margin-top: 0;">New CARES Registration</h2>
+      <p style="margin-top: 0; color: #6c757d;">A new registration has been submitted and may require your review.</p>
+
+      <h3 style="margin-bottom: 6px;">Species</h3>
+      <p style="margin: 0 0 4px;"><strong>Name:</strong> {{ species.name }}</p>
+      <p style="margin: 0 0 12px;"><strong>CARES Family:</strong> {{ species.get_cares_family_display }}</p>
+
+      <h3 style="margin-bottom: 6px;">Aquarist</h3>
+      <p style="margin: 0 0 4px;"><strong>Name:</strong> {{ registration.aquarist_name }}</p>
+      <p style="margin: 0 0 12px;"><strong>Email:</strong> {{ registration.aquarist_email }}</p>
+
+      <h3 style="margin-bottom: 6px;">Registration Details</h3>
+      <p style="margin: 0 0 4px;"><strong>Collection Location:</strong> {{ registration.collection_location|default:"None" }}</p>
+      <p style="margin: 0 0 4px;"><strong>Species Source:</strong> {{ registration.species_source }}</p>
+      <p style="margin: 0 0 4px;"><strong>Year Acquired:</strong> {{ registration.year_acquired }}</p>
+      <p style="margin: 0 0 4px;"><strong>Species Has Spawned:</strong> {% if registration.species_has_spawned %}Yes{% else %}No{% endif %}</p>
+      <p style="margin: 0 0 4px;"><strong>Young Available:</strong> {% if registration.young_available %}Yes{% else %}No{% endif %}</p>
+      <p style="margin: 0 0 4px;"><strong>Offspring Shared:</strong> {{ registration.offspring_shared }}</p>
+      {% if photo_url %}
+        <p style="margin: 0 0 4px;"><strong>Verification Photo:</strong> <a href="{{ photo_url }}">View verification photo</a></p>
+      {% endif %}
+      <p style="margin: 0;"><strong>Date Submitted:</strong> {{ registration.date_requested|date:'Y-m-d H:i' }}</p>
+    </div>
+  </body>
+</html>

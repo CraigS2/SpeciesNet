@@ -105,6 +105,7 @@ urlpatterns = [
     path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
     path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
     path('editCaresRegistrationAdmin/<str:pk>/', views.editCaresRegistrationAdmin, name="editCaresRegistrationAdmin"),
+    path('caresRegistrationNotifyAquarist/<int:pk>/', views.caresRegistrationNotifyAquarist, name='caresRegistrationNotifyAquarist'),
     path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
 
     path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),             # annonymous user registration
@@ -204,4 +205,3 @@ urlpatterns = [
 
 # django: extend urlpatterns to support Media images uploaded by user - development DEBUG environment
 urlpatterns = urlpatterns + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
-
