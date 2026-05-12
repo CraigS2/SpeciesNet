@@ -9,6 +9,7 @@ from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
 from species.services.email_services import send_new_registration_notification, send_status_change_email
+from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations
 
 
 def _is_status_change_notification_transition(old_status, new_status):
@@ -726,3 +727,53 @@ def exportCaresRegistrationsPending(request):
     if not userCanEdit:
         raise PermissionDenied()
     return export_csv_caresRegistrations_asn_pending()
+
+
+
+@login_required(login_url='login')
+def importCaresLegacyRegistrations(request):
+    """
+    Upload and process a legacy CARES Registration CSV.
+    Restricted to staff users only.
+    """
+    if not request.user.is_staff:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = 'Legacy CARES Reg Import - ' + str(request.user)
+            import_archive.save()
+
+            summary = import_legacy_cares_registrations(import_archive, request.user)
+
+            total    = summary.get('total', 0)
+            imported = summary.get('imported', 0)
+            errors   = summary.get('errors', 0)
+
+            if imported > 0 and errors == 0:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+            elif imported > 0 and errors > 0:
+                import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+            else:
+                import_archive.import_status = ImportArchive.ImportStatus.FAIL
+            import_archive.save(update_fields=['import_status'])
+
+            logger.info(
+                'User %s ran legacy CARES import: %d rows, %d imported, %d errors.',
+                request.user.username, total, imported, errors,
+            )
+
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+            }
+            return render(request, 'species/cares/importCaresLegacyRegistrationResults.html', context)
+
+    else:
+        form = ImportCsvForm()
+
+    context = {'form': form}
+    return render(request, 'species/cares/importCaresLegacyRegistrations.html', context)
