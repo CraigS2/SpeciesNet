@@ -36,7 +36,7 @@ def send_new_registration_notification(registration):
                 'photo_url': photo_url,
             },
         )
-        print ('send_new_registration_notification - html_body: ' + html_body)
+        #print ('send_new_registration_notification - html_body: ' + html_body)
         plain_body = strip_tags(html_body)
         print ('send_new_registration_notification - plain_body: ' + plain_body)
 

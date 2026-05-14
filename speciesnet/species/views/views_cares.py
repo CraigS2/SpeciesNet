@@ -320,11 +320,11 @@ def registerCaresSpecies(request, pk):
                 cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
                 cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
                 cares_reg.save()
-                if getattr(settings, 'SITE_ID', 1) == 2:
-                    #send_new_registration_notification(cares_reg, request)
-                    send_new_registration_notification(cares_reg)
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
+                if getattr(settings, 'SITE_ID', 1) == 2:
+                    #send_new_registration_notification(cares_reg, request)
+                    send_new_registration_notification(cares_reg)                    
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
                 messages.success(request, f'CARES "{cares_species.name}" registration submitted!')
                 return HttpResponseRedirect(reverse("caresSpecies", args=[cares_species.id]))
@@ -364,11 +364,11 @@ def createCaresRegistration(request, pk):
             else:
                 print ('createCaresRegistration get_matching_cares_approver: NONE found')
             registration.save()
-            if getattr(settings, 'SITE_ID', 1) == 2:
-                #send_new_registration_notification(registration, request)
-                send_new_registration_notification(registration)
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
+            if getattr(settings, 'SITE_ID', 1) == 2:
+                #send_new_registration_notification(registration, request)
+                send_new_registration_notification(registration)                
             logger.info('User %s created caresRegistration: %s (%s)', request.user.username, registration.name, str(registration.id))
             return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
 
@@ -383,6 +383,7 @@ def editCaresRegistration(request, pk):
     userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if not userCanEdit:
         raise PermissionDenied()  
+    userIsAdmin = user_is_admin (request.user)
     form = CaresRegistrationApprovalForm(instance=registration)        
     if request.method == 'POST': 
         old_status = registration.status
@@ -409,7 +410,7 @@ def editCaresRegistration(request, pk):
         else:
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    context = {'form': form, 'registration': registration}
+    context = {'form': form, 'registration': registration, 'userIsAdmin': userIsAdmin}
     return render(request, 'species/cares/editCaresRegistration.html', context)
 
 
@@ -419,7 +420,8 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
         raise PermissionDenied()  
-    form = CaresRegistrationAdminForm(instance=registration)        
+    form = CaresRegistrationAdminForm(instance=registration)   
+    print ('editCaresRegistrationAdmin view')     
     if request.method == 'POST': 
         old_status = registration.status
         form = CaresRegistrationAdminForm(request.POST, request.FILES, instance=registration)
@@ -446,7 +448,8 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     context = {'form': form, 'registration': registration}
-    return render(request, 'species/cares/editCaresRegistration.html', context)
+    print ('editCaresRegistrationAdmin view or editCaresRegistrationAdmin view?')     
+    return render(request, 'species/cares/editCaresRegistrationAdmin.html', context)
 
 
 @login_required(login_url='login')
