@@ -89,7 +89,9 @@ urlpatterns = [
     path('cares_overview/', views.cares_overview, name="cares_overview"),
     path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
     path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
-    path('cares/caresRegistrationsFromAsn/', views.caresRegistrationsFromAsn, name="caresRegistrationsFromAsn"),
+    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
+    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
+    path('importSpeciesExternalIds/', views.importSpeciesExternalIds, name="importSpeciesExternalIds"),
 
     ### CARES Site 2 Only ###
 
@@ -108,13 +110,12 @@ urlpatterns = [
     path('caresRegistrationNotifyAquarist/<int:pk>/', views.caresRegistrationNotifyAquarist, name='caresRegistrationNotifyAquarist'),
     path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
 
+    path('cares/caresRegistrationsFromAsn/', views.caresRegistrationsFromAsn, name="caresRegistrationsFromAsn"),
+    path('cares/importCaresLegacyRegistrations/', views.importCaresLegacyRegistrations, name="importCaresLegacyRegistrations"),
+
     path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),             # annonymous user registration
     path('registerCaresSelectSpecies/', views.registerCaresSelectSpecies, name="registerCaresSelectSpecies"),    # annonymous user registration
     path('registrationLookup/', views.registrationLookup, name="registrationLookup"),                            # annonymous user reg check
-
-    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
-    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
-    path('cares/importCaresLegacyRegistrations/', views.importCaresLegacyRegistrations, name="importCaresLegacyRegistrations"),
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
@@ -169,6 +170,7 @@ urlpatterns = [
 
     path('tools/', views.tools, name="tools"),      # Level 1 Species Admins
     path('tools2/', views.tools2, name="tools2"),   # Level 2 Staff and Level 3 Admin-only
+    path('tools/enforceSpeciesNameSingleQuotes/', views.enforceSpeciesNameSingleQuotes, name="enforceSpeciesNameSingleQuotes"),
 
     path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
     path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),

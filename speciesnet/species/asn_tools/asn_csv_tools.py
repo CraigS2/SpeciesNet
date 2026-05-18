@@ -577,204 +577,6 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
         'errors': errors,
     }
 
-# def _download_media_file(url):
-#     """
-#     Download a remote media file from url.
-#     Returns (filename, ContentFile) on success, or (None, None) on failure.
-#     The caller is responsible for saving via Django's field.save() so that
-#     upload_to is applied correctly.
-#     """
-#     if not url:
-#         return None, None
-#     import urllib.request
-#     import os
-#     from django.core.files.base import ContentFile
-#     from urllib.parse import urlparse
-#     try:
-#         filename = os.path.basename(urlparse(url).path)
-#         with urllib.request.urlopen(url, timeout=15) as response:
-#             content = response.read()
-#         logger.info(f'Downloaded media file: {url} ({len(content)} bytes)')
-#         return filename, ContentFile(content)
-#     except Exception as e:
-#         logger.error(f'Failed to download media file {url}: {e}')
-#         return None, None
-    
-# def import_csv_caresRegistrations_cso(import_archive, current_user):
-#     """
-#     CSO Site2 import of ASN CaresRegistration CSV.
-#     - New registrations (no matching external_id): created in full
-#     - Existing registrations (matching external_id): approval fields updated only
-    
-#     Expected CSV columns:
-#         id, external_id, name, aquarist_name, aquarist_email, affiliate_club, species,
-#         collection_location, species_source, year_acquired, verification_photo,
-#         verification_photo_url, species_has_spawned, young_available, offspring_shared,
-#         cares_approver, approver_notes, status, date_requested, lastUpdated,
-#         last_updated_by, last_report_date
-#     """
-#     created   = 0
-#     #updated   = 0
-#     skipped   = 0
-#     errors    = []
-#     error_count = 0
-
-#     csv_report_buffer = StringIO()
-#     csv_report_writer = csv.writer(csv_report_buffer)
-#     csv_report_writer.writerow(['Row', 'External_ID', 'Species', 'Import_Status'])
-
-#     try:
-#         with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
-#             decoded = import_file.read()
-#     except Exception as e:
-#         logger.error(f"CSO registration import: failed to read file: {e}")
-#         return {'created': 0, 'skipped': 0, 'total': 0, 'errors': [str(e)]}
-
-#     reader = DictReader(decoded.splitlines())
-#     for row_num, row in enumerate(reader, start=2):
-
-#         # --- external_id is required ---
-#         external_id_raw = row.get('external_id', '').strip()
-#         if not external_id_raw:
-#             skipped += 1
-#             continue
-#         try:
-#             external_id = int(external_id_raw)
-#         except ValueError:
-#             error_msg = f"Row {row_num}: invalid external_id '{external_id_raw}'"
-#             errors.append(error_msg)
-#             error_count += 1
-#             csv_report_writer.writerow([row_num, external_id_raw, '', f'ERROR: {error_msg}'])
-#             logger.warning(f"CSO import ERROR: {error_msg}")
-#             continue
-
-#         # --- only import new CaresRegistrations ---
-#         try:
-#             reg = CaresRegistration.objects.get(external_id=external_id)
-#             species_name = row.get('species', '').strip()
-#             skipped += 1
-#             csv_report_writer.writerow([f'{row_num}', f'{external_id}', species_name,
-#                                         'SKIPPED: registration already exists on Site2'])
-#             logger.info(f"CSO import: skipping existing registration external_id={external_id}")
-#             continue
-#         except CaresRegistration.DoesNotExist:
-#             pass
-        
-#         reg = CaresRegistration()
-#         reg.external_id = external_id
-#         reg.asn_imported = True            
-
-#         try:
-#             photo_url = row.get('verification_photo_url', '').strip()
-#             photo_saved = False
-#             if photo_url:
-#                 filename, content_file = _download_media_file(photo_url)
-#                 if filename and content_file:
-#                     reg.verification_photo.save(filename, content_file, save=False)
-#                     photo_saved = True
-#             if not photo_saved:
-#                 species_name = row.get('species', '').strip()  
-#                 error_msg = f"Row {row_num}: Required verification photo failure for external_id={external_id} species='{species_name}'"
-#                 errors.append(error_msg)
-#                 error_count += 1
-#                 csv_report_writer.writerow([row_num, external_id, species_name, f'ERROR: {error_msg}'])
-#                 logger.warning(f"CSO import ERROR: {error_msg}")
-#                 continue
-
-#             reg.aquarist_name       = row.get('aquarist_name', '').strip()
-#             reg.aquarist_email      = row.get('aquarist_email', '').strip()
-#             reg.collection_location = row.get('collection_location', '').strip()
-#             reg.species_source      = row.get('species_source', '').strip()
-#             reg.species_has_spawned = row.get('species_has_spawned', '').strip().lower() == 'true'
-#             reg.young_available     = row.get('young_available', '').strip().lower() == 'true'
-#             year_raw                = row.get('year_acquired', '').strip()
-#             reg.year_acquired       = int(year_raw) if year_raw.isdigit() else None
-
-#             species_name = row.get('species', '').strip()
-#             if species_name:
-#                 try:
-#                     reg.species = Species.objects.get(name__iexact=species_name)
-#                 except Species.DoesNotExist:
-#                     error_msg = f"Row {row_num}: No Species name match found: '{species_name}' for external_id={external_id}"
-#                     errors.append(error_msg)
-#                     error_count += 1
-#                     csv_report_writer.writerow([row_num, external_id, species_name, f'ERROR: {error_msg}'])
-#                     logger.warning(f"CSO import ERROR:  {error_msg}")
-#                     continue
-#                 except Species.MultipleObjectsReturned:
-#                     error_msg = f"Row {row_num}: Multiple Species name matches found: '{species_name}' for external_id={external_id}"
-#                     errors.append(error_msg)
-#                     error_count += 1
-#                     csv_report_writer.writerow([row_num, external_id, species_name, f'ERROR: {error_msg}'])
-#                     logger.warning(f"CSO import ERROR: multiple species match '{species_name}' for external_id={external_id}")
-#                     continue                        
-#             else:
-#                 error_msg = f"Row {row_num}: No Species name match found (species field is empty) for external_id={external_id}"
-#                 errors.append(error_msg)
-#                 error_count += 1
-#                 csv_report_writer.writerow([f'{row_num}', f'{external_id}', '', f'ERROR: {error_msg}'])
-#                 logger.warning(f"CSO import ERROR: {error_msg}")
-#                 continue
-
-#             club_name = row.get('affiliate_club', '').strip()
-#             if club_name:
-#                 try:
-#                     print ('Whoa .... IS THIS THING ON? SHOULD IT BE??')
-#                     reg.affiliate_club = AquaristClub.objects.get(name__iexact=club_name)
-#                     logger.info(f"CSO import: set affiliate_club: {reg.affiliate_club.acronym}")
-#                 except AquaristClub.DoesNotExist:
-#                     reg.affiliate_club_id = 1            # Set default internal Club 'Cares For Individuals' always id=1
-#                     logger.warning (f"CSO import: unable to match affiliate_club: {club_name}")
-#                     pass  
-
-#             aquarist_name = reg.aquarist_name
-#             reg.name = f"{species_name} - {aquarist_name}"
-
-#             new_status = row.get('status', '').strip()
-#             valid_statuses = [s[0] for s in CaresRegistration.CaresRegistrationStatus.choices]
-#             if new_status and new_status in valid_statuses:
-#                 reg.status = new_status
-
-#             reg.cares_approver = get_matching_cares_approver(reg.species)
-#             reg.last_updated_by = current_user
-#             reg.save()
-#             created += 1
-#             logger.info(f"CSO import: created registration external_id={external_id} '{reg.name}'")
- 
-#         except Exception as e:
-#             exc_msg = f"Row {row_num} external_id={external_id}: {str(e)}"
-#             logger.error(f"CSO import ERROR: failed to save row {row_num} external_id={external_id}: {e}", exc_info=True)
-#             errors.append(exc_msg)
-#             error_count += 1
-#             csv_report_writer.writerow([row_num, external_id, '', f'ERROR: {exc_msg}'])
-
-#     # --- persist CSV report ---
-#     csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-#     csv_report_filename = current_user.username + '_cares_reg_cso_import_log.csv'
-#     import_archive.import_results_file.save(csv_report_filename, csv_report_file)
-
-#     # --- set import archive status ---
-#     if error_count > 0 and (created) == 0:
-#         import_archive.import_status = ImportArchive.ImportStatus.FAIL
-#     elif error_count > 0:
-#         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
-#     else:
-#         import_archive.import_status = ImportArchive.ImportStatus.FULL
-
-#     import_archive.name = current_user.username + '_cares_reg_cso_import'
-#     import_archive.save()
-
-#     summary = {
-#         'created':    created,
-#         'skipped':    skipped,
-#         'errors':     error_count,
-#         'error_detail': errors,
-#         'total':      created + skipped + error_count,
-#     }
-
-#     logger.info(f"CSO registration import complete: {summary}")
-#     return summary
-
 
 #Export Species List, SpeciesInstances, Aquarists, Clubs, BAP
 
@@ -836,13 +638,18 @@ def export_csv_species():
     )
     writer = csv.writer(response)
 
+    external_id_header = 'cso_id'
+    site_id = getattr(settings, 'SITE_ID', 1)
+    if site_id == 2:
+        external_id_header = 'asn_id'
+    
     writer.writerow([
        # id    name   alt_name    common_name     description    species_image    photo_credit           
         'id', 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit', 
-       # category    global_region    local_distribution 
-        'category', 'global_region', 'local_distribution', 
-       # cares_family            cares_classification     cares_assessment_date     iucn_red_list   iucn_assessment_date    
-        'cares_family',         'cares_classification',  'cares_assessment_date',  'iucn_red_list', 'iucn_assessment_date', 
+       # category    global_region    local_distribution    species_instance_count   external_id
+        'category', 'global_region', 'local_distribution', 'species_instance_count', external_id_header,
+       # cares_family    cares_classification    cares_assessment_date    iucn_red_list   iucn_assessment_date    
+        'cares_family', 'cares_classification', 'cares_assessment_date', 'iucn_red_list', 'iucn_assessment_date', 
        # created   created_by     lastUpdated    last_edited_by    
         'created', 'created_by', 'lastUpdated', 'last_edited_by' 
         ])
@@ -851,8 +658,8 @@ def export_csv_species():
         writer.writerow([
             #       id          name          alt_name          common_name          description          species_image          photo_credit           
             species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
-            #       category          global_region          local_distribution 
-            species.category, species.global_region, species.local_distribution, 
+            #       category          global_region          local_distribution          species_instance_count          external_id
+            species.category, species.global_region, species.local_distribution, species.species_instance_count, species.external_id,
             #       cares_family          cares_classification          cares_assessment_date          iucn_red_list          iucn_assessment_date    
             species.cares_family, species.cares_classification, species.cares_assessment_date, species.iucn_red_list, species.iucn_assessment_date,
             #       created          created_by          lastUpdated          last_edited_by    

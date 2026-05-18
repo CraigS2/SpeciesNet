@@ -1,3 +1,20 @@
+import csv
+import io
+import logging
+from csv import DictReader
+from datetime import datetime, timezone as dt_timezone
+from io import StringIO
+
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.files.base import ContentFile
+
+from ..models import CaresApprover, ImportArchive, Species, User
+from ..models import AquaristClub, CaresRegistration, Species
+
+logger = logging.getLogger(__name__)
+
+
 """
 Legacy CARES Registration CSV import tool — Site 2 only.
 Designed for one-time ingestion of historical data.
@@ -10,14 +27,6 @@ Date format: yyyy-mm-dd
 breeding_group truthy values: Y, y, Yes, yes, T, t, True, true
 club matched by acronym (case-insensitive)
 """
-
-import csv
-import io
-import logging
-from datetime import datetime, timezone as dt_timezone
-from ..models import AquaristClub, CaresRegistration, Species
-
-logger = logging.getLogger(__name__)
 
 # ── Constants ───────────────��──────────────────────────────────────────────────
 
@@ -261,4 +270,184 @@ def import_legacy_cares_registrations(import_archive, imported_by):
 
         summary['rows'].append(row_result)
 
+    return summary
+
+
+def import_csv_species_external_ids(import_archive: ImportArchive, current_user: User) -> dict:
+    """
+    Import Species External IDs from a CSV file.
+
+    CSV columns
+    -----------
+    species_name           : str — required on every row
+    asn_id                 : int — ASN site primary key (Site 1 lookup key)
+    cso_id                 : int — CSO site primary key (Site 2 lookup key)
+    render_cares           : str — only truthy rows are processed
+    species_instance_count : int — positive integers only; Site 2 update only
+
+    Site 1 (ASN)  SITE_ID=1
+      Lookup : species.pk == asn_id  (name fallback when asn_id absent)
+      Verify : species.name must match species_name  (mismatch → error, row skipped)
+      Sets   : species.external_id = cso_id  (required when render_cares is truthy)
+
+    Site 2 (CSO)  SITE_ID=2
+      Lookup : species.pk == cso_id  (name fallback when cso_id absent)
+      Verify : species.name must match species_name  (mismatch → error, row skipped)
+      Sets   : species.external_id = asn_id  (required when render_cares is truthy)
+      Also   : species.species_instance_count updated when a positive integer is supplied
+
+    Returns dict: updated, skipped, errors, total, site_id
+    """
+
+    site_id = getattr(settings, 'SITE_ID', 1)
+
+    csv_report_buffer = StringIO()
+    csv_report_writer = csv.writer(csv_report_buffer)
+    csv_report_writer.writerow(['Row', 'Species_Name', 'Lookup_ID', 'Import_Status'])
+
+    row_count    = 0
+    update_count = 0
+    skip_count   = 0
+    error_count  = 0
+
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+        for import_row in DictReader(import_file):
+            row_count += 1
+
+            species_name               = (import_row.get('species_name') or '').strip()
+            asn_id_raw                 = (import_row.get('asn_id') or '').strip()
+            cso_id_raw                 = (import_row.get('cso_id') or '').strip()
+            render_cares_raw           = (import_row.get('render_cares') or '').strip()
+            species_instance_count_raw = (import_row.get('species_instance_count') or '').strip()
+
+            # species_name is always required
+            if not species_name:
+                error_count += 1
+                status_txt = 'ERROR - missing required field: species_name'
+                csv_report_writer.writerow([row_count, '', '', status_txt])
+                logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                continue
+
+            # skip non-CARES rows
+            if not _parse_bool(render_cares_raw):
+                skip_count += 1
+                status_txt = f'SKIP - render_cares is not truthy ({render_cares_raw!r})'
+                csv_report_writer.writerow([row_count, species_name, '', status_txt])
+                logger.info('Species external_id import row %d: %s', row_count, status_txt)
+                continue
+
+            # site-specific field assignment
+            if site_id == 1:
+                lookup_id_raw, external_id_raw, lookup_label, ext_label = asn_id_raw, cso_id_raw, 'asn_id', 'cso_id'
+            else:
+                lookup_id_raw, external_id_raw, lookup_label, ext_label = cso_id_raw, asn_id_raw, 'cso_id', 'asn_id'
+
+            # species lookup — primary by PK, fallback by name
+            if lookup_id_raw:
+                try:
+                    lookup_id = int(lookup_id_raw)
+                except (ValueError, TypeError):
+                    error_count += 1
+                    status_txt = f'ERROR - invalid {lookup_label} (not an integer): {lookup_id_raw!r}'
+                    csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    continue
+
+                try:
+                    species = Species.objects.get(pk=lookup_id)
+                except Species.DoesNotExist:
+                    error_count += 1
+                    status_txt = f'ERROR - species not found by {lookup_label}={lookup_id}'
+                    csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    continue
+
+                if species.name.strip().lower() != species_name.lower():
+                    error_count += 1
+                    status_txt = (
+                        f'ERROR - name mismatch: CSV={species_name!r} '
+                        f'DB={species.name!r} for {lookup_label}={lookup_id}'
+                    )
+                    csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    continue
+
+            else:
+                try:
+                    species = _resolve_species(species_name)
+                    lookup_id_raw = str(species.pk)
+                except ValueError as exc:
+                    error_count += 1
+                    status_txt = f'ERROR - {lookup_label} not provided and {exc}'
+                    csv_report_writer.writerow([row_count, species_name, '', status_txt])
+                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    continue
+
+            # external_id source value is required for truthy CARES rows
+            if not external_id_raw:
+                error_count += 1
+                status_txt = (
+                    f'ERROR - render_cares is truthy but {ext_label} is missing '
+                    f'for species {species_name!r}'
+                )
+                csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+                logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                continue
+
+            try:
+                new_external_id = int(external_id_raw)
+            except (ValueError, TypeError):
+                error_count += 1
+                status_txt = f'ERROR - invalid {ext_label} (not an integer): {external_id_raw!r}'
+                csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+                logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                continue
+
+            # apply DB updates
+            fields_to_save = ['external_id']
+            species.external_id = new_external_id
+
+            # Site 2 only: update species_instance_count when a positive integer is supplied
+            if site_id == 2 and species_instance_count_raw:
+                try:
+                    new_count = int(species_instance_count_raw)
+                    if new_count > 0:
+                        species.species_instance_count = new_count
+                        fields_to_save.append('species_instance_count')
+                except (ValueError, TypeError):
+                    logger.warning(
+                        'Species external_id import row %d: invalid species_instance_count %r '
+                        'for species %r — skipping count update',
+                        row_count, species_instance_count_raw, species_name,
+                    )
+
+            species.save(update_fields=fields_to_save)
+            update_count += 1
+
+            status_txt = f'SUCCESS - updated [{", ".join(fields_to_save)}]  ({ext_label}={new_external_id})'
+            csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+            logger.info('Species external_id import row %d: %s', row_count, status_txt)
+
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
+    csv_report_filename = f'{current_user.username}_species_external_id_import_log.csv'
+    import_archive.import_results_file.save(csv_report_filename, csv_report_file)
+
+    if update_count == 0 and error_count > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+    elif error_count > 0:
+        import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+    else:
+        import_archive.import_status = ImportArchive.ImportStatus.FULL
+
+    import_archive.name = f'{current_user.username}_species_external_id_import'
+    import_archive.save()
+
+    summary = {
+        'updated': update_count,
+        'skipped': skip_count,
+        'errors':  error_count,
+        'total':   row_count,
+        'site_id': site_id,
+    }
+    logger.info('Species external_id import complete: %s', summary)
     return summary

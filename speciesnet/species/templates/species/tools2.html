@@ -15,6 +15,7 @@
         <h3>Import Tools</h3>
         <p><a href="{% url 'importSpeciesToStaging' %}">Import Species with Staging from CSV</a></p>
         <p><a href="{% url 'importSpeciesReferenceLinks' %}">Import Species Reference Links from CSV</a></p>
+        <p><a href="{% url 'importSpeciesExternalIds' %}">Import Species External IDs and Aquarist Counts by CSV</a></p>        
         <p><a href="{% url 'importCaresRegistrations'%}">Import CARES Registrations from CSV</a></p>
         <p><a href="{% url 'importCaresLegacyRegistrations'%}">Import CARES Legacy Registrations from CSV</a></p>
     </div>    
@@ -23,6 +24,7 @@
         <p><a href="{% url 'createSpecies'%}">Add Species</a></p>
         <p><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></p>
         <p><a href="{% url 'speciesComments' %}">View all Species Comments</a></p>   
+        <p><a href="{% url 'enforceSpeciesNameSingleQuotes' %}">Enforce Species name consistency: single quotes (DB changes!)</a></p>
         <p><a href="{% url 'collectSpeciesData' %}">Collect External Species Data</a></p>   
     </div> 
     <div>

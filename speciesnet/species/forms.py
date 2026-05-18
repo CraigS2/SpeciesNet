@@ -47,7 +47,7 @@ class SpeciesForm2(ModelForm):
             'class': 'form-control'
         })
         self.fields['description'].widget.attrs.update({
-            'rows': 2,
+            'rows': 4,
             'placeholder': 'Summary description of the species...',
             'class': 'form-control'
         })
@@ -147,7 +147,7 @@ class CaresSpeciesForm(ModelForm):
             'class': 'form-control'
         })
         self.fields['description'].widget.attrs.update({
-            'rows': 2,
+            'rows': 4,
             'placeholder': 'Summary description of the species...',
             'class': 'form-control'
         })

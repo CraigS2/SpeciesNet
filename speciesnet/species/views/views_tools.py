@@ -302,6 +302,67 @@ def initialize_cares_species_fields():
     print (message_text)
     return 
 
+@login_required(login_url='login')
+def enforceSpeciesNameSingleQuotes(request):
+    """
+    Species name consistency utility: replaces all curly/smart quote variants
+    in species name and alt_name fields with standard single quotes, then
+    displays a summary of every record changed.
+    """
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
+
+    changes = []
+
+    if request.method == 'POST':
+        # Unicode quote characters to normalise → straight single quote
+        QUOTE_MAP = str.maketrans({
+            '\u2018': "'",   # left single quotation mark  '
+            '\u2019': "'",   # right single quotation mark '
+            '\u201A': "'",   # single low-9 quotation mark ‚
+            '\u201B': "'",   # single high-reversed-9      ‛
+            '\u0060': "'",   # grave accent                `
+            '\u00B4': "'",   # acute accent                ´
+            '\u2032': "'",   # prime                       ′
+            '\u0022': "'",   # double quote → single       "
+            '\u201C': "'",   # left double quotation mark  "
+            '\u201D': "'",   # right double quotation mark "
+        })
+
+        for species in Species.objects.all():
+            original_name     = species.name or ''
+            original_alt_name = species.alt_name or ''
+
+            new_name     = original_name.translate(QUOTE_MAP)
+            new_alt_name = original_alt_name.translate(QUOTE_MAP)
+
+            fields_updated = []
+            if new_name != original_name:
+                species.name = new_name
+                fields_updated.append('name')
+            if new_alt_name != original_alt_name:
+                species.alt_name = new_alt_name
+                fields_updated.append('alt_name')
+
+            if not fields_updated:
+                continue
+
+            species.save(update_fields=fields_updated)
+
+            changes.append({
+                'id':            species.id,
+                'original_name': original_name,
+                'new_name':      new_name,
+                'fields':        ', '.join(fields_updated),
+            })
+            logger.info(
+                'Admin %s: enforced single quotes on species id=%d "%s" → "%s" (fields: %s)',
+                request.user.username, species.id, original_name, new_name, ', '.join(fields_updated),
+            )
+
+    context = {'changes': changes}
+    return render(request, 'species/tools/enforceSpeciesNameSingleQuotes.html', context)
+
 
 @login_required(login_url='login')
 def collectSpeciesData(request):

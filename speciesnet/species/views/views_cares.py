@@ -9,7 +9,7 @@ from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
 from species.services.email_services import send_new_registration_notification, send_status_change_email
-from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations
+from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
 
 def _is_status_change_notification_transition(old_status, new_status):
@@ -780,3 +780,56 @@ def importCaresLegacyRegistrations(request):
 
     context = {'form': form}
     return render(request, 'species/cares/importCaresLegacyRegistrations.html', context)
+
+@login_required(login_url='login')
+def importSpeciesExternalIds(request):
+    """
+    Import Species External IDs from a CSV file.
+
+    SITE_ID=1 (ASN): looks up species by asn_id, sets external_id = cso_id
+    SITE_ID=2 (CSO): looks up species by cso_id, sets external_id = asn_id
+
+    CSV columns: species_name, asn_id, cso_id, render_cares, species_instance_count
+    Only rows where render_cares is truthy are processed.
+    species_instance_count update is Site 2 only.
+    """
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    site_id = getattr(settings, 'SITE_ID', 1)
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = 'Species External ID Import - ' + str(request.user)
+            import_archive.save()
+
+            summary = import_csv_species_external_ids(import_archive, request.user)
+
+            updated = summary.get('updated', 0)
+            errors  = summary.get('errors', 0)
+            total   = summary.get('total', 0)
+
+            if total > 0 and errors == 0:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+            elif updated > 0:
+                import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+            else:
+                import_archive.import_status = ImportArchive.ImportStatus.FAIL
+            import_archive.save(update_fields=['import_status'])
+
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+                'site_id': site_id,
+            }
+            return render(request, 'species/cares/importSpeciesExternalIdsResults.html', context)
+
+    else:
+        form = ImportCsvForm()
+
+    context = {'form': form, 'site_id': site_id}
+    return render(request, 'species/cares/importSpeciesExternalIds.html', context)

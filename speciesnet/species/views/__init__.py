@@ -30,7 +30,8 @@ from .views_cares import (
     CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, 
     editCaresSpecies2, editCaresRegistrationAdmin, caresRegistrationNotifyAquarist, registrationLookup,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers,
-    exportCaresRegistrations, importCaresRegistrations, caresRegistrationsFromAsn, importCaresLegacyRegistrations
+    exportCaresRegistrations, importCaresRegistrations, caresRegistrationsFromAsn, importCaresLegacyRegistrations,
+    importSpeciesExternalIds
 )
 
 # Species Instance (Aquarist Species)
@@ -81,7 +82,7 @@ from .views_ux import (
 from .views_tools import (
     speciesProfilesWithPhotos, speciesInstancesWithPhotos, speciesInstancesWithLabels, 
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
-    collectSpeciesData, 
+    enforceSpeciesNameSingleQuotes, collectSpeciesData, 
     tools, tools2, dirtyDeed
 )
 
