@@ -49,18 +49,41 @@
                     {% endif %}            
 
                     {% if speciesReferenceLinks.all.count > 0  %}
-                    <div class="css_class='mb-3 section-bordered">
-                        <h4>Reference Links</h4>
-                            {% for speciesReferenceLink in speciesReferenceLinks %}
-                                <p style = "display: flex; justify-content: space-between;">
-                                    <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>
-                                    {% if speciesComment.user == request.user or userCanEdit %}
-                                        <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
-                                        <!--a class="btn btn-secondary" href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id  %}" role="button">&nbsp;Edit Link&nbsp;</a-->
-                                    {% endif %}  
-                                </p>  
-                            {% endfor %}  
-                    </div>
+                        <div class="css_class='mb-3 section-bordered">
+                            <h4>Reference Links</h4>
+                                {% for speciesReferenceLink in speciesReferenceLinks %}
+                                    <p style = "display: flex; justify-content: space-between;">
+                                        <span><a href="{{speciesReferenceLink.reference_url}}" target="_blank" rel="noopener noreferrer">{{speciesReferenceLink.name}}</a></span>
+                                        {% if speciesComment.user == request.user or userCanEdit %}
+                                            <a href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id %}">Edit Link</a>
+                                            <!--a class="btn btn-secondary" href="{% url 'editSpeciesReferenceLink' speciesReferenceLink.id  %}" role="button">&nbsp;Edit Link&nbsp;</a-->
+                                        {% endif %}  
+                                    </p>  
+                                {% endfor %}  
+                        </div>
+                    {% endif %}
+
+                    {% if species.external_id %}
+                        <div class="css_class='mb-3 section-bordered">
+                            <h4><i>AquaristSpecies.net</i> Community</h4>
+                            <p class="text-muted mb-3">
+                                Aquarists keeping and breeding <i>{{species.name}}</i> are encouraged to share their experiences and availability of offspring 
+                                they raise with fellow hobbyists. If you haven't already, please consider creating an AquaristSpecies.net account and clicking 
+                                <i>'I keep this species'</i> on the matching species page.
+                            </p>
+                            <p>
+                            {% if species.species_instance_count %}
+                                {% if species.species_instance_count == 1 %}
+                                    <b>Currently there is 1 registered aquarist keeping this species.</b> 
+                                {% else %}    
+                                    <b>There are currently {{species.species_instance_count}} registered aquarists keeping this species.</b> 
+                                {% endif %}    
+                            {% endif %}
+                            <p>
+                                <b><a href="https://aquaristspecies.net/speciesInstance/{{species.external_id}}/" target="_blank" rel="noopener noreferrer">
+                                AquaristSpecies.net - {{species.name}}</a></b>
+                            </p>
+                        </div>                        
                     {% endif %}
 
                     {% if userCanEdit %}

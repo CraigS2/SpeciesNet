@@ -403,15 +403,17 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
                 logger.warning('Species external_id import row %d: %s', row_count, status_txt)
                 continue
 
-            # apply DB updates
-            fields_to_save = ['external_id']
-            species.external_id = new_external_id
+            # apply DB updates — only write fields that actually change
+            fields_to_save = []
+            if species.external_id != new_external_id:
+                species.external_id = new_external_id
+                fields_to_save.append('external_id')
 
             # Site 2 only: update species_instance_count when a positive integer is supplied
             if site_id == 2 and species_instance_count_raw:
                 try:
                     new_count = int(species_instance_count_raw)
-                    if new_count > 0:
+                    if new_count > 0 and species.species_instance_count != new_count:
                         species.species_instance_count = new_count
                         fields_to_save.append('species_instance_count')
                 except (ValueError, TypeError):
@@ -420,6 +422,13 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
                         'for species %r — skipping count update',
                         row_count, species_instance_count_raw, species_name,
                     )
+
+            if not fields_to_save:
+                skip_count += 1
+                status_txt = 'SKIP - no change: all values already match DB'
+                csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
+                logger.info('Species external_id import row %d: %s', row_count, status_txt)
+                continue
 
             species.save(update_fields=fields_to_save)
             update_count += 1

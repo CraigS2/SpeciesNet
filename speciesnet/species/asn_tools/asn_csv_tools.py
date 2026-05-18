@@ -630,7 +630,49 @@ def export_csv_aquarists():
         
     return response
 
+def sync_species_instance_counts() -> dict:
+    """
+    Recalculates species_instance_count for every Species record by counting
+    active (currently_keep=True) related SpeciesInstance rows, and persists
+    the value only when it differs from the cached DB value.
+
+    Called automatically before export_csv_species so the exported count is
+    always accurate and ready for import into Site 2.
+
+    Returns dict: updated, unchanged, total
+    """
+    from django.db.models import Count
+
+    updated   = 0
+    unchanged = 0
+
+    species_qs = Species.objects.annotate(
+        live_count=Count('species_instances', filter=Q(species_instances__currently_keep=True))
+    )
+
+    for species in species_qs:
+        if species.species_instance_count != species.live_count:
+            old_count = species.species_instance_count
+            species.species_instance_count = species.live_count
+            species.save(update_fields=['species_instance_count'])
+            updated += 1
+            logger.info(
+                'sync_species_instance_counts: updated species id=%d "%s" count %d → %d',
+                species.id, species.name, old_count, species.live_count,
+            )
+        else:
+            unchanged += 1
+
+    total = updated + unchanged
+    logger.info(
+        'sync_species_instance_counts complete: %d updated, %d unchanged, %d total',
+        updated, unchanged, total,
+    )
+    return {'updated': updated, 'unchanged': unchanged, 'total': total}
+
 def export_csv_species():
+
+    sync_species_instance_counts() 
     speciesSet = Species.objects.all()
     response = HttpResponse (
         content_type="text/csv",
@@ -638,18 +680,20 @@ def export_csv_species():
     )
     writer = csv.writer(response)
 
+    id_header          = 'asn_id'
     external_id_header = 'cso_id'
     site_id = getattr(settings, 'SITE_ID', 1)
     if site_id == 2:
+        id_header          = 'cso_id'
         external_id_header = 'asn_id'
     
     writer.writerow([
-       # id    name   alt_name    common_name     description    species_image    photo_credit           
-        'id', 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit', 
+       # id         name    alt_name    common_name    description    species_image    photo_credit           
+        id_header, 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit', 
        # category    global_region    local_distribution    species_instance_count   external_id
         'category', 'global_region', 'local_distribution', 'species_instance_count', external_id_header,
-       # cares_family    cares_classification    cares_assessment_date    iucn_red_list   iucn_assessment_date    
-        'cares_family', 'cares_classification', 'cares_assessment_date', 'iucn_red_list', 'iucn_assessment_date', 
+       # cares_family    render_cares    cares_classification    cares_assessment_date    iucn_red_list   iucn_assessment_date    
+        'cares_family', 'render_cares', 'cares_classification', 'cares_assessment_date', 'iucn_red_list', 'iucn_assessment_date', 
        # created   created_by     lastUpdated    last_edited_by    
         'created', 'created_by', 'lastUpdated', 'last_edited_by' 
         ])
@@ -660,8 +704,8 @@ def export_csv_species():
             species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
             #       category          global_region          local_distribution          species_instance_count          external_id
             species.category, species.global_region, species.local_distribution, species.species_instance_count, species.external_id,
-            #       cares_family          cares_classification          cares_assessment_date          iucn_red_list          iucn_assessment_date    
-            species.cares_family, species.cares_classification, species.cares_assessment_date, species.iucn_red_list, species.iucn_assessment_date,
+            #       cares_family          render_cares          cares_classification          cares_assessment_date          iucn_red_list          iucn_assessment_date    
+            species.cares_family, species.render_cares, species.cares_classification, species.cares_assessment_date, species.iucn_red_list, species.iucn_assessment_date,
             #       created          created_by          lastUpdated          last_edited_by    
             species.created, species.created_by, species.lastUpdated, species.last_edited_by
             ])
