@@ -5,6 +5,10 @@
 __pycache__/
 local_settings.py
 db.sqlite3
+.env.asn
+.env.cso
+docker-compose.yml.asn
+docker-compose.yml.cso
 .env
 *.bak
 #vscode

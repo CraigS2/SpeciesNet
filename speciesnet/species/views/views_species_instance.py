@@ -571,7 +571,17 @@ def registerCaresSpeciesInstance(request, pk):
                 if prior_declined_reg.exists():
                     cares_reg.status = CaresRegistration.CaresRegistrationStatus.RESUBMIT
                     cares_reg.save(update_fields=['status'])
-                    prior_declined_reg.update(status=CaresRegistration.CaresRegistrationStatus.CLOSED)                
+                    prior_declined_reg.update(status=CaresRegistration.CaresRegistrationStatus.CLOSED)        
+
+                send_asn_notification_email(
+                    subject=f'ASN: New CARES Registration - {cares_reg.name}',
+                    body=(
+                        f'New CaresRegistration submitted.\n\n'
+                        f'Name:     {cares_reg.name}\n'
+                        f'Species:  {cares_reg.species}\n'
+                        f'Aquarist: {cares_reg.aquarist_name} ({cares_reg.aquarist_email})\n'
+                    )
+                )                    
 
                 logger.info(
                     'User %s submitted CARES registration for species: %s (reg_id=%s)',

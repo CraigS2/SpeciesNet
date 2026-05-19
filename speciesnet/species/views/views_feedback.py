@@ -63,6 +63,17 @@ def submitSpeciesFeedback(request, pk):
                 feedback.full_clean()
                 feedback.save()
 
+                submitter = request.user.username if request.user.is_authenticated else feedback.email or 'Anonymous'
+                send_asn_notification_email(
+                    subject=f'ASN: New Species Feedback - {species.name}',
+                    body=(
+                        f'New SpeciesFeedback submitted.\n\n'
+                        f'Species:   {species.name}\n'
+                        f'Submitter: {submitter}\n'
+                        f'Comment:   {feedback.comment[:200]}\n'
+                    )
+                )
+
                 if feedback.species_image:
                     processUploadedImageFile(feedback.species_image, feedback.name, request)
 

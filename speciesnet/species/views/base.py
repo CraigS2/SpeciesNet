@@ -86,7 +86,19 @@ from species.asn_tools.asn_species_aggregation import collect_species_data_as_cs
 # Logger
 logger = logging.getLogger(__name__)
 
+### Site 1 Creation Notification Email
 
+def send_asn_notification_email(subject, body):
+    """Send an admin notification email to itself for Site 1 (ASN) creation events."""
+    if getattr(settings, 'SITE_ID', 1) != 1:
+        return
+    from_email = settings.DEFAULT_FROM_EMAIL
+    try:
+        EmailMessage(subject, body, from_email, [from_email]).send(fail_silently=False)
+        logger.info('ASN notification email sent: %s', subject)
+    except Exception as e:
+        logger.error('ASN notification email failed - %s: %s', subject, str(e))
+        
 def record_page_view(page_type, object_id, is_authenticated):
     """
     Increment the PageViewCount for the given page_type + object_id + visitor_type.

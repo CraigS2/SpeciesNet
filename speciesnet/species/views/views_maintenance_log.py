@@ -266,6 +266,17 @@ def createSpeciesMaintenanceLogEntry(request, pk):
                 if speciesInstance.user == request.user:
                     speciesInstance.save()
             
+            send_asn_notification_email(
+                subject=f'ASN: New Maintenance Log Entry - {speciesMaintenanceLog.species.name}',
+                body=(
+                    f'New SpeciesMaintenanceLogEntry created.\n\n'
+                    f'Log:      {speciesMaintenanceLog.name}\n'
+                    f'Species:  {speciesMaintenanceLog.species.name}\n'
+                    f'By:       {request.user.username}\n'
+                    f'Entry:    {speciesMaintenanceLogEntry.name}\n'
+                )
+            )
+
             logger.info('User %s created speciesMaintenanceLog entry %s (%s)', 
                        request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
             return HttpResponseRedirect(reverse("speciesMaintenanceLog", args=[speciesMaintenanceLog.id]))
