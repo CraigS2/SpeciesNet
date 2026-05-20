@@ -6,6 +6,8 @@ Restricted to staff/admin users only
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+import csv
+from io import TextIOWrapper
 
 ### Species Reports
 
@@ -387,6 +389,163 @@ def collectSpeciesData(request):
         
     form = ImportCsvForm()
     return render(request, "species/importSpecies.html", {"form": form})
+
+
+@login_required(login_url='login')
+def exportSpeciesCollectionLocations(request):
+    if not (request.user.is_staff or request.user.is_admin):
+        raise PermissionDenied()
+
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': 'attachment; filename="species_collection_locations.csv"'},
+    )
+    writer = csv.writer(response)
+    writer.writerow(['id', 'species_id', 'species_name', 'name', 'created'])
+
+    locations = SpeciesCollectionLocation.objects.select_related('species').all()
+    for location in locations:
+        writer.writerow([
+            location.id,
+            location.species_id,
+            location.species.name,
+            location.name,
+            location.created,
+        ])
+
+    return response
+
+
+@login_required(login_url='login')
+def importSpeciesCollectionLocations(request):
+    if not (request.user.is_staff or request.user.is_admin):
+        raise PermissionDenied()
+
+    summary = None
+    form = ImportSpeciesCollectionLocationsForm()
+
+    if request.method == 'POST':
+        form = ImportSpeciesCollectionLocationsForm(request.POST, request.FILES)
+        if form.is_valid():
+            created_count = 0
+            skipped_count = 0
+            error_count = 0
+            errors = []
+
+            csv_file = TextIOWrapper(form.cleaned_data['csv_file'].file, encoding='utf-8-sig')
+            reader = csv.DictReader(csv_file)
+            required_columns = {'species_id', 'species_name', 'name'}
+
+            if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
+                error_count += 1
+                errors.append((1, '', 'Missing required CSV columns: species_id, species_name, name'))
+            else:
+                for row_num, row in enumerate(reader, start=2):
+                    species_id_raw = (row.get('species_id') or '').strip()
+                    species_name = (row.get('species_name') or '').strip()
+                    location_name = (row.get('name') or '').strip()
+
+                    if not species_id_raw or not location_name:
+                        error_count += 1
+                        errors.append((row_num, species_name, 'Missing required species_id or name'))
+                        continue
+
+                    try:
+                        species = Species.objects.get(pk=int(species_id_raw))
+                    except (ValueError, Species.DoesNotExist):
+                        error_count += 1
+                        errors.append((row_num, species_name, f'Species not found for species_id={species_id_raw}'))
+                        continue
+
+                    duplicate_exists = SpeciesCollectionLocation.objects.filter(
+                        species=species,
+                        name__iexact=location_name
+                    ).exists()
+                    if duplicate_exists:
+                        skipped_count += 1
+                        continue
+
+                    SpeciesCollectionLocation.objects.create(
+                        species=species,
+                        name=location_name
+                    )
+                    created_count += 1
+
+            summary = {
+                'created': created_count,
+                'skipped_duplicates': skipped_count,
+                'errors': error_count,
+                'error_rows': errors,
+            }
+
+    context = {'form': form, 'summary': summary}
+    return render(request, 'species/import/importSpeciesCollectionLocations.html', context)
+
+
+@login_required(login_url='login')
+def importSpeciesInstanceCollectionLocations(request):
+    if not (request.user.is_staff or request.user.is_admin):
+        raise PermissionDenied()
+
+    summary = None
+    form = ImportSpeciesInstanceCollectionLocationsForm()
+
+    if request.method == 'POST':
+        form = ImportSpeciesInstanceCollectionLocationsForm(request.POST, request.FILES)
+        if form.is_valid():
+            updated_count = 0
+            not_found_count = 0
+            error_count = 0
+            errors = []
+
+            csv_file = TextIOWrapper(form.cleaned_data['csv_file'].file, encoding='utf-8-sig')
+            reader = csv.DictReader(csv_file)
+            required_columns = {'species_instance_id', 'name', 'collection_location_name'}
+
+            if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
+                error_count += 1
+                errors.append((1, '', 'Missing required CSV columns: species_instance_id, name, collection_location_name'))
+            else:
+                for row_num, row in enumerate(reader, start=2):
+                    si_id_raw = (row.get('species_instance_id') or '').strip()
+                    instance_name = (row.get('name') or '').strip()
+                    location_name = (row.get('collection_location_name') or '').strip()
+
+                    if not si_id_raw or not location_name:
+                        error_count += 1
+                        errors.append((row_num, instance_name, 'Missing required species_instance_id or collection_location_name'))
+                        continue
+
+                    try:
+                        species_instance = SpeciesInstance.objects.select_related('species').get(pk=int(si_id_raw))
+                    except (ValueError, SpeciesInstance.DoesNotExist):
+                        error_count += 1
+                        errors.append((row_num, instance_name, f'SpeciesInstance not found for id={si_id_raw}'))
+                        continue
+
+                    location = SpeciesCollectionLocation.objects.filter(
+                        species=species_instance.species,
+                        name__iexact=location_name
+                    ).first()
+
+                    if not location:
+                        not_found_count += 1
+                        errors.append((row_num, instance_name, f'Collection location not found: {location_name}'))
+                        continue
+
+                    species_instance.collection_location = location
+                    species_instance.save(update_fields=['collection_location'])
+                    updated_count += 1
+
+            summary = {
+                'updated': updated_count,
+                'not_found': not_found_count,
+                'errors': error_count,
+                'error_rows': errors,
+            }
+
+    context = {'form': form, 'summary': summary}
+    return render(request, 'species/import/importSpeciesInstanceCollectionLocations.html', context)
 
 
 def dirtyDeedMigrateWorkingRegistrations(modify_db=False):

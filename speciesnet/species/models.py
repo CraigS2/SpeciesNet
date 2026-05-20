@@ -273,6 +273,27 @@ class SpeciesReferenceLink (models.Model):
     def __str__(self):
         return self.name
     
+class SpeciesCollectionLocation(models.Model):
+    """
+    Species-scoped list of known wild collection locations.
+    Managed by admins and optionally by users on ASN (Site 1).
+    """
+    species  = models.ForeignKey(
+        Species,
+        on_delete=models.CASCADE,
+        related_name='collection_locations'
+    )
+    name     = models.CharField(max_length=200)
+    created  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Collection Location'
+        verbose_name_plural = 'Collection Locations'
+
+    def __str__(self):
+        return f"{self.species.name} — {self.name}"
+    
 ### Species Feedback
 
 class SpeciesFeedback(models.Model):
@@ -332,6 +353,13 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, blank=True)
+    collection_location       = models.ForeignKey(
+        'SpeciesCollectionLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='species_instances'
+    )
     acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # self == SpeciesInstance
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     aquarist_notes            = models.TextField (blank=True)
@@ -507,7 +535,13 @@ class CaresRegistration (models.Model):
     cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
-    collection_location       = models.CharField (max_length=200, blank=True)
+    collection_location       = models.ForeignKey(
+        'SpeciesCollectionLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cares_registrations'
+    )
     species_source            = models.TextField (blank=False, default='')
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')

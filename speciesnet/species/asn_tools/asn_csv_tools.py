@@ -842,6 +842,11 @@ def _build_media_url(relative_path):
     path = str(relative_path).lstrip('/')
     return f'https://{domain}/media/{path}'
 
+def _collection_location_name(collection_location):
+    if not collection_location:
+        return ''
+    return collection_location.name
+
 def export_csv_caresRegistrations_asn():
     """
     ASN Site1 export: all CARES Registrations for transfer to the CSO (CaresSpecies.org) site.
@@ -868,7 +873,7 @@ def export_csv_caresRegistrations_asn():
     for reg in registrations:
         writer.writerow([
             #   id      external_id      name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
-            reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, reg.collection_location,
+            reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
             #   species_source      year_acquired      verification_photo   verification_photo_url 
             reg.species_source, reg.year_acquired, reg.verification_photo, _build_media_url(reg.verification_photo),
             #   species_has_spawned      young_available      offspring_shared
@@ -912,7 +917,7 @@ def export_csv_caresRegistrations_asn_pending():
         else:
             photo_url = ''
         writer.writerow([
-            reg.id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, reg.collection_location,
+            reg.id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
             reg.species_source, reg.year_acquired, reg.verification_photo, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
             reg.cares_approver, reg.approver_notes, reg.status, reg.asn_imported, photo_url,
             reg.date_requested, reg.lastUpdated, reg.last_updated_by, reg.last_report_date
@@ -947,7 +952,7 @@ def export_csv_caresRegistrations_cso():
     ])
     for reg in registrations:
         writer.writerow([
-            reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, reg.collection_location,
+            reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
             reg.species_source, reg.year_acquired, reg.verification_photo,
             reg.species_has_spawned, reg.young_available, reg.offspring_shared,
             reg.cares_approver, reg.approver_notes, reg.status, reg.asn_imported,
@@ -1065,7 +1070,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
             registration.aquarist_email = email
             registration.species = matched_species
             registration.species_source = import_row.get('species_source', '').strip()
-            registration.collection_location = import_row.get('collection_location', '').strip()
+            registration.collection_location = None
             try:
                 registration.year_acquired = int(import_row.get('year_acquired', '') or 0) or None
             except (ValueError, TypeError):

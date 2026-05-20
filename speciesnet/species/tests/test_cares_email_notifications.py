@@ -8,7 +8,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from species.asn_tools.asn_cares_tools import get_notification_approvers
-from species.models import CaresApprover, CaresRegistration, Species, User, UserEmail
+from species.models import CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
 from species.services.email_services import send_new_registration_notification, send_status_change_email
 from species.views.views_cares import _is_status_change_notification_transition
 
@@ -56,13 +56,17 @@ class CaresEmailNotificationTests(TestCase):
         CaresApprover.objects.create(name='Family Approver', approver=self.approver_user, specialty='CIC')
         CaresApprover.objects.create(name='Undefined Approver', approver=self.udf_user, specialty='UDF')
         CaresApprover.objects.create(name='No Email Approver', approver=None, specialty='CIC')
+        self.collection_location = SpeciesCollectionLocation.objects.create(
+            species=self.species,
+            name='Lake Tanganyika',
+        )
 
         self.registration = CaresRegistration.objects.create(
             name='Julidochromis marksmithi - Aquarist',
             aquarist_name='Aquarist One',
             aquarist_email='aquarist@example.com',
             species=self.species,
-            collection_location='Lake Tanganyika',
+            collection_location=self.collection_location,
             species_source='Club swap',
             year_acquired=2024,
             verification_photo=SimpleUploadedFile('verify.jpg', b'fake-image-content', content_type='image/jpeg'),

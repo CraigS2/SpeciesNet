@@ -181,6 +181,9 @@ urlpatterns = [
 
     path('species/import/importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),    # admin-only
     path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),                   # admin-only
+    path('export-species-collection-locations/', views.exportSpeciesCollectionLocations, name='exportSpeciesCollectionLocations'),
+    path('import-species-collection-locations/', views.importSpeciesCollectionLocations, name='importSpeciesCollectionLocations'),
+    path('import-species-instance-collection-locations/', views.importSpeciesInstanceCollectionLocations, name='importSpeciesInstanceCollectionLocations'),
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
     ### Species Import Workflow ###
