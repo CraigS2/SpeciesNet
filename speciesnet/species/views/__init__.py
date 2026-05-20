@@ -82,7 +82,8 @@ from .views_ux import (
 from .views_tools import (
     speciesProfilesWithPhotos, speciesInstancesWithPhotos, speciesInstancesWithLabels, 
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
-    enforceSpeciesNameSingleQuotes, collectSpeciesData, 
+    enforceSpeciesNameSingleQuotes, collectSpeciesData,
+    exportSpeciesCollectionLocations, importSpeciesCollectionLocations, importSpeciesInstanceCollectionLocations,
     tools, tools2, dirtyDeed
 )
 
@@ -158,6 +159,7 @@ __all__ = [
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',
     'tools', 'tools2',  'dirtyDeed',
+    'exportSpeciesCollectionLocations', 'importSpeciesCollectionLocations', 'importSpeciesInstanceCollectionLocations',
 
     # CARES Import Workflow
     'importSpeciesToStaging', 'reviewSpeciesImport', 'reviewSpeciesImportDetail',

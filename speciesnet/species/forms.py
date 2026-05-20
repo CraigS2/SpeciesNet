@@ -7,7 +7,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
 from django.core.validators import MinValueValidator
-from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
+from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
@@ -360,7 +360,7 @@ class CaresRegistrationAnonymousForm (ModelForm):
         model = CaresRegistration
         fields = '__all__'
         exclude = ['name', 'species', 'aquarist', 'affiliate_club', 'offspring_shared', 'status', 
-                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes', 'collection_location']
         widgets = { 'species_source': forms.Textarea(attrs={'rows':3,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
@@ -370,10 +370,10 @@ from django import forms
 class CaresRegistrationAnonymousForm2 (ModelForm):
     class Meta:
         model = CaresRegistration
-        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location', 'species_source', 'year_acquired', 
+        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'species_source', 'year_acquired', 
                   'verification_photo', 'species_has_spawned']
         exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 
-                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes', 'collection_location']
         widgets = {
             'species_source': forms.Textarea(attrs={'rows': 2}),  
         }
@@ -410,11 +410,6 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
             'style': 'max-width: 300px;',
             'class': 'form-control'
         })
-        self.fields['collection_location'].widget.attrs.update({
-            'placeholder': 'The original collection location of the species, if known. Otherwise leave blank.',
-            'style': 'max-width: 600px;',
-            'class': 'form-control'
-        })
         self.fields['species_source'].widget.attrs.update({
             'placeholder': 'Describe where you obtained your fish ...',
             'style': 'max-width: 600px;',
@@ -442,7 +437,6 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
                 Field('aquarist_name', css_class='mb-1'),              # tight spacing between field rows
                 Field('aquarist_email', css_class='mb-1'),
                 Field('affiliate_club', css_class='mb-1'),
-                Field('collection_location', css_class='mb-1'),
                 Field('species_source', css_class='mb-1'),
                 Field('year_acquired', css_class='mb-1'),
                 Field('verification_photo', css_class='mb-1'),                
@@ -467,7 +461,7 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
 class CaresRegistrationFromInstanceForm(ModelForm):
     """
     ASN Site1: Register a CARES species from an existing SpeciesInstance.
-    Name, email, species, has_spawned, year_acquired, and collection_location
+    Name, email, species, has_spawned, and year_acquired
     are all sourced directly from the SpeciesInstance/User in the view —
     the aquarist only needs to supply affiliate_club, species_source,
     and a verification_photo.
@@ -538,7 +532,7 @@ class CaresRegistrationAdminForm (ModelForm):
     class Meta:
         model = CaresRegistration
         fields = '__all__'
-        exclude = ['name', 'species']
+        exclude = ['name', 'species', 'collection_location']
         widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
@@ -549,9 +543,9 @@ class CaresRegistrationSubmitionAdminForm (ModelForm):
         model = CaresRegistration
         fields = '__all__'
         exclude = ['name', 'aquarist', 'species', 'species_has_spawned', 'offspring_shared', 
-                   'status', 'cares_approver', 'approver_notes', 'last_updated_by', 'last_report_date']
+                   'status', 'cares_approver', 'approver_notes', 'last_updated_by', 'last_report_date', 'collection_location']
         widgets = { 'species_source':      forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
+                    }
         
 # registration review by approver - general workflow edit
 class CaresRegistrationApprovalForm(ModelForm):
@@ -1486,6 +1480,12 @@ class ImportCsvForm (ModelForm):
         model = ImportArchive
         fields = '__all__'
         exclude = ['name', 'aquarist', 'import_results_file', 'import_status']
+
+class ImportSpeciesCollectionLocationsForm(forms.Form):
+    csv_file = forms.FileField()
+
+class ImportSpeciesInstanceCollectionLocationsForm(forms.Form):
+    csv_file = forms.FileField()
 
 class CustomSignupForm(SignupForm):
     """To require firstname and lastname when signing up"""
