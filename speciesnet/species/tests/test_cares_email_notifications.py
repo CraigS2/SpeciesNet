@@ -62,7 +62,7 @@ class CaresEmailNotificationTests(TestCase):
             aquarist_name='Aquarist One',
             aquarist_email='aquarist@example.com',
             species=self.species,
-            collection_location='Lake Tanganyika',
+            collection_location_text='Lake Tanganyika',
             species_source='Club swap',
             year_acquired=2024,
             verification_photo=SimpleUploadedFile('verify.jpg', b'fake-image-content', content_type='image/jpeg'),

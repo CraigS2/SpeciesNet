@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User
 
 # Register your models here.
-from .models import Species, SpeciesComment, SpeciesReferenceLink
+from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
@@ -82,6 +82,14 @@ class SpeciesFeedbackAdmin(admin.ModelAdmin):
     list_filter   = ('approved', 'created')
     search_fields = ('name', 'comment', 'email')
     readonly_fields = ('name', 'created', 'reviewed_by', 'reviewed_at')
+
+
+@admin.register(SpeciesCollectionLocation)
+class SpeciesCollectionLocationAdmin(admin.ModelAdmin):
+    list_display = ('species', 'name', 'created')
+    list_filter = ('species__category', 'species__global_region')
+    search_fields = ('name', 'species__name')
+    ordering = ('species__name', 'name')
 
 admin.site.register (User, UserAdmin)  
 admin.site.register (UserEmail)

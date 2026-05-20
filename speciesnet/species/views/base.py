@@ -30,7 +30,7 @@ from pillow_heif import register_heif_opener
 # Local models
 from species.models import (
     User, AquaristClub, AquaristClubMember, Species, SpeciesComment,
-    SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLabel,
+    SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLabel,
     SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry,
     ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies, 
     CaresRegistration, CaresApprover, SpeciesImportStaging,

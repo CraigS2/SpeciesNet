@@ -1065,7 +1065,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
             registration.aquarist_email = email
             registration.species = matched_species
             registration.species_source = import_row.get('species_source', '').strip()
-            registration.collection_location = import_row.get('collection_location', '').strip()
+            registration.collection_location_text = import_row.get('collection_location', '').strip()
             try:
                 registration.year_acquired = int(import_row.get('year_acquired', '') or 0) or None
             except (ValueError, TypeError):

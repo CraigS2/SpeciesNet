@@ -7,7 +7,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
 from django.core.validators import MinValueValidator
-from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
+from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
@@ -15,6 +15,76 @@ from .models import SpeciesFeedback
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
+
+
+class CollectionPointSelectOrAddWidget(forms.MultiWidget):
+    """
+    Renders as a select of existing collection locations for a species
+    plus a hidden text input revealed by JS when '-- Add new --' is chosen.
+    """
+    def __init__(self, attrs=None):
+        widgets = [
+            forms.Select(attrs={
+                'class': 'form-select',
+                'style': 'max-width: 400px;',
+                'id': 'id_cp_select'
+            }),
+            forms.TextInput(attrs={
+                'class': 'form-control mt-2',
+                'style': 'max-width: 400px; display:none;',
+                'id': 'id_cp_new_text',
+                'placeholder': 'Type new collection location name...'
+            }),
+        ]
+        super().__init__(widgets, attrs)
+
+    def decompress(self, value):
+        if value:
+            return [value, '']
+        return [None, '']
+
+
+class CollectionPointField(forms.MultiValueField):
+    """
+    Combined select + optional add-new field for SpeciesCollectionLocation.
+    Returns:
+      - ''                   -> nothing selected
+      - '<pk>'               -> existing SpeciesCollectionLocation pk
+      - 'NEW:<location>'     -> new name to be created by view logic
+    """
+    def __init__(self, species, allow_add=True, *args, **kwargs):
+        self.allow_add = allow_add
+        choices = self._build_choices(species)
+        fields = [
+            forms.ChoiceField(choices=choices, required=False),
+            forms.CharField(max_length=200, required=False),
+        ]
+        widget = CollectionPointSelectOrAddWidget()
+        widget.widgets[0].choices = choices
+        super().__init__(
+            fields=fields,
+            widget=widget,
+            require_all_fields=False,
+            *args,
+            **kwargs
+        )
+
+    def _build_choices(self, species):
+        existing = SpeciesCollectionLocation.objects.filter(species=species).order_by('name')
+        choices = [('', '-- Not specified --')]
+        choices += [(str(cp.pk), cp.name) for cp in existing]
+        if self.allow_add:
+            choices.append(('__add__', '➕ Add new collection location...'))
+        return choices
+
+    def compress(self, data_list):
+        selected = data_list[0] if data_list else ''
+        new_text = data_list[1].strip() if len(data_list) > 1 and data_list[1] else ''
+        if selected == '__add__' and new_text:
+            return f'NEW:{new_text}'
+        if selected and selected != '__add__':
+            return selected
+        return ''
 
 class SpeciesForm2(ModelForm):
     class Meta:
@@ -364,13 +434,10 @@ class CaresRegistrationAnonymousForm (ModelForm):
         widgets = { 'species_source': forms.Textarea(attrs={'rows':3,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
-
-from django import forms
-
 class CaresRegistrationAnonymousForm2 (ModelForm):
     class Meta:
         model = CaresRegistration
-        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location', 'species_source', 'year_acquired', 
+        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'species_source', 'year_acquired',
                   'verification_photo', 'species_has_spawned']
         exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 
                    'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
@@ -378,7 +445,7 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
             'species_source': forms.Textarea(attrs={'rows': 2}),  
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, species=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if not self.instance.pk:  # initialize default club for new registrations
@@ -410,11 +477,14 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
             'style': 'max-width: 300px;',
             'class': 'form-control'
         })
-        self.fields['collection_location'].widget.attrs.update({
-            'placeholder': 'The original collection location of the species, if known. Otherwise leave blank.',
-            'style': 'max-width: 600px;',
-            'class': 'form-control'
-        })
+        if species:
+            self.fields['collection_location'] = CollectionPointField(
+                species=species,
+                allow_add=False,
+                label='Collection Location',
+                required=False,
+                help_text='Select the original wild collection location for this species.'
+            )
         self.fields['species_source'].widget.attrs.update({
             'placeholder': 'Describe where you obtained your fish ...',
             'style': 'max-width: 600px;',
@@ -479,7 +549,7 @@ class CaresRegistrationFromInstanceForm(ModelForm):
             'species_source': forms.Textarea(attrs={'rows': 3}),
         }
 
-    def __init__(self, *args, species_instance=None, **kwargs):
+    def __init__(self, *args, species_instance=None, species=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if species_instance and not self.instance.pk:
@@ -510,11 +580,20 @@ class CaresRegistrationFromInstanceForm(ModelForm):
             'style': 'max-width: 600px;',
             'class': 'form-control'
         })
+        if species:
+            self.fields['collection_location'] = CollectionPointField(
+                species=species,
+                allow_add=False,
+                label='Collection Location',
+                required=False,
+                help_text='Select the original wild collection location for this species.'
+            )
 
         self.helper.layout = Layout(
             Fieldset(
                 '🐟 CARES Registration Details',
                 Field('affiliate_club', css_class='mb-1'),
+                Field('collection_location', css_class='mb-1'),
                 Field('species_source', css_class='mb-2'),
                 Field('verification_photo', css_class='mb-1'),
                 Div(
@@ -551,7 +630,7 @@ class CaresRegistrationSubmitionAdminForm (ModelForm):
         exclude = ['name', 'aquarist', 'species', 'species_has_spawned', 'offspring_shared', 
                    'status', 'cares_approver', 'approver_notes', 'last_updated_by', 'last_report_date']
         widgets = { 'species_source':      forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'collection_location': forms.Textarea(attrs={'rows':1,'cols':50}),}
+                    'collection_location_text': forms.Textarea(attrs={'rows':1,'cols':50}),}
         
 # registration review by approver - general workflow edit
 class CaresRegistrationApprovalForm(ModelForm):
@@ -622,9 +701,9 @@ class SpeciesInstanceForm2(ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from', 'young_available_image']
+        exclude = ['user', 'species', 'acquired_from', 'young_available_image', 'collection_point']
         
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, species=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = 'post'
@@ -651,11 +730,14 @@ class SpeciesInstanceForm2(ModelForm):
             'style': 'max-width: 500px;',
             'class': 'form-control'
         })                
-        self.fields['collection_point'].widget.attrs.update({
-            'placeholder': 'specific collection location - if known',
-            'style': 'max-width: 500px;',
-            'class': 'form-control'
-        })
+        if species:
+            self.fields['collection_point_fk'] = CollectionPointField(
+                species=species,
+                allow_add=True,
+                label='Collection Point',
+                required=False,
+                help_text='Select the original wild collection point, or add a new one if not listed.'
+            )
         self.fields['aquarist_notes'].widget.attrs.update({
             'placeholder': 'Describe where you acquired the fish ... and optionally water and tank conditions, etc.',
             'class': 'form-control'
@@ -675,7 +757,7 @@ class SpeciesInstanceForm2(ModelForm):
             Fieldset(
                 '🐟 General Info',
                 Field('name', css_class='mb-1'),
-                Field('collection_point', css_class='mb-1'),
+                Field('collection_point_fk', css_class='mb-1'),
                 Field('unique_traits', css_class='mb-1'),
                 Field('genetic_traits', css_class='mb-1'),
                 Field('year_acquired', css_class='mb-1'),

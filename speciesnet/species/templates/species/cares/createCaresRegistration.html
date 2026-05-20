@@ -21,4 +21,21 @@
     </div>
     <p><small>&nbsp;</small></p>
 </div>
+<script>
+(function() {
+    var select = document.getElementById('id_cp_select');
+    var newInput = document.getElementById('id_cp_new_text');
+    if (!select || !newInput) return;
+
+    function toggleNewInput() {
+        var isAdd = (select.value === '__add__');
+        newInput.style.display = isAdd ? 'block' : 'none';
+        newInput.required = isAdd;
+        if (!isAdd) newInput.value = '';
+    }
+
+    select.addEventListener('change', toggleNewInput);
+    toggleNewInput();
+})();
+</script>
 {% endblock content %}

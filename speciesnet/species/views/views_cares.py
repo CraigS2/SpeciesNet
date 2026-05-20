@@ -12,6 +12,28 @@ from species.services.email_services import send_new_registration_notification, 
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
 
+def _resolve_collection_location(species, cp_value):
+    if isinstance(cp_value, SpeciesCollectionLocation):
+        return cp_value if cp_value.species_id == species.id else None
+    if not cp_value:
+        return None
+    if isinstance(cp_value, str) and cp_value.startswith('NEW:'):
+        name = cp_value[4:].strip()
+        if not name:
+            return None
+        existing = SpeciesCollectionLocation.objects.filter(
+            species=species,
+            name__iexact=name
+        ).first()
+        if existing:
+            return existing
+        return SpeciesCollectionLocation.objects.create(species=species, name=name)
+    try:
+        return SpeciesCollectionLocation.objects.get(pk=int(cp_value), species=species)
+    except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+        return None
+
+
 def _is_status_change_notification_transition(old_status, new_status):
     return (
         old_status in [
@@ -309,13 +331,15 @@ def registerCaresSpecies(request, pk):
     # --> club (which we may not yet know about)
 
     if request.method == 'POST': 
-        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES)
+        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species)
         if form.is_valid():
             try:
                 cares_reg = form.save(commit=False)
                 #TODO any hidden post processing needed
                 cares_reg.name = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.species = cares_species
+                cp_value = form.cleaned_data.get('collection_location', '')
+                cares_reg.collection_location = _resolve_collection_location(cares_species, cp_value)
                 cares_reg.last_updated_by = None
                 cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
                 cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
@@ -335,7 +359,7 @@ def registerCaresSpecies(request, pk):
             logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = CaresRegistrationAnonymousForm2()
+        form = CaresRegistrationAnonymousForm2(species=cares_species)
 
     context = {'form': form, 'cares_species': cares_species}
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
@@ -356,6 +380,8 @@ def createCaresRegistration(request, pk):
             registration = form.save(commit=False)
             registration.name = species.name + ' - ' + request.user.username
             registration.species = species
+            cp_value = form.cleaned_data.get('collection_location')
+            registration.collection_location = _resolve_collection_location(species, cp_value)
             registration.last_updated_by = request.user
             registration.aquarist = request.user
             registration.cares_approver  = get_matching_cares_approver(species)

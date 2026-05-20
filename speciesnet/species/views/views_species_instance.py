@@ -7,6 +7,31 @@ These represent individual aquarist's fish/species entries
 
 from .base import *
 
+
+def _resolve_collection_location(species, cp_value):
+    """
+    Resolve collection location from CollectionPointField value.
+    """
+    if isinstance(cp_value, SpeciesCollectionLocation):
+        return cp_value if cp_value.species_id == species.id else None
+    if not cp_value:
+        return None
+    if isinstance(cp_value, str) and cp_value.startswith('NEW:'):
+        name = cp_value[4:].strip()
+        if not name:
+            return None
+        existing = SpeciesCollectionLocation.objects.filter(
+            species=species,
+            name__iexact=name
+        ).first()
+        if existing:
+            return existing
+        return SpeciesCollectionLocation.objects.create(species=species, name=name)
+    try:
+        return SpeciesCollectionLocation.objects.get(pk=int(cp_value), species=species)
+    except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+        return None
+
 ### View Species Instance
 
 def speciesInstance(request, pk):
@@ -113,12 +138,15 @@ def createSpeciesInstance(request, pk):
     species = Species.objects.get(id=pk)
 
     if request.method == 'POST':
-        form = SpeciesInstanceForm2(request.POST, request.FILES)
+        form = SpeciesInstanceForm2(request.POST, request.FILES, species=species)
         if form.is_valid():
             try:
                 form.instance.user = request.user
                 form.instance.species = species
-                speciesInstance = form.save()
+                speciesInstance = form.save(commit=False)
+                cp_value = form.cleaned_data.get('collection_point_fk', '')
+                speciesInstance.collection_point_fk = _resolve_collection_location(species, cp_value)
+                speciesInstance.save()
                 if speciesInstance.aquarist_species_image:
                     processUploadedImageFile(speciesInstance.aquarist_species_image, speciesInstance.name, request)
                 if speciesInstance.aquarist_species_video_url: 
@@ -133,7 +161,7 @@ def createSpeciesInstance(request, pk):
             logger.warning(f"SpeciesInstance form validation failed for species_id={pk}:  {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
 
-    form = SpeciesInstanceForm2(initial={"name": species.name, "species": species.id})
+    form = SpeciesInstanceForm2(initial={"name": species.name, "species": species.id}, species=species)
     context = {'form': form}
     return render(request, 'species/editSpeciesInstance.html', context)
 
@@ -157,10 +185,12 @@ def editSpeciesInstance(request, pk):
                 speciesMaintenanceLog = sml    
     
     if request.method == 'POST': 
-        form = SpeciesInstanceForm2(request.POST, request.FILES, instance=speciesInstance)
+        form = SpeciesInstanceForm2(request.POST, request.FILES, instance=speciesInstance, species=speciesInstance.species)
         if form.is_valid():
             try:
                 speciesInstance = form.save(commit=False)
+                cp_value = form.cleaned_data.get('collection_point_fk', '')
+                speciesInstance.collection_point_fk = _resolve_collection_location(speciesInstance.species, cp_value)
                 speciesInstance.save()
                 if speciesInstance.aquarist_species_image: 
                     processUploadedImageFile(speciesInstance.aquarist_species_image, speciesInstance.name, request)
@@ -177,7 +207,7 @@ def editSpeciesInstance(request, pk):
             logger.warning(f"SpeciesInstance form validation failed for species_id={pk}:  {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = SpeciesInstanceForm2(instance=speciesInstance)
+        form = SpeciesInstanceForm2(instance=speciesInstance, species=speciesInstance.species)
 
     context = {'form': form, 'speciesInstance': speciesInstance, 'speciesMaintenanceLog': speciesMaintenanceLog}
     return render(request, 'species/editSpeciesInstance.html', context)
@@ -526,7 +556,7 @@ def registerCaresSpeciesInstance(request, pk):
 
     if request.method == 'POST':
         form = CaresRegistrationFromInstanceForm(
-            request.POST, request.FILES, instance=reg, species_instance=species_instance
+            request.POST, request.FILES, instance=reg, species_instance=species_instance, species=cares_species
         )
         if form.is_valid():
             try:
@@ -537,6 +567,8 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.species         = cares_species
                 cares_reg.year_acquired   = species_instance.year_acquired                
                 cares_reg.name            = cares_species.name + ' - ' + cares_reg.aquarist_name
+                cp_value = form.cleaned_data.get('collection_location', '')
+                cares_reg.collection_location = _resolve_collection_location(cares_species, cp_value)
                 cares_reg.last_updated_by = request.user
                 cares_reg.cares_approver  = None   # assigned later by CARES admin
                 cares_reg.save()
@@ -603,7 +635,7 @@ def registerCaresSpeciesInstance(request, pk):
             )
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = CaresRegistrationFromInstanceForm(instance=reg, species_instance=species_instance)
+        form = CaresRegistrationFromInstanceForm(instance=reg, species_instance=species_instance, species=cares_species)
 
     cancel_url = reverse('speciesInstance', args=[species_instance.id])
     context = {
