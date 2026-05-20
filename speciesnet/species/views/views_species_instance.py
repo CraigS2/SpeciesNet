@@ -7,31 +7,6 @@ These represent individual aquarist's fish/species entries
 
 from .base import *
 
-
-def _resolve_collection_location(species, cp_value):
-    """
-    Resolve collection location from CollectionPointField value.
-    """
-    if isinstance(cp_value, SpeciesCollectionLocation):
-        return cp_value if cp_value.species_id == species.id else None
-    if not cp_value:
-        return None
-    if isinstance(cp_value, str) and cp_value.startswith('NEW:'):
-        name = cp_value[4:].strip()
-        if not name:
-            return None
-        existing = SpeciesCollectionLocation.objects.filter(
-            species=species,
-            name__iexact=name
-        ).first()
-        if existing:
-            return existing
-        return SpeciesCollectionLocation.objects.create(species=species, name=name)
-    try:
-        return SpeciesCollectionLocation.objects.get(pk=int(cp_value), species=species)
-    except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
-        return None
-
 ### View Species Instance
 
 def speciesInstance(request, pk):
@@ -145,7 +120,7 @@ def createSpeciesInstance(request, pk):
                 form.instance.species = species
                 speciesInstance = form.save(commit=False)
                 cp_value = form.cleaned_data.get('collection_point_fk', '')
-                speciesInstance.collection_point_fk = _resolve_collection_location(species, cp_value)
+                speciesInstance.collection_point_fk = resolve_collection_location(species, cp_value)
                 speciesInstance.save()
                 if speciesInstance.aquarist_species_image:
                     processUploadedImageFile(speciesInstance.aquarist_species_image, speciesInstance.name, request)
@@ -190,7 +165,7 @@ def editSpeciesInstance(request, pk):
             try:
                 speciesInstance = form.save(commit=False)
                 cp_value = form.cleaned_data.get('collection_point_fk', '')
-                speciesInstance.collection_point_fk = _resolve_collection_location(speciesInstance.species, cp_value)
+                speciesInstance.collection_point_fk = resolve_collection_location(speciesInstance.species, cp_value)
                 speciesInstance.save()
                 if speciesInstance.aquarist_species_image: 
                     processUploadedImageFile(speciesInstance.aquarist_species_image, speciesInstance.name, request)
@@ -568,7 +543,7 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.year_acquired   = species_instance.year_acquired                
                 cares_reg.name            = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cp_value = form.cleaned_data.get('collection_location', '')
-                cares_reg.collection_location = _resolve_collection_location(cares_species, cp_value)
+                cares_reg.collection_location = resolve_collection_location(cares_species, cp_value)
                 cares_reg.last_updated_by = request.user
                 cares_reg.cares_approver  = None   # assigned later by CARES admin
                 cares_reg.save()

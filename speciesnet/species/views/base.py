@@ -86,6 +86,28 @@ from species.asn_tools.asn_species_aggregation import collect_species_data_as_cs
 # Logger
 logger = logging.getLogger(__name__)
 
+
+def resolve_collection_location(species, cp_value):
+    if isinstance(cp_value, SpeciesCollectionLocation):
+        return cp_value if cp_value.species_id == species.id else None
+    if not cp_value:
+        return None
+    if isinstance(cp_value, str) and cp_value.startswith('NEW:'):
+        name = cp_value[4:].strip()
+        if not name:
+            return None
+        existing = SpeciesCollectionLocation.objects.filter(
+            species=species,
+            name__iexact=name
+        ).first()
+        if existing:
+            return existing
+        return SpeciesCollectionLocation.objects.create(species=species, name=name)
+    try:
+        return SpeciesCollectionLocation.objects.get(pk=int(cp_value), species=species)
+    except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+        return None
+
 ### Site 1 Creation Notification Email
 
 def send_asn_notification_email(subject, body):
