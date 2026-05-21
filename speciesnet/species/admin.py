@@ -7,7 +7,7 @@ from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollec
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
-from .models import SpeciesFeedback
+from .models import SpeciesFeedback, SpeciesAdmin
 from .models import PageViewCount, PageViewMonthlySnapshot
 from allauth.account.models import EmailAddress
 
@@ -89,6 +89,7 @@ admin.site.register (AquaristClub)
 admin.site.register (AquaristClubMember)
 admin.site.register (Species)
 admin.site.register (SpeciesComment)
+admin.site.register (SpeciesAdmin)
 admin.site.register (SpeciesReferenceLink)
 admin.site.register (SpeciesInstance)
 admin.site.register (SpeciesInstanceLabel)
