@@ -84,6 +84,14 @@ urlpatterns = [
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
     path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
 
+    ### Species Collection Locations ###
+
+    path('collectionLocations/', views.collectionLocations, name='collectionLocations'),
+    path('species/<str:pk>/collection-locations/', views.speciesCollectionLocations, name='speciesCollectionLocations'),
+    path('species/<str:pk>/collection-locations/add/', views.createSpeciesCollectionLocation, name='createSpeciesCollectionLocation'),
+    path('species/collection-location/<str:pk>/edit/', views.editSpeciesCollectionLocation, name='editSpeciesCollectionLocation'),
+    path('species/collection-location/<str:pk>/delete/', views.deleteSpeciesCollectionLocation, name='deleteSpeciesCollectionLocation'),    
+
     ### CARES ASN or Shared ###
     
     path('cares_overview/', views.cares_overview, name="cares_overview"),

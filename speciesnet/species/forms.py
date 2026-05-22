@@ -16,6 +16,79 @@ from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
 
+
+class CollectionPointSelectOrAddWidget(forms.MultiWidget):
+    """
+    Renders as a select of existing collection locations for a species
+    plus a hidden text input revealed by JS when '-- Add new --' is chosen.
+    """
+    def __init__(self, attrs=None):
+        widgets = [
+            forms.Select(attrs={
+                'class': 'form-select',
+                'style': 'max-width: 400px;',
+                'id': 'id_cp_select'
+            }),
+            forms.TextInput(attrs={
+                'class': 'form-control mt-2',
+                'style': 'max-width: 400px; display:none;',
+                'id': 'id_cp_new_text',
+                'placeholder': 'Type new collection location name...'
+            }),
+        ]
+        super().__init__(widgets, attrs)
+
+    def decompress(self, value):
+        if value:
+            return [value, '']
+        return [None, '']
+
+
+class CollectionPointField(forms.MultiValueField):
+    """
+    Combined select + optional add-new field for SpeciesCollectionLocation.
+    Returns:
+      - ''                -> nothing selected
+      - '<pk>'            -> existing SpeciesCollectionLocation pk
+      - 'NEW:<location>'  -> new name to be created by view logic
+    """
+    def __init__(self, species, allow_add=True, *args, **kwargs):
+        self.allow_add = allow_add
+        choices = self._build_choices(species)
+        fields = [
+            forms.ChoiceField(choices=choices, required=False),
+            forms.CharField(max_length=200, required=False),
+        ]
+        widget = CollectionPointSelectOrAddWidget()
+        widget.widgets[0].choices = choices
+        super().__init__(
+            fields=fields,
+            widget=widget,
+            require_all_fields=False,
+            *args,
+            **kwargs
+        )
+
+    def _build_choices(self, species):
+        existing = SpeciesCollectionLocation.objects.filter(
+            species=species, is_verified=True
+        ).order_by('name')
+        choices = [('', '-- Not specified --')]
+        choices += [(str(cp.pk), cp.name) for cp in existing]
+        if self.allow_add:
+            choices.append(('__add__', '➕ Add new collection location...'))
+        return choices
+
+    def compress(self, data_list):
+        selected = data_list[0] if data_list else ''
+        new_text = data_list[1].strip() if len(data_list) > 1 and data_list[1] else ''
+        if selected == '__add__' and new_text:
+            return f'NEW:{new_text}'
+        if selected and selected != '__add__':
+            return selected
+        return ''
+
+
 class SpeciesForm2(ModelForm):
     class Meta:
         model = Species
@@ -308,11 +381,11 @@ class CaresSpeciesForm2(ModelForm):
             'style': 'max-width: 500px;',
             'type': 'date'
         })        
-                                
         self.helper.layout = Layout(
+
             Fieldset(
                 '🐟 Species Declaration',
-                Field('name', css_class='mb-1'),              # tight spacing between field rows
+                Field('name', css_class='mb-1'),
                 Field('alt_name', css_class='mb-1'),
                 Field('common_name', css_class='mb-1'),
                 Field('description', css_class='mb-1'),
@@ -323,7 +396,7 @@ class CaresSpeciesForm2(ModelForm):
                 Field('cares_classification', css_class='mb-1'),
                 Field('cares_assessment_date', css_class='mb-1'),                            
                 Field('iucn_red_list', css_class='mb-1'),    
-                Field('iucn_assessment_date', css_class='mb-1'),                          
+                Field('iucn_assessment_date', css_class='mb-1'),
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
@@ -331,7 +404,19 @@ class CaresSpeciesForm2(ModelForm):
                                     For more information about the CARES Preservation Program and how you can participate see the <a href="{% url 'cares_overview' %}">CARES Preservation Program Overview</a></small>
                         </div>
                     """),      
-                ),     
+                ),
+                Fieldset(
+                    '📍 Collection Locations',
+                    Field('manage_collection_locations', css_class='mb-1'),
+                    Div(
+                        HTML("""
+                            <div class="alert alert-info mb-2">
+                                <small>💡 When checked, collection location dropdowns (sourced from the <i>Collection Locations</i> list) will be offered on CARES registration and species instance forms for this species.</small>
+                            </div>
+                        """),
+                    ),
+                    css_class='mb-1 section-bordered'
+                ),
                 css_class='mb-1'
             ),
             Fieldset(
@@ -367,34 +452,33 @@ class CaresRegistrationAnonymousForm (ModelForm):
 
 from django import forms
 
-class CaresRegistrationAnonymousForm2 (ModelForm):
+class CaresRegistrationAnonymousForm2(ModelForm):
     class Meta:
         model = CaresRegistration
-        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'species_source', 'year_acquired', 
-                  'verification_photo', 'species_has_spawned']
-        exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 
-                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes', 'collection_location']
+        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 
+                  'species_source', 'year_acquired', 'verification_photo', 'species_has_spawned']
+        exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 'collection_location',
+                   'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
         widgets = {
-            'species_source': forms.Textarea(attrs={'rows': 2}),  
+            'species_source': forms.Textarea(attrs={'rows': 2}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, species=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if not self.instance.pk:  # initialize default club for new registrations
+        if not self.instance.pk:
             try:
                 default_club = AquaristClub.objects.get(name='None')
                 self.fields['affiliate_club'].initial = default_club.pk
             except AquaristClub.DoesNotExist:
-                pass  
+                pass
 
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.form_class = 'form-horizontal registration-form'
-        self.helper.label_class = 'col-md-2 col-form-label fw-bold'    # 17% of row
-        self.helper.field_class = 'col-md-10'                          # 83% of row
-        
-        # Add Bootstrap classes and placeholders
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+
         self.fields['aquarist_name'].widget.attrs.update({
             'placeholder': 'Your full name',
             'style': 'max-width: 300px;',
@@ -430,24 +514,40 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
             'style': 'max-width: 300px;',
             'class': 'form-control'
         })
-                                
+
+        # Inject CollectionPointField only when species has manage_collection_locations enabled
+        if species and getattr(species, 'manage_collection_locations', False):
+            self.fields['collection_location'] = CollectionPointField(
+                species=species,
+                allow_add=False,
+                label='Collection Location',
+                required=False,
+                help_text='Select the original wild collection location for this species.',
+            )
+            collection_location_field = Field('collection_location', css_class='mb-1')
+        else:
+            # Hide the field entirely if not managed
+            del self.fields['collection_location']
+            collection_location_field = None
+
         self.helper.layout = Layout(
             Fieldset(
                 '🐟 Registration Details',
-                Field('aquarist_name', css_class='mb-1'),              # tight spacing between field rows
+                Field('aquarist_name', css_class='mb-1'),
                 Field('aquarist_email', css_class='mb-1'),
                 Field('affiliate_club', css_class='mb-1'),
+                *(([collection_location_field]) if collection_location_field else []),
                 Field('species_source', css_class='mb-1'),
                 Field('year_acquired', css_class='mb-1'),
-                Field('verification_photo', css_class='mb-1'),                
+                Field('verification_photo', css_class='mb-1'),
                 Field('species_has_spawned', css_class='mb-1'),
                 Div(
                     HTML("""
                         <div class="alert alert-info mb-3">
                             <small>💡 <strong>Please be sure to upload a good quality photo of your fish for verification purposes.</strong><br></small>
                         </div>
-                    """),      
-                ),     
+                    """),
+                ),
                 css_class='mb-1'
             ),
             FormActions(
@@ -455,7 +555,8 @@ class CaresRegistrationAnonymousForm2 (ModelForm):
                 HTML('<a href="{% url \'home\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
                 css_class='mt-2'
             )
-        )        
+        )
+
 
 # ASN SpeciesInstance easy CARES Reg form
 class CaresRegistrationFromInstanceForm(ModelForm):
@@ -548,27 +649,64 @@ class CaresRegistrationSubmitionAdminForm (ModelForm):
                     }
         
 # registration review by approver - general workflow edit
+# class CaresRegistrationApprovalForm(ModelForm):
+#     class Meta:
+#         model = CaresRegistration
+#         fields = ['cares_approver', 'affiliate_club', 'approver_notes', 'status']
+#         widgets = {'approver_notes': forms.Textarea(attrs={'rows': 3, 'cols': 50})}
+
+
 class CaresRegistrationApprovalForm(ModelForm):
     class Meta:
         model = CaresRegistration
         fields = ['cares_approver', 'affiliate_club', 'approver_notes', 'status']
+        exclude = ['collection_location']
         widgets = {'approver_notes': forms.Textarea(attrs={'rows': 3, 'cols': 50})}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, species=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['cares_approver'].required = False
+
+        if species and species.manage_collection_locations:
+            location_choices = [('', '-- Not specified --')]
+            location_choices += [
+                (str(loc.pk), loc.name)
+                for loc in SpeciesCollectionLocation.objects.filter(
+                    species=species, is_verified=True
+                ).order_by('name')
+            ]
+            self.fields['collection_location'] = forms.ChoiceField(
+                choices=location_choices,
+                required=False,
+                label='Collection Location',
+                help_text='Wild collection location for this species.',
+                widget=forms.Select(attrs={
+                    'class': 'form-select',
+                    'style': 'max-width: 400px;'
+                })
+            )
+            # Pre-select current value
+            if self.instance and self.instance.collection_location_id:
+                self.fields['collection_location'].initial = str(self.instance.collection_location_id)
+            collection_location_field = Field('collection_location', css_class='mb-2')
+        else:
+            collection_location_field = None
+
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.layout = Layout(
             Field('cares_approver', css_class='mb-2'),
             Field('affiliate_club', css_class='mb-2'),
+            *(([collection_location_field]) if collection_location_field else []),
             Field('status', css_class='mb-2'),
-            Field('approver_notes', css_class='mb-2'),
+            Field('approver_notes', css_class='mb-2'),    
             FormActions(
                 Submit('submit', 'Save Changes', css_class='btn btn-success'),
                 HTML('<a href="{% url \'caresRegistration\' form.instance.pk %}" class="btn btn-secondary ms-2">Cancel</a>'),
-            )
+            )        
         )
+
+
 class CaresApproverForm (ModelForm):
     class Meta:
         model = CaresApprover

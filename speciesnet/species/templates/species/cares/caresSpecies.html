@@ -122,8 +122,11 @@
                         <div class="css_class='mb-3 section-bordered">
                             <h4>Edit</h4>
                             <div class="d-flex justify-content-between">
-                                <a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id  %}" role="button">&nbsp;&nbsp;Edit Species&nbsp;&nbsp;</a>
-                                <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a>
+                                <a class="btn btn-secondary" href="{% url 'editCaresSpecies' species.id %}" role="button">&nbsp;&nbsp;Edit Species&nbsp;&nbsp;</a>
+                                {% if species.manage_collection_locations %}
+                                    <a class="btn btn-secondary" href="{% url 'speciesCollectionLocations' species.id %}" role="button">&nbsp;&nbsp;Edit Collection Locations&nbsp;&nbsp;</a>
+                                {% endif %}
+                                <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a>
                             </div>
                         </div>
                     {% endif %}

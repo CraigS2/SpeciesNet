@@ -26,7 +26,13 @@
         <p><a href="{% url 'speciesComments' %}">View all Species Comments</a></p>   
         <p><a href="{% url 'enforceSpeciesNameSingleQuotes' %}">Enforce Species name consistency: single quotes (DB changes!)</a></p>
         <p><a href="{% url 'collectSpeciesData' %}">Collect External Species Data</a></p>   
-    </div> 
+    </div>    
+    <div>
+        <h3>Aquarist Species Tools</h3>
+        <p><a href="{% url 'exportSpeciesCollectionLocations' %}">Export Collection Locations to CSV</a></p>
+        <p><a href="{% url 'importSpeciesCollectionLocations' %}">Import Collection Locations from CSV</a></p>
+        <p><a href="{% url 'importSpeciesInstanceCollectionLocations' %}">Import Species Instance Collection Locations from CSV</a></p>
+    </div>    
     <div>
         <h3>Aquarist Species Tools</h3>
         <p><a href="{% url 'speciesInstancesWithLogs' %}">View all Aquarist Species with Logs</a></p>

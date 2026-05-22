@@ -327,6 +327,112 @@ def deleteSpeciesReferenceLink(request, pk):
     return render(request, 'species/deleteConfirmation.html', context)
 
 
+### Species Collection Locations (per-species CRUD)
+
+@login_required(login_url='login')
+def speciesCollectionLocations(request, pk):
+    """
+    Per-species list of SpeciesCollectionLocation entries.
+    Admins can add, edit, and delete from this page.
+    """
+    species = get_object_or_404(Species, pk=pk)
+    userCanEdit = user_can_edit_s(request.user, species)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    locations = SpeciesCollectionLocation.objects.filter(species=species).order_by('name')
+    context = {
+        'species': species,
+        'locations': locations,
+    }
+    return render(request, 'species/speciesCollectionLocations.html', context)
+
+
+@login_required(login_url='login')
+def createSpeciesCollectionLocation(request, pk):
+    species = get_object_or_404(Species, pk=pk)
+    userCanEdit = user_can_edit_s(request.user, species)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        is_verified = request.POST.get('is_verified') == 'on'
+        if name:
+            duplicate = SpeciesCollectionLocation.objects.filter(
+                species=species, name__iexact=name
+            ).exists()
+            if duplicate:
+                messages.warning(request, f'"{name}" already exists for this species.')
+            else:
+                SpeciesCollectionLocation.objects.create(
+                    species=species,
+                    name=name,
+                    is_verified=is_verified,
+                )
+                logger.info('User %s added collection location "%s" for species %s (%s)',
+                            request.user.username, name, species.name, species.id)
+                messages.success(request, f'Collection location "{name}" added.')
+        else:
+            messages.error(request, 'Name is required.')
+        return HttpResponseRedirect(reverse('speciesCollectionLocations', args=[species.id]))
+
+    context = {'species': species}
+    return render(request, 'species/editSpeciesCollectionLocation.html', context)
+
+
+@login_required(login_url='login')
+def editSpeciesCollectionLocation(request, pk):
+    location = get_object_or_404(SpeciesCollectionLocation, pk=pk)
+    species = location.species
+    userCanEdit = user_can_edit_s(request.user, species)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        is_verified = request.POST.get('is_verified') == 'on'
+        if name:
+            duplicate = SpeciesCollectionLocation.objects.filter(
+                species=species, name__iexact=name
+            ).exclude(pk=location.pk).exists()
+            if duplicate:
+                messages.warning(request, f'"{name}" already exists for this species.')
+            else:
+                location.name = name
+                location.is_verified = is_verified
+                location.save()
+                logger.info('User %s edited collection location pk=%s to "%s" for species %s (%s)',
+                            request.user.username, location.pk, name, species.name, species.id)
+                messages.success(request, f'Collection location updated to "{name}".')
+                return HttpResponseRedirect(reverse('speciesCollectionLocations', args=[species.id]))
+        else:
+            messages.error(request, 'Name is required.')
+
+    context = {'species': species, 'location': location}
+    return render(request, 'species/editSpeciesCollectionLocation.html', context)
+
+
+@login_required(login_url='login')
+def deleteSpeciesCollectionLocation(request, pk):
+    location = get_object_or_404(SpeciesCollectionLocation, pk=pk)
+    species = location.species
+    userCanEdit = user_can_edit_s(request.user, species)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        name = location.name
+        location.delete()
+        logger.info('User %s deleted collection location "%s" for species %s (%s)',
+                    request.user.username, name, species.name, species.id)
+        messages.success(request, f'Collection location "{name}" deleted.')
+        return HttpResponseRedirect(reverse('speciesCollectionLocations', args=[species.id]))
+
+    context = {'species': species, 'location': location}
+    return render(request, 'species/deleteSpeciesCollectionLocation.html', context)
+
+
 ### Import/Export Species
 
 @login_required(login_url='login')

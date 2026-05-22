@@ -308,18 +308,32 @@ def registerCaresSpecies(request, pk):
     # --> aquarist (capture their email)
     # --> club (which we may not yet know about)
 
-    if request.method == 'POST': 
-        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES)
+    if request.method == 'POST':
+        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species)
+
         if form.is_valid():
             try:
                 cares_reg = form.save(commit=False)
-                #TODO any hidden post processing needed
                 cares_reg.name = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.species = cares_species
+
+                # Resolve collection_location FK from cleaned form value
+                cp_value = form.cleaned_data.get('collection_location', '')
+                if cp_value:
+                    try:
+                        cares_reg.collection_location = SpeciesCollectionLocation.objects.get(
+                            pk=int(cp_value), species=cares_species
+                        )
+                    except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+                        cares_reg.collection_location = None
+                else:
+                    cares_reg.collection_location = None
+
                 cares_reg.last_updated_by = None
-                cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
-                cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
+                cares_reg.affiliated_club = None
+                cares_reg.cares_approver = get_matching_cares_approver(cares_species)
                 cares_reg.save()
+
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
                 if getattr(settings, 'SITE_ID', 1) == 2:
@@ -335,7 +349,7 @@ def registerCaresSpecies(request, pk):
             logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = CaresRegistrationAnonymousForm2()
+        form = CaresRegistrationAnonymousForm2(species=cares_species)
 
     context = {'form': form, 'cares_species': cares_species}
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
@@ -382,12 +396,13 @@ def editCaresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if not userCanEdit:
-        raise PermissionDenied()  
-    userIsAdmin = user_is_admin (request.user)
-    form = CaresRegistrationApprovalForm(instance=registration)        
-    if request.method == 'POST': 
+        raise PermissionDenied()
+    userIsAdmin = user_is_admin(request.user)
+    species = registration.species
+
+    if request.method == 'POST':
         old_status = registration.status
-        form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration)
+        form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration, species=species)
         if form.is_valid():
             try:
                 registration = form.save(commit=False)
@@ -396,6 +411,20 @@ def editCaresRegistration(request, pk):
                 # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
                 # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
                 registration.last_updated_by = request.user
+
+                # Resolve collection_location FK if species uses managed locations
+                if species and species.manage_collection_locations:
+                    cp_value = form.cleaned_data.get('collection_location', '')
+                    if cp_value:
+                        try:
+                            registration.collection_location = SpeciesCollectionLocation.objects.get(
+                                pk=int(cp_value), species=species
+                            )
+                        except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+                            registration.collection_location = None
+                    else:
+                        registration.collection_location = None
+
                 registration.save()
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
                 if _is_status_change_notification_transition(old_status, registration.status):
@@ -410,6 +439,9 @@ def editCaresRegistration(request, pk):
         else:
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
+    else:
+        form = CaresRegistrationApprovalForm(instance=registration, species=species)
+
     context = {'form': form, 'registration': registration, 'userIsAdmin': userIsAdmin}
     return render(request, 'species/cares/editCaresRegistration.html', context)
 

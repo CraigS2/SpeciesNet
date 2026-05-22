@@ -292,7 +292,7 @@ class SpeciesCollectionLocation(models.Model):
         verbose_name_plural = 'Collection Locations'
 
     def __str__(self):
-        return f"{self.species.name} — {self.name}"
+        return f"{self.name}"
     
 ### Species Feedback
 

@@ -15,9 +15,16 @@ from allauth.account.models import EmailAddress
 class EmailAddressInline(admin.TabularInline):
     model = EmailAddress
     extra = 0
-    readonly_fields = ('email',)
+    #readonly_fields = ('email',)
     can_delete = True
     fields = ('email', 'verified', 'primary')
+
+    def get_readonly_fields(self, request, obj=None):
+        # Lock 'email' on existing email rows to protect verified addresses.
+        # New blank rows are always editable, allowing email entry on a saved user.
+        if obj and obj.pk and obj.emailaddress_set.exists():
+            return ('email',)
+        return ()    
 
 
 class UserAdmin(BaseUserAdmin):

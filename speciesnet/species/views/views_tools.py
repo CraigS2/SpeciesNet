@@ -392,6 +392,29 @@ def collectSpeciesData(request):
 
 
 @login_required(login_url='login')
+def collectionLocations(request):
+    """
+    Admin list view of all SpeciesCollectionLocation entries.
+    Filterable by species name. Shows name, species, and is_verified.
+    """
+    if not (request.user.is_staff or request.user.is_admin):
+        raise PermissionDenied()
+
+    species_filter = request.GET.get('species', '').strip()
+
+    locations = SpeciesCollectionLocation.objects.select_related('species').all()
+    if species_filter:
+        locations = locations.filter(species__name__icontains=species_filter)
+
+    context = {
+        'locations': locations,
+        'species_filter': species_filter,
+        'total_count': locations.count(),
+    }
+    return render(request, 'species/collectionLocations.html', context)
+
+
+@login_required(login_url='login')
 def exportSpeciesCollectionLocations(request):
     if not (request.user.is_staff or request.user.is_admin):
         raise PermissionDenied()

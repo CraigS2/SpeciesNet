@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+
+    <h3>Delete Collection Location</h3>
+    <p>Are you sure you want to delete <b>{{ location.name }}</b> from <i>{{ species.name }}</i>?</p>
+    <p class="text-muted"><small>This cannot be undone. Any Species Instances or CARES Registrations linked to this location will have their FK set to null.</small></p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a class="btn btn-outline-secondary ms-2" href="{% url 'speciesCollectionLocations' species.id %}">Cancel</a>
+    </form>
+
+</div>
+{% endblock content %}

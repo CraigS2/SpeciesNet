@@ -20,6 +20,7 @@ from .views_species import (
     species, createSpecies, editSpecies, deleteSpecies, SpeciesListView, 
     createSpeciesReferenceLink, editSpeciesReferenceLink, deleteSpeciesReferenceLink,
     speciesReferenceLinks, speciesComments, editSpeciesComment, deleteSpeciesComment,
+    speciesCollectionLocations, createSpeciesCollectionLocation, editSpeciesCollectionLocation, deleteSpeciesCollectionLocation,
     exportSpecies#, importSpecies
 )
 
@@ -82,7 +83,7 @@ from .views_ux import (
 from .views_tools import (
     speciesProfilesWithPhotos, speciesInstancesWithPhotos, speciesInstancesWithLabels, 
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
-    enforceSpeciesNameSingleQuotes, collectSpeciesData,
+    enforceSpeciesNameSingleQuotes, collectSpeciesData, collectionLocations,
     exportSpeciesCollectionLocations, importSpeciesCollectionLocations, importSpeciesInstanceCollectionLocations,
     tools, tools2, dirtyDeed
 )
