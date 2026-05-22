@@ -1,6 +1,6 @@
 from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus
 from species.models import ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation
-from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration, SpeciesCollectionLocation
+from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 
 from django.db import transaction
 from django.db.models import FileField, Q
@@ -1074,24 +1074,25 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
             registration.species_source = import_row.get('species_source', '').strip()
             registration.collection_location = None
 
-            # attempt to match collection_location from CSV text value
+            # Resolve collection_location FK from CSV text value
             collection_location_name = import_row.get('collection_location', '').strip()
-            if collection_location_name and matched_species:
-                location, created = SpeciesCollectionLocation.objects.get_or_create(
+            if collection_location_name:
+                location = SpeciesCollectionLocation.objects.filter(
                     species=matched_species,
-                    name__iexact=collection_location_name,
-                    defaults={
-                        'name': collection_location_name,
-                        'is_verified': False,
-                    }
-                )
-                registration.collection_location = location
-                if created:
+                    name__iexact=collection_location_name
+                ).first()
+                if not location:
+                    location = SpeciesCollectionLocation.objects.create(
+                        species=matched_species,
+                        name=collection_location_name,
+                        is_verified=False,
+                    )
                     logger.info('CARES reg import row %d: created new unverified collection location "%s" for species %s',
                                 row_count, collection_location_name, matched_species.name)
                 else:
                     logger.info('CARES reg import row %d: matched existing collection location "%s" for species %s',
                                 row_count, collection_location_name, matched_species.name)
+                registration.collection_location = location
             else:
                 registration.collection_location = None
 
@@ -1099,6 +1100,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 registration.year_acquired = int(import_row.get('year_acquired', '') or 0) or None
             except (ValueError, TypeError):
                 registration.year_acquired = None
+
             registration.species_has_spawned = str(import_row.get('species_has_spawned', '')).strip().lower() in ('true', '1', 'yes')
             registration.young_available = str(import_row.get('young_available', '')).strip().lower() in ('true', '1', 'yes')
             try:

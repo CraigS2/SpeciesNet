@@ -675,6 +675,15 @@ class CaresRegistrationApprovalForm(ModelForm):
                     species=species, is_verified=True
                 ).order_by('name')
             ]
+
+            # If the current registration has an unverified location set, include it marked as 'unverified'
+            current_location = self.instance.collection_location if self.instance else None
+            if current_location and not current_location.is_verified:
+                nbsp = '\u00a0'
+                unverified_choice = (str(current_location.pk), f'⚠{nbsp}{nbsp}{current_location.name}{nbsp}{nbsp}(unverified location)')                
+                if unverified_choice[0] not in [c[0] for c in location_choices]:
+                    location_choices.insert(1, unverified_choice) 
+
             self.fields['collection_location'] = forms.ChoiceField(
                 choices=location_choices,
                 required=False,
