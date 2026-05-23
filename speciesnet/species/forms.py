@@ -53,6 +53,7 @@ class CollectionPointField(forms.MultiValueField):
       - 'NEW:<location>'  -> new name to be created by view logic
     """
     def __init__(self, species, allow_add=True, *args, **kwargs):
+        self.species = species
         self.allow_add = allow_add
         choices = self._build_choices(species)
         fields = [
@@ -87,6 +88,17 @@ class CollectionPointField(forms.MultiValueField):
         if selected and selected != '__add__':
             return selected
         return ''
+    
+    def clean(self, value):
+        pk = super().clean(value)
+        if not pk:
+            if self.required:
+                raise forms.ValidationError('Please select a collection location.')
+            return None
+        try:
+            return SpeciesCollectionLocation.objects.get(pk=int(pk), species=self.species)
+        except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+            raise forms.ValidationError('Invalid collection location selected.')
 
 
 class SpeciesForm2(ModelForm):
@@ -450,33 +462,27 @@ class CaresRegistrationAnonymousForm (ModelForm):
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
 
-from django import forms
-
 class CaresRegistrationAnonymousForm2(ModelForm):
     class Meta:
         model = CaresRegistration
-        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 
-                  'species_source', 'year_acquired', 'verification_photo', 'species_has_spawned']
-        exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status', 'collection_location',
+        fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location',
+                'species_source', 'year_acquired', 'verification_photo', 'species_has_spawned']
+        exclude = ['name', 'species', 'aquarist', 'offspring_shared', 'status',
                    'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes']
         widgets = {
             'species_source': forms.Textarea(attrs={'rows': 2}),
         }
 
-    def __init__(self, *args, species=None, **kwargs):
+    def __init__(self, *args, **kwargs):
+        self.species = kwargs.pop('species', None)
         super().__init__(*args, **kwargs)
 
-        if not self.instance.pk:
-            try:
-                default_club = AquaristClub.objects.get(name='None')
-                self.fields['affiliate_club'].initial = default_club.pk
-            except AquaristClub.DoesNotExist:
-                pass
+        manage_cl = bool(self.species and getattr(self.species, 'manage_collection_locations', False))
 
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.form_class = 'form-horizontal registration-form'
-        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold text-dark'
         self.helper.field_class = 'col-md-10'
 
         self.fields['aquarist_name'].widget.attrs.update({
@@ -514,19 +520,24 @@ class CaresRegistrationAnonymousForm2(ModelForm):
             'style': 'max-width: 300px;',
             'class': 'form-control'
         })
+        self.fields['collection_location'].help_text = 'The original wild collection location of the species, if known.'
+        self.fields['collection_location'].widget.attrs.update({
+            'placeholder': 'e.g. Mwanza Gulf Lake Tanganyika, Teuchitlan Springs Mexico',
+            'style': 'max-width: 600px;',
+            'class': 'form-control'
+        })        
 
-        # Inject CollectionPointField only when species has manage_collection_locations enabled
-        if species and getattr(species, 'manage_collection_locations', False):
+        # collection_location: inject as FK dropdown if species manages locations, otherwise remove
+        if manage_cl:
             self.fields['collection_location'] = CollectionPointField(
-                species=species,
+                species=self.species,
                 allow_add=False,
                 label='Collection Location',
-                required=False,
-                help_text='Select the original wild collection location for this species.',
+                required=True,
+                help_text='Required — select the original wild collection location for this species.',
             )
             collection_location_field = Field('collection_location', css_class='mb-1')
         else:
-            # Hide the field entirely if not managed
             del self.fields['collection_location']
             collection_location_field = None
 

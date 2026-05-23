@@ -302,11 +302,9 @@ def registerCaresSelectSpecies(request):
 def registerCaresSpecies(request, pk):
     register_heif_opener()
     cares_species = get_object_or_404(Species, pk=pk)
+    collection_location_required = cares_species.manage_collection_locations
 
-    #TODO: Manage some hidden voodoo to set fields including:
-    # -- setting cares_species being registered
-    # --> aquarist (capture their email)
-    # --> club (which we may not yet know about)
+    print ('Begin annoymous CARES Registration on Site 2')
 
     if request.method == 'POST':
         form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species)
@@ -317,17 +315,23 @@ def registerCaresSpecies(request, pk):
                 cares_reg.name = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.species = cares_species
 
-                # Resolve collection_location FK from cleaned form value
-                cp_value = form.cleaned_data.get('collection_location', '')
-                if cp_value:
-                    try:
-                        cares_reg.collection_location = SpeciesCollectionLocation.objects.get(
-                            pk=int(cp_value), species=cares_species
-                        )
-                    except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
-                        cares_reg.collection_location = None
-                else:
-                    cares_reg.collection_location = None
+                cares_reg.collection_location = form.cleaned_data.get('collection_location')
+                # # Resolve collection_location FK from cleaned form value
+                # cp_value = form.cleaned_data.get('collection_location', '')
+                # if cp_value:
+                #     try:
+                #         cares_reg.collection_location = SpeciesCollectionLocation.objects.get(
+                #             pk=int(cp_value), species=cares_species
+                #         )
+                #     except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+                #         if collection_location_required:
+                #             logger.error(f"Invalid collection_location pk={cp_value} for species {cares_species.pk}")
+                #             messages.error(request, 'Invalid collection location selected. Please try again.')
+                #             context = {'form': form, 'cares_species': cares_species}
+                #             return render(request, 'species/cares/registerCaresSpecies.html', context)
+                #         cares_reg.collection_location = None
+                # else:
+                #     cares_reg.collection_location = None
 
                 cares_reg.last_updated_by = None
                 cares_reg.affiliated_club = None

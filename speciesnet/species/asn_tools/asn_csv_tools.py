@@ -1115,6 +1115,8 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
             if not external_id_raw:
                 skip_count += 1
                 error_msg = f"Row {row_count}: missing required external_id"
+                csv_report_writer.writerow([row_count, external_id_raw, '', f'ERROR: {error_msg}'])
+                logger.warning(f"CSO import ERROR: {error_msg}")
                 continue
             try:
                 registration.external_id = int(external_id_raw)
@@ -1144,7 +1146,6 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
 
             photo_filename = photo_url.split('/')[-1] or f'cares_reg_{email}_{species_name}.jpg'
             registration.verification_photo.save(photo_filename, ContentFile(response.content), save=False)
-
             registration.save()
             create_count += 1
 
