@@ -1407,6 +1407,81 @@ class AquaristClubForm2 (ModelForm):
                 css_class='mt-2'
             )
         )
+# Bare Bones Club Creation/Edit form for CARES Site 2 usage only
+class AquaristClubForm2BB (ModelForm):
+    class Meta:
+        model = AquaristClub
+        fields = ['name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country']        
+        widgets = {
+            'about': forms.Textarea(attrs={'rows': 3}),  
+        }     
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'form-horizontal aqurist-club-form'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+
+        self.fields['name'].widget.attrs.update({
+            'placeholder': 'Full name of your club',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['acronym'].widget.attrs.update({
+            'placeholder': "Short all-caps acronym, e.g. 'ACA', 'AKA', 'PVAS' ... etc",
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['about'].widget.attrs.update({
+            'placeholder': 'Short 1-2 sentences describing your club',
+            'style': 'max-width: 750px;',
+            'class': 'form-control'
+        })      
+        self.fields['website'].widget.attrs.update({
+            'placeholder': 'Full url for your site, e.g. https://www.aka.org',
+            'style': 'max-width: 750px;',
+            'class': 'form-control'
+        }) 
+        self.fields['city'].widget.attrs.update({
+            'placeholder': 'City where your club meets or is located, e.g. Boston (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['state'].widget.attrs.update({
+            'placeholder': 'e.g. Massachusets or MA (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['country'].widget.attrs.update({
+            'placeholder': 'e.g. USA, Canada, Norway ... (may be left blank)',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        }) 
+
+        self.helper.layout = Layout(
+            # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
+            # Fieldset(
+            Div(
+                Field('name', css_class='mb-1'),
+                Field('acronym', css_class='mb-1'),
+                Field('logo_image', css_class='mb-1'),
+                Field('website', css_class='mb-1'),
+                Field('about', css_class='mb-1'),
+                Field('city', css_class='mb-1'),
+                Field('state', css_class='mb-1'),
+                Field('country', css_class='mb-1'),
+                css_class='mb-3'
+            ),    
+ 
+            # Submit Buttons
+            FormActions(
+                Submit('submit', 'Save Club Configuration', css_class='btn btn-success btn-lg'),
+                HTML('<a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
+                css_class='mt-2'
+            )
+        )        
 
         
 class AquaristClubMemberJoinForm (ModelForm):

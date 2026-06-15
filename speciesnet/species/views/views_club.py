@@ -55,16 +55,41 @@ def createAquaristClub(request):
     if not request.user.is_staff:
         raise PermissionDenied()
     
+    site_id = getattr(settings, 'SITE_ID', 1)
+    is_site2 = (site_id == 2)
+
     if request.method == 'POST': 
-        form = AquaristClubForm(request.POST, request.FILES)
+        if is_site2:
+            form = AquaristClubForm2BB(request.POST, request.FILES)
+        else:
+            form = AquaristClubForm2(request.POST, request.FILES)
+
+        print ('Processing create Aquarist Club form')
         if form.is_valid():
-            aquaristClub = form.save(commit=True)
+            print ('Processing create Aquarist Club form - validated input')
+            aquaristClub = form.save(commit=False)  # creates instance, no DB write
+            if is_site2:
+                aquaristClub.require_member_approval = False
+                aquaristClub.bap_default_points = 10
+                aquaristClub.cares_muliplier = 1
+                aquaristClub.is_bap_club = False
+                aquaristClub.is_cares_club = True
+            aquaristClub.save()
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             logger.info('User %s created club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
+        
+        else:
+            print('Form errors:', form.errors)
     
-    form = AquaristClubForm()
+    #form = AquaristClubForm()
+    print ('Initializing create Aquarist Club form')
+    if is_site2:
+        form = AquaristClubForm2BB()   # Bare Bones Club no BAP etc.
+    else:
+        form = AquaristClubForm2() 
+
     context = {'form':  form}
     return render(request, 'species/createAquaristClub.html', context)
 
@@ -75,12 +100,18 @@ def createAquaristClub(request):
 def editAquaristClub(request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     userCanEdit = user_can_edit_club(request.user, aquaristClub)
-    
+    site_id = getattr(settings, 'SITE_ID', 1)
+
     if not userCanEdit: 
         raise PermissionDenied()
     
     if request.method == 'POST':
         form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
+        if site_id == 2:
+            form = AquaristClubForm2BB(request.POST, request.FILES, instance=aquaristClub)
+        else:
+            form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
+        
         if form.is_valid(): 
             aquaristClub = form.save()
             if aquaristClub.logo_image:
@@ -88,8 +119,13 @@ def editAquaristClub(request, pk):
             form.save()
             logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-        
-    form = AquaristClubForm2(instance=aquaristClub)
+
+    #form = AquaristClubForm2()
+    if site_id == 2:
+        form = AquaristClubForm2BB(instance=aquaristClub)   # Bare Bones Club no BAP etc.
+    else:
+        form = AquaristClubForm2(instance=aquaristClub) 
+
     context = {'form':  form, 'aquaristClub': aquaristClub}
     return render(request, 'species/editAquaristClub.html', context)
 

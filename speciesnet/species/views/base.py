@@ -42,7 +42,7 @@ from django.db.models import F
 from species.forms import (
     UserProfileForm, UserProfileForm2, UserProfileFormCares, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
     SpeciesCommentForm, SpeciesReferenceLinkForm, SpeciesForm2, CaresSpeciesForm, SpeciesInstanceForm2,
-    CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubForm2,
+    CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubForm2, AquaristClubForm2BB,
     AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm,
     SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm,
     MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm,
