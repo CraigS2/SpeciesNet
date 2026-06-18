@@ -136,6 +136,20 @@ urlpatterns = [
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
 
+    ### Raffle (hidden - no nav links) ###
+
+    path('raffle/dashboard/', views.raffle_dashboard, name="raffle_dashboard"),
+    path('raffle/entries/', views.raffle_entries, name="raffle_entries"),    
+    path('raffle/enter/', views.raffle_enter, name="raffle_enter"),
+    path('raffle/thanks/', views.raffle_thanks, name="raffle_thanks"),
+    path('raffle/upload-species/', views.raffle_upload_species, name="raffle_upload_species"),
+    path('raffle/pick-winner/<str:species_name>/', views.raffle_pick_winner, name="raffle_pick_winner"),
+    path('raffle/mark-winner/<str:species_name>/<str:email>/', views.raffle_mark_manual_winner, name="raffle_mark_manual_winner"),
+    path('raffle/mark-account-created/<str:email>/', views.raffle_mark_account_created, name="raffle_mark_account_created"),
+    path('raffle/export_entries/', views.raffle_export_entries, name="raffle_export_entries"),
+    path('raffle-admin/export-species-results/', views.raffle_export_species_results, name="raffle_export_species_results"),
+    path('raffle/reset/', views.raffle_reset, name="raffle_reset"),
+
     ### Species Instance == Aquarist Species (UX) ###
 
     path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 

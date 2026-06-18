@@ -354,6 +354,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Raffle feature - CSV file stored in the persistent media volume
+
+RAFFLE_CSV_PATH         = os.path.join('/media/', 'raffle_entries.csv')
+RAFFLE_SPECIES_CSV_PATH = os.path.join('/media/', 'raffle_species.csv')
+
 ### Internationalization ###
 
 LANGUAGE_CODE = 'en-us'
