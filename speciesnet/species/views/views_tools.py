@@ -570,6 +570,18 @@ def importSpeciesInstanceCollectionLocations(request):
     context = {'form': form, 'summary': summary}
     return render(request, 'species/import/importSpeciesInstanceCollectionLocations.html', context)
 
+@login_required(login_url='login')
+def speciesWithManageCollectionLocations(request):
+
+    if not request.user.is_staff:
+        raise PermissionDenied()
+
+    species_list = Species.objects.filter(manage_collection_locations=True).order_by('name')
+
+    logger.info('Admin user %s viewed speciesWithManageCollectionLocations', request.user.username)
+    context = {'species_list': species_list}
+    return render(request, 'species/tools/speciesWithManageCollectionLocations.html', context)
+
 
 def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
     cur_registrations = CaresRegistration.objects.all()

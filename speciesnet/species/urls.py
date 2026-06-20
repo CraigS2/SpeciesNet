@@ -206,6 +206,7 @@ urlpatterns = [
     path('export-species-collection-locations/', views.exportSpeciesCollectionLocations, name='exportSpeciesCollectionLocations'),
     path('import-species-collection-locations/', views.importSpeciesCollectionLocations, name='importSpeciesCollectionLocations'),
     path('import-species-instance-collection-locations/', views.importSpeciesInstanceCollectionLocations, name='importSpeciesInstanceCollectionLocations'),
+    path('species-manage-collection-locations/', views.speciesWithManageCollectionLocations, name='speciesWithManageCollectionLocations'),
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
     ### Species Import Workflow ###
