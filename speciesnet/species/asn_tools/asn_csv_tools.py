@@ -198,8 +198,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                         else:
                             report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
                     else:
-                        report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]
-                            
+                        report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]    
                 else:
                     report_row = [speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance"]
             else:
@@ -603,7 +602,7 @@ def export_csv_aquarists():
     aquaristSet = User.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="aquarists_export.csv"'},
+        headers={"Content-Disposition": 'attachment; filename="asn_aquarists_export.csv"'},
     )
     writer = csv.writer(response)
 
@@ -678,8 +677,15 @@ def export_csv_species():
     speciesSet = Species.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="species_export.csv"'},
+        headers={"Content-Disposition": 'attachment; filename="asn_species_export.csv"'},
     )
+    site_id = getattr(settings, 'SITE_ID', 1)
+    if site_id == 2:
+        response = HttpResponse (
+            content_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="cso_species_export.csv"'},
+        )        
+
     writer = csv.writer(response)
 
     id_header          = 'asn_id'

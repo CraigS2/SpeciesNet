@@ -622,7 +622,7 @@ def caresRegistrationsFromAsn(request):
     registrations = CaresRegistration.objects.all().order_by('-date_requested')
     logger.info('Staff user %s viewed caresRegistrationsAdmin', request.user.username)
     context = {'registrations': registrations}
-    return render(request, 'species/cares/caresRegistrationsFromAsn.html', context)
+    return render(request, 'species/tools/caresRegistrationsFromAsn.html', context)
 
 ### View CARES Approver
 

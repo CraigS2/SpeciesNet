@@ -152,7 +152,9 @@
             {% else %}
                 <div>
                     <h3  style="text-align:center;">None Found</h3>
-                    <p style="text-align:center;"><a href="{% url 'createCaresSpecies'%}">Add CARES Species</a></p>
+                    {% if request.user.is_authenticated %}
+                        <p style="text-align:center;"><a href="{% url 'createCaresSpecies' %}">Add CARES Species</a></p>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
