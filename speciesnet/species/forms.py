@@ -105,7 +105,7 @@ class SpeciesForm2(ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares', 'species_instance_count', 'iucn_red_list', 'cares_family', 'created_by', 'last_edited_by']
+        exclude = ['render_cares', 'species_instance_count', 'iucn_red_list', 'cares_family', 'manage_collection_locations', 'created_by', 'last_edited_by']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -205,7 +205,7 @@ class CaresSpeciesForm(ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares', 'species_instance_count', 'category', 'created_by', 'last_edited_by']
+        exclude = ['render_cares', 'species_instance_count', 'category', 'manage_collection_locations', 'created_by', 'last_edited_by']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -322,7 +322,7 @@ class CaresSpeciesForm2(ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares', 'species_instance_count','created_by', 'last_edited_by']
+        exclude = ['render_cares', 'species_instance_count', 'manage_collection_locations', 'created_by', 'last_edited_by']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -737,7 +737,7 @@ class SpeciesForm (ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
-        exclude = ['render_cares', 'species_instance_count']
+        exclude = ['render_cares', 'species_instance_count', 'manage_collection_locations']
         widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':50}),
                     'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
                     'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
@@ -1699,7 +1699,6 @@ class UserProfileFormCares(ModelForm):
             )
         )
 
-        
 class EmailAquaristForm (ModelForm):
     class Meta:
         model = UserEmail

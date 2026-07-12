@@ -28,7 +28,7 @@
                             <!-- Registrations (Direct Link) -->
                             <li class="nav-item">
                                 <a class="nav-link {% if request.resolver_match.url_name == 'caresRegistrations' %}active{% endif %}" 
-                                href="{% url 'caresRegistrations' %}">&nbsp;Registrations&nbsp;</a>
+                                href="{% url 'caresRegistrations' %}?reg_status=OPEN">&nbsp;Registrations&nbsp;</a>
                             </li> 
                         {% else %}
                             <li class="nav-item dropdown">
