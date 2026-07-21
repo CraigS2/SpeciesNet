@@ -48,6 +48,8 @@ def createBapSubmission(request, pk):
     bapGenus = None
     bapSpecies = None
     bap_points = 0
+    genus_name = None
+    form = None
 
     # Lookup species first - if not found lookup genus
     try:
@@ -118,7 +120,7 @@ def createBapSubmission(request, pk):
                 bap_submission.speciesInstance = speciesInstance
                 bap_submission.points = bap_points
                 
-                if not bapGenusFound:
+                if not bapGenusFound and genus_name is not None:
                     bapGenus = BapGenus(
                         name=genus_name,
                         club=club,
