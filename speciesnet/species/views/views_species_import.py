@@ -295,7 +295,7 @@ def importSpeciesReferenceLinks(request):
                 summary['success_count'],
                 summary['error_count'],
             )
-        return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+            return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
 
     context = {
         'form': form,
