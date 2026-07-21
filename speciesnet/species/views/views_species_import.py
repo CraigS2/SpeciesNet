@@ -220,7 +220,7 @@ def rejectSpeciesImportBatch(request, pk):
         logger.info('User %s bulk-rejected %d staging records for archive %s', request.user.username, count, pk)
         messages.success(request, f'{count} staging record(s) rejected.')
 
-    return HttpResponseRedirect(reverse('species/import/reviewSpeciesImport', args=[pk]))
+    return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[pk]))
 
 
 # ---------------------------------------------------------------------------
