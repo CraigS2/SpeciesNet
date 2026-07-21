@@ -550,7 +550,7 @@ def editCaresApprover(request, pk):
     cares_approver = get_object_or_404(CaresApprover, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied(instance=cares_approver)     
+        raise PermissionDenied()
     form = CaresApproverForm(instance=cares_approver) 
     if request.method == 'POST': 
         form = CaresApproverForm(request.POST, instance=cares_approver)
