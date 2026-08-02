@@ -22,8 +22,12 @@
                     <!-- CARES Priority List - Species Search (Direct Link) -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'caresSpeciesSearch' %}active{% endif %}" 
-                        href="{% url 'caresSpeciesSearch' %}">&nbsp;CARES Species&nbsp;</a>
+                        href="{% url 'caresPriorityList' %}">&nbsp;Priority List&nbsp;</a>
                     </li> 
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'caresSpeciesSearch' %}active{% endif %}" 
+                        href="{% url 'caresSpeciesSearch' %}">&nbsp;Species Search&nbsp;</a>
+                    </li>                     
                         {% if request.user.is_authenticated %}
                             <!-- Registrations (Direct Link) -->
                             <li class="nav-item">

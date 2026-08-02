@@ -24,11 +24,11 @@ from .views_species import (
     exportSpecies#, importSpecies
 )
 
-# Species (Species Profiles)
+# CARES
 from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
-    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, 
+    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, caresPriorityList,
     editCaresSpecies2, editCaresRegistrationAdmin, caresRegistrationNotifyAquarist, registrationLookup,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers,
     exportCaresRegistrations, importCaresRegistrations, caresRegistrationsFromAsn, importCaresLegacyRegistrations,

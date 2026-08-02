@@ -12,18 +12,6 @@ from species.services.email_services import send_new_registration_notification, 
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
 
-def _is_status_change_notification_transition(old_status, new_status):
-    return (
-        old_status in [
-            CaresRegistration.CaresRegistrationStatus.OPEN,
-            CaresRegistration.CaresRegistrationStatus.RESUBMIT,
-        ]
-        and new_status in [
-            CaresRegistration.CaresRegistrationStatus.APPROVED,
-            CaresRegistration.CaresRegistrationStatus.DECLINED,
-        ]
-    )
-
 ### View CARES Species
 
 def caresSpecies(request, pk):
@@ -232,6 +220,13 @@ class CaresSpeciesListView(ListView):
         return context
 
 
+def caresPriorityList (request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited caresPriorityList page. ', request.user.username)
+    else:
+        logger.info('Anonymous user visited caresPriorityList page.')
+    return render(request, 'species/cares/caresPriorityList.html')    
+
 ### View CARES Registration
 
 def caresRegistration(request, pk):
@@ -359,6 +354,21 @@ def registerCaresSpecies(request, pk):
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
 
 
+### reg submitter email notifications for certain reg status changes
+
+def _is_status_change_notification_transition(old_status, new_status):
+    return (
+        old_status in [
+            CaresRegistration.CaresRegistrationStatus.OPEN,
+            CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+        ]
+        and new_status in [
+            CaresRegistration.CaresRegistrationStatus.APPROVED,
+            CaresRegistration.CaresRegistrationStatus.PENDING,
+            CaresRegistration.CaresRegistrationStatus.DECLINED,
+        ]
+    )
+
 ### Create CARES Registration -- Admin internal TODO needs work
 
 @login_required(login_url='login')
@@ -393,7 +403,7 @@ def createCaresRegistration(request, pk):
     context = {'form': form, 'species': species}
     return render(request, 'species/cares/createCaresRegistration.html', context)
 
-### Edit CARES Registration
+### Edit CARES Registration   
 
 @login_required(login_url='login')
 def editCaresRegistration(request, pk):
@@ -451,7 +461,7 @@ def editCaresRegistration(request, pk):
 
 
 @login_required(login_url='login')
-def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields
+def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields   
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
@@ -501,6 +511,13 @@ def caresRegistrationNotifyAquarist(request, pk):
         'species/cares/email_status_change_body.html',
         {'registration': registration, 'status_label': status_label, 'species_name': species_name},
     ).strip()
+
+    if registration.status == CaresRegistration.CaresRegistrationStatus.PENDING:
+        default_subject = f'Your CARES Registration for {species_name} needs clarification'
+        default_body = render_to_string(
+            'species/cares/email_status_change_pending_body.html',
+            {'registration': registration, 'status_label': status_label, 'species_name': species_name},
+        ).strip()
 
     if request.method == 'POST':
         action = request.POST.get('action')

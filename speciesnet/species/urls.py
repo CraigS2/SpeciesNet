@@ -103,6 +103,7 @@ urlpatterns = [
 
     ### CARES Site 2 Only ###
 
+    path('caresPriorityList/', views.caresPriorityList, name="caresPriorityList"), 
     path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"), 
     path('createCaresSpecies/', views.createCaresSpecies, name="createCaresSpecies"),
     path('editCaresSpecies/<str:pk>/', views.editCaresSpecies, name="editCaresSpecies"),

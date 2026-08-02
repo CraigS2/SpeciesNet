@@ -554,6 +554,7 @@ class CaresRegistration (models.Model):
     class CaresRegistrationStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
         APPROVED = 'APRV', _('Approved')
+        PENDING  = 'PEND', _('Pending')
         DECLINED = 'DECL', _('Declined')
         RESUBMIT = 'RESU', _('Resubmitted')
         EXPIRED  = 'EXPI', _('Expired')

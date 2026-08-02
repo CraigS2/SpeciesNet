@@ -25,12 +25,17 @@
     <div>
         <h3>Species Tools</h3>
         <p><a href="{% url 'createSpecies'%}">Add Species</a></p>
-        <p><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></p>
+        <p><a href="{% url 'speciesProfilesWithPhotos' %}">View all Species with Photos</a></p>
         <p><a href="{% url 'speciesWithManageCollectionLocations' %}">View Species with Managed Collection Locations</a></p>        
+        <p><a href="{% url 'speciesFeedbackTools' %}">Review Species Feedback Submissions</a></p>  
+        <p><a href="{% url 'speciesReferenceLinks' %}">View all Species Reference Links</a></p>
         <p><a href="{% url 'speciesComments' %}">View all Species Comments</a></p>   
         <p><a href="{% url 'enforceSpeciesNameSingleQuotes' %}">Enforce Species name consistency: single quotes (DB changes!)</a></p>
-        <p><a href="{% url 'collectSpeciesData' %}">Collect External Species Data</a></p>   
-    </div>    
+    </div>   
+    <div>
+        <h3>Collection Location Tools</h3>
+        <p><a href="{% url 'collectionLocations' %}">View all Collection Locations</a></p>
+    </div>     
     <div>
         <h3>Aquarist Species Tools</h3>
         <p><a href="{% url 'speciesInstancesWithLogs' %}">View all Aquarist Species with Logs</a></p>
@@ -45,6 +50,12 @@
         <p><a href="{% url 'speciesMaintenanceLogs' %}">View all Aquarist Species Maintenance Logs</a></p>   
     </div> 
     <div>
+        <h3>CARES Registration Tools</h3>
+        <p><a href="{% url 'exportCaresRegistrations'%}">Export CARES Registrations to CSV</a></p>
+        <p><a href="{% url 'importCaresRegistrations'%}">Import ASN CARES Registrations from CSV</a></p>
+        <p><a href="{% url 'importCaresLegacyRegistrations'%}">Import CARES Legacy Registrations from CSV</a></p>        
+    </div>    
+    <div>
         <h3>Raffle Tools</h3>
         <p><a href="{% url 'raffle_enter' %}">Species Raffle Entry Form</a></p>
         <p><a href="{% url 'raffle_dashboard' %}">Species Raffle Dashboard</a></p>
@@ -54,7 +65,7 @@
     </div>    
     <div>
         <h3>Danger Will Robinson</h3>
-        <p><a href="{% url 'dirtyDeed' %}">Do the Dirty Deed</a></p>  
+        <p><a href="{% url 'dirtyDeed' %}">Do the Dirty Deed - Temporary Hacks to tweak DB - DO NOT USE UNLESS YOU KNOW EXACTLY WHAT IT WILL DO</a></p>  
     </div>
 </div>
 {% endblock content %}
