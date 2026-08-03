@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
-from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember
+from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember, CaresRegistration
 from species.models import BapSubmission
 from django.db.models import URLField
 from datetime import datetime
@@ -106,6 +106,15 @@ def user_can_edit_club (cur_user: User, club: AquaristClub):
                 logger.error('Club edit check: multiple entries found for %s', cur_user.username)
     return userCanEdit
 
+
+def user_can_edit_cares_reg (cur_user: User, caresReg: CaresRegistration):
+    userCanEdit = False
+    if cur_user.is_authenticated:
+        if cur_user.is_staff or cur_user.is_admin:
+            userCanEdit = True
+        elif cur_user.is_species_admin and caresReg.cares_approver : 
+            userCanEdit = (caresReg.cares_approver.approver  == cur_user)
+    return userCanEdit
 
 def user_is_club_member (cur_user: User, club: AquaristClub):
     user_is_member = False

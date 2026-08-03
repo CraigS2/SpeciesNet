@@ -60,6 +60,20 @@
                         </form>
                     </div>
 
+                    {% if userIsAdmin %}
+                    <!--div><p>&nbsp;</p></div-->
+                        <div class="css_class='mb-3 section-bordered">                      
+                            <h5><b>Delete Registration</b></h5>
+                            <p class="text-muted mb-3">
+                                This action cannot be undone. All associated data will be permanently removed.
+                            </p>
+                            <p><a class="btn btn-secondary" style="color: darkred !important;"
+                                href="{% url 'deleteCaresRegistration' registration.id  %}" role="button">&nbsp;Delete Registration&nbsp;</a>
+                            </p>
+                        </a>
+                        </div>                       
+                    {% endif %}
+
                 </div>
             </div>
         </div>

@@ -1,0 +1,80 @@
+{% extends 'main.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4><b>CARES Registration:</b> <i>{{registration.species.name}}</i></h4>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h5><b>Aquarist:</b> &nbsp;{{registration.aquarist_name}}</h5>
+                    <h5><b>Email:</b> &nbsp;{{registration.aquarist_email}}</h5>
+                    <small>&nbsp;</small>
+
+                    <div class="css_class='mb-3 section-bordered">                      
+                        <h4><b>Species:</b>&nbsp;&nbsp;<a href="{% url 'caresSpecies' registration.species.id %}"><i>{{registration.species.name}}</i></a></h4>
+                        <p><b>Classification:</b>&nbsp;&nbsp;{{registration.species.get_cares_classification_display}}</p>
+                        <p><b>Family:</b>&nbsp;&nbsp;{{registration.species.get_cares_family_display}}</p>
+                    </div>
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <h4><b>Details:</b></h4>
+                        <p><b>Aquarist Source:</b>&nbsp;&nbsp;{{registration.species_source}}</p>
+                        <p><b>Year Acquired:</b>&nbsp;&nbsp;{{registration.year_acquired}}</p>
+                        <p><b>Collection Location:</b>&nbsp;&nbsp;
+                            {% if registration.collection_location %}
+                                {{registration.collection_location}}
+                            {% else %}
+                                None
+                            {% endif %}
+                        </p>
+                        <p><b>Species Verification Photo:</b></p>
+                        {% if registration.verification_photo %}
+                            <p><img src={{registration.verification_photo.url}}></p>
+                        {% else %}
+                            <p>None</p>
+                        {% endif %}
+                        <p><b>Breeding Group?</b>&nbsp;&nbsp;
+                            {% if registration.species_has_spawned %}
+                                Yes
+                                {% if registration.offspring_shared > 0 %}&nbsp;&nbsp;(offspring shared){% endif %}
+                            {% else %}
+                                No
+                            {% endif %}
+                        </p>
+                        <p><b>Young Available?</b>&nbsp;&nbsp;
+                            {% if registration.young_available %}Yes{% else %}No{% endif %}
+                        </p>
+                        <p><b>ASN Imported?</b>&nbsp;&nbsp;
+                            {% if registration.asn_imported %}Yes{% else %}No{% endif %}
+                        </p>
+                    </div>
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <h5><b>Approval:</b></h5>
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% crispy form %}
+                        </form>
+                    </div>
+
+                    <!--div><p>&nbsp;</p></div-->
+                    <div class="css_class='mb-3 section-bordered">                      
+                        <h5><b>Delete Registration</b></h5>
+                        <p class="text-muted mb-3">
+                            This action cannot be undone. All associated data will be permanently removed.
+                        </p>
+                        <p><a class="btn btn-secondary" style="color: darkred !important;"
+                            href="{% url 'deleteCaresRegistration' registration.id  %}" role="button">&nbsp;Delete Registration&nbsp;</a>
+                        </p>
+                    </a>
+                    </div>              
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

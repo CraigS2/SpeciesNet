@@ -7,6 +7,10 @@ Species-related views: CRUD operations, search, comments, reference links
 
 from .base import *
 from django.conf import settings
+from django.template.loader import render_to_string
+from species.services.email_services import send_new_registration_notification, send_status_change_email
+from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
+
 
 ### View CARES Species
 
@@ -216,11 +220,18 @@ class CaresSpeciesListView(ListView):
         return context
 
 
+def caresPriorityList (request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited caresPriorityList page. ', request.user.username)
+    else:
+        logger.info('Anonymous user visited caresPriorityList page.')
+    return render(request, 'species/cares/caresPriorityList.html')    
+
 ### View CARES Registration
 
 def caresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
-    userCanEdit = user_can_edit(request.user)
+    userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if request.user.is_authenticated:
         logger.info('User %s visited CaresRegistration page: %s.', request.user.username, registration.name)
     else:
@@ -286,26 +297,47 @@ def registerCaresSelectSpecies(request):
 def registerCaresSpecies(request, pk):
     register_heif_opener()
     cares_species = get_object_or_404(Species, pk=pk)
+    collection_location_required = cares_species.manage_collection_locations
 
-    #TODO: Manage some hidden voodoo to set fields including:
-    # -- setting cares_species being registered
-    # --> aquarist (capture their email)
-    # --> club (which we may not yet know about)
+    print ('Begin annoymous CARES Registration on Site 2')
 
-    if request.method == 'POST': 
-        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES)
+    if request.method == 'POST':
+        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species)
+
         if form.is_valid():
             try:
                 cares_reg = form.save(commit=False)
-                #TODO any hidden post processing needed
                 cares_reg.name = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.species = cares_species
+
+                cares_reg.collection_location = form.cleaned_data.get('collection_location')
+                # # Resolve collection_location FK from cleaned form value
+                # cp_value = form.cleaned_data.get('collection_location', '')
+                # if cp_value:
+                #     try:
+                #         cares_reg.collection_location = SpeciesCollectionLocation.objects.get(
+                #             pk=int(cp_value), species=cares_species
+                #         )
+                #     except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+                #         if collection_location_required:
+                #             logger.error(f"Invalid collection_location pk={cp_value} for species {cares_species.pk}")
+                #             messages.error(request, 'Invalid collection location selected. Please try again.')
+                #             context = {'form': form, 'cares_species': cares_species}
+                #             return render(request, 'species/cares/registerCaresSpecies.html', context)
+                #         cares_reg.collection_location = None
+                # else:
+                #     cares_reg.collection_location = None
+
                 cares_reg.last_updated_by = None
-                cares_reg.affiliated_club = None            #TODO manage club assignment drop-down list or later from ASN side?
-                cares_reg.cares_approver  = get_matching_cares_approver(cares_species)
+                cares_reg.affiliated_club = None
+                cares_reg.cares_approver = get_matching_cares_approver(cares_species)
                 cares_reg.save()
+
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
+                if getattr(settings, 'SITE_ID', 1) == 2:
+                    #send_new_registration_notification(cares_reg, request)
+                    send_new_registration_notification(cares_reg)                    
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
                 messages.success(request, f'CARES "{cares_species.name}" registration submitted!')
                 return HttpResponseRedirect(reverse("caresSpecies", args=[cares_species.id]))
@@ -316,11 +348,26 @@ def registerCaresSpecies(request, pk):
             logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = CaresRegistrationAnonymousForm2()
+        form = CaresRegistrationAnonymousForm2(species=cares_species)
 
     context = {'form': form, 'cares_species': cares_species}
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
 
+
+### reg submitter email notifications for certain reg status changes
+
+def _is_status_change_notification_transition(old_status, new_status):
+    return (
+        old_status in [
+            CaresRegistration.CaresRegistrationStatus.OPEN,
+            CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+        ]
+        and new_status in [
+            CaresRegistration.CaresRegistrationStatus.APPROVED,
+            CaresRegistration.CaresRegistrationStatus.PENDING,
+            CaresRegistration.CaresRegistrationStatus.DECLINED,
+        ]
+    )
 
 ### Create CARES Registration -- Admin internal TODO needs work
 
@@ -347,23 +394,29 @@ def createCaresRegistration(request, pk):
             registration.save()
             if registration.verification_photo:
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
+            if getattr(settings, 'SITE_ID', 1) == 2:
+                #send_new_registration_notification(registration, request)
+                send_new_registration_notification(registration)                
             logger.info('User %s created caresRegistration: %s (%s)', request.user.username, registration.name, str(registration.id))
             return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
 
     context = {'form': form, 'species': species}
     return render(request, 'species/cares/createCaresRegistration.html', context)
 
-### Edit CARES Registration
+### Edit CARES Registration   
 
 @login_required(login_url='login')
 def editCaresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
-    userCanEdit = user_can_edit(request.user)
+    userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if not userCanEdit:
-        raise PermissionDenied()  
-    form = CaresRegistrationApprovalForm(instance=registration)        
-    if request.method == 'POST': 
-        form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration)
+        raise PermissionDenied()
+    userIsAdmin = user_is_admin(request.user)
+    species = registration.species
+
+    if request.method == 'POST':
+        old_status = registration.status
+        form = CaresRegistrationApprovalForm(request.POST, request.FILES, instance=registration, species=species)
         if form.is_valid():
             try:
                 registration = form.save(commit=False)
@@ -372,8 +425,24 @@ def editCaresRegistration(request, pk):
                 # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
                 # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
                 registration.last_updated_by = request.user
+
+                # Resolve collection_location FK if species uses managed locations
+                if species and species.manage_collection_locations:
+                    cp_value = form.cleaned_data.get('collection_location', '')
+                    if cp_value:
+                        try:
+                            registration.collection_location = SpeciesCollectionLocation.objects.get(
+                                pk=int(cp_value), species=species
+                            )
+                        except (SpeciesCollectionLocation.DoesNotExist, ValueError, TypeError):
+                            registration.collection_location = None
+                    else:
+                        registration.collection_location = None
+
                 registration.save()
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
+                if _is_status_change_notification_transition(old_status, registration.status):
+                    return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))
                 return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
             except IntegrityError as e:
                 logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
@@ -384,18 +453,23 @@ def editCaresRegistration(request, pk):
         else:
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    context = {'form': form, 'registration': registration}
+    else:
+        form = CaresRegistrationApprovalForm(instance=registration, species=species)
+
+    context = {'form': form, 'registration': registration, 'userIsAdmin': userIsAdmin}
     return render(request, 'species/cares/editCaresRegistration.html', context)
 
 
 @login_required(login_url='login')
-def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields
+def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields   
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
         raise PermissionDenied()  
-    form = CaresRegistrationAdminForm(instance=registration)        
+    form = CaresRegistrationAdminForm(instance=registration)   
+    print ('editCaresRegistrationAdmin view')     
     if request.method == 'POST': 
+        old_status = registration.status
         form = CaresRegistrationAdminForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
             try:
@@ -407,6 +481,8 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
                 registration.last_updated_by = request.user
                 registration.save()
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
+                if _is_status_change_notification_transition(old_status, registration.status):
+                    return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))
                 return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
             except IntegrityError as e:
                 logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
@@ -418,7 +494,62 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     context = {'form': form, 'registration': registration}
-    return render(request, 'species/cares/editCaresRegistration.html', context)
+    print ('editCaresRegistrationAdmin view or editCaresRegistrationAdmin view?')     
+    return render(request, 'species/cares/editCaresRegistrationAdmin.html', context)
+
+
+@login_required(login_url='login')
+def caresRegistrationNotifyAquarist(request, pk):
+    registration = get_object_or_404(CaresRegistration, pk=pk)
+    if not user_can_edit_cares_reg(request.user, registration) and not user_can_edit(request.user):
+        raise PermissionDenied()
+
+    status_label = registration.get_status_display()
+    species_name = registration.species.name if registration.species else registration.name
+    default_subject = f'Your CARES Registration for {species_name} has been {status_label}'
+    default_body = render_to_string(
+        'species/cares/email_status_change_body.html',
+        {'registration': registration, 'status_label': status_label, 'species_name': species_name},
+    ).strip()
+
+    if registration.status == CaresRegistration.CaresRegistrationStatus.PENDING:
+        default_subject = f'Your CARES Registration for {species_name} needs clarification'
+        default_body = render_to_string(
+            'species/cares/email_status_change_pending_body.html',
+            {'registration': registration, 'status_label': status_label, 'species_name': species_name},
+        ).strip()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'cancel':
+            return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+
+        if action == 'send':
+            subject = request.POST.get('subject', '').strip() or default_subject
+            body = request.POST.get('body', '').strip() or default_body
+            sent = send_status_change_email(registration, subject, body)
+            if sent:
+                messages.success(request, f'Email notification sent to {registration.aquarist_email}.')
+                return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
+
+            messages.error(request, 'Unable to send email notification right now. Please try again.')
+            context = {
+                'registration': registration,
+                'species_name': species_name,
+                'subject': subject,
+                'body': body,
+                'status_label': status_label,
+            }
+            return render(request, 'species/cares/caresRegistrationNotifyAquarist.html', context)
+
+    context = {
+        'registration': registration,
+        'species_name': species_name,
+        'subject': default_subject,
+        'body': default_body,
+        'status_label': status_label,
+    }
+    return render(request, 'species/cares/caresRegistrationNotifyAquarist.html', context)
 
 ### Delete CARES Registration
 
@@ -508,7 +639,7 @@ def caresRegistrationsFromAsn(request):
     registrations = CaresRegistration.objects.all().order_by('-date_requested')
     logger.info('Staff user %s viewed caresRegistrationsAdmin', request.user.username)
     context = {'registrations': registrations}
-    return render(request, 'species/cares/caresRegistrationsFromAsn.html', context)
+    return render(request, 'species/tools/caresRegistrationsFromAsn.html', context)
 
 ### View CARES Approver
 
@@ -653,3 +784,105 @@ def exportCaresRegistrationsPending(request):
         raise PermissionDenied()
     return export_csv_caresRegistrations_asn_pending()
 
+
+
+@login_required(login_url='login')
+def importCaresLegacyRegistrations(request):
+    """
+    Upload and process a legacy CARES Registration CSV.
+    Restricted to staff users only.
+    """
+    if not request.user.is_staff:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = 'Legacy CARES Reg Import - ' + str(request.user)
+            import_archive.save()
+
+            summary = import_legacy_cares_registrations(import_archive, request.user)
+
+            total    = summary.get('total', 0)
+            imported = summary.get('imported', 0)
+            errors   = summary.get('errors', 0)
+
+            if imported > 0 and errors == 0:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+            elif imported > 0 and errors > 0:
+                import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+            else:
+                import_archive.import_status = ImportArchive.ImportStatus.FAIL
+            import_archive.save(update_fields=['import_status'])
+
+            logger.info(
+                'User %s ran legacy CARES import: %d rows, %d imported, %d errors.',
+                request.user.username, total, imported, errors,
+            )
+
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+            }
+            return render(request, 'species/cares/importCaresLegacyRegistrationResults.html', context)
+
+    else:
+        form = ImportCsvForm()
+
+    context = {'form': form}
+    return render(request, 'species/cares/importCaresLegacyRegistrations.html', context)
+
+@login_required(login_url='login')
+def importSpeciesExternalIds(request):
+    """
+    Import Species External IDs from a CSV file.
+
+    SITE_ID=1 (ASN): looks up species by asn_id, sets external_id = cso_id
+    SITE_ID=2 (CSO): looks up species by cso_id, sets external_id = asn_id
+
+    CSV columns: species_name, asn_id, cso_id, render_cares, species_instance_count
+    Only rows where render_cares is truthy are processed.
+    species_instance_count update is Site 2 only.
+    """
+    userCanEdit = user_can_edit(request.user)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    site_id = getattr(settings, 'SITE_ID', 1)
+
+    if request.method == 'POST':
+        form = ImportCsvForm(request.POST, request.FILES)
+        if form.is_valid():
+            import_archive = form.save(commit=False)
+            import_archive.aquarist = request.user
+            import_archive.name = 'Species External ID Import - ' + str(request.user)
+            import_archive.save()
+
+            summary = import_csv_species_external_ids(import_archive, request.user)
+
+            updated = summary.get('updated', 0)
+            errors  = summary.get('errors', 0)
+            total   = summary.get('total', 0)
+
+            if total > 0 and errors == 0:
+                import_archive.import_status = ImportArchive.ImportStatus.FULL
+            elif updated > 0:
+                import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
+            else:
+                import_archive.import_status = ImportArchive.ImportStatus.FAIL
+            import_archive.save(update_fields=['import_status'])
+
+            context = {
+                'import_archive': import_archive,
+                'summary': summary,
+                'site_id': site_id,
+            }
+            return render(request, 'species/cares/importSpeciesExternalIdsResults.html', context)
+
+    else:
+        form = ImportCsvForm()
+
+    context = {'form': form, 'site_id': site_id}
+    return render(request, 'species/cares/importSpeciesExternalIds.html', context)

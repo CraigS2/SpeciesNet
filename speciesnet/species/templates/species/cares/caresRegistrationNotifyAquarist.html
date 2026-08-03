@@ -1,0 +1,42 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-9 mx-auto">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <h4 class="mb-0">Notify Registrant by Email</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Species:</strong> {{ species_name }}</p>
+                    <p class="mb-1"><strong>Aquarist:</strong> {{ registration.aquarist_name }}</p>
+                    <p class="mb-1"><strong>Email:</strong> {{ registration.aquarist_email }}</p>
+                    <p class="mb-1"><strong>New Status:</strong> {{ status_label }}</p>
+                    <p class="mb-0"><strong>Approver Notes:</strong> {% if registration.approver_notes %}{{ registration.approver_notes }}{% else %}None{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Compose Email to Registrant</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="subject" class="form-label"><strong>Subject</strong></label>
+                            <input id="subject" name="subject" type="text" class="form-control" value="{{ subject }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="body" class="form-label"><strong>Body</strong></label>
+                            <textarea id="body" name="body" rows="12" class="form-control" required>{{ body }}</textarea>
+                        </div>
+                        <button type="submit" name="action" value="send" class="btn btn-primary">Send Email</button>
+                        <button type="submit" name="action" value="cancel" class="btn btn-outline-secondary">Cancel / Skip</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

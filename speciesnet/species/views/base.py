@@ -30,7 +30,7 @@ from pillow_heif import register_heif_opener
 # Local models
 from species.models import (
     User, AquaristClub, AquaristClubMember, Species, SpeciesComment,
-    SpeciesReferenceLink, SpeciesInstance, SpeciesInstanceLabel,
+    SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLabel,
     SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry,
     ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies, 
     CaresRegistration, CaresApprover, SpeciesImportStaging,
@@ -40,9 +40,9 @@ from django.db.models import F
 
 # Local forms
 from species.forms import (
-    UserProfileForm, UserProfileForm2, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
+    UserProfileForm, UserProfileForm2, UserProfileFormCares, EmailAquaristForm, SpeciesForm, SpeciesInstanceForm,
     SpeciesCommentForm, SpeciesReferenceLinkForm, SpeciesForm2, CaresSpeciesForm, SpeciesInstanceForm2,
-    CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubForm2,
+    CombinedSpeciesForm, SpeciesInstanceLogEntryForm, AquaristClubForm, AquaristClubForm2, AquaristClubForm2BB,
     AquaristClubMemberForm, AquaristClubMemberJoinForm, ImportCsvForm,
     SpeciesMaintenanceLogForm, SpeciesMaintenanceLogEntryForm,
     MaintenanceGroupCollaboratorForm, MaintenanceGroupSpeciesForm,
@@ -50,7 +50,8 @@ from species.forms import (
     BapSubmissionForm, BapSubmissionFormEdit, BapSubmissionFormAdminEdit,
     BapGenusForm, BapSpeciesForm, BapSubmissionFilterForm,
     CaresRegistrationSubmitionAdminForm, CaresRegistrationApprovalForm, CaresApproverForm,
-    CaresRegistrationAnonymousForm, CaresRegistrationAnonymousForm2, CaresRegistrationAdminForm, CaresSpeciesForm2
+    CaresRegistrationAnonymousForm, CaresRegistrationAnonymousForm2, CaresRegistrationAdminForm, CaresSpeciesForm2,
+    ImportSpeciesCollectionLocationsForm, ImportSpeciesInstanceCollectionLocationsForm
 )
 
 # Local utilities
@@ -70,7 +71,8 @@ from species.asn_tools.asn_csv_tools import (
 
 from species.asn_tools.asn_utils import (
     user_can_edit, user_can_edit_a, user_can_edit_s, user_can_edit_si,
-    user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club,
+    user_can_edit_srl, user_can_edit_sc, user_can_edit_sml, user_can_edit_club, 
+    user_can_edit_cares_reg,
     user_is_admin, user_is_club_member, user_is_pending_club_member,
     get_sml_collaborator_choices, get_sml_speciesInstance_choices,
     validate_sml_collection, get_sml_available_collaborators,
@@ -85,7 +87,19 @@ from species.asn_tools.asn_species_aggregation import collect_species_data_as_cs
 # Logger
 logger = logging.getLogger(__name__)
 
+### Site 1 Creation Notification Email
 
+def send_asn_notification_email(subject, body):
+    """Send an admin notification email to itself for Site 1 (ASN) creation events."""
+    if getattr(settings, 'SITE_ID', 1) != 1:
+        return
+    from_email = settings.DEFAULT_FROM_EMAIL
+    try:
+        EmailMessage(subject, body, from_email, [from_email]).send(fail_silently=False)
+        logger.info('ASN notification email sent: %s', subject)
+    except Exception as e:
+        logger.error('ASN notification email failed - %s: %s', subject, str(e))
+        
 def record_page_view(page_type, object_id, is_authenticated):
     """
     Increment the PageViewCount for the given page_type + object_id + visitor_type.

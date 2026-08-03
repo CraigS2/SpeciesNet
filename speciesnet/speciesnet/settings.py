@@ -220,6 +220,7 @@ SOCIALACCOUNT_PROVIDERS = {
 SOCIALACCOUNT_EMAIL_AUTHENTICATION=True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT=True
 SOCIALACCOUNT_LOGIN_ON_GET=True
+SOCIALACCOUNT_ALLOW_SIGNUPS = os.environ.get('ACCOUNT_SIGNUP_ENABLED', 'True') == 'True'
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
@@ -233,6 +234,9 @@ ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = os.environ.get('ACCOUNT_CONFIRM_EMAIL_ON_GET', 'False')
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'none')
+ACCOUNT_SIGNUP_ENABLED = os.environ.get('ACCOUNT_SIGNUP_ENABLED', 'True') == 'True'
+# print ('Settings ACCOUNT_SIGNUP_ENABLED: ' + str(ACCOUNT_SIGNUP_ENABLED))
+ACCOUNT_ALLOW_REGISTRATION = os.environ.get('ACCOUNT_ALLOW_REGISTRATION', 'True') == 'True'
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 ACCOUNT_LOGOUT_ON_GET = True
@@ -350,6 +354,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# Raffle feature - CSV file stored in the persistent media volume
+
+RAFFLE_CSV_PATH         = os.path.join('/media/', 'raffle_entries.csv')
+RAFFLE_SPECIES_CSV_PATH = os.path.join('/media/', 'raffle_species.csv')
 
 ### Internationalization ###
 

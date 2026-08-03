@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="container">
-    <h1 class="my-4">CARES Priority Species</h1>
+    <h1 class="my-4">CARES Priority List: <i>Species Search</i></h1>
     
     <!-- Filter Form -->
     <div class="card mb-4">
@@ -152,7 +152,9 @@
             {% else %}
                 <div>
                     <h3  style="text-align:center;">None Found</h3>
-                    <p style="text-align:center;"><a href="{% url 'createCaresSpecies'%}">Add CARES Species</a></p>
+                    {% if request.user.is_authenticated %}
+                        <p style="text-align:center;"><a href="{% url 'createCaresSpecies' %}">Add CARES Species</a></p>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>

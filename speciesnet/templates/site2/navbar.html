@@ -22,13 +22,17 @@
                     <!-- CARES Priority List - Species Search (Direct Link) -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'caresSpeciesSearch' %}active{% endif %}" 
-                        href="{% url 'caresSpeciesSearch' %}">&nbsp;CARES Species&nbsp;</a>
+                        href="{% url 'caresPriorityList' %}">&nbsp;Priority List&nbsp;</a>
                     </li> 
-                        {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'caresSpeciesSearch' %}active{% endif %}" 
+                        href="{% url 'caresSpeciesSearch' %}">&nbsp;Species Search&nbsp;</a>
+                    </li>                     
+                        {% if request.user.is_authenticated %}
                             <!-- Registrations (Direct Link) -->
                             <li class="nav-item">
                                 <a class="nav-link {% if request.resolver_match.url_name == 'caresRegistrations' %}active{% endif %}" 
-                                href="{% url 'caresRegistrations' %}">&nbsp;Registrations&nbsp;</a>
+                                href="{% url 'caresRegistrations' %}?reg_status=OPEN">&nbsp;Registrations&nbsp;</a>
                             </li> 
                         {% else %}
                             <li class="nav-item dropdown">
@@ -53,14 +57,15 @@
                                 <li><a class="dropdown-item" href="{% url 'userProfile' %}">Profile</a></li>
                                 <li><a class="dropdown-item" href="{% url 'aquaristClubs' %}">Clubs</a></li>                                    
                                 <li><a class="dropdown-item" href="{% url 'caresApprovers' %}">CARES Approvers</a></li>
-                                <li><a class="dropdown-item" href="{% url 'createCaresApprover' %}">Add CARES Approver</a></li>
-                                <li><a class="dropdown-item" href="{% url 'createCaresSpecies' %}">Add CARES Species</a></li>
-                                {% if request.user.is_species_admin or request.user.is_staff or request.user.is_species_admin %}
+                                {% if request.user.is_staff or request.user.is_admin %}
+                                    <li><a class="dropdown-item" href="{% url 'createCaresApprover' %}">Add CARES Approver</a></li>
+                                {% endif %}
+                                {% if request.user.is_staff or request.user.is_admin or request.user.is_species_admin %}
+                                    <li><a class="dropdown-item" href="{% url 'createCaresSpecies' %}">Add CARES Species</a></li>
+                                {% endif %}
+                                {% if request.user.is_staff or request.user.is_admin %}
                                     <li><a class="dropdown-item" href="{% url 'tools' %}">Tools</a></li>
                                 {% endif %}
-                                {% if request.user.is_species_admin or request.user.is_staff %}
-                                    <li><a class="dropdown-item" href="{% url 'tools2' %}">Tools2</a></li>
-                                {% endif %}  
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}">Logout {{ request.user.username }}</a></li>
                             </ul>

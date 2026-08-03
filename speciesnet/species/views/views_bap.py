@@ -131,6 +131,18 @@ def createBapSubmission(request, pk):
                 
                 bap_submission.save()
                 bapClubMember.save()
+
+                send_asn_notification_email(
+                    subject=f'ASN: New BAP Submission - {bap_submission.speciesInstance.species.name}',
+                    body=(
+                        f'New BapSubmission created.\n\n'
+                        f'Club:     {bap_submission.club.name}\n'
+                        f'Species:  {bap_submission.speciesInstance.species.name}\n'
+                        f'Aquarist: {bap_submission.aquarist.username}\n'
+                        f'Points:   {bap_submission.points}\n'
+                    )
+                )
+
                 logger.info('User %s created bapSubmission for club:  %s (%s)',
                           request.user.username, club.name, str(club.id))
                 return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))

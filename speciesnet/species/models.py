@@ -142,6 +142,7 @@ class Species (models.Model):
         LOACHES         = 'LCH', _('Loaches')
         INVERTEBRATES   = 'INV', _('Invertebrates')
         OTHER           = 'OTH', _('All Others')
+        UNDEFINED       = 'UDF', _('Undefined')
 
     category = models.CharField (max_length=3, choices=Category.choices, default=Category.CICHLIDS)
 
@@ -154,6 +155,7 @@ class Species (models.Model):
         OCEANIA         = 'AUS', _('Oceania')
         EUROPE          = 'EUR', _('Europe')
         OTHER           = 'OTH', _('Other Region')
+        UNDEFINED       = 'UDF', _('Undefined')
         
     global_region       = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
     local_distribution  = models.CharField (max_length=200, blank=True)
@@ -217,10 +219,11 @@ class Species (models.Model):
         CARES_CRIT_ENDGR  = 'CCR', _ ('Critically Endangered')   
         CARES_EXT_IN_WILD = 'CEW', _ ('Extinct in the Wild')   
     
-    cares_classification      = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
-    cares_assessment_date     = models.DateField (null=True, blank=True)    
-    render_cares              = models.BooleanField (default=False)           # cached value to speed rendering N species
-    species_instance_count    = models.PositiveIntegerField (default=0)       # cached value to speed speciesSearch list views
+    cares_classification         = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
+    cares_assessment_date        = models.DateField (null=True, blank=True)    
+    render_cares                 = models.BooleanField (default=False)           # cached value to speed rendering N species
+    species_instance_count       = models.PositiveIntegerField (default=0)       # cached value to speed speciesSearch list views
+    manage_collection_locations  = models.BooleanField (default=False)           # require use of SpeciesCollectionLocation table
 
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
@@ -273,6 +276,24 @@ class SpeciesReferenceLink (models.Model):
     def __str__(self):
         return self.name
     
+class SpeciesCollectionLocation(models.Model):
+    """
+    Species-scoped list of known wild collection locations.
+    Managed by admins and optionally by users on ASN (Site 1).
+    """
+    species  = models.ForeignKey(Species, on_delete=models.CASCADE, related_name='collection_locations')
+    name        = models.CharField(max_length=200)
+    is_verified = models.BooleanField (default=False)                     # user-added locations need species admin verification
+    created  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Collection Location'
+        verbose_name_plural = 'Collection Locations'
+
+    def __str__(self):
+        return f"{self.name}"
+    
 ### Species Feedback
 
 class SpeciesFeedback(models.Model):
@@ -307,6 +328,20 @@ class SpeciesFeedback(models.Model):
 
     def __str__(self):
         return self.name    
+    
+class SpeciesAdmin (models.Model):
+    name              = models.CharField (max_length=240)
+    user              = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='species_admins') # deletes species instances if user deleted
+    category          = models.CharField (max_length=3, choices=Species.Category.choices, default=Species.Category.UNDEFINED)
+    last_updated      = models.DateTimeField(auto_now=True)
+    last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='species_admin_updaters') 
+    created           = models.DateTimeField (auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name    
 
 ### SpeciesInstance (Aquarist Species)
 
@@ -332,6 +367,7 @@ class SpeciesInstance (models.Model):
 
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, blank=True)
+    collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='species_instances')
     acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # self == SpeciesInstance
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     aquarist_notes            = models.TextField (blank=True)
@@ -507,7 +543,7 @@ class CaresRegistration (models.Model):
     cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_cares_registrations') 
     affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations') 
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
-    collection_location       = models.CharField (max_length=200, blank=True)
+    collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='cares_registrations')
     species_source            = models.TextField (blank=False, default='')
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
@@ -518,6 +554,7 @@ class CaresRegistration (models.Model):
     class CaresRegistrationStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
         APPROVED = 'APRV', _('Approved')
+        PENDING  = 'PEND', _('Pending')
         DECLINED = 'DECL', _('Declined')
         RESUBMIT = 'RESU', _('Resubmitted')
         EXPIRED  = 'EXPI', _('Expired')

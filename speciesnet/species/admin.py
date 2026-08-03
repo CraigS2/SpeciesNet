@@ -3,11 +3,11 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User
 
 # Register your models here.
-from .models import Species, SpeciesComment, SpeciesReferenceLink
+from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
-from .models import SpeciesFeedback
+from .models import SpeciesFeedback, SpeciesAdmin
 from .models import PageViewCount, PageViewMonthlySnapshot
 from allauth.account.models import EmailAddress
 
@@ -15,9 +15,16 @@ from allauth.account.models import EmailAddress
 class EmailAddressInline(admin.TabularInline):
     model = EmailAddress
     extra = 0
-    readonly_fields = ('email',)
+    #readonly_fields = ('email',)
     can_delete = True
     fields = ('email', 'verified', 'primary')
+
+    def get_readonly_fields(self, request, obj=None):
+        # Lock 'email' on existing email rows to protect verified addresses.
+        # New blank rows are always editable, allowing email entry on a saved user.
+        if obj and obj.pk and obj.emailaddress_set.exists():
+            return ('email',)
+        return ()    
 
 
 class UserAdmin(BaseUserAdmin):
@@ -89,6 +96,7 @@ admin.site.register (AquaristClub)
 admin.site.register (AquaristClubMember)
 admin.site.register (Species)
 admin.site.register (SpeciesComment)
+admin.site.register (SpeciesAdmin)
 admin.site.register (SpeciesReferenceLink)
 admin.site.register (SpeciesInstance)
 admin.site.register (SpeciesInstanceLabel)
@@ -103,6 +111,13 @@ admin.site.register (BapLeaderboard)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
 admin.site.register(SpeciesFeedback, SpeciesFeedbackAdmin)
+
+@admin.register(SpeciesCollectionLocation)
+class SpeciesCollectionLocationAdmin(admin.ModelAdmin):
+    list_display  = ('species', 'name', 'created')
+    list_filter   = ('species__category', 'species__global_region')
+    search_fields = ('name', 'species__name')
+    ordering      = ('species__name', 'name')
 
 
 class PageViewCountAdmin(admin.ModelAdmin):

@@ -1,0 +1,48 @@
+{% extends 'main.html' %}
+<!-- context = {'aquarist': aquarist} -->
+{% block content %}
+
+<div class="container mt-4"></div>
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3>User Profile: &nbsp;<i>{{aquarist.get_display_name}}</i></h3>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <h5><a href="{% url 'aquarist' aquarist.id %}">{{aquarist.get_display_name}} Fish Room</a></h5>
+                    <h5><b>Name:</b> &nbsp;{{aquarist.get_full_name}}</h5>
+                    <h5><b>Username:</b> &nbsp;{{aquarist.get_display_name}}</h5>
+                    <h5><b>Email:</b> &nbsp;{{aquarist.email}}</h5>
+                    {% if aquarist.state %}
+                        <h5><b>State:</b> &nbsp;{{aquarist.state}}</h5>
+                    {% endif %}
+                    {% if aquarist.country %}
+                        <h5><b>Country:</b> &nbsp;{{aquarist.country}}</h5>
+                    {% endif %}                    
+                    <small>&nbsp;</small>
+
+                    <p><a class="btn btn-secondary" href="{% url 'editUserProfile' %}" role="button">&nbsp;Edit Profile&nbsp;</a></p>
+
+                    {% if request.user.is_species_admin or request.user.is_staff or request.user.is_admin %}
+                        <div class="mb-3 section-bordered">
+                            <h4>Admin Tools &nbsp;&nbsp;</h4>
+                            <a class="btn btn-secondary" href="{% url 'tools' %}" role="button">&nbsp;&nbsp;Species Tools&nbsp;&nbsp;</a>
+                            {% if request.user.is_species_admin or request.user.is_staff %}
+                                &nbsp;&nbsp;
+                                <a class="btn btn-secondary" href="{% url 'tools2' %}" role="button">&nbsp;&nbsp;Power Tools&nbsp;&nbsp;</a>
+                            {% endif %}
+                            {% if aquarist.id == 1 or aquarist.id == 2 %}
+                                &nbsp;&nbsp;
+                                <a class="btn btn-secondary" href="{% url 'admin:index' %}" role="button">&nbsp;&nbsp;Advanced Admin&nbsp;&nbsp;</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    <p class="text-muted"><b><i>Member since:</b> &nbsp;{{aquarist.date_joined|date:"M d, Y" }}</i></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

@@ -13,6 +13,7 @@
         <small>&nbsp;</small>
         {% if userCanEdit %}
             <p><a class="btn btn-secondary" href="{% url 'editCaresApprover' cares_approver.id  %}" role="button">&nbsp;Edit CARES Approver&nbsp;</a></p>
+            <p><a class="btn btn-secondary" href="{% url 'caresApprovers'  %}" role="button">&nbsp;View CARES Approvers&nbsp;</a></p>
         {% endif %}        
     </div>
 </div>

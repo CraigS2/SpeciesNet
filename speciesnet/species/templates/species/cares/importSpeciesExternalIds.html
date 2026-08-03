@@ -1,0 +1,62 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    {% if site_id == 1 %}
+                        <h4 class="my-0">Import Species External IDs by CSV &mdash; Site 1 (ASN)</h4>
+                    {% else %}
+                        <h4 class="my-0">Import Species External IDs by CSV &mdash; Site 2 (CSO)</h4>
+                    {% endif %}
+                </div>
+                <div class="card-body px-4 py-3">
+                    <p class="text-muted">
+                        Upload a CSV file to populate <code>external_id</code> on Species records,
+                        enabling cross-site linking between ASN and CARES Species.
+                        Only rows where <code>render_cares</code> is truthy are processed.
+                    </p>
+
+                    <p><strong>Required columns (all rows):</strong><br>
+                        <code>species_name</code>
+                    </p>
+
+                    <p>
+                        {% if site_id == 1 %}
+                            <strong>Required for Site 1:</strong> <code>cso_id</code> (value written to <code>external_id</code>)<br>
+                            <strong>Used for lookup:</strong> <code>asn_id</code> (species primary key on this site)
+                        {% else %}
+                            <strong>Required for Site 2:</strong> <code>asn_id</code> (value written to <code>external_id</code>)<br>
+                            <strong>Used for lookup:</strong> <code>cso_id</code> (species primary key on this site)
+                        {% endif %}
+                    </p>
+
+                    <p><strong>All CSV columns:</strong><br>
+                        <code>species_name, asn_id, cso_id, render_cares, species_instance_count</code>
+                    </p>
+
+                    {% if site_id == 2 %}
+                    <p class="text-muted small">
+                        <code>species_instance_count</code> is also updated on Site 2 when a positive
+                        integer is supplied (this value is managed by Site 1 / ASN).
+                    </p>
+                    {% endif %}
+
+                    <p class="text-muted small">
+                        Truthy values accepted for <code>render_cares</code>:
+                        <code>1, True, true, Yes, yes</code>
+                    </p>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary mt-2">Upload &amp; Import</button>
+                        <a href="{% url 'tools2' %}" class="btn btn-secondary mt-2 ms-2">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

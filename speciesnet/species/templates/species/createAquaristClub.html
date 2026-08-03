@@ -1,17 +1,18 @@
 {% extends 'main.html' %}
-
 {% block content %}
-<div class="container">
-    <h3>Add Club:</h3>
-    <div>
-        <table>
-            <form method="POST" enctype="multipart/form-data" action="">
-                {% csrf_token %}
-                {{form.as_table}}
-                <td></td><td style="text-align: left; padding-top: 1em;"><input type="Submit" value="Submit"></td>
-            </form>
-        </table>
+{% load crispy_forms_tags %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">Create Club</h4>
+                </div>
+                <div class="card-body px-4 py-3">
+                    {% crispy form %}
+                </div>
+            </div>            
+        </div>
     </div>
-    <p><small>&nbsp;</small></p>
 </div>
 {% endblock content %}

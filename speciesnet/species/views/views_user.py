@@ -13,6 +13,8 @@ def userProfile(request):
     aquarist = request.user
     context = {'aquarist': aquarist}
     logger.info('User %s visited their profile page', request.user.username)
+    if getattr(settings, 'SITE_ID', 1) == 2:
+        return render(request, 'species/cares/userProfileCares.html', context)
     return render(request, 'species/userProfile.html', context)
 
 
@@ -20,11 +22,28 @@ def userProfile(request):
 def editUserProfile(request):
     cur_user = request.user
 
+    if getattr(settings, 'SITE_ID', 1) == 2:
+        # Site 2 (CARES): simplified form, no social URLs or privacy/preferences
+        if request.method == 'POST':
+            form = UserProfileFormCares(request.POST, instance=cur_user)
+            if form.is_valid():
+                form.save()
+                logger.info('User %s edited their profile page', request.user.username)
+                messages.success(request, 'User profile updated successfully!')
+                context = {'aquarist': request.user}
+                return render(request, 'species/cares/userProfileCares.html', context)
+            else:
+                messages.error(request, 'Please correct the errors below')
+        else:
+            form = UserProfileFormCares(instance=cur_user)
+        context = {'form': form, 'user': request.user}
+        return render(request, 'species/cares/editUserProfileCares.html', context)
+
+    # Site 1 (ASN): full form with social URL validation, privacy and preferences
     if request.method == 'POST':
         form = UserProfileForm2(request.POST, instance=cur_user)
         if form.is_valid():
             # handling social urls outside normal validation to cleanly map 3 cases
-            # instagram, facebook, and youtube each have unique validation routines based on url domain 
             cur_user = form.save(commit=False)
             url_validation_failed = False
             if cur_user.instagram_url:
@@ -33,7 +52,7 @@ def editUserProfile(request):
                     form.add_error('instagram_url', 'Please enter a valid Instagram URL')
                     url_validation_failed = True
                 else:
-                    cur_user.instagram_url = valid_url 
+                    cur_user.instagram_url = valid_url
             if cur_user.facebook_url:
                 valid_url = validate_normalize_facebook_url(cur_user.facebook_url)
                 if not valid_url:
@@ -54,7 +73,7 @@ def editUserProfile(request):
                 messages.success(request, 'User profile updated successfully!')
                 context = {'aquarist': request.user}
                 return render(request, 'species/userProfile.html', context)
-        
+
         if not form.is_valid() or url_validation_failed:
             messages.error(request, 'Please correct the errors below')
     else:

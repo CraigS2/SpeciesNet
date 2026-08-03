@@ -17,15 +17,25 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-#from django.http import HttpResponse
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('species.api.urls')),
+    ]
+
+# prevent Site 2 signup url from being accessilble
+if settings.SITE_ID != 1:
+    urlpatterns += [
+        path('signup/', RedirectView.as_view(pattern_name='account_login', permanent=False), name='account_signup'),
+    ]
+
+def signup_disabled(request):
+    raise Http404
+
+urlpatterns += [
     path('', include('allauth.urls')),
     path('', include('species.urls')),
-    #path('', home),
-    #path('species/', species)
 ]
 
 if settings.DEBUG:

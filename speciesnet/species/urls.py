@@ -84,15 +84,26 @@ urlpatterns = [
     path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
     path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
 
+    ### Species Collection Locations ###
+
+    path('collectionLocations/', views.collectionLocations, name='collectionLocations'),
+    path('species/<str:pk>/collection-locations/', views.speciesCollectionLocations, name='speciesCollectionLocations'),
+    path('species/<str:pk>/collection-locations/add/', views.createSpeciesCollectionLocation, name='createSpeciesCollectionLocation'),
+    path('species/collection-location/<str:pk>/edit/', views.editSpeciesCollectionLocation, name='editSpeciesCollectionLocation'),
+    path('species/collection-location/<str:pk>/delete/', views.deleteSpeciesCollectionLocation, name='deleteSpeciesCollectionLocation'),    
+
     ### CARES ASN or Shared ###
     
     path('cares_overview/', views.cares_overview, name="cares_overview"),
     path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
     path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
-    path('cares/caresRegistrationsFromAsn/', views.caresRegistrationsFromAsn, name="caresRegistrationsFromAsn"),
+    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
+    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
+    path('importSpeciesExternalIds/', views.importSpeciesExternalIds, name="importSpeciesExternalIds"),
 
     ### CARES Site 2 Only ###
 
+    path('caresPriorityList/', views.caresPriorityList, name="caresPriorityList"), 
     path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"), 
     path('createCaresSpecies/', views.createCaresSpecies, name="createCaresSpecies"),
     path('editCaresSpecies/<str:pk>/', views.editCaresSpecies, name="editCaresSpecies"),
@@ -105,15 +116,15 @@ urlpatterns = [
     path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
     path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
     path('editCaresRegistrationAdmin/<str:pk>/', views.editCaresRegistrationAdmin, name="editCaresRegistrationAdmin"),
+    path('caresRegistrationNotifyAquarist/<int:pk>/', views.caresRegistrationNotifyAquarist, name='caresRegistrationNotifyAquarist'),
     path('deleteCaresRegistration/<str:pk>/', views.deleteCaresRegistration, name="deleteCaresRegistration"),
+
+    path('cares/caresRegistrationsFromAsn/', views.caresRegistrationsFromAsn, name="caresRegistrationsFromAsn"),
+    path('cares/importCaresLegacyRegistrations/', views.importCaresLegacyRegistrations, name="importCaresLegacyRegistrations"),
 
     path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),             # annonymous user registration
     path('registerCaresSelectSpecies/', views.registerCaresSelectSpecies, name="registerCaresSelectSpecies"),    # annonymous user registration
     path('registrationLookup/', views.registrationLookup, name="registrationLookup"),                            # annonymous user reg check
-
-    path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
-    path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
-    #path('exportCaresRegistrationsPending/', views.exportCaresRegistrations, name="exportCaresRegistrations"),   # naming inconsistency
 
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
@@ -125,6 +136,20 @@ urlpatterns = [
 
     path('speciesSearch/', views.SpeciesListView.as_view(), name="speciesSearch"),
     path('exportSpecies/', views.exportSpecies, name="exportSpecies"),
+
+    ### Raffle (hidden - no nav links) ###
+
+    path('raffle/dashboard/', views.raffle_dashboard, name="raffle_dashboard"),
+    path('raffle/entries/', views.raffle_entries, name="raffle_entries"),    
+    path('raffle/enter/', views.raffle_enter, name="raffle_enter"),
+    path('raffle/thanks/', views.raffle_thanks, name="raffle_thanks"),
+    path('raffle/upload-species/', views.raffle_upload_species, name="raffle_upload_species"),
+    path('raffle/pick-winner/<str:species_name>/', views.raffle_pick_winner, name="raffle_pick_winner"),
+    path('raffle/mark-winner/<str:species_name>/<str:email>/', views.raffle_mark_manual_winner, name="raffle_mark_manual_winner"),
+    path('raffle/mark-account-created/<str:email>/', views.raffle_mark_account_created, name="raffle_mark_account_created"),
+    path('raffle/export_entries/', views.raffle_export_entries, name="raffle_export_entries"),
+    path('raffle-admin/export-species-results/', views.raffle_export_species_results, name="raffle_export_species_results"),
+    path('raffle/reset/', views.raffle_reset, name="raffle_reset"),
 
     ### Species Instance == Aquarist Species (UX) ###
 
@@ -168,6 +193,7 @@ urlpatterns = [
 
     path('tools/', views.tools, name="tools"),      # Level 1 Species Admins
     path('tools2/', views.tools2, name="tools2"),   # Level 2 Staff and Level 3 Admin-only
+    path('tools/enforceSpeciesNameSingleQuotes/', views.enforceSpeciesNameSingleQuotes, name="enforceSpeciesNameSingleQuotes"),
 
     path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
     path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
@@ -178,6 +204,10 @@ urlpatterns = [
 
     path('species/import/importArchiveResults/<str:pk>/', views.importArchiveResults, name="importArchiveResults"),    # admin-only
     path('collectSpeciesData/', views.collectSpeciesData, name="collectSpeciesData"),                   # admin-only
+    path('export-species-collection-locations/', views.exportSpeciesCollectionLocations, name='exportSpeciesCollectionLocations'),
+    path('import-species-collection-locations/', views.importSpeciesCollectionLocations, name='importSpeciesCollectionLocations'),
+    path('import-species-instance-collection-locations/', views.importSpeciesInstanceCollectionLocations, name='importSpeciesInstanceCollectionLocations'),
+    path('species-manage-collection-locations/', views.speciesWithManageCollectionLocations, name='speciesWithManageCollectionLocations'),
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
     ### Species Import Workflow ###
@@ -204,4 +234,3 @@ urlpatterns = [
 
 # django: extend urlpatterns to support Media images uploaded by user - development DEBUG environment
 urlpatterns = urlpatterns + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
-
