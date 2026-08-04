@@ -6,6 +6,7 @@ from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import re

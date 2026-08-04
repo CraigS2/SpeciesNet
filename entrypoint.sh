@@ -17,7 +17,7 @@ while True:
             port=int("${DATABASE_PORT-3306}")
         )
         break
-    except MySQLdb._exceptions.OperationalError:
+    except MySQLdb._exceptions.OperationalError as error:
         sys.stderr.write("Waiting for MySQL to become available...\n")
         if time.time() - start > suggest_unrecoverable_after:
             sys.stderr.write("  This is taking longer than expected. The following exception may be indicative of an unrecoverable error: '{}'\n".format(error))

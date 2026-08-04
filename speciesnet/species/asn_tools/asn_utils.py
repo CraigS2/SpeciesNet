@@ -9,6 +9,8 @@ from django.utils import timezone
 from urllib.parse import urlparse
 import logging, bleach, re
 
+logger = logging.getLogger(__name__)
+
 # user_can_edit | user_is_admin
 
 def user_is_admin (cur_user: User):

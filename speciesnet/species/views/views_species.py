@@ -22,7 +22,7 @@ def species(request, pk):
     cform = SpeciesCommentForm()
     if request.method == 'POST': 
         form = SpeciesCommentForm(request.POST)
-        if form.is_valid:
+        if form.is_valid():
             speciesComment = form.save(commit=False)
             speciesComment.user = cur_user
             speciesComment.species = species
@@ -227,7 +227,7 @@ def editSpeciesComment(request, pk):
     form = SpeciesCommentForm(instance=speciesComment)
     if request.method == 'POST':
         form = SpeciesCommentForm(request.POST, request.FILES, instance=speciesComment)
-        if form.is_valid: 
+        if form.is_valid(): 
             speciesComment = form.save(commit=False)
             speciesComment.comment = sanitize_text(speciesComment.comment)
             speciesComment.save()
@@ -294,7 +294,7 @@ def editSpeciesReferenceLink(request, pk):
     form = SpeciesReferenceLinkForm(instance=speciesReferenceLink)
     if request.method == 'POST':
         form = SpeciesReferenceLinkForm(request.POST, request.FILES, instance=speciesReferenceLink)
-        if form.is_valid:
+        if form.is_valid():
             validate_url(str(form.instance.reference_url))
             form.save()
             logger.info('User %s edited speciesReferenceLink for species: %s (%s)', request.user.username, species.name, str(species.id))

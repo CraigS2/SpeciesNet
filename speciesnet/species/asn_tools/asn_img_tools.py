@@ -62,7 +62,7 @@ def processUploadedImageFile(image_field: ImageField, species_or_instance_name, 
             img = background
 
         if not img.mode == 'RGB':
-            img.convert('RGB')    # fails without .png fix above throws OSError: cannot write mode RGBA as JPEG
+            img = img.convert('RGB')    # fails without .png fix above throws OSError: cannot write mode RGBA as JPEG
 
         # resize to 480x320
         img.thumbnail((480, 320))

@@ -82,7 +82,7 @@ def editSpeciesMaintenanceLog(request, pk):
     form = SpeciesMaintenanceLogForm(instance=speciesMaintenanceLog)
     if request.method == 'POST':  
         form = SpeciesMaintenanceLogForm(request.POST, instance=speciesMaintenanceLog)
-        if form.is_valid:  
+        if form.is_valid():  
             speciesMaintenanceLog = form.save()
             logger.info('User %s edited speciesMaintenanceLog %s (%s)', 
                        request.user.username, speciesMaintenanceLog.name, str(speciesMaintenanceLog.id))
@@ -297,7 +297,7 @@ def editSpeciesMaintenanceLogEntry(request, pk):
     form = SpeciesMaintenanceLogEntryForm(instance=speciesMaintenanceLogEntry)
     if request.method == 'POST':
         form = SpeciesMaintenanceLogEntryForm(request.POST, request.FILES, instance=speciesMaintenanceLogEntry)
-        if form.is_valid: 
+        if form.is_valid(): 
             speciesMaintenanceLogEntry = form.save()
             if speciesMaintenanceLogEntry.log_entry_image:
                 processUploadedImageFile(
