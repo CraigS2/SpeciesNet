@@ -177,6 +177,8 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'rest_framework',
     'corsheaders',
+    'django_celery_beat',
+    'pending_actions.apps.PendingActionsConfig',
 ]
 
 MIDDLEWARE = [
@@ -306,6 +308,20 @@ TEMPLATES = [
 ### WSGI - Web Server Gateway Interface ###
 
 WSGI_APPLICATION = 'speciesnet.wsgi.application'
+
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
+CELERY_TASK_EAGER_PROPAGATES = os.environ.get('CELERY_TASK_EAGER_PROPAGATES', 'True') == 'True'
+CELERY_TASK_DEFAULT_QUEUE = os.environ.get('CELERY_TASK_DEFAULT_QUEUE', 'default')
+CELERY_TASK_QUEUES = {
+    'default': {},
+    'emails': {},
+    # Reserved for future species-sync work; no sync tasks are implemented in this PR.
+    'sync': {},
+}
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+PENDING_ACTION_BASE_URL = os.environ.get('PENDING_ACTION_BASE_URL', SITE2_URL or SITE1_URL or 'http://localhost:8000')
 
 ### Database Configuration ###
 

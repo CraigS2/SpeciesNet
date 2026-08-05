@@ -1,0 +1,8 @@
+<html><body style="font-family: Arial, sans-serif; color: #212529;">
+<h3 style="margin-bottom: 1rem;">CARES Registration Update: {{ species_name }}</h3>
+<div style="line-height: 1.5;">{{ escaped_body|safe }}</div>
+{% if confirm_url %}
+<p style="margin-top: 1rem;"><a href="{{ confirm_url }}">Review this update</a></p>
+{% endif %}
+<p style="margin-top: 1.5rem; color: #6c757d;">This message was sent from CARES Species registration tools.</p>
+</body></html>

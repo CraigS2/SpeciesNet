@@ -16,6 +16,12 @@ services:
       networks:
         - asn_test_network
 
+    redis:
+      container_name: ASN_TEST_REDIS
+      image: redis:7-alpine
+      networks:
+        - asn_test_network
+
     test_django:
       container_name: ASN_TEST_DJANGO
       build: 
@@ -23,6 +29,7 @@ services:
       #dockerfile: Dockerfile.test
       depends_on:
         - test_db
+        - redis
       environment: 
         DATABASE_HOST: test_db
         DATABASE_NAME: test_speciesnet
@@ -41,6 +48,8 @@ services:
         CSRF_TRUSTED_ORIGIN2: "http://127.0.0.1"
         CSRF_TRUSTED_ORIGIN3: "http://testserver"
         EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"
+        CELERY_BROKER_URL: "redis://redis:6379/0"
+        CELERY_RESULT_BACKEND: "redis://redis:6379/0"
       entrypoint: []
       command: sh /entrypoint.test.sh
       networks:
