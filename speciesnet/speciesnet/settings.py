@@ -321,7 +321,7 @@ CELERY_TASK_QUEUES = {
     'sync': {},
 }
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-PENDING_ACTION_BASE_URL = os.environ.get('PENDING_ACTION_BASE_URL', SITE2_URL or SITE1_URL or 'http://localhost:8000')
+PENDING_ACTION_BASE_URL = os.environ.get('PENDING_ACTION_BASE_URL', os.environ.get('SITE2_URL') or os.environ.get('SITE1_URL') or 'http://localhost:8000')
 
 ### Database Configuration ###
 

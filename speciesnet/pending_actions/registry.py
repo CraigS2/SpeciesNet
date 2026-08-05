@@ -24,9 +24,11 @@ class ActionHandler:
 
 
 
-def register(slug, handler_class):
-    _HANDLER_REGISTRY[slug] = handler_class
-    return handler_class
+def register(slug):
+    def decorator(handler_class):
+        _HANDLER_REGISTRY[slug] = handler_class
+        return handler_class
+    return decorator
 
 
 
