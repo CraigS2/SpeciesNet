@@ -7,6 +7,7 @@ class RetriableTask(Task):
     retry_backoff_max = 300
     retry_jitter = True
     max_retries = 3
+    ignore_result = True
 
     # Keep queue names explicit so a future sync queue can be introduced cleanly.
     queue = 'emails'
