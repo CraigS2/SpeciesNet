@@ -1,4 +1,6 @@
 import logging
+import os
+from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
@@ -38,6 +40,12 @@ def send_action_email(self, pending_action_id):
         reply_to=[reply_to] if reply_to else None,
     )
     email_message.content_subtype = 'html'
+
+    # Archive contract: send first, then record in UserEmail exactly once on success.
+    # If send_email_message raises, RetriableTask will retry — no archive row is created
+    # for failed attempts, so successful retries produce exactly one UserEmail row.
+    # UserEmail is the permanent, durable email archive; it is NEVER swept by the
+    # sweep_old_task_results cleanup task (which only touches TaskResult rows).
     send_email_message(email_message)
 
     archive_text = email_context.get('archive_text') or plain_body
@@ -62,3 +70,21 @@ def sweep_expired_actions(self):
     ).update(status=PendingAction.Status.EXPIRED)
     logger.info('Expired %s pending actions', updated)
     return updated
+
+
+@shared_task(bind=True, base=RetriableTask, queue='default')
+def sweep_old_task_results(self):
+    """Delete TaskResult rows older than the configured retention window.
+
+    Retention is time-based: rows are deleted when their date_done exceeds
+    TASK_RESULT_RETENTION_DAYS (default 30 days).  This is bounded operational
+    debugging data only.  UserEmail rows (the permanent email archive) are
+    never touched by this task.
+    """
+    from django_celery_results.models import TaskResult
+
+    retention_days = int(os.environ.get('TASK_RESULT_RETENTION_DAYS', '30'))
+    cutoff = timezone.now() - timedelta(days=retention_days)
+    deleted, _ = TaskResult.objects.filter(date_done__lt=cutoff).delete()
+    logger.info('Swept %s old TaskResult rows (older than %s days)', deleted, retention_days)
+    return deleted
