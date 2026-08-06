@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -9,7 +10,8 @@ from pending_actions.models import ActionType, PendingAction
 from pending_actions.registry import get_handler_for_action_type
 from pending_actions.services import create_pending_action
 from pending_actions.tasks import send_action_email, sweep_expired_actions
-from species.models import CaresRegistration, Species, SpeciesCollectionLocation, User
+from species.models import CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
+from species.services.email_services import send_new_registration_notification, send_status_change_email
 
 
 @override_settings(
@@ -144,3 +146,88 @@ class PendingActionTests(TestCase):
         action.refresh_from_db()
         self.assertEqual(count, 1)
         self.assertEqual(action.status, PendingAction.Status.EXPIRED)
+
+    # --- UserEmail archival integrity tests ---
+
+    def _make_status_change_payload(self):
+        return {
+            'registration_id': self.registration.id,
+            'to_email': self.registration.aquarist_email,
+            'aquarist_name': self.registration.aquarist_name,
+            'subject': 'Archival Test',
+            'body': 'Testing archival.',
+            'reply_to': 'noreply@example.com',
+            'site_url': 'http://testserver',
+            'token': '',
+        }
+
+    def test_send_action_email_creates_useremail_archive_for_status_change(self):
+        """send_action_email must create exactly one UserEmail row for the status-change path."""
+        action, token = create_pending_action(
+            self.status_action_type,
+            payload=self._make_status_change_payload(),
+            enqueue_email=False,
+        )
+        action.payload['token'] = token
+        action.save(update_fields=['payload'])
+
+        before = UserEmail.objects.count()
+        send_action_email(action.id)
+        self.assertEqual(UserEmail.objects.count(), before + 1)
+        self.assertTrue(
+            UserEmail.objects.filter(email_subject='Archival Test').exists()
+        )
+
+    def test_send_action_email_creates_useremail_archive_for_new_registration(self):
+        """send_new_registration_notification (fan-out) still creates UserEmail rows under the async flow."""
+        before = UserEmail.objects.count()
+        send_new_registration_notification(self.registration)
+        # Fan-out sends to each approver with an email — there should be new UserEmail rows.
+        self.assertGreater(UserEmail.objects.count(), before)
+
+    def test_send_status_change_email_creates_useremail_archive(self):
+        """send_status_change_email helper still creates a UserEmail row (via pending_actions)."""
+        before = UserEmail.objects.count()
+        send_status_change_email(
+            self.registration,
+            'Status Change Archival',
+            'Your status changed.',
+        )
+        self.assertEqual(UserEmail.objects.count(), before + 1)
+        self.assertTrue(
+            UserEmail.objects.filter(email_subject='Status Change Archival').exists()
+        )
+
+    def test_send_action_email_no_duplicate_archive_on_retry(self):
+        """If send_email_message fails on the first attempt and succeeds on retry,
+        exactly one UserEmail archive row is created — not one per attempt."""
+        action, token = create_pending_action(
+            self.status_action_type,
+            payload=self._make_status_change_payload(),
+            enqueue_email=False,
+        )
+        action.payload['token'] = token
+        action.save(update_fields=['payload'])
+
+        call_count = {'n': 0}
+        original_send = __import__('pending_actions.services_email', fromlist=['send_email_message']).send_email_message
+
+        def failing_first_then_ok(email_message):
+            call_count['n'] += 1
+            if call_count['n'] == 1:
+                raise ConnectionError('transient failure')
+            return original_send(email_message)
+
+        before = UserEmail.objects.count()
+        with patch('pending_actions.tasks.send_email_message', side_effect=failing_first_then_ok):
+            # CELERY_TASK_ALWAYS_EAGER=True + CELERY_TASK_EAGER_PROPAGATES=True means
+            # the retry re-raises on the first attempt in eager mode; call the task
+            # directly to simulate the eventual successful retry.
+            try:
+                send_action_email(action.id)
+            except ConnectionError:
+                # First call raised; simulate the retry succeeding
+                send_action_email(action.id)
+
+        self.assertEqual(UserEmail.objects.count(), before + 1,
+                         'Exactly one UserEmail row must be created even after a failed first attempt.')

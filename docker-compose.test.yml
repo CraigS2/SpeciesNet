@@ -22,6 +22,52 @@ services:
       networks:
         - asn_test_network
 
+    celery_worker:
+      container_name: ASN_TEST_CELERY_WORKER
+      build:
+        context: .
+      depends_on:
+        - test_db
+        - redis
+      environment:
+        DATABASE_HOST: test_db
+        DATABASE_NAME: test_speciesnet
+        DATABASE_USER: root
+        DATABASE_PASSWORD: test_root_password
+        DATABASE_PORT: 3306
+        DATABASE_ROOT_PASSWORD: test_root_password
+        DEBUG: "1"
+        SECRET_KEY: "test-secret-key-not-for-production"
+        CELERY_BROKER_URL: "redis://redis:6379/0"
+        CELERY_RESULT_BACKEND: "django-db"
+      entrypoint: []
+      command: celery -A speciesnet worker -l info -Q emails,celery,default
+      networks:
+        - asn_test_network
+
+    celery_beat:
+      container_name: ASN_TEST_CELERY_BEAT
+      build:
+        context: .
+      depends_on:
+        - test_db
+        - redis
+      environment:
+        DATABASE_HOST: test_db
+        DATABASE_NAME: test_speciesnet
+        DATABASE_USER: root
+        DATABASE_PASSWORD: test_root_password
+        DATABASE_PORT: 3306
+        DATABASE_ROOT_PASSWORD: test_root_password
+        DEBUG: "1"
+        SECRET_KEY: "test-secret-key-not-for-production"
+        CELERY_BROKER_URL: "redis://redis:6379/0"
+        CELERY_RESULT_BACKEND: "django-db"
+      entrypoint: []
+      command: celery -A speciesnet beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      networks:
+        - asn_test_network
+
     test_django:
       container_name: ASN_TEST_DJANGO
       build: 

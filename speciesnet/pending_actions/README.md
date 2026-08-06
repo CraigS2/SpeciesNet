@@ -21,6 +21,45 @@ This app replaces the older CARES-specific pattern of building and sending email
 - `cares_new_registration_notification` shows an FYI-only notification routed through the shared email pipeline without requiring a response
 - `cares_status_change` shows a response-capable action with a signed single-use confirmation link rendered by the generic pending-actions view
 
+## ⚠️ Important: Celery requires actively running worker and beat processes
+
+Celery (and Redis as the broker) do **not** execute tasks automatically. A message sitting in the Redis queue will remain there indefinitely until an actively-running Celery worker process consumes and executes it. There is no implicit or default execution.
+
+You need **two** separate processes running in addition to Redis:
+
+- **`celery_worker`** — consumes tasks from the queue and executes them (sends emails, etc.). Without this, queued `send_action_email` tasks will never run.
+- **`celery_beat`** — a scheduler that enqueues periodic tasks (like `sweep_expired_actions` and `sweep_old_task_results`) on their configured schedule. Without this, periodic tasks are never enqueued in the first place.
+
+### Starting workers locally
+
+```bash
+# Worker — listens to the emails, celery, and default queues
+celery -A speciesnet worker -l info -Q emails,celery,default
+
+# Beat scheduler (separate terminal)
+celery -A speciesnet beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+```
+
+### Docker Compose
+
+`docker-compose.yml` includes `celery_worker` and `celery_beat` services that reuse the same image as `django_gunicorn`. Starting the full stack (`docker compose up`) will bring all three up automatically.
+
+### Bypassing the queue for manual testing (admin action)
+
+If you need to send a pending-action email immediately without a running worker, use the Django admin:
+**Pending Actions → select rows → "Run send_action_email now"**. This calls `.apply()` synchronously in-process, bypassing Redis entirely.
+
+## Task result tracking vs. email archival
+
+Two separate models serve different purposes:
+
+| Model | Purpose | Retention |
+|---|---|---|
+| `django_celery_results.TaskResult` | Bounded Celery task activity log — useful for debugging failures, seeing task status | 30 days (swept by `sweep_old_task_results`; also purgeable via admin action) |
+| `species.UserEmail` | **Permanent** durable archive of every email sent | **Never swept** — this is the authoritative record |
+
+`sweep_old_task_results` only deletes `TaskResult` rows. It never touches `UserEmail`.
+
 ## Explicit non-goals in this implementation
 
 - No cross-site sync Celery tasks yet

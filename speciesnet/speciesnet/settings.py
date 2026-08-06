@@ -178,6 +178,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_celery_beat',
+    'django_celery_results',
     'pending_actions.apps.PendingActionsConfig',
 ]
 
@@ -310,7 +311,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'speciesnet.wsgi.application'
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'django-db')
+CELERY_RESULT_EXPIRES = int(os.environ.get('CELERY_RESULT_EXPIRES_DAYS', '30')) * 86400
 CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
 CELERY_TASK_EAGER_PROPAGATES = os.environ.get('CELERY_TASK_EAGER_PROPAGATES', 'True') == 'True'
 CELERY_TASK_DEFAULT_QUEUE = os.environ.get('CELERY_TASK_DEFAULT_QUEUE', 'default')
