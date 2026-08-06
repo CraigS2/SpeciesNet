@@ -14,6 +14,11 @@ services:
       volumes:
         - asn_data:/var/lib/mysql
 
+    redis:
+      container_name: ASN_REDIS
+      image: redis:7-alpine
+      restart: unless-stopped
+
     django_gunicorn:
       container_name: ASN_DJANGO
       image: gunicorn:23.0.0
@@ -21,6 +26,7 @@ services:
       tty: true
       depends_on: 
         - db
+        - redis
       volumes:
         - static:/static
         - media:/media

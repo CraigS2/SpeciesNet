@@ -35,6 +35,7 @@ def signup_disabled(request):
 
 urlpatterns += [
     path('', include('allauth.urls')),
+    path('pending-actions/', include('pending_actions.urls')),
     path('', include('species.urls')),
 ]
 

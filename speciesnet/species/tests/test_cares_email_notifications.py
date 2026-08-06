@@ -13,7 +13,7 @@ from species.services.email_services import send_new_registration_notification, 
 from species.views.views_cares import _is_status_change_notification_transition
 
 
-@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True, SITE2_URL='http://testserver')
 class CaresEmailNotificationTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -109,6 +109,7 @@ class CaresEmailNotificationTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['aquarist@example.com'])
         self.assertEqual(mail.outbox[0].reply_to, [settings.DEFAULT_FROM_EMAIL])
+        self.assertIn('Review this update', mail.outbox[0].body)
         self.assertTrue(UserEmail.objects.filter(send_to=None, email_subject='Status Update').exists())
 
     def test_transition_helper_matches_required_statuses(self):
