@@ -20,7 +20,7 @@ WORKDIR /app
 # only automated test startup uses the .test.sh file
 COPY ./entrypoint.sh /
 COPY ./entrypoint.test.sh /
+COPY ./wait-for-db.sh /
 
 # Dockerfile.test overrides ENTRYPOINT to use entrypoint.test.sh
 ENTRYPOINT ["sh", "/entrypoint.sh"]
-

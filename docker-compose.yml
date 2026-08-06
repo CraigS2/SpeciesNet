@@ -47,7 +47,7 @@ services:
       env_file:
         - ./.env
       entrypoint: []
-      command: celery -A speciesnet worker -l info -Q emails,celery,default
+      command: sh -c "sh /wait-for-db.sh && celery -A speciesnet worker -l info -Q emails,celery,default"
 
     celery_beat:
       container_name: ASN_CELERY_BEAT
@@ -59,7 +59,7 @@ services:
       env_file:
         - ./.env
       entrypoint: []
-      command: celery -A speciesnet beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      command: sh -c "sh /wait-for-db.sh && celery -A speciesnet beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
 
     nginx:
       container_name: NGINX_CBOT

@@ -77,9 +77,13 @@ class PendingActionAdmin(admin.ModelAdmin):
         self.message_user(request, f'{updated} action(s) reset to PENDING status.', level=messages.SUCCESS)
 
 
-# TaskResult is the bounded Celery task-activity log (default retention: 30 days, swept by
-# sweep_old_task_results).  It is NOT the permanent email archive — that role belongs to
-# UserEmail, which is never swept by this cleanup logic.
+# TaskResult is the bounded Celery task-activity log (default retention: 30 days, swept by # sweep_old_task_results).  
+# django_celery_results auto-registers TaskResult with its own TaskResultAdmin when its app config's admin module is imported. 
+# Since this module extends that default admin, unregister it first to avoide Django raising AlreadyRegistered at startup
+
+if admin.site.is_registered(TaskResult):
+    admin.site.unregister(TaskResult)
+
 @admin.register(TaskResult)
 class BoundedTaskResultAdmin(BaseTaskResultAdmin):
     # Extend the default TaskResult admin with a manual "clear old results" action.
