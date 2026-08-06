@@ -37,13 +37,16 @@ class PendingActionAdmin(admin.ModelAdmin):
                 # Use .apply() (synchronous, in-process) so this works even with
                 # zero Celery workers running — useful for debugging and manual testing.
                 result = send_action_email.apply(args=[action.id])
-                if result.successful() and result.get():
+                # Use propagate=False so exceptions from the task are captured as
+                # a failure result rather than propagating out of this try block.
+                task_return = result.get(propagate=False)
+                if result.successful() and task_return:
                     success += 1
                 else:
                     failure += 1
                     self.message_user(
                         request,
-                        f'Action #{action.id} ({action.action_type}): task returned False (check logs).',
+                        f'Action #{action.id} ({action.action_type}): task returned {task_return!r} (check logs).',
                         level=messages.WARNING,
                     )
             except Exception as exc:
@@ -87,7 +90,7 @@ class BoundedTaskResultAdmin(BaseTaskResultAdmin):
         cutoff = timezone.now() - timedelta(
             days=int(os.environ.get('TASK_RESULT_RETENTION_DAYS', '30'))
         )
-        deleted, _ = TaskResult.objects.filter(date_done__lt=cutoff).delete()
+        deleted, _ = queryset.filter(date_done__lt=cutoff).delete()
         self.message_user(
             request,
             f'Deleted {deleted} TaskResult row(s) older than the retention window.',

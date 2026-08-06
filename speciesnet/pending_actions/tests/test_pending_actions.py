@@ -9,6 +9,7 @@ from django.utils import timezone
 from pending_actions.models import ActionType, PendingAction
 from pending_actions.registry import get_handler_for_action_type
 from pending_actions.services import create_pending_action
+from pending_actions.services_email import send_email_message as real_send_email_message
 from pending_actions.tasks import send_action_email, sweep_expired_actions
 from species.models import CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
 from species.services.email_services import send_new_registration_notification, send_status_change_email
@@ -210,13 +211,12 @@ class PendingActionTests(TestCase):
         action.save(update_fields=['payload'])
 
         call_count = {'n': 0}
-        original_send = __import__('pending_actions.services_email', fromlist=['send_email_message']).send_email_message
 
         def failing_first_then_ok(email_message):
             call_count['n'] += 1
             if call_count['n'] == 1:
                 raise ConnectionError('transient failure')
-            return original_send(email_message)
+            return real_send_email_message(email_message)
 
         before = UserEmail.objects.count()
         with patch('pending_actions.tasks.send_email_message', side_effect=failing_first_then_ok):
@@ -226,8 +226,10 @@ class PendingActionTests(TestCase):
             try:
                 send_action_email(action.id)
             except ConnectionError:
-                # First call raised; simulate the retry succeeding
+                # First call raised (no archive row created); simulate the retry succeeding.
                 send_action_email(action.id)
 
+        # Confirm the mock was invoked twice (one failure, one success).
+        self.assertEqual(call_count['n'], 2, 'Expected one failed attempt and one successful retry.')
         self.assertEqual(UserEmail.objects.count(), before + 1,
                          'Exactly one UserEmail row must be created even after a failed first attempt.')

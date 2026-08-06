@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
@@ -71,7 +72,7 @@ def sweep_expired_actions(self):
     return updated
 
 
-@shared_task(bind=True, base=RetriableTask, queue='emails')
+@shared_task(bind=True, base=RetriableTask, queue='default')
 def sweep_old_task_results(self):
     """Delete TaskResult rows older than the configured retention window.
 
@@ -83,7 +84,7 @@ def sweep_old_task_results(self):
     from django_celery_results.models import TaskResult
 
     retention_days = int(os.environ.get('TASK_RESULT_RETENTION_DAYS', '30'))
-    cutoff = timezone.now() - timezone.timedelta(days=retention_days)
+    cutoff = timezone.now() - timedelta(days=retention_days)
     deleted, _ = TaskResult.objects.filter(date_done__lt=cutoff).delete()
     logger.info('Swept %s old TaskResult rows (older than %s days)', deleted, retention_days)
     return deleted
