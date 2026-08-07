@@ -79,6 +79,12 @@ from .views_ux import (
     importArchiveResults, addSpeciesInstanceWizard1, addSpeciesInstanceWizard2
 )
 
+# Page View Counts
+from .views_pageviews import (
+    pageviewsTopRanking
+)
+
+# CARES Raffle Admin Tools
 from .views_raffle import (
     raffle_enter, raffle_thanks, raffle_dashboard, raffle_upload_species, raffle_entries,raffle_pick_winner, 
     raffle_mark_manual_winner, raffle_mark_account_created, raffle_export_entries, raffle_export_species_results, raffle_reset

@@ -15,7 +15,7 @@ services:
         - asn_data:/var/lib/mysql
 
     redis:
-      container_name: ASN_REDIS
+      container_name: REDIS
       image: redis:7-alpine
       restart: unless-stopped
 
@@ -38,7 +38,7 @@ services:
         - 8000:8000
 
     celery_worker:
-      container_name: ASN_CELERY_WORKER
+      container_name: CELERY_WORKER
       image: gunicorn:23.0.0
       restart: unless-stopped
       depends_on:
@@ -50,7 +50,7 @@ services:
       command: sh -c "sh /wait-for-db.sh && celery -A speciesnet worker -l info -Q emails,celery,default"
 
     celery_beat:
-      container_name: ASN_CELERY_BEAT
+      container_name: CELERY_BEAT
       image: gunicorn:23.0.0
       restart: unless-stopped
       depends_on:
