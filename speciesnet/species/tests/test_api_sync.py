@@ -1,14 +1,13 @@
-"""
-Tests for the CARES species-sync REST API endpoints and sync service.
-"""
-from unittest.mock import patch, MagicMock
-from datetime import datetime, timedelta, timezone as dt_timezone
-from django.test import TestCase
-from django.urls import reverse
+"""Tests for the CARES species-sync REST API endpoints and sync service."""
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.utils import timezone
 from rest_framework.test import APIClient
-from species.models import User, Species
-from species.services.species_sync import SpeciesSyncService, SYNC_FIELDS
+
+from species.models import Species, User
+from species.services.species_sync import SpeciesSyncService
+
 from . import BaseTestCase, MinimalTestCase
 
 
@@ -223,8 +222,7 @@ class SpeciesSyncServiceTest(MinimalTestCase):
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_new_species_unique_to_site2_is_created(self, mock_fetch):
-        """
-        Core sync invariant: a species that exists on Site2 but has NEVER been
+        """Core sync invariant: a species that exists on Site2 but has NEVER been
         added to Site1 (the Site1 database is completely empty for that name) MUST
         be created on Site1 with created=1, updated=0, skipped=0, errors=0.
 
@@ -381,8 +379,7 @@ class SpeciesSyncServiceTest(MinimalTestCase):
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_preserves_remote_last_updated_on_create(self, mock_fetch):
-        """
-        Created species should have lastUpdated set to the remote value, not the
+        """Created species should have lastUpdated set to the remote value, not the
         sync time.  Without this, every subsequent sync would see a local timestamp
         newer than the remote one and perpetually skip the species.
         """
@@ -399,8 +396,7 @@ class SpeciesSyncServiceTest(MinimalTestCase):
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_preserves_remote_last_updated_on_update(self, mock_fetch):
-        """
-        Updated species should have lastUpdated set to the remote value, not the
+        """Updated species should have lastUpdated set to the remote value, not the
         sync time.  Without this, every subsequent sync would perpetually skip.
         """
         old_time = timezone.now() - timedelta(days=10)
@@ -429,8 +425,7 @@ class SpeciesSyncServiceTest(MinimalTestCase):
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_no_perpetual_skip_after_create(self, mock_fetch):
-        """
-        After a species is created by the sync, a subsequent sync with the same
+        """After a species is created by the sync, a subsequent sync with the same
         remote data should skip it (nothing changed), but a later sync with changed
         field values should update it.  Field-based comparison (not timestamps)
         determines whether to skip.
@@ -466,8 +461,7 @@ class SpeciesSyncServiceTest(MinimalTestCase):
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_fixes_render_cares_when_false(self, mock_fetch):
-        """
-        A species that exists locally with render_cares=False should be updated
+        """A species that exists locally with render_cares=False should be updated
         to True when it appears in the CARES API.  Field-based comparison detects
         that render_cares does not match and triggers an update.
         """
@@ -494,8 +488,7 @@ class SpeciesSyncServiceTest(MinimalTestCase):
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_sync_not_skipped_with_corrupted_local_timestamp(self, mock_fetch):
-        """
-        Species should NOT be perpetually skipped because of a corrupted local
+        """Species should NOT be perpetually skipped because of a corrupted local
         lastUpdated timestamp.
 
         The original code used auto_now on every save, so a previous sync would
@@ -539,6 +532,7 @@ class CreateApiUserCommandTest(MinimalTestCase):
     def _run_command(self, **settings_overrides):
         """Helper: call the command with optional settings overrides."""
         from io import StringIO
+
         from django.core.management import call_command
         out = StringIO()
         with self.settings(**settings_overrides):
@@ -567,10 +561,10 @@ class CreateApiUserCommandTest(MinimalTestCase):
 
     def test_idempotent_run_updates_existing_user(self):
         """Running the command twice should update the existing user, not create a duplicate."""
-        settings_kwargs = dict(
-            API_SERVICE_EMAIL='idempotent@example.com',
-            API_SERVICE_PASSWORD='FirstPass123!',
-        )
+        settings_kwargs = {
+            'API_SERVICE_EMAIL': 'idempotent@example.com',
+            'API_SERVICE_PASSWORD': 'FirstPass123!',
+        }
         self._run_command(**settings_kwargs)
         self.assertEqual(User.objects.filter(email='idempotent@example.com').count(), 1)
 

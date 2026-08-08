@@ -2,15 +2,13 @@ import csv
 import io
 import logging
 from csv import DictReader
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 from io import StringIO
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.files.base import ContentFile
 
-from ..models import CaresApprover, ImportArchive, Species, User
-from ..models import AquaristClub, CaresRegistration, Species
+from ..models import AquaristClub, CaresRegistration, ImportArchive, Species, User
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +51,7 @@ def _parse_bool(raw: str) -> bool:
 
 
 def _parse_date(raw: str):
-    """
-    Parse a yyyy-mm-dd date string.
+    """Parse a yyyy-mm-dd date string.
     Returns a date object on success, or None if blank / unparseable.
     """
     raw = raw.strip()
@@ -70,8 +67,8 @@ def _resolve_species(name: str):
     """Lookup Species by exact name (case-insensitive). Raises ValueError on miss."""
     try:
         return Species.objects.get(name__iexact=name)
-    except Species.DoesNotExist:
-        raise ValueError(f'Species not found: "{name}"')
+    except Species.DoesNotExist as exc:
+        raise ValueError(f'Species not found: "{name}"') from exc
     except Species.MultipleObjectsReturned:
         match = Species.objects.filter(name__iexact=name).first()
         logger.warning('Legacy import: multiple species match "%s"; using id=%d.', name, match.id)
@@ -82,8 +79,8 @@ def _resolve_club(acronym: str):
     """Lookup AquaristClub by acronym (case-insensitive). Raises ValueError on miss."""
     try:
         return AquaristClub.objects.get(acronym__iexact=acronym)
-    except AquaristClub.DoesNotExist:
-        raise ValueError(f'Club with acronym "{acronym}" not found.')
+    except AquaristClub.DoesNotExist as exc:
+        raise ValueError(f'Club with acronym "{acronym}" not found.') from exc
     except AquaristClub.MultipleObjectsReturned:
         match = AquaristClub.objects.filter(acronym__iexact=acronym).first()
         logger.warning('Legacy import: multiple clubs match acronym "%s"; using id=%d.', acronym, match.id)
@@ -91,8 +88,7 @@ def _resolve_club(acronym: str):
 
 
 def import_legacy_cares_registrations(import_archive, imported_by):
-    """
-    Parse and import a legacy CARES Registration CSV file.
+    """Parse and import a legacy CARES Registration CSV file.
 
     Parameters
     ----------
@@ -109,6 +105,7 @@ def import_legacy_cares_registrations(import_archive, imported_by):
         skipped  – rows intentionally skipped (currently unused, reserved)
         errors   – rows that failed
         rows     – list of per-row result dicts
+
     """
     summary = {
         'total': 0,
@@ -187,7 +184,7 @@ def import_legacy_cares_registrations(import_archive, imported_by):
             affiliate_club    = _resolve_club(club_acronym)
             acquisition_date  = _parse_date(acquisition_date_raw)
             registration_date = _parse_date(registration_date_raw)
-            last_update_date  = _parse_date(last_update_raw)   # informational
+            _parse_date(last_update_raw)   # informational
 
             if acquisition_date is None:
                 raise ValueError(f'Cannot parse acquisition_date: "{acquisition_date_raw}" (expected yyyy-mm-dd)')
@@ -244,13 +241,13 @@ def import_legacy_cares_registrations(import_archive, imported_by):
             )
             reg.save()
 
-            # date_requested has auto_now_add=True so Django ignores any value assigned to the instance. 
+            # date_requested has auto_now_add=True so Django ignores any value assigned to the instance.
             # QuerySet.update() writes directly to the DB column, bypassing the auto logic - std practice to back-date legacy fields
             reg_datetime = datetime(
                 registration_date.year,
                 registration_date.month,
                 registration_date.day,
-                tzinfo=dt_timezone.utc,
+                tzinfo=UTC,
             )
             CaresRegistration.objects.filter(pk=reg.pk).update(date_requested=reg_datetime)
 
@@ -274,8 +271,7 @@ def import_legacy_cares_registrations(import_archive, imported_by):
 
 
 def import_csv_species_external_ids(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Import Species External IDs from a CSV file.
+    """Import Species External IDs from a CSV file.
 
     CSV columns
     -----------
@@ -298,7 +294,6 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
 
     Returns dict: updated, skipped, errors, total, site_id
     """
-
     site_id = getattr(settings, 'SITE_ID', 1)
 
     csv_report_buffer = StringIO()
@@ -310,7 +305,7 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
     skip_count   = 0
     error_count  = 0
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, encoding='utf-8') as import_file:
         for import_row in DictReader(import_file):
             row_count += 1
 

@@ -52,7 +52,7 @@ class SpeciesCollectionLocationViewsTests(TestCase):
             'species_id,species_name,name\n'
             f'{self.species.id},{self.species.name},Lake Tanganyika\n'
             f'{self.species.id},{self.species.name},Kapampa\n'
-        ).encode('utf-8')
+        ).encode()
         upload = SimpleUploadedFile('collection_locations.csv', csv_bytes, content_type='text/csv')
 
         response = self.client.post(
@@ -72,7 +72,7 @@ class SpeciesCollectionLocationViewsTests(TestCase):
         csv_bytes = (
             'species_instance_id,name,collection_location_name\n'
             f'{self.species_instance.id},{self.species_instance.name},Kapampa\n'
-        ).encode('utf-8')
+        ).encode()
         upload = SimpleUploadedFile('instance_locations.csv', csv_bytes, content_type='text/csv')
 
         response = self.client.post(

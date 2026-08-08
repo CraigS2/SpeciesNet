@@ -15,8 +15,7 @@ def _get_action_type(slug):
 
 
 def send_new_registration_notification(registration):
-    """
-    Queue Site 2 new registration notifications to all matching CARES approvers.
+    """Queue Site 2 new registration notifications to all matching CARES approvers.
     This is an FYI notification, so it uses the pending-actions email pipeline
     without requiring a response workflow.
     """
@@ -58,8 +57,7 @@ def send_new_registration_notification(registration):
 
 
 def send_status_change_email(registration, subject, body):
-    """
-    Queue status-change notification to registrant using the shared pending-actions
+    """Queue status-change notification to registrant using the shared pending-actions
     framework. This creates a response-capable pending action and sends the email
     asynchronously; the confirmation link is single-use and POST-confirmed.
     """

@@ -1,6 +1,5 @@
-"""
-SpeciesInstance-related views: CRUD operations, logs, labels, import/export
-These represent individual aquarist's fish/species entries
+"""SpeciesInstance-related views: CRUD operations, logs, labels, import/export
+These represent individual aquarist's fish/species entries.
 """
 
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
@@ -12,7 +11,7 @@ from .base import *
 def speciesInstance(request, pk):
     speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
     species = speciesInstance.species
-    
+
     # TODO improve finding and displaying optional speciesMaintenanceLog - do single query with select_related('speciesMaintenanceLog')
     speciesMaintenanceLog = None
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.filter(species=species)
@@ -20,7 +19,7 @@ def speciesInstance(request, pk):
         for sml in speciesMaintenanceLogs:
             if speciesInstance in sml.speciesInstances.all():
                 speciesMaintenanceLog = sml
-    
+
     # Manage bap submissions - if cur_user is speciesInstance.user and club member bap_participant with no current submission allow new submission
     isBapParticipant = request.user == speciesInstance.user
     bapEligibleMemberships = []
@@ -61,7 +60,7 @@ def speciesInstance(request, pk):
             #caresRegistration = get_object_or_404(CaresRegistration, species=speciesInstance.species, aquarist_email=request.user.email)
             # will return the latest if multiple CaresRegistrations submitted by user - can happen in response to a 'decline' by Cares Authority
             # caresRegistration = CaresRegistration.objects.filter(species=speciesInstance.species, aquarist_email=speciesInstance.user.email).order_by('-date_requested').first()
-            
+
             caresRegistration = CaresRegistration.objects.filter(
                 species=speciesInstance.species,
                 aquarist_email=speciesInstance.user.email
@@ -70,9 +69,8 @@ def speciesInstance(request, pk):
             ).order_by('-date_requested').first()
 
             print ('SpeciesInstance ' + speciesInstance.name + ' CaresRegistration found: ' + caresRegistration.name)
-        except: 
+        except Exception:
             print ('Did not find CaresRegistration for SpeciesInstance, Species = ' + species.name)
-            pass
 
         # the following code outputs 3 INFO lines example shown below
         # ASN_DJANGO  | [2026-04-24 07:17:51] [INFO] [species.views.base:71] CARES lookup: species_id=837, user_email=cstorms97@gmail.com
@@ -84,12 +82,12 @@ def speciesInstance(request, pk):
         #     logger.info('CARES registrations for species: %s', [(r.id, r.aquarist_email) for r in qs])
         #     caresRegistration = qs.filter(aquarist_email=request.user.email).order_by('-date_requested').first()
         #     logger.info('CARES match found: %s', caresRegistration)
-        
+
     if request.user.is_authenticated:
         logger.info('User %s visited aquarist species page:  %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
     else:
         logger.info('Anonymous user visited aquarist species page:  %s (%s).', speciesInstance.name, speciesInstance.user.username)
-    
+
     context = {
         'speciesInstance': speciesInstance,
         'species': species,
@@ -121,14 +119,14 @@ def createSpeciesInstance(request, pk):
                 speciesInstance = form.save()
                 if speciesInstance.aquarist_species_image:
                     processUploadedImageFile(speciesInstance.aquarist_species_image, speciesInstance.name, request)
-                if speciesInstance.aquarist_species_video_url: 
+                if speciesInstance.aquarist_species_video_url:
                     speciesInstance.aquarist_species_video_url = processVideoURL(speciesInstance.aquarist_species_video_url)
                     speciesInstance.save()
                 logger.info('User %s added speciesInstance:  %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
                 return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
             except Exception as e:
-                logger.error(f"Unexpected error creating speciesInstance: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred:   {str(e)}')
+                logger.error(f"Unexpected error creating speciesInstance: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred:   {e!s}')
         else:
             logger.warning(f"SpeciesInstance form validation failed for species_id={pk}:  {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -146,33 +144,33 @@ def editSpeciesInstance(request, pk):
     speciesInstance = get_object_or_404(SpeciesInstance, pk=pk)
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     if not userCanEdit:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     # TODO improve finding and displaying optional speciesMaintenanceLog
     speciesMaintenanceLog = None
     speciesMaintenanceLogs = SpeciesMaintenanceLog.objects.filter(species=speciesInstance.species)
     if speciesMaintenanceLogs.count() > 0:
         for sml in speciesMaintenanceLogs:
             if speciesInstance in sml.speciesInstances.all():
-                speciesMaintenanceLog = sml    
-    
-    if request.method == 'POST': 
+                speciesMaintenanceLog = sml
+
+    if request.method == 'POST':
         form = SpeciesInstanceForm2(request.POST, request.FILES, instance=speciesInstance)
         if form.is_valid():
             try:
                 speciesInstance = form.save(commit=False)
                 speciesInstance.save()
-                if speciesInstance.aquarist_species_image: 
+                if speciesInstance.aquarist_species_image:
                     processUploadedImageFile(speciesInstance.aquarist_species_image, speciesInstance.name, request)
-                if speciesInstance.aquarist_species_video_url: 
+                if speciesInstance.aquarist_species_video_url:
                     speciesInstance.aquarist_species_video_url = processVideoURL(speciesInstance.aquarist_species_video_url)
                     speciesInstance.save()
                 logger.info('User %s edited speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
                 messages.success(request, f'Species "{speciesInstance.name}" updated successfully!')
                 return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
-            except Exception as e: 
-                logger.error(f"Unexpected error editing speciesInstance: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred:  {str(e)}')
+            except Exception as e:
+                logger.error(f"Unexpected error editing speciesInstance: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred:  {e!s}')
         else:
             logger.warning(f"SpeciesInstance form validation failed for species_id={pk}:  {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -188,11 +186,10 @@ def editSpeciesInstance(request, pk):
 @login_required(login_url='login')
 def deleteSpeciesInstance(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
-    species = speciesInstance.species
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     if not userCanEdit:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     if request.method == 'POST':
         messages.success (request, 'Deleted Aquarist Species: ' + speciesInstance.name)
         logger.info('User %s deleted speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
@@ -201,9 +198,8 @@ def deleteSpeciesInstance(request, pk):
         site_id = getattr(settings, 'SITE_ID', 1)
         if site_id == 2:
             return redirect('caresSpeciesSearch')
-        else:
-            return redirect('speciesSearch')
-    
+        return redirect('speciesSearch')
+
     context = {'speciesInstance': speciesInstance}
     return render(request, 'species/deleteSpeciesInstance.html', context)
 
@@ -214,8 +210,8 @@ def reassignSpeciesInstance(request, pk):
     cur_species = speciesInstance.species
     userCanEdit = request.user.is_admin
     if not userCanEdit:
-        raise PermissionDenied()
-    if request.method == 'POST': 
+        raise PermissionDenied
+    if request.method == 'POST':
         try:
             new_species_id = request.POST.get('new_species_id')
             new_species_id = int(new_species_id)                         # cast as true int
@@ -226,10 +222,10 @@ def reassignSpeciesInstance(request, pk):
             messages.success(request, f'Aquarist Species "{speciesInstance.name}" updated to use new species "{new_species.name}" successfully!')
             return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
         except (ValueError, TypeError):
-            messages.error(request, 'Invalid input. Number entered must be a valid Species ID')            
-        except Exception as e: 
-            logger.error(f"Unexpected error reassigning speciesInstance: {str(e)}", exc_info=True)
-            messages.error(request, f'An unexpected error occurred:  {str(e)}')                
+            messages.error(request, 'Invalid input. Number entered must be a valid Species ID')
+        except Exception as e:
+            logger.error(f"Unexpected error reassigning speciesInstance: {e!s}", exc_info=True)
+            messages.error(request, f'An unexpected error occurred:  {e!s}')
     context = {'speciesInstance': speciesInstance}
     return render(request, 'species/reassignSpeciesInstance.html', context)
 
@@ -237,9 +233,7 @@ def reassignSpeciesInstance(request, pk):
 
 @login_required(login_url='login')
 def createSpeciesAndInstance(request):
-    """
-    Wizard helper for users to create both Species and SpeciesInstance in a single form.
-    """
+    """Wizard helper for users to create both Species and SpeciesInstance in a single form."""
     if request.method == 'POST':
         form = CombinedSpeciesForm(request.POST)
         if form.is_valid():
@@ -254,8 +248,8 @@ def createSpeciesAndInstance(request):
                     created_by=request.user,
                     last_edited_by=request.user
                 )
-                
-                if species: 
+
+                if species:
                     species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.save()
 
@@ -270,21 +264,21 @@ def createSpeciesAndInstance(request):
                         year_acquired=form.cleaned_data['year_acquired'],
                         aquarist_notes=form.cleaned_data['aquarist_notes'],
                     )
-                    
+
                     if speciesInstance:
                         speciesInstance.save()
                         # species.species_instance_count = 1
                         # species.save()
 
                     messages.success(request, f'Successfully created species "{species.name}" and your Aquarist Species!')
-                    logger.info('User %s added species: %s (%s) and speciesInstance: %s (%s)', 
-                               request.user.username, species.name, str(species.id), 
+                    logger.info('User %s added species: %s (%s) and speciesInstance: %s (%s)',
+                               request.user.username, species.name, str(species.id),
                                speciesInstance.name, str(speciesInstance.id))
                     return HttpResponseRedirect(reverse("speciesInstance", args=[speciesInstance.id]))
 
             except Exception as e:
-                logger.error(f"Unexpected error creating Species and Aquarist Species: {str(e)}", exc_info=True)
-                messages.error(request, f'Error creating species and instance: {str(e)}')
+                logger.error(f"Unexpected error creating Species and Aquarist Species: {e!s}", exc_info=True)
+                messages.error(request, f'Error creating species and instance: {e!s}')
         else:
             logger.warning(f"CombinedSpeciesForm validation errors: {form.errors.as_text()}")
             messages.error(request, 'Please correct the following errors:')
@@ -301,12 +295,12 @@ def speciesInstanceLog(request, pk):
     speciesInstance = SpeciesInstance.objects.get(id=pk)
     speciesInstanceLogEntries = SpeciesInstanceLogEntry.objects.filter(speciesInstance=speciesInstance)
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
-    
+
     if request.user.is_authenticated:
         logger.info('User %s visited aquarist species log:   %s (%s).', request.user.username, speciesInstance.name, speciesInstance.user.username)
     else:
         logger.info('Anonymous user visited aquarist species log: %s (%s).', speciesInstance.name, speciesInstance.user.username)
-    
+
     context = {
         'speciesInstance': speciesInstance,
         'speciesInstanceLogEntries':  speciesInstanceLogEntries,
@@ -324,7 +318,7 @@ def createSpeciesInstanceLogEntry(request, pk):
     now = timezone.now()
     name = now.strftime("%Y-%m-%d ") + speciesInstance.name
     form = SpeciesInstanceLogEntryForm(initial={"name": name, "speciesInstance": speciesInstance})
-    
+
     if request.method == 'POST':
         form = SpeciesInstanceLogEntryForm(request.POST, request.FILES)
         if form.is_valid():
@@ -337,10 +331,10 @@ def createSpeciesInstanceLogEntry(request, pk):
                 speciesInstanceLogEntry.log_entry_video_url = processVideoURL(speciesInstanceLogEntry.log_entry_video_url)
             speciesInstanceLogEntry.save()
             speciesInstanceLogEntry.speciesInstance.save()  # Update timestamp
-            logger.info('User %s created new speciesInstanceLogEntry for %s (%s)', 
+            logger.info('User %s created new speciesInstanceLogEntry for %s (%s)',
                        request.user.username, speciesInstance.name, str(speciesInstance.id))
         return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))
-    
+
     context = {'form': form}
     return render(request, 'species/createSpeciesInstanceLogEntry.html', context)
 
@@ -354,8 +348,8 @@ def editSpeciesInstanceLogEntry(request, pk):
     speciesInstance = speciesInstanceLogEntry.speciesInstance
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
     if not userCanEdit:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     form = SpeciesInstanceLogEntryForm(instance=speciesInstanceLogEntry)
     if request.method == 'POST':
         form = SpeciesInstanceLogEntryForm(request.POST, request.FILES, instance=speciesInstanceLogEntry)
@@ -367,10 +361,10 @@ def editSpeciesInstanceLogEntry(request, pk):
                 speciesInstanceLogEntry.log_entry_video_url = processVideoURL(speciesInstanceLogEntry.log_entry_video_url)
             speciesInstanceLogEntry.save()
             speciesInstanceLogEntry.speciesInstance.save()  # Update timestamp
-            logger.info('User %s edited speciesInstanceLog for %s (%s)', 
+            logger.info('User %s edited speciesInstanceLog for %s (%s)',
                        request.user.username, speciesInstance.name, str(speciesInstance.id))
             return HttpResponseRedirect(reverse("speciesInstanceLog", args=[speciesInstance.id]))
-    
+
     context = {'form': form, 'speciesInstanceLogEntry': speciesInstanceLogEntry}
     return render(request, 'species/editSpeciesInstanceLogEntry.html', context)
 
@@ -382,13 +376,13 @@ def deleteSpeciesInstanceLogEntry(request, pk):
     speciesInstanceLogEntry = SpeciesInstanceLogEntry.objects.get(id=pk)
     speciesInstance = speciesInstanceLogEntry.speciesInstance
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
-    if not userCanEdit: 
-        raise PermissionDenied()
-    
+    if not userCanEdit:
+        raise PermissionDenied
+
     if request.method == 'POST':
         speciesInstanceLogEntry.delete()
         return redirect('/speciesInstanceLog/' + str(speciesInstance.id))
-    
+
     object_type = 'Species Log Entry'
     object_name = 'this Log Entry'
     context = {'object_type': object_type, 'object_name': object_name}
@@ -404,9 +398,9 @@ def chooseSpeciesInstancesForLabels(request, pk):
         choice_txt = speciesInstance.name
         choice = (speciesInstance.id, choice_txt)
         choices.append(choice)
-    
+
     form = SpeciesLabelsSelectionForm(dynamic_choices=choices)
-    if request.method == 'POST': 
+    if request.method == 'POST':
         speciesChosen = []
         form = SpeciesLabelsSelectionForm(request.POST, dynamic_choices=choices)
         if form.is_valid():
@@ -418,7 +412,7 @@ def chooseSpeciesInstancesForLabels(request, pk):
             logger.info("request.session['species_choices'] for labels set")
             logger.info('User %s selected speciesInstances for labels', request.user.username)
             return HttpResponseRedirect(reverse("editSpeciesInstanceLabels"))
-    
+
     context = {'form': form}
     return render(request, 'species/chooseSpeciesInstancesForLabels.html', context)
 
@@ -429,22 +423,21 @@ def editSpeciesInstanceLabels(request):
     species_choices = request.session['species_choices']
     logger.info("request.session['species_choices'] retrieved to edit labels")
     label_set = []
-    
-    for choice in species_choices: 
+
+    for choice in species_choices:
         speciesInstance = SpeciesInstance.objects.get(id=choice)
         si_labels = SpeciesInstanceLabel.objects.filter(speciesInstance=speciesInstance)
         if si_labels.count() > 0:
             si_label = si_labels[0]
             label_set.append(si_label)
-    
-    if request.method == 'POST': 
+
+    if request.method == 'POST':
         formset = SpeciesInstanceLabelFormSet(request.POST)
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="AquaristSpecies_Labels.pdf"'
         if formset.is_valid():
             logger.info('User %s generated labels pdf', request.user.username)
-            response = generatePdfLabels(formset, label_set, request, response)
-            return response
+            return generatePdfLabels(formset, label_set, request, response)
     else:
         default_labels = []
         for si in species_choices:
@@ -453,7 +446,7 @@ def editSpeciesInstanceLabels(request):
             text_line2 = 'about this fish on my AquaristSpecies.net page.'
             number = 1
             si_labels = SpeciesInstanceLabel.objects.filter(speciesInstance=speciesInstance)
-            
+
             if si_labels.count() > 0:
                 si_label = si_labels[0]
             else:
@@ -467,14 +460,14 @@ def editSpeciesInstanceLabels(request):
                 url = 'https://aquaristspecies.net/speciesInstance/' + str(speciesInstance.id) + '/'
                 generate_qr_code(si_label.qr_code, url, name, request)
                 si_label.save()
-            
+
             default_labels.append({
                 'name': si_label.name,
                 'text_line1': si_label.text_line1,
                 'text_line2': si_label.text_line2,
                 'number': number
             })
-        
+
         formset = SpeciesInstanceLabelFormSet(initial=default_labels)
 
     return render(request, 'species/editSpeciesInstanceLabels.html', {'formset': formset})
@@ -484,16 +477,15 @@ def editSpeciesInstanceLabels(request):
 
 @login_required(login_url='login')
 def registerCaresSpeciesInstance(request, pk):
-    """
-    Easy CaresRegistration via SpeciesInstance for logged in users keeping CARES species. 
+    """Easy CaresRegistration via SpeciesInstance for logged in users keeping CARES species.
     Known fields are populated, optional & editable fields displayed. Registration external_id
-    is set so later CSO import can link it back to ASN for status changes etc. 
+    is set so later CSO import can link it back to ASN for status changes etc.
     """
     from species.forms import CaresRegistrationFromInstanceForm
 
     species_instance = get_object_or_404(SpeciesInstance, pk=pk)
     if species_instance.user != request.user and not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     cares_species = species_instance.species
     if cares_species.cares_classification == Species.CaresStatus.NOT_CARES_SPECIES:
@@ -514,10 +506,10 @@ def registerCaresSpeciesInstance(request, pk):
             CaresRegistration.CaresRegistrationStatus.APPROVED,
             CaresRegistration.CaresRegistrationStatus.RESUBMIT,
         ]).first()
-    
+
     if existing_registration:
         messages.info(request, f'"{cares_species.name}" already has an active CARES registration.')
-        return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))    
+        return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
 
     register_heif_opener()
     reg = CaresRegistration()
@@ -535,7 +527,7 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.aquarist_name   = species_instance.user.get_full_name() or request.user.username
                 cares_reg.aquarist_email  = species_instance.user.email
                 cares_reg.species         = cares_species
-                cares_reg.year_acquired   = species_instance.year_acquired                
+                cares_reg.year_acquired   = species_instance.year_acquired
                 cares_reg.name            = cares_species.name + ' - ' + cares_reg.aquarist_name
                 cares_reg.last_updated_by = request.user
                 cares_reg.cares_approver  = None   # assigned later by CARES admin
@@ -571,7 +563,7 @@ def registerCaresSpeciesInstance(request, pk):
                 if prior_declined_reg.exists():
                     cares_reg.status = CaresRegistration.CaresRegistrationStatus.RESUBMIT
                     cares_reg.save(update_fields=['status'])
-                    prior_declined_reg.update(status=CaresRegistration.CaresRegistrationStatus.CLOSED)        
+                    prior_declined_reg.update(status=CaresRegistration.CaresRegistrationStatus.CLOSED)
 
                 send_asn_notification_email(
                     subject=f'ASN: New CARES Registration - {cares_reg.name}',
@@ -581,7 +573,7 @@ def registerCaresSpeciesInstance(request, pk):
                         f'Species:  {cares_reg.species}\n'
                         f'Aquarist: {cares_reg.aquarist_name} ({cares_reg.aquarist_email})\n'
                     )
-                )                    
+                )
 
                 logger.info(
                     'User %s submitted CARES registration for species: %s (reg_id=%s)',
@@ -591,11 +583,11 @@ def registerCaresSpeciesInstance(request, pk):
                 return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
 
             except IntegrityError as e:
-                logger.error(f"IntegrityError creating CARES registration: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError creating CARES registration: {e!s}", exc_info=True)
                 messages.error(request, 'A registration conflict occurred (possibly a duplicate). Please contact support.')
             except Exception as e:
-                logger.error(f"Unexpected error creating CARES registration: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error creating CARES registration: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
 
             # Validation failed or exception — fall through to re-render with reg instance intact
             logger.warning(
@@ -628,13 +620,13 @@ def exportSpeciesInstances(request):
 #     userCanEdit = user_is_admin (request.user)
 #     if not userCanEdit:
 #         raise PermissionDenied()
-    
+
 #     if request.method == 'POST':
 #         form = ImportCsvForm(request.POST, request.FILES)
 #         if form.is_valid():
 #             import_archive = form.save()
 #             import_csv_speciesInstances(import_archive, current_user)
 #             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
-        
+
 #     form = ImportCsvForm()
 #     return render(request, "species/importSpecies.html", {"form": form})

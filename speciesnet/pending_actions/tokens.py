@@ -4,7 +4,7 @@ import secrets
 from django.core import signing
 from django.core.signing import BadSignature, SignatureExpired
 
-TOKEN_SALT = 'pending-actions'
+TOKEN_SALT = 'pending-actions'  # noqa: S105 - a signing salt, not a secret
 
 
 class PendingActionTokenError(Exception):

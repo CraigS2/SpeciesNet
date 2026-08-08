@@ -1,5 +1,4 @@
-"""
-Top 50 page view reporting.
+"""Top 50 page view reporting.
 
 Two data sources, selected via ?source=:
   'current' (default) - PageViewCount running totals (the current month in
@@ -14,8 +13,8 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum
 from django.shortcuts import render
 
-from ..models import PageViewCount, PageViewMonthlySnapshot
 from ..asn_tools.asn_pageview_tools import resolve_objects_for_page_type
+from ..models import PageViewCount, PageViewMonthlySnapshot
 
 TOP_N = 50
 

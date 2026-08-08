@@ -87,7 +87,7 @@ class CaresEmailNotificationTests(TestCase):
         self.assertEqual(specialties, ['CIC', 'CIC', 'UDF'])
 
     def test_send_new_registration_notification_fanout_and_logs(self):
-        request = self.factory.get('/registerCaresSpecies/1/')
+        self.factory.get('/registerCaresSpecies/1/')
         #send_new_registration_notification(self.registration, request)
         send_new_registration_notification(self.registration)
 

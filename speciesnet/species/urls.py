@@ -1,8 +1,9 @@
-from django.urls import path, re_path
-from django.conf.urls.static import static
-from django.views.static import serve
 #from django.conf.urls import url - deprecated
 from django.conf import settings
+from django.conf.urls.static import static
+from django.urls import path, re_path
+from django.views.static import serve
+
 from . import views
 
 urlpatterns = [
@@ -13,8 +14,8 @@ urlpatterns = [
     ### Users == Aquarists ###
 
     path('login/', views.loginUser, name="login"),
-    path('logout/', views.logoutUser, name="logout"), 
-    #path('register/', views.registerUser, name="register"), 
+    path('logout/', views.logoutUser, name="logout"),
+    #path('register/', views.registerUser, name="register"),
     path('userProfile/', views.userProfile, name="userProfile"),
     path('editUserProfile/', views.editUserProfile, name="editUserProfile"),
 
@@ -26,19 +27,19 @@ urlpatterns = [
     ### Aquarist Clubs ###
 
     path('aquaristClubs/', views.aquaristClubs, name="aquaristClubs"),
-    path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"), 
+    path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"),
     path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
     path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
-    path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
+    path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"),
     path('exportAquaristClubs/', views.exportAquaristClubs, name="exportAquaristClubs"),
     #path('importAquaristClubs/', views.importAquaristClubs, name="importAquaristClubs"),
 
-    path('aquaristClubMember/<int:pk>/', views.aquaristClubMember, name="aquaristClubMember"), 
+    path('aquaristClubMember/<int:pk>/', views.aquaristClubMember, name="aquaristClubMember"),
     path('aquaristClubAdmin/<str:pk>/', views.aquaristClubAdmin, name="aquaristClubAdmin"),
-    path('aquaristClubMembers/<str:pk>/', views.AquaristClubMemberListView.as_view(), name="aquaristClubMembers"), 
+    path('aquaristClubMembers/<str:pk>/', views.AquaristClubMemberListView.as_view(), name="aquaristClubMembers"),
     path('createAquaristClubMember/<str:pk>', views.createAquaristClubMember, name="createAquaristClubMember"),
     path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
-    path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
+    path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"),
     path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
 
     ### Aquarist Club BAP Programs ###
@@ -59,8 +60,8 @@ urlpatterns = [
     path('editBapSpecies/<str:pk>/', views.editBapSpecies, name="editBapSpecies"),
     path('deleteBapSpecies/<str:pk>/', views.deleteBapSpecies, name="deleteBapSpecies"),
 
-    path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    
-    
+    path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),
+
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
     path('bap_overview/', views.bap_overview, name="bap_overview"),
     path('bap_submissions_overview/', views.bap_submissions_overview, name="bap_submissions_overview"),
@@ -70,19 +71,19 @@ urlpatterns = [
 
     ### Species == 'Species Profiles' (UX) ###
 
-    path('species/<str:pk>/', views.species, name="species"), 
+    path('species/<str:pk>/', views.species, name="species"),
     path('createSpecies/', views.createSpecies, name="createSpecies"),
     path('editSpecies/<str:pk>/', views.editSpecies, name="editSpecies"),
     path('deleteSpecies/<str:pk>/', views.deleteSpecies, name="deleteSpecies"),
 
     path('speciesComments/', views.speciesComments, name="speciesComments"),
-    path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"), 
-    path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"), 
+    path('editSpeciesComment/<str:pk>/', views.editSpeciesComment, name="editSpeciesComment"),
+    path('deleteSpeciesComment/<str:pk>/', views.deleteSpeciesComment, name="deleteSpeciesComment"),
 
     path('speciesReferenceLinks/', views.speciesReferenceLinks, name="speciesReferenceLinks"),
-    path('createSpeciesReferenceLink/<str:pk>/', views.createSpeciesReferenceLink, name="createSpeciesReferenceLink"),     
-    path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),  
-    path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),  
+    path('createSpeciesReferenceLink/<str:pk>/', views.createSpeciesReferenceLink, name="createSpeciesReferenceLink"),
+    path('editSpeciesReferenceLink/<str:pk>/', views.editSpeciesReferenceLink, name="editSpeciesReferenceLink"),
+    path('deleteSpeciesReferenceLink/<str:pk>/', views.deleteSpeciesReferenceLink, name="deleteSpeciesReferenceLink"),
 
     ### Species Collection Locations ###
 
@@ -90,12 +91,12 @@ urlpatterns = [
     path('species/<str:pk>/collection-locations/', views.speciesCollectionLocations, name='speciesCollectionLocations'),
     path('species/<str:pk>/collection-locations/add/', views.createSpeciesCollectionLocation, name='createSpeciesCollectionLocation'),
     path('species/collection-location/<str:pk>/edit/', views.editSpeciesCollectionLocation, name='editSpeciesCollectionLocation'),
-    path('species/collection-location/<str:pk>/delete/', views.deleteSpeciesCollectionLocation, name='deleteSpeciesCollectionLocation'),    
+    path('species/collection-location/<str:pk>/delete/', views.deleteSpeciesCollectionLocation, name='deleteSpeciesCollectionLocation'),
 
     ### CARES ASN or Shared ###
-    
+
     path('cares_overview/', views.cares_overview, name="cares_overview"),
-    path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
+    path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"),
     path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
     path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
     path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
@@ -103,15 +104,15 @@ urlpatterns = [
 
     ### CARES Site 2 Only ###
 
-    path('caresPriorityList/', views.caresPriorityList, name="caresPriorityList"), 
-    path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"), 
+    path('caresPriorityList/', views.caresPriorityList, name="caresPriorityList"),
+    path('caresSpecies/<str:pk>/', views.caresSpecies, name="caresSpecies"),
     path('createCaresSpecies/', views.createCaresSpecies, name="createCaresSpecies"),
     path('editCaresSpecies/<str:pk>/', views.editCaresSpecies, name="editCaresSpecies"),
     path('editCaresSpecies2/<str:pk>/', views.editCaresSpecies2, name="editCaresSpecies2"),
     path('deleteCaresSpecies/<str:pk>/', views.deleteCaresSpecies, name="deleteCaresSpecies"),
     path('cares/caresSpeciesSearch/', views.CaresSpeciesListView.as_view(), name="caresSpeciesSearch"),
 
-    path('caresRegistration/<str:pk>/', views.caresRegistration, name="caresRegistration"), 
+    path('caresRegistration/<str:pk>/', views.caresRegistration, name="caresRegistration"),
     path('cares/caresRegistrations/', views.CaresRegistrationListView.as_view(), name="caresRegistrations"),
     path('createCaresRegistration/<str:pk>/', views.createCaresRegistration, name="createCaresRegistration"),
     path('editCaresRegistration/<str:pk>/', views.editCaresRegistration, name="editCaresRegistration"),
@@ -129,8 +130,8 @@ urlpatterns = [
     path('caresApprover/<str:pk>/', views.caresApprover, name="caresApprover"),
     path('createCaresApprover/', views.createCaresApprover, name="createCaresApprover"),
     path('editCaresApprover/<str:pk>/', views.editCaresApprover, name="editCaresApprover"),
-    path('deleteCaresApprover/<str:pk>/', views.deleteCaresApprover, name="deleteCaresApprover"),    
-    path('caresApprovers/', views.caresApprovers, name="caresApprovers"), 
+    path('deleteCaresApprover/<str:pk>/', views.deleteCaresApprover, name="deleteCaresApprover"),
+    path('caresApprovers/', views.caresApprovers, name="caresApprovers"),
 
     ### Species == Species Profile (UX) ###
 
@@ -140,7 +141,7 @@ urlpatterns = [
     ### Raffle (hidden - no nav links) ###
 
     path('raffle/dashboard/', views.raffle_dashboard, name="raffle_dashboard"),
-    path('raffle/entries/', views.raffle_entries, name="raffle_entries"),    
+    path('raffle/entries/', views.raffle_entries, name="raffle_entries"),
     path('raffle/enter/', views.raffle_enter, name="raffle_enter"),
     path('raffle/thanks/', views.raffle_thanks, name="raffle_thanks"),
     path('raffle/upload-species/', views.raffle_upload_species, name="raffle_upload_species"),
@@ -153,28 +154,28 @@ urlpatterns = [
 
     ### Species Instance == Aquarist Species (UX) ###
 
-    path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"), 
+    path('speciesInstance/<str:pk>/', views.speciesInstance, name="speciesInstance"),
     path('createSpeciesInstance/<str:pk>/', views.createSpeciesInstance, name="createSpeciesInstance"),
     path('editSpeciesInstance/<str:pk>/', views.editSpeciesInstance, name="editSpeciesInstance"),
-    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"), 
-    path('reassignSpeciesInstance/<str:pk>/', views.reassignSpeciesInstance, name="reassignSpeciesInstance"), 
-    
-    path('createSpeciesAndInstance/', views.createSpeciesAndInstance, name="createSpeciesAndInstance"), 
+    path('deleteSpeciesInstance/<str:pk>/', views.deleteSpeciesInstance, name="deleteSpeciesInstance"),
+    path('reassignSpeciesInstance/<str:pk>/', views.reassignSpeciesInstance, name="reassignSpeciesInstance"),
 
-    path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),  
-    path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),      
+    path('createSpeciesAndInstance/', views.createSpeciesAndInstance, name="createSpeciesAndInstance"),
 
-    path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"), 
+    path('chooseSpeciesInstancesForLabels/<str:pk>/', views.chooseSpeciesInstancesForLabels, name="chooseSpeciesInstancesForLabels"),
+    path('editSpeciesInstanceLabels', views.editSpeciesInstanceLabels, name="editSpeciesInstanceLabels"),
+
+    path('speciesInstanceLog/<str:pk>/', views.speciesInstanceLog, name="speciesInstanceLog"),
     path('createSpeciesInstanceLogEntry/<str:pk>/', views.createSpeciesInstanceLogEntry, name="createSpeciesInstanceLogEntry"),
     path('editSpeciesInstanceLogEntry/<str:pk>/', views.editSpeciesInstanceLogEntry, name="editSpeciesInstanceLogEntry"),
     path('deleteSpeciesInstanceLogEntry/<str:pk>/', views.deleteSpeciesInstanceLogEntry, name="deleteSpeciesInstanceLogEntry"),
 
     path('speciesMaintenanceLogs/', views.speciesMaintenanceLogs, name="speciesMaintenanceLogs"),
-    path('speciesMaintenanceLog/<str:pk>/', views.speciesMaintenanceLog, name="speciesMaintenanceLog"), 
+    path('speciesMaintenanceLog/<str:pk>/', views.speciesMaintenanceLog, name="speciesMaintenanceLog"),
     path('createSpeciesMaintenanceLog/<str:pk>/', views.createSpeciesMaintenanceLog, name="createSpeciesMaintenanceLog"),
     path('editSpeciesMaintenanceLog/<str:pk>/', views.editSpeciesMaintenanceLog, name="editSpeciesMaintenanceLog"),
-    path('addMaintenanceGroupCollaborator/<str:pk>/', views.addMaintenanceGroupCollaborator, name="addMaintenanceGroupCollaborator"), 
-    path('removeMaintenanceGroupCollaborator/<str:pk>/', views.removeMaintenanceGroupCollaborator, name="removeMaintenanceGroupCollaborator"), 
+    path('addMaintenanceGroupCollaborator/<str:pk>/', views.addMaintenanceGroupCollaborator, name="addMaintenanceGroupCollaborator"),
+    path('removeMaintenanceGroupCollaborator/<str:pk>/', views.removeMaintenanceGroupCollaborator, name="removeMaintenanceGroupCollaborator"),
     path('addMaintenanceGroupSpecies/<str:pk>/', views.addMaintenanceGroupSpecies, name="addMaintenanceGroupSpecies"),
     path('removeMaintenanceGroupSpecies/<str:pk>/', views.removeMaintenanceGroupSpecies, name="removeMaintenanceGroupSpecies"),
 
@@ -195,7 +196,7 @@ urlpatterns = [
     path('tools2/', views.tools2, name="tools2"),   # Level 2 Staff and Level 3 Admin-only
     path('tools/enforceSpeciesNameSingleQuotes/', views.enforceSpeciesNameSingleQuotes, name="enforceSpeciesNameSingleQuotes"),
 
-    path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
+    path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),
     path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),
     path('speciesInstancesWithLogs/', views.speciesInstancesWithLogs, name="speciesInstancesWithLogs"),
     path('speciesInstancesWithEmptyLogs/', views.speciesInstancesWithEmptyLogs, name="speciesInstancesWithEmptyLogs"),

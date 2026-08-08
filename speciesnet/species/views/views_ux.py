@@ -1,13 +1,12 @@
-"""
-User Experience views: home page, informational pages, wizards, import results
-Public-facing and helper pages for users
+"""User Experience views: home page, informational pages, wizards, import results
+Public-facing and helper pages for users.
 """
 
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
-from .base import *
 from django.conf import settings
 
+from .base import *
 
 ### Home Page
 
@@ -16,18 +15,18 @@ def home(request):
         logger.info('User %s visited ASN home page. ', request.user.username)
     else:
         logger.info('Anonymous user visited ASN home page.')
-    context = {} 
+    context = {}
     return render(request, settings.CURRENT_SITE_CONFIG['home_template'], context)
 
 ### About and Info Pages
 
 def about_us(request):
-    aquarists = User.objects.all()
+    User.objects.all()
     if request.user.is_authenticated:
         logger.info('User %s visited about_us page.', request.user.username)
     else:
         logger.info('Anonymous user visited about_us page.')
-    context = {} 
+    context = {}
     return render(request, settings.CURRENT_SITE_CONFIG['about_us'], context)
 
 
@@ -58,9 +57,8 @@ def cares_overview(request):
 ### Add Species Instance Wizard
 
 def addSpeciesInstanceWizard1(request):
-    """
-    Wizard style workflow helping users search/find/add species to add their speciesInstance
-    Step 1: Choose how to add species
+    """Wizard style workflow helping users search/find/add species to add their speciesInstance
+    Step 1: Choose how to add species.
     """
     if request.user.is_authenticated:
         logger.info('User %s visited addSpeciesInstanceWizard1 page. ', request.user.username)
@@ -70,22 +68,21 @@ def addSpeciesInstanceWizard1(request):
 
 
 def addSpeciesInstanceWizard2(request):
+    """Wizard style workflow helping users search/find/add species to add their speciesInstance
+    Step 2: Search for existing species.
     """
-    Wizard style workflow helping users search/find/add species to add their speciesInstance
-    Step 2: Search for existing species
-    """
-    speciesSet = Species.objects.all()
+    Species.objects.all()
     # Set up species filter - __ denotes parent, compact odd syntax if else sets q to '' if no results
     q = request.GET.get('q') if request.GET.get('q') is not None else ''
     speciesFilter = Species.objects.filter(Q(name__icontains=q) | Q(alt_name__icontains=q))[:10]
     searchActive = len(q) > 0
     resultsCount = len(speciesFilter)
-    
+
     if request.user.is_authenticated:
         logger.info('User %s visited addSpeciesInstanceWizard2 page.', request.user.username)
     else:
         logger.info('Anonymous user visited addSpeciesInstanceWizard2 page.')
-    
+
     context = {
         'speciesFilter': speciesFilter,
         'searchActive': searchActive,
@@ -98,13 +95,11 @@ def addSpeciesInstanceWizard2(request):
 
 @login_required(login_url='login')
 def importArchiveResults(request, pk):
-    """
-    Display results of CSV import operations with all rows in processing order.
-    """
+    """Display results of CSV import operations with all rows in processing order."""
     import_archive = ImportArchive.objects.get(id=pk)
 
     try:
-        with open(import_archive.import_results_file.path, 'r', encoding='utf-8') as csv_file:
+        with open(import_archive.import_results_file.path, encoding='utf-8') as csv_file:
             raw_rows = list(DictReader(csv_file))
 
         results = []
@@ -148,7 +143,7 @@ def importArchiveResults(request, pk):
         }
         return render(request, 'species/import/importArchiveResults.html', context)
     except Exception as e:
-        error_msg = f"An error occurred reading Import Archive.  \nException: {str(e)}"
+        error_msg = f"An error occurred reading Import Archive.  \nException: {e!s}"
         messages.error(request, error_msg)
         logger.error('Error reading import archive %s:  %s', str(pk), str(e))
 

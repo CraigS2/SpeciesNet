@@ -1,13 +1,23 @@
-from django.shortcuts import get_object_or_404
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
-from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
-from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember, CaresRegistration
-from species.models import BapSubmission
-from django.db.models import URLField
+import logging
+import re
 from datetime import datetime
-from django.utils import timezone
 from urllib.parse import urlparse
-import logging, bleach, re
+
+import bleach
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist, ValidationError
+from django.db.models import URLField
+
+from species.models import (
+    AquaristClub,
+    AquaristClubMember,
+    CaresRegistration,
+    Species,
+    SpeciesComment,
+    SpeciesInstance,
+    SpeciesMaintenanceLog,
+    SpeciesReferenceLink,
+    User,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -15,25 +25,20 @@ logger = logging.getLogger(__name__)
 
 def user_is_admin (cur_user: User):
     user_is_admin = False
-    if cur_user.is_authenticated:
-        if cur_user.is_admin:
-            user_is_admin = True
+    if cur_user.is_authenticated and cur_user.is_admin:
+        user_is_admin = True
     return user_is_admin
 
 def user_can_edit (cur_user: User):
     userCanEdit = False
-    if cur_user.is_authenticated:
-        if cur_user.is_staff:
-            userCanEdit = True
+    if cur_user.is_authenticated and cur_user.is_staff:
+        userCanEdit = True
     return userCanEdit
 
 def user_can_edit_a (cur_user: User, aquarist: User):
     userCanEdit = False
-    if cur_user.is_authenticated:
-        if cur_user.is_staff:
-            userCanEdit = True      
-        elif aquarist == cur_user:
-            userCanEdit = True
+    if cur_user.is_authenticated and (cur_user.is_staff or aquarist == cur_user):
+        userCanEdit = True
     return userCanEdit
 
 def user_can_edit_s (cur_user: User, species: Species):
@@ -41,38 +46,28 @@ def user_can_edit_s (cur_user: User, species: Species):
     today_date = datetime.today().date()
     userCanEdit = False
     if cur_user.is_authenticated:
-        if cur_user.is_staff or cur_user.is_admin or cur_user.is_species_admin: 
+        if cur_user.is_staff or cur_user.is_admin or cur_user.is_species_admin:
             userCanEdit = True
-        elif created_date == today_date:
-            if species.created_by == cur_user:
-                userCanEdit = True                   # Allow non-admin creator to edit species on same day of creation
+        elif created_date == today_date and species.created_by == cur_user:
+            userCanEdit = True                   # Allow non-admin creator to edit species on same day of creation
     return userCanEdit
 
 def user_can_edit_si (cur_user: User, speciesInstance: SpeciesInstance):
     userCanEdit = False
-    if cur_user.is_authenticated:
-        if cur_user.is_staff:
-            userCanEdit = True      
-        elif speciesInstance.user == cur_user:
-            userCanEdit = True
+    if cur_user.is_authenticated and (cur_user.is_staff or speciesInstance.user == cur_user):
+        userCanEdit = True
     return userCanEdit
 
 def user_can_edit_srl (cur_user: User, speciesReferenceLink: SpeciesReferenceLink):
     userCanEdit = False
-    if cur_user.is_authenticated:
-        if cur_user.is_staff:
-            userCanEdit = True
-        elif speciesReferenceLink.user == cur_user:
-            userCanEdit = True
+    if cur_user.is_authenticated and (cur_user.is_staff or speciesReferenceLink.user == cur_user):
+        userCanEdit = True
     return userCanEdit
 
 def user_can_edit_sc (cur_user: User, speciesComment: SpeciesComment):
     userCanEdit = False
-    if cur_user.is_authenticated:
-        if cur_user.is_staff:
-            userCanEdit = True
-        elif speciesComment.user == cur_user:
-            userCanEdit = True
+    if cur_user.is_authenticated and (cur_user.is_staff or speciesComment.user == cur_user):
+        userCanEdit = True
     return userCanEdit
 
 def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenanceLog):
@@ -80,30 +75,29 @@ def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenance
     userCanEdit = False
     if cur_user.is_authenticated:
         if cur_user.is_staff:
-            userCanEdit = True       
+            userCanEdit = True
         else:
             for speciesInstance in speciesInstances.all():
                 if speciesInstance.user == cur_user:
-                    userCanEdit = True;                   # allow all contributors to edit/delete
+                    userCanEdit = True                   # allow all contributors to edit/delete
     return userCanEdit
 
 def user_can_edit_club (cur_user: User, club: AquaristClub):
     userCanEdit = False
-    if cur_user.is_authenticated:    
+    if cur_user.is_authenticated:
         if cur_user.is_staff:
             userCanEdit = True
         else:
             print ('user_can_edit_club: seeing if member exists')
             try:
-                member = AquaristClubMember.objects.get(user=cur_user, club=club) 
+                member = AquaristClubMember.objects.get(user=cur_user, club=club)
                 if (member.is_club_admin or member.is_cares_admin):
                     userCanEdit = True
                     print ('Club Member is club admin: ' + cur_user.username)
             except ObjectDoesNotExist:
-                pass # user is not a member 
+                # user is not a member
                 print ('Club Member not found: ' + cur_user.username + ' can join')
             except MultipleObjectsReturned:
-                error_msg = "Club Members: duplicate members found!"
                 print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
                 logger.error('Club edit check: multiple entries found for %s', cur_user.username)
     return userCanEdit
@@ -114,36 +108,34 @@ def user_can_edit_cares_reg (cur_user: User, caresReg: CaresRegistration):
     if cur_user.is_authenticated:
         if cur_user.is_staff or cur_user.is_admin:
             userCanEdit = True
-        elif cur_user.is_species_admin and caresReg.cares_approver : 
+        elif cur_user.is_species_admin and caresReg.cares_approver :
             userCanEdit = (caresReg.cares_approver.approver  == cur_user)
     return userCanEdit
 
 def user_is_club_member (cur_user: User, club: AquaristClub):
     user_is_member = False
-    if cur_user.is_authenticated:    
+    if cur_user.is_authenticated:
         try:
-            member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=True) 
+            AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=True)
             user_is_member = True
             print ('Club Member found: ' + cur_user.username)
         except ObjectDoesNotExist:
-            pass # user is not a member 
+            pass # user is not a member
         except MultipleObjectsReturned:
-            error_msg = "Club Members: duplicate members found!"
             print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
             logger.error('Club member check: multiple entries found for %s', cur_user.username)
     return user_is_member
 
 def user_is_pending_club_member (cur_user: User, club: AquaristClub):
     user_is_pending = False
-    if cur_user.is_authenticated:    
+    if cur_user.is_authenticated:
         try:
-            member = AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=False) 
+            AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=False)
             user_is_pending = True
             print ('Club Member found: ' + cur_user.username)
         except ObjectDoesNotExist:
-            pass # user is not a pending member 
+            pass # user is not a pending member
         except MultipleObjectsReturned:
-            error_msg = "Club Members: duplicate members found!"
             print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
             logger.error('Club member check: multiple entries found for %s', cur_user.username)
     return user_is_pending
@@ -155,9 +147,8 @@ def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLo
     allSpeciesInstances = SpeciesInstance.objects.filter(species=species, currently_keep=True)
     available_collaborators = []
     for speciesInstance in allSpeciesInstances:
-        if speciesInstance.user not in collaborators:
-            if speciesInstance.user not in available_collaborators:
-                available_collaborators.append (speciesInstance.user)
+        if speciesInstance.user not in collaborators and speciesInstance.user not in available_collaborators:
+            available_collaborators.append (speciesInstance.user)
     return available_collaborators
 
 def get_sml_collaborator_choices (speciesMaintenanceLog: SpeciesMaintenanceLog):
@@ -203,8 +194,7 @@ ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'a']
 ALLOWED_ATTRIBUTES = { 'a': ['href', 'title', 'rel'], }
 
 def sanitize_text(input_text):
-    safe_text = bleach.clean(input_text, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, strip=True )
-    return safe_text      # prevents XSS injection
+    return bleach.clean(input_text, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, strip=True )
 
 
 def validate_url(url):
@@ -214,7 +204,6 @@ def validate_url(url):
         raise ValidationError('Only http and https URLs are allowed.')
     if not parsed.netloc:
         raise ValidationError('Invalid URL!')
-    return None
 
 
 def get_youtube_embedded_id(video_url):
@@ -232,8 +221,7 @@ def get_youtube_embedded_id(video_url):
 
 def get_youtube_embedded_url_from_id(video_id):
     if video_id:
-        video_url = f"https://www.youtube.com/embed/{video_id}"
-        return video_url
+        return f"https://www.youtube.com/embed/{video_id}"
     return None
 
 def processVideoURL (video_url_field: URLField):
@@ -253,14 +241,14 @@ def normalize_url(url):
         return None
     url = url.strip()
     if not url:
-        return None   
+        return None
     if not url.startswith(('http://', 'https://')):
         url = f'https://{url}'
     if url.startswith('http://'):
         url = url.replace('http://', 'https://', 1)
     return url
 
-# the following validation methods utilize 'urlparse' 
+# the following validation methods utilize 'urlparse'
 # e.g. the url "https://www.instagram.com/username?ref=badge"
 # yields the following for 'parsed = urlparse(url)'
 # ParseResult(scheme='https', netloc='www.instagram.com', path='/username',
@@ -275,14 +263,12 @@ def validate_normalize_instagram_url(url):
     try:
         parsed = urlparse(url)
         domain = parsed.netloc.split(':')[0].lower()  # Remove port if present
-        if domain.startswith('www.'):
-            domain = domain[4:]  # Remove 'www.'
-        if domain.startswith('m.'):
-            domain = domain[2:]  # Remove 'm.'
+        domain = domain.removeprefix('www.')  # Remove 'www.'
+        domain = domain.removeprefix('m.')  # Remove 'm.'
         print('Domain is ' + str(domain))
         if domain not in ('instagram.com', 'instagr.am'):
             return None
-    except:
+    except Exception:
         return None
     return url
     # if not url:
@@ -309,7 +295,7 @@ def validate_normalize_facebook_url(url):
         domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
         if domain not in ('facebook.com', 'fb.com'):
             return None
-    except:
+    except Exception:
         return None
     return url
 
@@ -324,8 +310,7 @@ def validate_normalize_youtube_url(url):
         domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
         if domain not in ('youtube.com', 'youtu.be'):
             return None
-    except:
+    except Exception:
         return None
     return url
- 
-    
+

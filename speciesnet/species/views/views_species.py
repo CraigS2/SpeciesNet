@@ -1,11 +1,10 @@
-"""
-Species-related views: CRUD operations, search, comments, reference links
-"""
+"""Species-related views: CRUD operations, search, comments, reference links."""
 
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
-from .base import *
 from django.conf import settings
+
+from .base import *
 
 ### View Species
 
@@ -17,10 +16,10 @@ def species(request, pk):
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     cur_user = request.user
     userCanEdit = user_can_edit_s(request.user, species)
-    
+
     # Enable comments on species page
     cform = SpeciesCommentForm()
-    if request.method == 'POST': 
+    if request.method == 'POST':
         form = SpeciesCommentForm(request.POST)
         if form.is_valid():
             speciesComment = form.save(commit=False)
@@ -30,12 +29,12 @@ def species(request, pk):
             speciesComment.name = cur_user.get_display_name() + " - " + species.name
             speciesComment.save()
             logger.info('User %s commented on species page: %s.', request.user.username, species.name)
-    
+
     if request.user.is_authenticated:
         logger.info('User %s visited species page: %s.', request.user.username, species.name)
     else:
         logger.info('Anonymous user visited species page: %s.', species.name)
-    
+
     context = {
         'species': species,
         'speciesInstances':  speciesInstances,
@@ -99,14 +98,14 @@ class SpeciesListView(ListView):
 def createSpecies(request):
     register_heif_opener()
     form = SpeciesForm2()
-    
+
     if request.method == 'POST':
         form = SpeciesForm2(request.POST, request.FILES)
         if form.is_valid():
             try:
                 species = form.save(commit=False)
                 species_name = species.name
-                
+
                 # Assure unique species names - prevent duplicates
                 if not Species.objects.filter(name=species_name).exists():
                     species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
@@ -116,22 +115,21 @@ def createSpecies(request):
                         processUploadedImageFile(species.species_image, species.name, request)
                     logger.info('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
                     return HttpResponseRedirect(reverse("species", args=[species.id]))
-                else:
-                    dupe_msg = f"{species_name} already exists.  Please use this Species entry."
-                    messages.info(request, dupe_msg)
-                    species = Species.objects.get(name=species_name)
-                    logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
-                    return HttpResponseRedirect(reverse("species", args=[species.id]))
-            except IntegrityError as e: 
-                logger.error(f"IntegrityError creating species: {str(e)}", exc_info=True)
+                dupe_msg = f"{species_name} already exists.  Please use this Species entry."
+                messages.info(request, dupe_msg)
+                species = Species.objects.get(name=species_name)
+                logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
+                return HttpResponseRedirect(reverse("species", args=[species.id]))
+            except IntegrityError as e:
+                logger.error(f"IntegrityError creating species: {e!s}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error creating species: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred:  {str(e)}')
+                logger.error(f"Unexpected error creating species: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred:  {e!s}')
         else:
             logger.warning(f"Species form validation failed for create species: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    
+
     context = {'form': form}
     return render(request, 'species/editSpecies.html', context)
 
@@ -144,9 +142,9 @@ def editSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
-    if request.method == 'POST': 
+    if request.method == 'POST':
         form = SpeciesForm2(request.POST, request.FILES, instance=species)
         if form.is_valid():
             try:
@@ -160,15 +158,15 @@ def editSpecies(request, pk):
                 messages.success(request, f'Species "{species.name}" updated successfully!')
                 return HttpResponseRedirect(reverse("species", args=[species.id]))
             except IntegrityError as e:
-                logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError editing species: {e!s}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error editing species: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error editing species: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    
+
     form = SpeciesForm2(instance=species)
     context = {'form': form, 'species': species}
     return render(request, 'species/editSpecies.html', context)
@@ -180,26 +178,25 @@ def editSpecies(request, pk):
 def deleteSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
-    if not userCanEdit: 
-        raise PermissionDenied()
-    
+    if not userCanEdit:
+        raise PermissionDenied
+
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     if speciesInstances.count() > 0:
         msg = f'{species.name} has {speciesInstances.count()} aquarist entries and cannot be deleted.'
         messages.info(request, msg)
         logger.warning('User %s attempted to delete species:  %s with speciesInstance dependencies. Deletion blocked.', request.user.username, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
-    if request.method == 'POST': 
+
+    if request.method == 'POST':
         logger.info('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
 
         site_id = getattr(settings, 'SITE_ID', 1)
         if site_id == 2:
             return redirect('caresSpeciesSearch')
-        else:
-            return redirect('speciesSearch')
-    
+        return redirect('speciesSearch')
+
     context = {'species': species}
     return render(request, 'species/deleteSpecies.html', context)
 
@@ -211,7 +208,7 @@ def speciesComments(request):
     speciesComments = SpeciesComment.objects.all()
     cur_user = request.user
     if not cur_user.is_staff:
-        raise PermissionDenied()
+        raise PermissionDenied
     context = {'speciesComments': speciesComments}
     return render(request, 'species/speciesComments.html', context)
 
@@ -222,18 +219,18 @@ def editSpeciesComment(request, pk):
     species = speciesComment.species
     userCanEdit = user_can_edit_sc(request.user, speciesComment)
     if not userCanEdit:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     form = SpeciesCommentForm(instance=speciesComment)
     if request.method == 'POST':
         form = SpeciesCommentForm(request.POST, request.FILES, instance=speciesComment)
-        if form.is_valid(): 
+        if form.is_valid():
             speciesComment = form.save(commit=False)
             speciesComment.comment = sanitize_text(speciesComment.comment)
             speciesComment.save()
             logger.info('User %s edited comment on species page: %s.', request.user.username, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
+
     context = {'form': form, 'speciesComment': speciesComment}
     return render(request, 'species/editSpeciesComment.html', context)
 
@@ -242,14 +239,14 @@ def editSpeciesComment(request, pk):
 def deleteSpeciesComment(request, pk):
     speciesComment = get_object_or_404(SpeciesComment, pk=pk)
     userCanEdit = user_can_edit_sc(request.user, speciesComment)
-    if not userCanEdit: 
-        raise PermissionDenied()
-    
+    if not userCanEdit:
+        raise PermissionDenied
+
     if request.method == 'POST':
         species = speciesComment.species
         speciesComment.delete()
         return redirect('/species/' + str(species.id))
-    
+
     context = {'speciesComment': speciesComment}
     return render(request, 'species/deleteSpeciesComment.html', context)
 
@@ -260,7 +257,7 @@ def deleteSpeciesComment(request, pk):
 def speciesReferenceLinks(request):
     speciesReferenceLinks = SpeciesReferenceLink.objects.all()
     if not request.user.is_staff:
-        raise PermissionDenied()
+        raise PermissionDenied
     context = {'speciesReferenceLinks': speciesReferenceLinks}
     return render(request, 'species/speciesReferenceLinks.html', context)
 
@@ -268,7 +265,7 @@ def speciesReferenceLinks(request):
 def createSpeciesReferenceLink(request, pk):
     species = get_object_or_404(Species, pk=pk)
     form = SpeciesReferenceLinkForm(initial={"user": request.user, "species":  species})
-    
+
     if request.method == 'POST':
         form = SpeciesReferenceLinkForm(request.POST)
         form.instance.user = request.user
@@ -278,7 +275,7 @@ def createSpeciesReferenceLink(request, pk):
             form.save()
             logger.info('User %s created speciesReferenceLink for species:  %s (%s)', request.user.username, species.name, str(species.id))
             return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
+
     context = {'form': form}
     return render(request, 'species/createSpeciesReferenceLink.html', context)
 
@@ -289,8 +286,8 @@ def editSpeciesReferenceLink(request, pk):
     species = speciesReferenceLink.species
     userCanEdit = user_can_edit_srl(request.user, speciesReferenceLink)
     if not userCanEdit:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     form = SpeciesReferenceLinkForm(instance=speciesReferenceLink)
     if request.method == 'POST':
         form = SpeciesReferenceLinkForm(request.POST, request.FILES, instance=speciesReferenceLink)
@@ -301,9 +298,8 @@ def editSpeciesReferenceLink(request, pk):
             site_id = getattr(settings, 'SITE_ID', 1)
             if site_id == 2:
                 return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
-            else:
-                return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
+            return HttpResponseRedirect(reverse("species", args=[species.id]))
+
     context = {'form': form, 'speciesReferenceLink': speciesReferenceLink}
     return render(request, 'species/editSpeciesReferenceLink.html', context)
 
@@ -312,15 +308,15 @@ def editSpeciesReferenceLink(request, pk):
 def deleteSpeciesReferenceLink(request, pk):
     speciesReferenceLink = get_object_or_404(SpeciesReferenceLink, pk=pk)
     userCanEdit = user_can_edit_srl(request.user, speciesReferenceLink)
-    if not userCanEdit: 
-        raise PermissionDenied()
-    
+    if not userCanEdit:
+        raise PermissionDenied
+
     if request.method == 'POST':
         species = speciesReferenceLink.species
         logger.info('User %s deleted speciesReferenceLink for species:  %s (%s)', request.user.username, species.name, str(species.id))
         speciesReferenceLink.delete()
         return redirect('/species/' + str(species.id))
-    
+
     object_type = 'Reference Link'
     object_name = 'this Reference Link'
     context = {'object_type': object_type, 'object_name': object_name}
@@ -331,14 +327,13 @@ def deleteSpeciesReferenceLink(request, pk):
 
 @login_required(login_url='login')
 def speciesCollectionLocations(request, pk):
-    """
-    Per-species list of SpeciesCollectionLocation entries.
+    """Per-species list of SpeciesCollectionLocation entries.
     Admins can add, edit, and delete from this page.
     """
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     locations = SpeciesCollectionLocation.objects.filter(species=species).order_by('name')
     context = {
@@ -353,7 +348,7 @@ def createSpeciesCollectionLocation(request, pk):
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
@@ -387,7 +382,7 @@ def editSpeciesCollectionLocation(request, pk):
     species = location.species
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
@@ -419,7 +414,7 @@ def deleteSpeciesCollectionLocation(request, pk):
     species = location.species
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     if request.method == 'POST':
         name = location.name
@@ -444,12 +439,12 @@ def exportSpecies(request):
 # def importSpecies(request):
 #     current_user = request.user
 #     form = ImportCsvForm()
-    
+
 #     if request.method == 'POST':
 #         form2 = ImportCsvForm(request.POST, request.FILES)
 #         if form2.is_valid():
 #             import_archive = form2.save()
 #             import_csv_species(import_archive, current_user)
 #             return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
-    
+
 #     return render(request, "species/importSpecies.html", {"form": form})

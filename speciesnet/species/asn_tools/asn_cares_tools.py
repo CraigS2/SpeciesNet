@@ -1,11 +1,11 @@
 import logging
+
 from ..models import CaresApprover
+
 logger = logging.getLogger(__name__)
 
 def get_matching_cares_approver(species):
-    """
-    Resolve the best-matching CaresApprover for a given Species at registration time.
-    """
+    """Resolve the best-matching CaresApprover for a given Species at registration time."""
     if species is None:
         logger.warning('resolve_cares_approver called with species=None; returning None.')
         return None

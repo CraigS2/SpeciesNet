@@ -1,5 +1,4 @@
-"""
-Helpers for resolving PageViewCount / PageViewMonthlySnapshot object_id values
+"""Helpers for resolving PageViewCount / PageViewMonthlySnapshot object_id values
 back into human-readable display names and detail-page URLs.
 
 Kept isolated here so the Top 50 views (and any future reporting) can share
@@ -9,12 +8,12 @@ one lookup implementation instead of re-deriving page_type -> model mappings.
 from django.urls import reverse
 
 from ..models import (
-    User,
+    AquaristClub,
+    PageViewCount,
     Species,
     SpeciesInstance,
     SpeciesMaintenanceLog,
-    AquaristClub,
-    PageViewCount,
+    User,
 )
 
 # Maps each PageType choice to:
@@ -56,8 +55,7 @@ _PAGE_TYPE_CONFIG = {
 
 
 def resolve_objects_for_page_type(page_type, object_ids):
-    """
-    Batch-resolve a list of object_ids for a given page_type into display info.
+    """Batch-resolve a list of object_ids for a given page_type into display info.
 
     Returns a dict: {object_id: {'display': str, 'url': str or None}}
     Object ids that no longer exist (deleted records) get a placeholder entry

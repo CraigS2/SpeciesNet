@@ -1,15 +1,34 @@
+from allauth.account.models import EmailAddress
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
 
 # Register your models here.
-from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
-from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
-from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
-from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
-from .models import SpeciesFeedback, SpeciesAdmin
-from .models import PageViewCount, PageViewMonthlySnapshot
-from allauth.account.models import EmailAddress
+from .models import (
+    AquaristClub,
+    AquaristClubMember,
+    BapGenus,
+    BapLeaderboard,
+    BapSpecies,
+    BapSubmission,
+    CaresApprover,
+    CaresRegistration,
+    ImportArchive,
+    PageViewCount,
+    PageViewMonthlySnapshot,
+    Species,
+    SpeciesAdmin,
+    SpeciesCollectionLocation,
+    SpeciesComment,
+    SpeciesFeedback,
+    SpeciesInstance,
+    SpeciesInstanceLabel,
+    SpeciesInstanceLogEntry,
+    SpeciesMaintenanceLog,
+    SpeciesMaintenanceLogEntry,
+    SpeciesReferenceLink,
+    User,
+    UserEmail,
+)
 
 
 class EmailAddressInline(admin.TabularInline):
@@ -24,19 +43,15 @@ class EmailAddressInline(admin.TabularInline):
         # New blank rows are always editable, allowing email entry on a saved user.
         if obj and obj.pk and obj.emailaddress_set.exists():
             return ('email',)
-        return ()    
+        return ()
 
 
 class UserAdmin(BaseUserAdmin):
-    fieldsets = BaseUserAdmin.fieldsets + (
-        ('Permissions',  {'fields': ('is_admin', 'is_species_admin'),}          ),
-        ('Privacy',      {'fields': ('is_private_name', 'is_private_location', 'is_proxy'),}       ),
-        ('Social Media', {'fields': ('instagram_url', 'facebook_url', 'youtube_url'),} ),
-    )
-    #readonly_fields = ('date_joined', 'last_login')  # TODO enable when last_login is added back to the model 
+    fieldsets = (*BaseUserAdmin.fieldsets, ('Permissions', {'fields': ('is_admin', 'is_species_admin')}), ('Privacy', {'fields': ('is_private_name', 'is_private_location', 'is_proxy')}), ('Social Media', {'fields': ('instagram_url', 'facebook_url', 'youtube_url')}))
+    #readonly_fields = ('date_joined', 'last_login')  # TODO enable when last_login is added back to the model
     readonly_fields = ('date_joined',)  # Must be readonly
-    list_filter  = BaseUserAdmin.list_filter +  ('is_admin', 'is_species_admin', 'is_private_name', 'is_private_location', 'is_proxy',)
-    list_display = BaseUserAdmin.list_display + ('is_admin', 'is_species_admin', 'is_proxy','get_verified_status',)
+    list_filter  = (*BaseUserAdmin.list_filter, 'is_admin', 'is_species_admin', 'is_private_name', 'is_private_location', 'is_proxy')
+    list_display = (*BaseUserAdmin.list_display, 'is_admin', 'is_species_admin', 'is_proxy', 'get_verified_status')
     inlines = [EmailAddressInline]
 
     def get_queryset(self, request):
@@ -59,11 +74,10 @@ class UserAdmin(BaseUserAdmin):
                 break
         if primary_email is None:
             return '- No Email'
-        elif primary_email.verified:
+        if primary_email.verified:
             return '✓ Verified'
-        else:
-            return '✗ Unverified'    
-    
+        return '✗ Unverified'
+
     get_verified_status.short_description = 'Email Status'
 
 
@@ -90,7 +104,7 @@ class SpeciesFeedbackAdmin(admin.ModelAdmin):
     search_fields = ('name', 'comment', 'email')
     readonly_fields = ('name', 'created', 'reviewed_by', 'reviewed_at')
 
-admin.site.register (User, UserAdmin)  
+admin.site.register (User, UserAdmin)
 admin.site.register (UserEmail)
 admin.site.register (AquaristClub)
 admin.site.register (AquaristClubMember)

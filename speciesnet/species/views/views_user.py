@@ -1,6 +1,4 @@
-"""
-User-related views: profiles, authentication, email communication, aquarist directory
-"""
+"""User-related views: profiles, authentication, email communication, aquarist directory."""
 
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
@@ -32,8 +30,7 @@ def editUserProfile(request):
                 messages.success(request, 'User profile updated successfully!')
                 context = {'aquarist': request.user}
                 return render(request, 'species/cares/userProfileCares.html', context)
-            else:
-                messages.error(request, 'Please correct the errors below')
+            messages.error(request, 'Please correct the errors below')
         else:
             form = UserProfileFormCares(instance=cur_user)
         context = {'form': form, 'user': request.user}
@@ -86,8 +83,7 @@ def editUserProfile(request):
 ### View Aquarist Profile (with Tile/List Toggle)
 
 def aquarist(request, pk):
-    """
-    Display an aquarist's fishroom with species they keep.
+    """Display an aquarist's fishroom with species they keep.
     Supports both tile and list views via ?view=tile or ?view=list query parameter.
     """
     aquarist = User.objects.get(id=pk)
@@ -132,7 +128,7 @@ class AquaristListView(ListView):
         queryset = super().get_queryset()
         queryset = User.objects.all()
         query_text = self.request.GET.get('q', '')
-        if query_text: 
+        if query_text:
             queryset = queryset.filter(
                 Q(username__icontains=query_text) |
                 Q(first_name__icontains=query_text) |
@@ -159,24 +155,24 @@ def emailAquarist(request, pk):
     cur_user = request.user
     form = EmailAquaristForm()
     context = {'form':  form, 'aquarist':  aquarist}
-    
+
     if request.method == 'POST':
         form2 = EmailAquaristForm(request.POST)
         mailed_msg = f"Your email to {aquarist.username} has been sent."
         mailed = False
-        
+
         if form2.is_valid():
             email = form2.save(commit=False)
             email.name = f"{cur_user.username} to {aquarist.username}"
             email.send_to = aquarist
             email.send_from = cur_user
             private_message = aquarist.is_private_email
-            
+
             if not email.email_subject:
                 email.email_subject = f"AquaristSpecies.net: {cur_user.username} inquiry"
-            else: 
+            else:
                 email.email_subject = f"AquaristSpecies.net: {cur_user.username} - {email.email_subject}"
-            
+
             if not private_message:
                 email.email_text = (
                     f"{email.email_text}\n\nMessage sent from {cur_user.username} (with email cc) to "
@@ -204,26 +200,26 @@ def emailAquarist(request, pk):
                     [email.send_to.email],
                     bcc=['aquaristspecies@gmail.com']
                 )
-            
+
             email.save()
-            
-            try: 
+
+            try:
                 email_message.send(fail_silently=False)
                 mailed = True
                 logger.info('User %s sent email to %s', request.user.username, aquarist.username)
             except SMTPException as e:
-                mailed_msg = f"An error occurred sending your email to {aquarist.username}.SMTP Exception: {str(e)}"
+                mailed_msg = f"An error occurred sending your email to {aquarist.username}.SMTP Exception: {e!s}"
                 logger.error('User %s email failed to send to %s: SMTPException %s', request.user.username, aquarist.username, str(e))
             except Exception as e:
-                mailed_msg = f"An error occurred sending your email to {aquarist.username}.Exception: {str(e)}"
+                mailed_msg = f"An error occurred sending your email to {aquarist.username}.Exception: {e!s}"
                 logger.error('User %s email failed to send to %s: %s', request.user.username, aquarist.username, str(e))
-        
+
         if not mailed:
             messages.error(request, mailed_msg)
         else:
             messages.success(request, mailed_msg)
         return HttpResponseRedirect(reverse("aquarist", args=[aquarist.id]))
-    
+
     return render(request, 'species/emailAquarist.html', context)
 
 
@@ -239,22 +235,20 @@ def loginUser(request):
         password = request.POST.get('password')
         try:
             user = User.objects.get(email=email)
-        except: 
+        except Exception:
             messages.error(request, 'Login failed - user not found')
 
         user = authenticate(request, email=email, password=password)
-        if user is not None: 
+        if user is not None:
             login(request, user)
             return redirect('home')
-        else:
-            messages.error(request, 'User Email or Password does not exist')
+        messages.error(request, 'User Email or Password does not exist')
 
     context = {'page':  page}
     return render(request, 'species/login_register.html', context)
 
 
 def logoutUser(request):
-    page = 'logout'
     logout(request)
     return redirect('home')
 

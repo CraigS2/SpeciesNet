@@ -1,7 +1,7 @@
-from django.conf import settings
-from django.contrib.sites.shortcuts import get_current_site
-from django.core.cache import cache
 import os
+
+from django.conf import settings
+
 
 def google_oauth(request):
     return {'GOOGLE_OAUTH_LINK': settings.GOOGLE_OAUTH_LINK}

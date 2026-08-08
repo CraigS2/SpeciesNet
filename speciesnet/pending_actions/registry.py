@@ -1,6 +1,5 @@
 from pending_actions.models import ActionType
 
-
 _HANDLER_REGISTRY = {}
 
 

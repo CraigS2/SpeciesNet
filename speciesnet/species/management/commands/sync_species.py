@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime, timedelta
-from django.core.management.base import BaseCommand, CommandError
+
 from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+
 from species.services.species_sync import SpeciesSyncService
 
 logger = logging.getLogger(__name__)

@@ -1,15 +1,15 @@
+import os
 from pathlib import Path
-import os, logging
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 #ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'], 
+ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'],
                  os.environ['ALLOWED_HOST3'], os.environ['ALLOWED_HOST4']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
-CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], 
+CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'],
                         os.environ['CSRF_TRUSTED_ORIGIN3']]
 
 ###############################################
@@ -36,7 +36,7 @@ SITE_CONFIGS = {
         #'primary_color': 'rgb(152, 199, 231)',  # ASN blue
         #'secondary_color': '#6c757d',
         #'contact_email': 'contact@aquarist.example.com',
-        'main_css': 'styles/site1/asn_main.css',        
+        'main_css': 'styles/site1/asn_main.css',
         'navbar_template': 'site1/navbar.html',
         'home_template': 'species/site1/home.html',
         'about_us': 'species/site1/about_us.html',
@@ -48,7 +48,7 @@ SITE_CONFIGS = {
         #'primary_color': 'rgb(183, 208, 189)',  # CARES green
         #'secondary_color': '#ffc107',
         #'contact_email': 'contact@cares.example.com',
-        'main_css': 'styles/site2/cares_main.css',        
+        'main_css': 'styles/site2/cares_main.css',
         'navbar_template': 'site2/navbar.html',
         'home_template': 'species/site2/home.html',
         'about_us': 'species/site2/about_us.html',
@@ -63,9 +63,7 @@ CURRENT_SITE_CONFIG = SITE_CONFIGS.get(SITE_ID, SITE_CONFIGS[1])
 #########################################################
 
 DEBUG = False
-if (os.environ['DEBUG'] == 'True'):
-    DEBUG = True
-elif (os.environ['DEBUG'] == '1'):
+if (os.environ['DEBUG'] == 'True') or (os.environ['DEBUG'] == '1'):
     DEBUG = True
 print ('DEBUG = ' + str(DEBUG))
 
@@ -194,12 +192,12 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
-# order for middleware affects toolbar 
+# order for middleware affects toolbar
 # for some debugging may need higher in list
 
 if DEBUG and DEBUG_TOOLBAR:
-    INSTALLED_APPS = INSTALLED_APPS + ['debug_toolbar',]
-    MIDDLEWARE = MIDDLEWARE + ['debug_toolbar.middleware.DebugToolbarMiddleware',]
+    INSTALLED_APPS = [*INSTALLED_APPS, 'debug_toolbar']
+    MIDDLEWARE = [*MIDDLEWARE, 'debug_toolbar.middleware.DebugToolbarMiddleware']
 
 ### Authentication ###
 
@@ -300,7 +298,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.request',
                 'species.context_processors.site_config',
-                'species.context_processors.environment_vars',            
+                'species.context_processors.environment_vars',
             ],
         },
     },

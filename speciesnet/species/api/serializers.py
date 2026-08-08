@@ -1,10 +1,10 @@
 from rest_framework import serializers
+
 from species.models import Species
 
 
 class SpeciesSyncSerializer(serializers.ModelSerializer):
-    """
-    Serializer for CARES species synchronization.
+    """Serializer for CARES species synchronization.
     Exposes only the fields relevant to CARES sync (Site2 → Site1).
     """
 

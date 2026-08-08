@@ -25,9 +25,10 @@
 #             self.style.SUCCESS(f'Site 2: {site2.domain} {"(created)" if created else "(exists)"}')
 #         )
 
-from django.core.management.base import BaseCommand
-from django.contrib.sites.models import Site
 from django.conf import settings
+from django.contrib.sites.models import Site
+from django.core.management.base import BaseCommand
+
 
 class Command(BaseCommand):
     help = 'Initialize site records'
@@ -48,4 +49,4 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(
                     self.style.SUCCESS(f'Updated Site {site_id}: {site.domain}')
-                )        
+                )

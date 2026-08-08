@@ -1,12 +1,11 @@
-"""
-Species Feedback views: submission form, staff tools, approve and delete actions
-"""
+"""Species Feedback views: submission form, staff tools, approve and delete actions."""
 
-from .base import *
-from species.models import SpeciesFeedback
-from species.forms import SpeciesFeedbackForm
 from django.core.paginator import Paginator
 
+from species.forms import SpeciesFeedbackForm
+from species.models import SpeciesFeedback
+
+from .base import *
 
 VALID_FILTER_VALUES = {'all', 'pending', 'approved'}
 
@@ -94,7 +93,7 @@ def submitSpeciesFeedback(request, pk):
                 print('Feedback form validation failure (from full_clean):')
                 print('ValidationError object:', e)
                 print('='*50)
-                
+
                 # Handle both dict-style and list-style validation errors
                 if hasattr(e, 'message_dict'):
                     for field, errors in e.message_dict.items():
@@ -105,7 +104,7 @@ def submitSpeciesFeedback(request, pk):
                     print(f'General errors: {e.messages}')
                     for error in e.messages:
                         messages.error(request, error)
-                        
+
             # except IntegrityError:
             #     messages.error(request, 'You have already submitted feedback for species %s', species.name)
             #     logger.warning('Duplicate feedback submission blocked for species %s', species.name)
@@ -115,7 +114,7 @@ def submitSpeciesFeedback(request, pk):
             print('Form errors:', form.errors)
             print('Form errors as JSON:', form.errors.as_json())
             print('='*50)
-            
+
             # Add each field error to messages
             for field, errors in form.errors.items():
                 for error in errors:
@@ -124,7 +123,7 @@ def submitSpeciesFeedback(request, pk):
                     else:
                         print(f'Field "{field}" error: {error}')
                         messages.error(request, f'{field}: {error}')
-            
+
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
         form = SpeciesFeedbackForm(user=request.user)
@@ -140,7 +139,7 @@ def submitSpeciesFeedback(request, pk):
 @login_required(login_url='login')
 def speciesFeedbackTools(request):
     if not request.user.is_staff:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     raw_filter = request.GET.get('filter', 'all')
     display_filter = raw_filter if raw_filter in VALID_FILTER_VALUES else 'all'
@@ -189,10 +188,10 @@ def speciesFeedbackTools(request):
 @login_required(login_url='login')
 def applySpeciesFeedbackPhoto(request, pk):
     if not request.user.is_staff:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     feedback = get_object_or_404(SpeciesFeedback, pk=pk)
-    
+
     if request.method == 'POST':
         if feedback.species_image:
             # Apply the photo to the species
@@ -202,19 +201,19 @@ def applySpeciesFeedbackPhoto(request, pk):
                 species.photo_credit = feedback.species_photo_credit
             species.last_edited_by = request.user
             species.save()
-            
+
             # Mark feedback as approved
             feedback.approved = True
             feedback.reviewed_by = request.user
             feedback.reviewed_at = timezone.now()
             feedback.save()
-            
-            logger.info('Staff user %s applied photo from feedback %s to species: %s', 
+
+            logger.info('Staff user %s applied photo from feedback %s to species: %s',
                        request.user.username, pk, feedback.species.name)
             messages.success(request, f'Photo from "{feedback.name}" has been applied to {species.name}.')
         else:
             messages.error(request, 'No photo attached to this feedback.')
-    
+
     filter_query = _safe_filter_query(request.GET.get('filter', 'all'))
     return redirect(reverse('speciesFeedbackTools') + filter_query)
 
@@ -224,19 +223,19 @@ def applySpeciesFeedbackPhoto(request, pk):
 @login_required(login_url='login')
 def archiveSpeciesFeedback(request, pk):
     if not request.user.is_staff:
-        raise PermissionDenied()
-    
+        raise PermissionDenied
+
     feedback = get_object_or_404(SpeciesFeedback, pk=pk)
-    
+
     if request.method == 'POST':
         feedback.approved = True
         feedback.reviewed_by = request.user
         feedback.reviewed_at = timezone.now()
         feedback.save()
-        logger.info('Staff user %s archived feedback %s for species: %s', 
+        logger.info('Staff user %s archived feedback %s for species: %s',
                    request.user.username, pk, feedback.species.name)
         messages.success(request, f'Feedback from "{feedback.name}" has been archived.')
-    
+
     filter_query = _safe_filter_query(request.GET.get('filter', 'all'))
     return redirect(reverse('speciesFeedbackTools') + filter_query)
 
@@ -245,7 +244,7 @@ def archiveSpeciesFeedback(request, pk):
 @login_required(login_url='login')
 def deleteSpeciesFeedback(request, pk):
     if not request.user.is_staff:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     feedback = get_object_or_404(SpeciesFeedback, pk=pk)
 

@@ -1,31 +1,38 @@
-from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus
-from species.models import BapSubmission, ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation
-from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
-
-from django.db import transaction
-from django.db.models import FileField, Q
-from django.db.models.functions import Lower
-#from django.contrib.auth.models import User
-from django.shortcuts import render
-from django.views.generic.base import View
-from django.http import HttpResponse
-from django.core.files import File
-from django.utils import timezone
-from io import BytesIO
 import csv
 import datetime
 import logging
 import re
-import requests
 from csv import DictReader
-from io import StringIO, TextIOWrapper
-from django.core.files.base import ContentFile
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
-from django.core.validators import URLValidator
-from django.conf import settings
-from species.asn_tools.asn_cares_tools import get_matching_cares_approver
-from species.services.email_services import send_new_registration_notification
+from io import StringIO
 
+import requests
+from django.conf import settings
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist, ValidationError
+from django.core.files.base import ContentFile
+from django.core.validators import URLValidator
+from django.db import transaction
+from django.db.models import Q
+from django.http import HttpResponse
+
+#from django.contrib.auth.models import User
+from django.utils import timezone
+
+from species.asn_tools.asn_cares_tools import get_matching_cares_approver
+from species.forms import CaresRegistration, SpeciesForm, SpeciesInstanceForm
+from species.models import (
+    AquaristClub,
+    AquaristClubMember,
+    BapGenus,
+    BapSubmission,
+    ImportArchive,
+    Species,
+    SpeciesCollectionLocation,
+    SpeciesImportStaging,
+    SpeciesInstance,
+    SpeciesReferenceLink,
+    User,
+)
+from species.services.email_services import send_new_registration_notification
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +41,7 @@ def _normalize_species_name(name: str) -> str:
     if not name:
         return ''
     name = name.strip()
-    name = re.sub(r'\s+', ' ', name)
-    return name
+    return re.sub(r'\s+', ' ', name)
 
 
 def _normalize_email(email: str) -> str:
@@ -91,7 +97,7 @@ SPECIES_TRACKED_FIELDS = (
 # iterate through csv rows add only valid and non-duplicate species to DB
 
 def import_csv_species (import_archive: ImportArchive, current_user: User):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path, encoding="utf-8") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -111,7 +117,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
             species_form = SpeciesForm (import_row) # reads expected fields by header name
             if species_form.is_valid():
                 species = species_form.save(commit=False)
-                
+
                 # validate input species name and verify non-duplicate
                 if not Species.objects.filter(name=species_name).exists():
                     report_row = [species_name, "Validated: Species is unique and new, import successful"]
@@ -144,19 +150,17 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
         if import_count == 0:
             import_archive.import_status = ImportArchive.ImportStatus.FAIL
-        else:
-            if import_count == row_count:
-                import_archive.import_status = ImportArchive.ImportStatus.FULL
+        elif import_count == row_count:
+            import_archive.import_status = ImportArchive.ImportStatus.FULL
         import_archive.name = current_user.username + "_species_import"
         import_archive.save()
-    return
 
 # Import SpeciesInstance List
 # iterate through csv rows verifying unique speciesInstances matching current user
 # NOTE: users can have multiple instances of the same species assuming they vary in collection point or genetic traits
 
 def import_csv_speciesInstances (import_archive: ImportArchive, current_user: User):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path, encoding="utf-8") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -181,9 +185,9 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                 if Species.objects.filter(name=species_name).exists():
                     species = Species.objects.get(name=species_name)
 
-                    # validate pending SpeciesInstance object 
+                    # validate pending SpeciesInstance object
                     # will foreign key species resolve by name? TBD
-                    
+
                     speciesInstance_form = SpeciesInstanceForm (import_row) # reads expected fields by header name
                     if speciesInstance_form.is_valid():
                         species_instance = speciesInstance_form.save(commit=False)
@@ -198,7 +202,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
                         else:
                             report_row = [speciesInstance_name, "ERROR: species instance exists - cannot add duplicate"]
                     else:
-                        report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]    
+                        report_row = [speciesInstance_name, "ERROR: validation failed - unable to create species instance"]
                 else:
                     report_row = [speciesInstance_name, "ERROR: species ", species_name, " does not exist - required for species instance"]
             else:
@@ -215,19 +219,17 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
         if import_count == 0:
             import_archive.import_status = ImportArchive.ImportStatus.FAIL
-        else:
-            if import_count == row_count:
-                import_archive.import_status = ImportArchive.ImportStatus.FULL
+        elif import_count == row_count:
+            import_archive.import_status = ImportArchive.ImportStatus.FULL
         import_archive.name = current_user.username + "_speciesInstance_import"
         import_archive.save()
-    return
 
 
 # Import Aquarist Clubs from csv
-# iterate through csv rows check if club exists, and create if it does not yet exist in the db. 
+# iterate through csv rows check if club exists, and create if it does not yet exist in the db.
 
 def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User, aquarist_club: AquaristClub):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path, encoding="utf-8") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -264,14 +266,14 @@ def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User
                 club.bap_start_date = import_row['bap_start_date']
                 club.bap_end_date = import_row['bap_end_date']
                 club.is_bap_club = import_row['is_bap_club']
-                club.is_cares_club = import_row['is_cares_club']   
+                club.is_cares_club = import_row['is_cares_club']
 
-                club.save() 
+                club.save()
 
                 print ('  Club ' + club.acronym + ' successfully added to db.')
                 logger.info ('User %s imported AquaristClub: %s (%s)', current_user.username, club.acronym, club.name)
                 status_txt = 'SUCCESS: New ' + club.acronym + ' Aquarist Club added (' + club.name + ')'
-                report_row = [club_name, status_txt] 
+                report_row = [club_name, status_txt]
 
                 csv_report_writer.writerow(report_row)
 
@@ -284,12 +286,10 @@ def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User
         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
         if import_count == 0:
             import_archive.import_status = ImportArchive.ImportStatus.FAIL
-        else:
-            if import_count == row_count:
-                import_archive.import_status = ImportArchive.ImportStatus.FULL
+        elif import_count == row_count:
+            import_archive.import_status = ImportArchive.ImportStatus.FULL
         import_archive.name = current_user.username + '_' + club.acronym + '_club_import'
         import_archive.save()
-    return
 
 
 
@@ -297,7 +297,7 @@ def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User
 # iterate through csv rows check if example species exists, and add or update BAP Genus entries. Supports club import/update workflow
 
 def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap_club: AquaristClub):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path, encoding="utf-8") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -313,14 +313,14 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
             genus_name = import_row['name']
             bap_points = int(import_row['points'])
             example_species_name = import_row['example_species']
-            
+
             print ('BAP Points import started for row ' + str(row_count))
 
             if BapGenus.objects.filter(club=bap_club, name=genus_name).exists():
                 print ('  Genus exists: ' + genus_name)
                 try:
                     bap_genus = BapGenus.objects.get(club=bap_club, name=genus_name)
-                    
+
                     print ('  Points comparison current value: ' + str(bap_genus.points) + ' and new value: ' + str(bap_points))
 
                     if (bap_points != bap_genus.points):
@@ -331,37 +331,37 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
 
                         logger.info ('User %s imported BapGenus list for club %s: Genus points updated for: %s.', current_user.username, bap_club.acronym, genus_name)
                         status_txt = 'SUCCESS: ' + bap_club.acronym + ' BapGenus points updated for ' + genus_name + ': ' + str(bap_genus.points)
-                        report_row = [genus_name, status_txt]                       
+                        report_row = [genus_name, status_txt]
                         import_count = import_count + 1
                     else:
                         print ('  BAP Points not updated they are the same for ' + genus_name + ': ' + (str(bap_points)))
 
                         logger.info ('User %s imported BapGenus list for club %s: Genus points unchanged for: %s.', current_user.username, bap_club.acronym, genus_name)
                         status_txt = 'VERIFIED: ' + bap_club.acronym + ' BapGenus import points match existing points for : ' + genus_name
-                        report_row = [genus_name, status_txt]                       
+                        report_row = [genus_name, status_txt]
                 except ObjectDoesNotExist:
                     report_row = [genus_name, ""]
                     status_txt = 'ERROR: ' + bap_club.acronym + ' BapGenus lookup exception - object does not exist for: ' + genus_name
-                    report_row = [genus_name, status_txt]                       
+                    report_row = [genus_name, status_txt]
                     logger.error ('User %s importing BapGenus list for club %s: BapGenus lookup error for genus: %s.', current_user.username, bap_club.acronym, genus_name)
                 except MultipleObjectsReturned:
                     status_txt = 'ERROR: ' + bap_club.acronym + ' BapGenus lookup exception - multiple objects found for: ' + genus_name
-                    report_row = [genus_name, status_txt]                       
+                    report_row = [genus_name, status_txt]
                     logger.error ('User %s importing BapGenus list for club %s: BapGenus lookup multiple objects found for genus: %s.', current_user.username, bap_club.acronym, genus_name)
-            else: 
-                
+            else:
+
                 print ('  BapGenus points not found for ' + genus_name + ' adding and setting points value: ' + str(bap_points))
 
                 bap_genus = BapGenus()
                 bap_genus.name = genus_name
                 bap_genus.points = bap_points
                 bap_genus.club = bap_club
-                
+
                 # set current species count for genus - will be zero but may be non-zero if species got added after BapGenus initialization
 
                 genus_species = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')          # TODO optimize remove N+1 query
-                bap_genus.species_count = len(genus_species)  
-                print ('  BapGenus added: ' + bap_genus.name + ' current species count: ' + str(bap_genus.species_count))       
+                bap_genus.species_count = len(genus_species)
+                print ('  BapGenus added: ' + bap_genus.name + ' current species count: ' + str(bap_genus.species_count))
                 bap_genus.species_override_count = 0
 
                 # now see if example species exists - add it if it does not
@@ -378,7 +378,7 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
                     print ('  BapGenus import - example_species found: ' + example_species.name )
                     logger.info ('User %s imported BapGenus for club %s new BapGenus entry with example species found: %s.', current_user.username, bap_club.acronym, example_species_name )
                     status_txt = 'SUCCESS: New ' + bap_club.acronym + ' BapGenus added with example species found: ' + example_species_name
-                    report_row = [genus_name, status_txt]                       
+                    report_row = [genus_name, status_txt]
 
                 except ObjectDoesNotExist:
                     print ('  BapGenus import - example_species not found - adding: ' + example_species_name )
@@ -391,20 +391,20 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
 
                     bap_genus.example_species = example_species
                     bap_genus.species_count = bap_genus.species_count + 1
-                    import_count = import_count + 1  
+                    import_count = import_count + 1
                     bap_genus.save()
 
                     logger.info ('User %s imported BapGenus for club %s new BapGenus entry with example species added: %s.', current_user.username, bap_club.acronym, example_species_name )
                     status_txt = 'SUCCESS: New ' + bap_club.acronym + ' BapGenus added with example species: ' + example_species_name
-                    report_row = [genus_name, status_txt]                                              
+                    report_row = [genus_name, status_txt]
                 except MultipleObjectsReturned:
                     report_row = [genus_name, "ERROR: BapGenus example_species failed to import: ", example_species_name]
                     logger.error ('User %s importing BapGenus for club %s: BapGenus add example_species multiple objects found for: %s.', current_user.username, bap_club.acronym, example_species_name)
-                
+
                 bap_genus.save()
-                
+
                 print ('  BapGenus added finished processing Genus : ' + genus_name)
-                
+
             csv_report_writer.writerow(report_row)
 
         # persist import report
@@ -416,12 +416,10 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
         import_archive.import_status = ImportArchive.ImportStatus.PARTIAL
         if import_count == 0:
             import_archive.import_status = ImportArchive.ImportStatus.FAIL
-        else:
-            if import_count == row_count:
-                import_archive.import_status = ImportArchive.ImportStatus.FULL
+        elif import_count == row_count:
+            import_archive.import_status = ImportArchive.ImportStatus.FULL
         import_archive.name = current_user.username + '_' + bap_club.acronym + '_species_import'
         import_archive.save()
-    return
 
 
 # Import Species Reference Links from CSV
@@ -429,13 +427,12 @@ def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap
 # validate the reference URL and name_prefix, then create and save a SpeciesReferenceLink.
 
 def import_csv_species_reference_links(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Process a CSV file to import SpeciesReferenceLink objects.
+    """Process a CSV file to import SpeciesReferenceLink objects.
     Expected CSV columns: species, reference_url, name_prefix
     Returns a summary dict with keys:
         success_count  - number of rows imported successfully
         error_count    - number of rows that failed
-        errors         - list of (row_number, species_value, error_message) tuples
+        errors         - list of (row_number, species_value, error_message) tuples.
     """
     url_validator = URLValidator(schemes=['http', 'https'])
 
@@ -448,7 +445,7 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
     success_count = 0
     errors = []
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, encoding='utf-8') as import_file:
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             raw_species_name = import_row.get('species', '')
@@ -549,7 +546,7 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                 print ('CSV Reference Link Import Success: ' + reference_link_name)
 
             except Exception as save_error:
-                error_message = f'Save failed: {str(save_error)}'
+                error_message = f'Save failed: {save_error!s}'
                 errors.append((row_count, species_name, error_message))
                 csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
                 logger.error(
@@ -591,7 +588,7 @@ def export_csv_bap_genus(bap_club: AquaristClub):
     writer.writerow(['club', 'name', 'points', 'category', 'global_region', 'example_species', 'example_species_description'])
     for bapGenus in bapGenusSet:
         if bapGenus.example_species:
-            writer.writerow([bapGenus.club.acronym, bapGenus.name, bapGenus.points, bapGenus.example_species.category, bapGenus.example_species.global_region, 
+            writer.writerow([bapGenus.club.acronym, bapGenus.name, bapGenus.points, bapGenus.example_species.category, bapGenus.example_species.global_region,
                             bapGenus.example_species.name, bapGenus.example_species.description])
         else:
             logger.error ('BAP Export error for club %s: BapGenus %s. has null example_species', bap_club.acronym, bapGenus.name)
@@ -608,32 +605,31 @@ def export_csv_aquarists():
 
     writer.writerow([
        # id    username    email    first_name    last_name    state    country
-        'id', 'username', 'email', 'first_name', 'last_name', 'state', 'country', 
+        'id', 'username', 'email', 'first_name', 'last_name', 'state', 'country',
        # is_private_name    is_private_email    is_email_blocked   is_private_location    date_joined
-        'is_private_name', 'is_private_email', 'is_email_blocked', 'is_private_location', 'date_joined', 
-       # is_admin    is_staff    is_species_admin    is_proxy   is_active 
-        'is_admin', 'is_staff', 'is_species_admin', 'is_proxy' 'is_active',
+        'is_private_name', 'is_private_email', 'is_email_blocked', 'is_private_location', 'date_joined',
+       # is_admin    is_staff    is_species_admin    is_proxy   is_active
+        'is_admin', 'is_staff', 'is_species_admin', 'is_proxy', 'is_active',
        # instagram_url    facebook_url    youtube_url    prefer_tile_view
         'instagram_url', 'facebook_url', 'youtube_url', 'prefer_tile_view'
         ])
-    
+
     for user in aquaristSet:
         writer.writerow([
             #    id       username       email       first_name       last_name       state       country
-            user.id, user.username, user.email, user.first_name, user.last_name, user.state, user.country, 
+            user.id, user.username, user.email, user.first_name, user.last_name, user.state, user.country,
             #    is_private_name       is_private_email       is_email_blocked       is_private_location       date_joined
-            user.is_private_name, user.is_private_email, user.is_email_blocked, user.is_private_location, user.date_joined, 
-            #    is_admin       is_staff       is_species_admin      is_proxy        is_active 
+            user.is_private_name, user.is_private_email, user.is_email_blocked, user.is_private_location, user.date_joined,
+            #    is_admin       is_staff       is_species_admin      is_proxy        is_active
             user.is_admin, user.is_staff, user.is_species_admin, user.is_proxy, user.is_active,
             #    instagram_url       facebook_url       youtube_url       prefer_tile_view
             user.instagram_url, user.facebook_url, user.youtube_url, user.prefer_tile_view
             ])
-        
+
     return response
 
 def sync_species_instance_counts() -> dict:
-    """
-    Recalculates species_instance_count for every Species record by counting
+    """Recalculates species_instance_count for every Species record by counting
     active (currently_keep=True) related SpeciesInstance rows, and persists
     the value only when it differs from the cached DB value.
 
@@ -673,7 +669,7 @@ def sync_species_instance_counts() -> dict:
 
 def export_csv_species():
 
-    sync_species_instance_counts() 
+    sync_species_instance_counts()
     speciesSet = Species.objects.all()
     response = HttpResponse (
         content_type="text/csv",
@@ -684,7 +680,7 @@ def export_csv_species():
         response = HttpResponse (
             content_type="text/csv",
             headers={"Content-Disposition": 'attachment; filename="cso_species_export.csv"'},
-        )        
+        )
 
     writer = csv.writer(response)
 
@@ -694,30 +690,30 @@ def export_csv_species():
     if site_id == 2:
         id_header          = 'cso_id'
         external_id_header = 'asn_id'
-    
+
     writer.writerow([
-       # id         name    alt_name    common_name    description    species_image    photo_credit           
-        id_header, 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit', 
+       # id         name    alt_name    common_name    description    species_image    photo_credit
+        id_header, 'name', 'alt_name', 'common_name', 'description', 'species_image', 'photo_credit',
        # category    global_region    local_distribution    species_instance_count   external_id
         'category', 'global_region', 'local_distribution', 'species_instance_count', external_id_header,
-       # cares_family    render_cares    cares_classification    cares_assessment_date    iucn_red_list   iucn_assessment_date    
-        'cares_family', 'render_cares', 'cares_classification', 'cares_assessment_date', 'iucn_red_list', 'iucn_assessment_date', 
-       # created   created_by     lastUpdated    last_edited_by    
-        'created', 'created_by', 'lastUpdated', 'last_edited_by' 
+       # cares_family    render_cares    cares_classification    cares_assessment_date    iucn_red_list   iucn_assessment_date
+        'cares_family', 'render_cares', 'cares_classification', 'cares_assessment_date', 'iucn_red_list', 'iucn_assessment_date',
+       # created   created_by     lastUpdated    last_edited_by
+        'created', 'created_by', 'lastUpdated', 'last_edited_by'
         ])
-    
+
     for species in speciesSet:
         writer.writerow([
-            #       id          name          alt_name          common_name          description          species_image          photo_credit           
-            species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit, 
+            #       id          name          alt_name          common_name          description          species_image          photo_credit
+            species.id, species.name, species.alt_name, species.common_name, species.description, species.species_image, species.photo_credit,
             #       category          global_region          local_distribution          species_instance_count          external_id
             species.category, species.global_region, species.local_distribution, species.species_instance_count, species.external_id,
-            #       cares_family          render_cares          cares_classification          cares_assessment_date          iucn_red_list          iucn_assessment_date    
+            #       cares_family          render_cares          cares_classification          cares_assessment_date          iucn_red_list          iucn_assessment_date
             species.cares_family, species.render_cares, species.cares_classification, species.cares_assessment_date, species.iucn_red_list, species.iucn_assessment_date,
-            #       created          created_by          lastUpdated          last_edited_by    
+            #       created          created_by          lastUpdated          last_edited_by
             species.created, species.created_by, species.lastUpdated, species.last_edited_by
             ])
-    
+
     return response
 
 def export_csv_speciesInstances():
@@ -730,23 +726,23 @@ def export_csv_speciesInstances():
 
     writer.writerow([
        # id    user    name    species    unique_traits    genetic_traits    collection_point
-        'id' ,'user', 'name', 'species', 'unique_traits', 'genetic_traits', 'collection_point', 
-       # acquired_from    year_acquired    aquarist_species_image aquarist_species_video_url 
-        'acquired_from', 'year_acquired', 'aquarist_species_image', 'aquarist_species_video_url', 
-       # aquarist_notes    have_spawned    spawning_notes    have_reared_fry    fry_rearing_notes    young_available    young_available_image 
-        'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'young_available_image', 
-       # currently_keep    enable_species_log    log_is_private    cares_registered    created    lastUpdated           
+        'id' ,'user', 'name', 'species', 'unique_traits', 'genetic_traits', 'collection_point',
+       # acquired_from    year_acquired    aquarist_species_image aquarist_species_video_url
+        'acquired_from', 'year_acquired', 'aquarist_species_image', 'aquarist_species_video_url',
+       # aquarist_notes    have_spawned    spawning_notes    have_reared_fry    fry_rearing_notes    young_available    young_available_image
+        'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'young_available_image',
+       # currently_keep    enable_species_log    log_is_private    cares_registered    created    lastUpdated
         'currently_keep', 'enable_species_log', 'log_is_private', 'cares_registered', 'created', 'lastUpdated'
         ])
     for si in speciesInstances:
         writer.writerow([
             #  id     user              name     species     unique_traits     genetic_traits     collection_point
-            si.id, si.user.username, si.name, si.species, si.unique_traits, si.genetic_traits, si.collection_point, 
-            #  acquired_from     year_acquired     aquarist_species_image     aquarist_species_video_url 
-            si.acquired_from, si.year_acquired, si.aquarist_species_image, si.aquarist_species_video_url, 
-            #  aquarist_notes     have_spawned     spawning_notes     have_reared_fry     fry_rearing_notes     young_available     young_available_image 
+            si.id, si.user.username, si.name, si.species, si.unique_traits, si.genetic_traits, si.collection_point,
+            #  acquired_from     year_acquired     aquarist_species_image     aquarist_species_video_url
+            si.acquired_from, si.year_acquired, si.aquarist_species_image, si.aquarist_species_video_url,
+            #  aquarist_notes     have_spawned     spawning_notes     have_reared_fry     fry_rearing_notes     young_available     young_available_image
             si.aquarist_notes, si.have_spawned, si.spawning_notes, si.have_reared_fry, si.fry_rearing_notes, si.young_available, si.young_available_image,
-            # currently_keep      enable_species_log     log_is_private     cares_registered     created     lastUpdated           
+            # currently_keep      enable_species_log     log_is_private     cares_registered     created     lastUpdated
             si.currently_keep, si.enable_species_log, si.log_is_private, si.cares_registered, si.created, si.lastUpdated
         ])
 
@@ -761,20 +757,20 @@ def export_csv_aquaristClubs():
     writer = csv.writer(response)
 
     writer.writerow([
-       # id     name    acronym    about    logo_image    website    city    state    country   
+       # id     name    acronym    about    logo_image    website    city    state    country
         'id' , 'name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country',
        # bap_guidelines    bap_notes_template    cares_muliplier    bap_start_date    bap_end_date
         'bap_guidelines', 'bap_notes_template', 'cares_muliplier', 'bap_start_date', 'bap_end_date',
-       # is_bap_club is_cares_club require_member_approval created lastUpdated            
+       # is_bap_club is_cares_club require_member_approval created lastUpdated
         'is_bap_club', 'is_cares_club', 'require_member_approval', 'created', 'lastUpdated'
         ])
     for club in clubs:
         writer.writerow([
-            #    id       name        acronym      about       logo_image       website       city       state       country   
+            #    id       name        acronym      about       logo_image       website       city       state       country
             club.id, club.name, club.acronym, club.about, club.logo_image, club.website, club.city, club.state, club.country,
             #    bap_guidelines       bap_notes_template       cares_muliplier       bap_start_date       bap_end_date
             club.bap_guidelines, club.bap_notes_template, club.cares_muliplier, club.bap_start_date, club.bap_end_date,
-            #    is_bap_club       is_cares_club       require_member_approval       created       lastUpdated            
+            #    is_bap_club       is_cares_club       require_member_approval       created       lastUpdated
             club.is_bap_club, club.is_cares_club, club.require_member_approval, club.created, club.lastUpdated
         ])
 
@@ -787,22 +783,22 @@ def export_csv_aquaristClubMembers():
         headers={"Content-Disposition": 'attachment; filename="aquarist_club_member_export.csv"'},
     )
     writer = csv.writer(response)
-     
+
     writer.writerow([
-       # id  name club user membership_approved   
+       # id  name club user membership_approved
         'id', 'name', 'club', 'user', 'membership_approved',
-       # bap_participant is_club_admin is_cares_admin 
+       # bap_participant is_club_admin is_cares_admin
         'bap_participant', 'is_club_admin', 'is_cares_admin',
-       # date_requested last_updated 
+       # date_requested last_updated
         'date_requested', 'last_updated'
         ])
     for cm in club_members:
         writer.writerow([
-            # id  name club user membership_approved   
-            cm.id, cm.name, cm.club, cm.user, cm.membership_approved, 
-            # bap_participant is_club_admin is_cares_admin 
-            cm.bap_participant, cm.is_club_admin, cm.is_cares_admin, 
-            # date_requested last_updated 
+            # id  name club user membership_approved
+            cm.id, cm.name, cm.club, cm.user, cm.membership_approved,
+            # bap_participant is_club_admin is_cares_admin
+            cm.bap_participant, cm.is_club_admin, cm.is_cares_admin,
+            # date_requested last_updated
             cm.date_requested, cm.last_updated
         ])
 
@@ -838,8 +834,7 @@ def export_csv_bap_submissions():
     return response
 
 def _build_media_url(relative_path):
-    """
-    Convert a relative media path (e.g. 'images/2025/01/24/fish.jpg') to a
+    """Convert a relative media path (e.g. 'images/2025/01/24/fish.jpg') to a
     fully-qualified URL using SITE_DOMAIN from settings.
     Always uses https.  Returns '' if relative_path is falsy.
     """
@@ -856,8 +851,7 @@ def _collection_location_name(collection_location):
     return collection_location.name
 
 def export_csv_caresRegistrations_asn():
-    """
-    ASN Site1 export: all CARES Registrations for transfer to the CSO (CaresSpecies.org) site.
+    """ASN Site1 export: all CARES Registrations for transfer to the CSO (CaresSpecies.org) site.
     Includes external_id so CSO can correlate approval responses back to ASN.
     """
     registrations = CaresRegistration.objects.all()
@@ -869,8 +863,8 @@ def export_csv_caresRegistrations_asn():
     writer.writerow([
         # id   external_id    name    aquarist_name    aquarist_email    affiliate_club    species    collection_location
         'id', 'external_id', 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',
-        # species_source   year_acquired    verification_photo    verification_photo_url 
-        'species_source', 'year_acquired', 'verification_photo', 'verification_photo_url', 
+        # species_source   year_acquired    verification_photo    verification_photo_url
+        'species_source', 'year_acquired', 'verification_photo', 'verification_photo_url',
         # species_has_spawned   young_available    offspring_shared
         'species_has_spawned', 'young_available', 'offspring_shared',
         # cares_approver   approver_notes    status
@@ -882,7 +876,7 @@ def export_csv_caresRegistrations_asn():
         writer.writerow([
             #   id      external_id      name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
             reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
-            #   species_source      year_acquired      verification_photo   verification_photo_url 
+            #   species_source      year_acquired      verification_photo   verification_photo_url
             reg.species_source, reg.year_acquired, reg.verification_photo, _build_media_url(reg.verification_photo),
             #   species_has_spawned      young_available      offspring_shared
             reg.species_has_spawned, reg.young_available, reg.offspring_shared,
@@ -895,8 +889,7 @@ def export_csv_caresRegistrations_asn():
 
 
 def export_csv_caresRegistrations_asn_pending():
-    """
-    Site1 only: exports CARES registrations that originated on ASN Site1 (asn_imported=True)
+    """Site1 only: exports CARES registrations that originated on ASN Site1 (asn_imported=True)
     and are still in OPEN status — i.e., not yet processed by Site2.
     Includes a fully domain configured verification_photo_url column for Site2 download.
     """
@@ -934,8 +927,7 @@ def export_csv_caresRegistrations_asn_pending():
 
 
 def export_csv_caresRegistrations_cso():
-    """
-    CSO Site2 export: all CaresRegistrations for round-trip back to ASN Site1.
+    """CSO Site2 export: all CaresRegistrations for round-trip back to ASN Site1.
     Includes external_id so ASN can match and update its original records.
     Only rows with external_id > 0 are meaningful to ASN; all rows are exported
     and ASN import will skip those with external_id = 0 or null.
@@ -970,36 +962,31 @@ def export_csv_caresRegistrations_cso():
 
 
 def export_csv_caresRegistrations():
-    """
-    General CaresRegistration export. Branches on SITE_ID:
+    """General CaresRegistration export. Branches on SITE_ID:
     SITE_ID=1 (ASN): calls export_csv_caresRegistrations_asn()
-    SITE_ID=2 (CSO): calls export_csv_caresRegistrations_cso()
+    SITE_ID=2 (CSO): calls export_csv_caresRegistrations_cso().
     """
     site_id = getattr(settings, 'SITE_ID', 1)
     if site_id == 2:
         return export_csv_caresRegistrations_cso()
-    else:
-        return export_csv_caresRegistrations_asn()
+    return export_csv_caresRegistrations_asn()
 
 
 def import_csv_caresRegistrations(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Import CARES registrations from a CSV file with import behavior dependent on SITE_ID
+    """Import CARES registrations from a CSV file with import behavior dependent on SITE_ID
     SITE_ID=1 (ASN Site):   update status/notes on existing registrations from Site2 export
-    SITE_ID=2 (CARES Site): create new registrations from ASN export
+    SITE_ID=2 (CARES Site): create new registrations from ASN export.
     """
     site_id = getattr(settings, 'SITE_ID', 1)
     if site_id == 2:
         return _import_cares_registrations_from_asn(import_archive, current_user)
-    else:
-        return _import_cares_registration_status_updates(import_archive, current_user)
+    return _import_cares_registration_status_updates(import_archive, current_user)
 
 
 def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Site2 branch: Creates new CaresRegistration records
-    Required CSV columns: aquarist_name, aquarist_email, species, species_source, collection_location, year_acquired, 
-    verification_photo_url, species_has_spawned, young_available, offspring_shared, asn_imported, date_requested
+    """Site2 branch: Creates new CaresRegistration records
+    Required CSV columns: aquarist_name, aquarist_email, species, species_source, collection_location, year_acquired,
+    verification_photo_url, species_has_spawned, young_available, offspring_shared, asn_imported, date_requested.
     """
     csv_report_buffer = StringIO()
     csv_report_writer = csv.writer(csv_report_buffer)
@@ -1010,7 +997,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
     skip_count = 0
     error_count = 0
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, encoding='utf-8') as import_file:
         for import_row in DictReader(import_file):
             row_count += 1
 
@@ -1141,7 +1128,6 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 except AquaristClub.DoesNotExist:
                     registration.affiliate_club_id = 1            # Set default internal Club 'Cares For Individuals' always id=1
                     logger.warning (f"CSO import: unable to match affiliate_club: {club_name}")
-                    pass  
             else:
                 registration.affiliate_club_id = 1            # Set default internal Club 'Cares For Individuals' always id=1
 
@@ -1180,11 +1166,10 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
 
 
 def _import_cares_registration_status_updates(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Site1 branch: Receives CSV exported from Site2. Updates status and approver_notes
+    """Site1 branch: Receives CSV exported from Site2. Updates status and approver_notes
     on existing CaresRegistration records only. Matches by external_id (which on ASN Site1
     corresponds to CaresRegistration.id). Only APRV and DECL statuses trigger updates.
-    Required CSV columns: external_id, status, approver_notes
+    Required CSV columns: external_id, status, approver_notes.
     """
     csv_report_buffer = StringIO()
     csv_report_writer = csv.writer(csv_report_buffer)
@@ -1200,7 +1185,7 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
     skip_count = 0
     error_count = 0
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, encoding='utf-8') as import_file:
         for import_row in DictReader(import_file):
             row_count += 1
 
@@ -1317,16 +1302,15 @@ def _find_existing_species(name: str):
 
 
 def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
-    """
-    Compare *import_row* values against *existing_species* and return a dict
-    of changed fields:  {'field': {'old': old_val, 'new': new_val}}
+    """Compare *import_row* values against *existing_species* and return a dict
+    of changed fields:  {'field': {'old': old_val, 'new': new_val}}.
     """
     field_map = {
         'cares_family':          'cares_family',
         'cares_assessment_date': 'cares_assessment_date',
         'cares_classification':  'cares_classification',
         'iucn_red_list':         'iucn_red_list',
-        'iucn_assessment_date':  'iucn_assessment_date',        
+        'iucn_assessment_date':  'iucn_assessment_date',
         'global_region':         'global_region',
         'category':              'category',
         'common_name':           'common_name',
@@ -1344,8 +1328,7 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
 
 
 def import_csv_species_to_staging(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Parse a species CSV and create SpeciesImportStaging records for review.
+    """Parse a species CSV and create SpeciesImportStaging records for review.
 
     Required CSV columns: name, category, global_region
     Optional columns (blank cells use defaults):
@@ -1358,7 +1341,7 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
     """
     summary = {'new': 0, 'update': 0, 'skip': 0, 'conflict': 0, 'error': 0, 'total': 0}
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, encoding='utf-8') as import_file:
         csv_report_buffer = StringIO()
         csv_report_writer = csv.writer(csv_report_buffer)
         csv_report_writer.writerow(['Row', 'Species', 'Action', 'Review_Status', 'Changed_Fields', 'Notes'])
@@ -1454,8 +1437,7 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
 
 
 def commit_species_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
-    """
-    Commit all APPROVED staging records for *import_archive* to the Species table.
+    """Commit all APPROVED staging records for *import_archive* to the Species table.
 
     Respects field-level import rules:
     - SPECIES_ALWAYS_UPDATE_FIELDS: always written on UPDATE

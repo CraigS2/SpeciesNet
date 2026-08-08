@@ -1,14 +1,16 @@
-"""
-CARES Species Import – staging, review, and commit workflow views.
-"""
+"""CARES Species Import – staging, review, and commit workflow views."""
+
+from django.utils import timezone
+
+from species.asn_tools.asn_csv_tools import (
+    commit_species_import_staging,
+    import_csv_species_reference_links,
+    import_csv_species_to_staging,
+)
+from species.forms import SpeciesImportStagingForm
+from species.models import SpeciesImportStaging
 
 from .base import *
-from django.utils import timezone
-from species.models import SpeciesImportStaging
-from species.forms import SpeciesImportStagingForm
-from species.asn_tools.asn_csv_tools import (import_csv_species_to_staging, commit_species_import_staging,
-                                              import_csv_species_reference_links,)
-
 
 # ---------------------------------------------------------------------------
 # Step 1: Upload CSV and create staging records
@@ -18,7 +20,7 @@ from species.asn_tools.asn_csv_tools import (import_csv_species_to_staging, comm
 def importSpeciesToStaging(request):
     """Upload a CARES species CSV and parse it into staging records for review."""
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     form = ImportCsvForm()
     if request.method == 'POST':
@@ -41,7 +43,7 @@ def importSpeciesToStaging(request):
                 f"{summary['skip']} unchanged, {summary['error']} errors.",
             )
             return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[import_archive.pk]))
-        
+
     context = {'form': form}
     return render(request, 'species/import/importSpeciesStaging.html', context)
 
@@ -54,7 +56,7 @@ def importSpeciesToStaging(request):
 def reviewSpeciesImport(request, pk):
     """Display all staging records for an ImportArchive with summary stats."""
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     import_archive = get_object_or_404(ImportArchive, pk=pk)
     staging_qs = SpeciesImportStaging.objects.filter(import_archive=import_archive).select_related('existing_species')
@@ -78,7 +80,7 @@ def reviewSpeciesImport(request, pk):
         'approved': all_staging.filter(review_status__in=[
             SpeciesImportStaging.ReviewStatus.APPROVED,
             SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
-        ]).count(),        
+        ]).count(),
         'rejected': all_staging.filter(review_status=SpeciesImportStaging.ReviewStatus.REJECTED).count(),
         'total':    all_staging.count(),
     }
@@ -103,7 +105,7 @@ def reviewSpeciesImport(request, pk):
 def reviewSpeciesImportDetail(request, staging_id):
     """Side-by-side comparison and approve/reject of an individual staging record."""
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     staging = get_object_or_404(SpeciesImportStaging, pk=staging_id)
     import_archive = staging.import_archive
@@ -133,7 +135,7 @@ def reviewSpeciesImportDetail(request, staging_id):
         'global_region':         'Global Region',
         'local_distribution':    'Local Distribution',
         'cares_family':          'CARES Family',
-        'cares_assessment_date': 'CARES Assessment Date',        
+        'cares_assessment_date': 'CARES Assessment Date',
         'cares_classification':  'CARES Classification',
         'iucn_red_list':         'IUCN Red List Status',
         'iucn_assessment_date':  'IUCN Assessment Date',
@@ -170,7 +172,7 @@ def reviewSpeciesImportDetail(request, staging_id):
 def approveSpeciesImportBatch(request, pk):
     """Bulk-approve all PENDING staging records for an ImportArchive."""
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     import_archive = get_object_or_404(ImportArchive, pk=pk)
     if request.method == 'POST':
@@ -201,7 +203,7 @@ def approveSpeciesImportBatch(request, pk):
 def rejectSpeciesImportBatch(request, pk):
     """Bulk-reject all PENDING staging records for an ImportArchive."""
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     import_archive = get_object_or_404(ImportArchive, pk=pk)
     if request.method == 'POST':
@@ -231,7 +233,7 @@ def rejectSpeciesImportBatch(request, pk):
 def commitSpeciesImport(request, pk):
     """Commit all APPROVED staging records to the Species table."""
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     import_archive = get_object_or_404(ImportArchive, pk=pk)
     approved_count = SpeciesImportStaging.objects.filter(
@@ -273,7 +275,7 @@ def importSpeciesReferenceLinks(request):
     Expected CSV columns: species, reference_url, name_prefix
     """
     if not user_is_admin(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     form = ImportCsvForm()
     summary = None

@@ -1,19 +1,21 @@
 import logging
-from rest_framework import viewsets, status
+
+from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from django.utils.dateparse import parse_datetime, parse_date
-from django.utils import timezone
+
 from species.models import Species
+
 from .serializers import SpeciesSyncSerializer
 
 logger = logging.getLogger(__name__)
 
 
 def _parse_since_param(since_param):
-    """
-    Parse a `since` query parameter string into an aware datetime.
+    """Parse a `since` query parameter string into an aware datetime.
 
     Handles:
     - ISO 8601 datetime strings (with optional timezone)
@@ -38,8 +40,7 @@ def _parse_since_param(since_param):
 
 
 class SpeciesSyncViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Read-only API viewset for CARES species synchronization.
+    """Read-only API viewset for CARES species synchronization.
 
     Provides endpoints for Site1 to pull CARES species data from Site2.
     Only returns species where render_cares=True.

@@ -19,8 +19,8 @@ class PendingActionConfirmView(FormView):
             payload = load_signed_token(self.token, max_age=None)
         except PendingActionTokenExpired:
             return render(request, 'pending_actions/expired.html', status=410)
-        except PendingActionTokenInvalid:
-            raise Http404('Invalid action link.')
+        except PendingActionTokenInvalid as exc:
+            raise Http404('Invalid action link.') from exc
 
         self.action = get_object_or_404(PendingAction.objects.select_related('action_type', 'user'), pk=payload.get('action_id'))
         ttl_seconds = self.action.action_type.default_ttl_hours * 3600
@@ -31,8 +31,8 @@ class PendingActionConfirmView(FormView):
                 self.action.status = PendingAction.Status.EXPIRED
                 self.action.save(update_fields=['status'])
             return render(request, 'pending_actions/expired.html', {'action': self.action}, status=410)
-        except PendingActionTokenInvalid:
-            raise Http404('Invalid action link.')
+        except PendingActionTokenInvalid as exc:
+            raise Http404('Invalid action link.') from exc
 
         if self.action.token_hash != hash_token(self.token):
             raise Http404('Invalid action link.')

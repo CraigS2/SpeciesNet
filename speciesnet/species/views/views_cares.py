@@ -1,16 +1,15 @@
-"""
-Species-related views: CRUD operations, search, comments, reference links
-"""
+"""Species-related views: CRUD operations, search, comments, reference links."""
 
 ### views_cares.py includes cares site2 views unique to the cares site ###
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
-from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
-from species.services.email_services import send_new_registration_notification, send_status_change_email
-from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
+from species.asn_tools.asn_csv_cares_tools import import_csv_species_external_ids, import_legacy_cares_registrations
+from species.services.email_services import send_new_registration_notification, send_status_change_email
+
+from .base import *
 
 ### View CARES Species
 
@@ -20,12 +19,12 @@ def caresSpecies(request, pk):
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     userCanEdit = user_can_edit_s(request.user, species)
-   
+
     if request.user.is_authenticated:
         logger.info('User %s visited species page: %s.', request.user.username, species.name)
     else:
         logger.info('Anonymous user visited species page: %s.', species.name)
-    
+
     context = {
         'species': species,
         'speciesInstances':  speciesInstances,
@@ -40,7 +39,7 @@ def caresSpecies(request, pk):
 def createCaresSpecies(request):
     register_heif_opener()
     form = CaresSpeciesForm()
-    
+
     if request.method == 'POST':
         form = CaresSpeciesForm(request.POST, request.FILES)
         if form.is_valid():
@@ -58,24 +57,22 @@ def createCaresSpecies(request):
                             processUploadedImageFile(species.species_image, species.name, request)
                         logger.info('User %s created new species: %s (%s)', request.user.username, species.name, str(species.id))
                         return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
-                    else:
-                        dupe_msg = f"{species_name} already exists.  Please use this Species entry."
-                        messages.info(request, dupe_msg)
-                        species = Species.objects.get(name=species_name)
-                        logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
-                        return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
-                else:
-                    messages.error (request, "Cares Species must declare Risk Classification. Cannot use 'Undefined'" )
-            except IntegrityError as e: 
-                logger.error(f"IntegrityError creating species: {str(e)}", exc_info=True)
+                    dupe_msg = f"{species_name} already exists.  Please use this Species entry."
+                    messages.info(request, dupe_msg)
+                    species = Species.objects.get(name=species_name)
+                    logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
+                    return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
+                messages.error (request, "Cares Species must declare Risk Classification. Cannot use 'Undefined'" )
+            except IntegrityError as e:
+                logger.error(f"IntegrityError creating species: {e!s}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error creating species: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred:  {str(e)}')
+                logger.error(f"Unexpected error creating species: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred:  {e!s}')
         else:
             logger.warning(f"Species form validation failed for create species: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
-    
+
     context = {'form': form}
     return render(request, 'species/cares/editCaresSpecies.html', context)
 
@@ -87,9 +84,9 @@ def editCaresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
-    if request.method == 'POST': 
+    if request.method == 'POST':
         form = CaresSpeciesForm(request.POST, request.FILES, instance=species)
         if form.is_valid():
             try:
@@ -103,11 +100,11 @@ def editCaresSpecies(request, pk):
                 messages.success(request, f'Species "{species.name}" updated successfully!')
                 return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
             except IntegrityError as e:
-                logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError editing species: {e!s}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error editing species: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error editing species: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -123,9 +120,9 @@ def editCaresSpecies2(request, pk):         # admin only for full editing of hid
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
-    if request.method == 'POST': 
+    if request.method == 'POST':
         form = CaresSpeciesForm2(request.POST, request.FILES, instance=species)
         if form.is_valid():
             try:
@@ -139,11 +136,11 @@ def editCaresSpecies2(request, pk):         # admin only for full editing of hid
                 messages.success(request, f'Species "{species.name}" updated successfully!')
                 return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
             except IntegrityError as e:
-                logger.error(f"IntegrityError editing species: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError editing species: {e!s}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error editing species: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error editing species: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"Species form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -158,21 +155,21 @@ def editCaresSpecies2(request, pk):         # admin only for full editing of hid
 def deleteCaresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit_s(request.user, species)
-    if not userCanEdit: 
-        raise PermissionDenied()
-    
+    if not userCanEdit:
+        raise PermissionDenied
+
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     if speciesInstances.count() > 0:
         msg = f'{species.name} has {speciesInstances.count()} aquarist entries and cannot be deleted.'
         messages.info(request, msg)
         logger.warning('User %s attempted to delete species:  %s with speciesInstance dependencies. Deletion blocked.', request.user.username, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
-    if request.method == 'POST': 
+
+    if request.method == 'POST':
         logger.info('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
         return redirect('caresSpeciesSearch')
-    
+
     context = {'species': species}
     return render(request, 'species/deleteSpecies.html', context)
 
@@ -189,12 +186,12 @@ class CaresSpeciesListView(ListView):
         cares_family = self.request.GET.get('cares_family', '')
         global_region = self.request.GET.get('global_region', '')
         query_text = self.request.GET.get('q', '')
-        
+
         if cares_family:
             queryset = queryset.filter(cares_family=cares_family)
-        if global_region: 
+        if global_region:
             queryset = queryset.filter(global_region=global_region)
-        if query_text: 
+        if query_text:
             queryset = queryset.filter(
                 Q(name__icontains=query_text) |
                 Q(alt_name__icontains=query_text) |
@@ -225,7 +222,7 @@ def caresPriorityList (request):
         logger.info('User %s visited caresPriorityList page. ', request.user.username)
     else:
         logger.info('Anonymous user visited caresPriorityList page.')
-    return render(request, 'species/cares/caresPriorityList.html')    
+    return render(request, 'species/cares/caresPriorityList.html')
 
 ### View CARES Registration
 
@@ -243,36 +240,36 @@ def caresRegistration(request, pk):
 ### Register CARES Species - Wizard Start (Annonymous User)
 
 def registrationLookup(request):
-    
+
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
         email = escape(email) #sanitize
         if not email:
             messages.error(request, 'Please enter a valid email address')
             return render(request, 'species/cares/registrationLookup.html')
-        
+
         try:
             validate_email(email)
         except ValidationError:
             messages.error(request, 'Please enter a valid email address.')
             return render(request, 'species/cares/registrationLookup.html')
-        
+
         # get all matching registrations - iexact (case-insensitive exact match)
         #                                - select_related (performance optimization using SQL JOIN avoids N+X queries)
         registrations = CaresRegistration.objects.filter(aquarist_email__iexact=email).select_related(
             'species', 'affiliate_club', 'cares_approver').order_by('-date_requested')
-        
+
         if not registrations.exists():
             messages.warning(
-                request, 
+                request,
                 f'No registrations found for {email}'
             )
             return render(request, 'species/cares/registrationLookup.html')
-        
+
         context = {'registrations': registrations, 'email': email, 'registration_count': registrations.count()}
         logger.info('registrationLookup inquiry for ' + email + ' found ' + str(registrations.count()) + ' registrations')
         return render(request, 'species/cares/registrationLookupResults.html', context)
-    
+
     logger.info('User visited registrationLookup page.')
     return render(request, 'species/cares/registrationLookup.html')
 
@@ -280,11 +277,9 @@ def registrationLookup(request):
 ### Register CARES Species - Wizard Start (Annonymous User)
 
 def registerCaresSelectSpecies(request):
-    """
-    Wizard style workflow helping users search/find cares species to register
-    """
+    """Wizard style workflow helping users search/find cares species to register."""
     # TODO add 'search' to make it a true wizard - currently simply a 'how to' page
-    
+
     if request.user.is_authenticated:
         logger.info('User %s visited registerCaresSelectSpecies page. ', request.user.username)
     else:
@@ -297,7 +292,6 @@ def registerCaresSelectSpecies(request):
 def registerCaresSpecies(request, pk):
     register_heif_opener()
     cares_species = get_object_or_404(Species, pk=pk)
-    collection_location_required = cares_species.manage_collection_locations
 
     print ('Begin annoymous CARES Registration on Site 2')
 
@@ -337,13 +331,13 @@ def registerCaresSpecies(request, pk):
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
                 if getattr(settings, 'SITE_ID', 1) == 2:
                     #send_new_registration_notification(cares_reg, request)
-                    send_new_registration_notification(cares_reg)                    
+                    send_new_registration_notification(cares_reg)
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
                 messages.success(request, f'CARES "{cares_species.name}" registration submitted!')
                 return HttpResponseRedirect(reverse("caresSpecies", args=[cares_species.id]))
             except Exception as e:
-                logger.error(f"Unexpected error registering cares species: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error registering cares species: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -351,7 +345,7 @@ def registerCaresSpecies(request, pk):
         form = CaresRegistrationAnonymousForm2(species=cares_species)
 
     context = {'form': form, 'cares_species': cares_species}
-    return render(request, 'species/cares/registerCaresSpecies.html', context)    
+    return render(request, 'species/cares/registerCaresSpecies.html', context)
 
 
 ### reg submitter email notifications for certain reg status changes
@@ -376,9 +370,9 @@ def createCaresRegistration(request, pk):
     species = get_object_or_404(Species, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
     form = CaresRegistrationSubmitionAdminForm()
-    if request.method == 'POST': 
+    if request.method == 'POST':
         form = CaresRegistrationSubmitionAdminForm(request.POST, request.FILES)
         if form.is_valid():
             registration = form.save(commit=False)
@@ -396,21 +390,21 @@ def createCaresRegistration(request, pk):
                 processUploadedImageFile(registration.verification_photo, registration.name, request)
             if getattr(settings, 'SITE_ID', 1) == 2:
                 #send_new_registration_notification(registration, request)
-                send_new_registration_notification(registration)                
+                send_new_registration_notification(registration)
             logger.info('User %s created caresRegistration: %s (%s)', request.user.username, registration.name, str(registration.id))
             return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
 
     context = {'form': form, 'species': species}
     return render(request, 'species/cares/createCaresRegistration.html', context)
 
-### Edit CARES Registration   
+### Edit CARES Registration
 
 @login_required(login_url='login')
 def editCaresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
     userIsAdmin = user_is_admin(request.user)
     species = registration.species
 
@@ -445,11 +439,11 @@ def editCaresRegistration(request, pk):
                     return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))
                 return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
             except IntegrityError as e:
-                logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError editing cares registration: {e!s}", exc_info=True)
                 messages.error(request, 'The registration data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error editing cares registration: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error editing cares registration: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -461,14 +455,14 @@ def editCaresRegistration(request, pk):
 
 
 @login_required(login_url='login')
-def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields   
+def editCaresRegistrationAdmin(request, pk):        # admin only for full editing of hidden fields
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()  
-    form = CaresRegistrationAdminForm(instance=registration)   
-    print ('editCaresRegistrationAdmin view')     
-    if request.method == 'POST': 
+        raise PermissionDenied
+    form = CaresRegistrationAdminForm(instance=registration)
+    print ('editCaresRegistrationAdmin view')
+    if request.method == 'POST':
         old_status = registration.status
         form = CaresRegistrationAdminForm(request.POST, request.FILES, instance=registration)
         if form.is_valid():
@@ -485,16 +479,16 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
                     return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))
                 return HttpResponseRedirect(reverse("caresRegistration", args=[registration.id]))
             except IntegrityError as e:
-                logger.error(f"IntegrityError editing cares registration: {str(e)}", exc_info=True)
+                logger.error(f"IntegrityError editing cares registration: {e!s}", exc_info=True)
                 messages.error(request, 'The registration data conflicts with existing records (possibly duplicate name).')
             except Exception as e:
-                logger.error(f"Unexpected error editing cares registration: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error editing cares registration: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     context = {'form': form, 'registration': registration}
-    print ('editCaresRegistrationAdmin view or editCaresRegistrationAdmin view?')     
+    print ('editCaresRegistrationAdmin view or editCaresRegistrationAdmin view?')
     return render(request, 'species/cares/editCaresRegistrationAdmin.html', context)
 
 
@@ -502,7 +496,7 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
 def caresRegistrationNotifyAquarist(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
     if not user_can_edit_cares_reg(request.user, registration) and not user_can_edit(request.user):
-        raise PermissionDenied()
+        raise PermissionDenied
 
     status_label = registration.get_status_display()
     species_name = registration.species.name if registration.species else registration.name
@@ -558,7 +552,7 @@ def deleteCaresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
     if request.method == 'POST':
         logger.info('User %s deleted caresRegistration: %s', request.user.username, registration.name)
         registration.delete()
@@ -580,22 +574,22 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
         queryset = CaresRegistration.objects.select_related(
             'cares_approver', 'species', 'affiliate_club'
         )
-        
+
         cares_family = self.request.GET.get('cares_family', '')
         reg_status = self.request.GET.get('reg_status', '')
         approver = self.request.GET.get('approver', '')
         club = self.request.GET.get('club', '')
         query_text = self.request.GET.get('q', '')
-        
+
         if cares_family:
             queryset = queryset.filter(species__cares_family=cares_family)
-        if reg_status: 
+        if reg_status:
             queryset = queryset.filter(status=reg_status)
         if approver:
             queryset = queryset.filter(cares_approver_id=approver)
         if club:
             queryset = queryset.filter(affiliate_club_id=club)
-        if query_text: 
+        if query_text:
             queryset = queryset.filter(
                 Q(name__icontains=query_text) |
                 Q(species_source__icontains=query_text) |
@@ -607,21 +601,21 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         if self.request.user.is_authenticated:
             logger.info('User %s visited caresRegistrations page.', self.request.user.username)
-        
+
         context = super().get_context_data(**kwargs)
-        
+
         # Get unique approvers
         approvers = CaresRegistration.objects.values_list(
             'cares_approver__id', 'cares_approver__name'
         ).distinct().order_by('cares_approver__name')
         context['approvers'] = [(approver_id, name) for approver_id, name in approvers if approver_id is not None]
-        
+
         # Get unique clubs
         clubs = CaresRegistration.objects.values_list(
             'affiliate_club__id', 'affiliate_club__name'
         ).distinct().order_by('affiliate_club__name')
         context['clubs'] = [(club_id, name) for club_id, name in clubs if club_id is not None]
-        
+
         context['cares_families'] = Species.CaresFamily.choices
         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
@@ -635,7 +629,7 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
 @login_required(login_url='login')
 def caresRegistrationsFromAsn(request):
     if not request.user.is_staff:
-        raise PermissionDenied()
+        raise PermissionDenied
     registrations = CaresRegistration.objects.all().order_by('-date_requested')
     logger.info('Staff user %s viewed caresRegistrationsAdmin', request.user.username)
     context = {'registrations': registrations}
@@ -660,9 +654,9 @@ def caresApprover(request, pk):
 def createCaresApprover(request):
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
     form = CaresApproverForm()
-    if request.method == 'POST': 
+    if request.method == 'POST':
         form = CaresApproverForm(request.POST)
         if form.is_valid():
             cares_approver = form.save(commit=False)
@@ -681,9 +675,9 @@ def editCaresApprover(request, pk):
     cares_approver = get_object_or_404(CaresApprover, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
-    form = CaresApproverForm(instance=cares_approver) 
-    if request.method == 'POST': 
+        raise PermissionDenied
+    form = CaresApproverForm(instance=cares_approver)
+    if request.method == 'POST':
         form = CaresApproverForm(request.POST, instance=cares_approver)
         if form.is_valid():
             try:
@@ -691,8 +685,8 @@ def editCaresApprover(request, pk):
                 logger.info('User %s edited cares approver: %s (%s)', request.user.username, cares_approver.name, str(cares_approver.id))
                 return HttpResponseRedirect(reverse("caresApprover", args=[cares_approver.id]))
             except Exception as e:
-                logger.error(f"Unexpected error editing cares approver: {str(e)}", exc_info=True)
-                messages.error(request, f'An unexpected error occurred: {str(e)}')
+                logger.error(f"Unexpected error editing cares approver: {e!s}", exc_info=True)
+                messages.error(request, f'An unexpected error occurred: {e!s}')
         else:
             logger.warning(f"CARES Approver form validation failed for approver_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
@@ -706,7 +700,7 @@ def deleteCaresApprover(request, pk):
     cares_approver = get_object_or_404(CaresApprover, pk=pk)
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
     if request.method == 'POST':
         logger.info('User %s deleted caresApprover: %s', request.user.username, cares_approver.name)
         cares_approver.delete()
@@ -732,14 +726,13 @@ def exportCaresRegistrations(request):
 
 @login_required(login_url='login')
 def importCaresRegistrations(request):
-    """
-    CARES Registration import: branches on SITE_ID.
+    """CARES Registration import: branches on SITE_ID.
     SITE_ID=1 (ASN): update status/notes on existing registrations from Site2 export.
     SITE_ID=2 (CSO): create new registrations from ASN Site1 export.
     """
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     if request.method == 'POST':
         form = ImportCsvForm(request.POST, request.FILES)
@@ -781,19 +774,18 @@ def importCaresRegistrations(request):
 def exportCaresRegistrationsPending(request):
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
     return export_csv_caresRegistrations_asn_pending()
 
 
 
 @login_required(login_url='login')
 def importCaresLegacyRegistrations(request):
-    """
-    Upload and process a legacy CARES Registration CSV.
+    """Upload and process a legacy CARES Registration CSV.
     Restricted to staff users only.
     """
     if not request.user.is_staff:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     if request.method == 'POST':
         form = ImportCsvForm(request.POST, request.FILES)
@@ -836,8 +828,7 @@ def importCaresLegacyRegistrations(request):
 
 @login_required(login_url='login')
 def importSpeciesExternalIds(request):
-    """
-    Import Species External IDs from a CSV file.
+    """Import Species External IDs from a CSV file.
 
     SITE_ID=1 (ASN): looks up species by asn_id, sets external_id = cso_id
     SITE_ID=2 (CSO): looks up species by cso_id, sets external_id = asn_id
@@ -848,7 +839,7 @@ def importSpeciesExternalIds(request):
     """
     userCanEdit = user_can_edit(request.user)
     if not userCanEdit:
-        raise PermissionDenied()
+        raise PermissionDenied
 
     site_id = getattr(settings, 'SITE_ID', 1)
 

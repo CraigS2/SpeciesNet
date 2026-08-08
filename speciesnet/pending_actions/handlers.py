@@ -2,7 +2,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import escape, strip_tags
 
-from species.models import CaresRegistration, UserEmail
+from species.models import CaresRegistration
 
 from .forms import ConfirmPendingActionForm
 from .registry import ActionHandler, register

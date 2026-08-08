@@ -1,5 +1,4 @@
-"""
-Raffle feature - CSV-backed fish raffle for convention use.
+"""Raffle feature - CSV-backed fish raffle for convention use.
 No DB model required. Data stored in media volume CSV files.
 
   raffle_entries.csv  — one row per registrant
@@ -14,6 +13,7 @@ CSV columns (species):
 """
 
 import csv
+import logging
 import os
 import random
 import threading
@@ -29,7 +29,6 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.html import escape
 
-import logging
 logger = logging.getLogger(__name__)
 
 _csv_lock = threading.Lock()
@@ -58,17 +57,15 @@ def _species_path():
 # ---------------------------------------------------------------------------
 
 def _read_species():
-    """
-    Return list of dicts: [{'species_name': ..., 'quantity_available': ...}, ...]
+    """Return list of dicts: [{'species_name': ..., 'quantity_available': ...}, ...]
     Returns [] if the file doesn't exist yet.
     """
     path = _species_path()
     if not os.path.exists(path):
         return []
-    with _csv_lock:
-        with open(path, 'r', newline='', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            return [row for row in reader if row.get('species_name', '').strip()]
+    with _csv_lock, open(path, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        return [row for row in reader if row.get('species_name', '').strip()]
 
 
 def _get_species_names():
@@ -79,16 +76,14 @@ def _get_species_names():
 def _write_species(species_rows):
     """Overwrite raffle_species.csv with the given list of dicts."""
     path = _species_path()
-    with _csv_lock:
-        with open(path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=SPECIES_HEADERS)
-            writer.writeheader()
-            writer.writerows(species_rows)
+    with _csv_lock, open(path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=SPECIES_HEADERS)
+        writer.writeheader()
+        writer.writerows(species_rows)
 
 
 def _merge_species(new_rows):
-    """
-    Merge new_rows into the existing species list.
+    """Merge new_rows into the existing species list.
     - New species are added.
     - Existing species names are left untouched (preserves winner state).
     - quantity_available is updated if the species already exists.
@@ -132,26 +127,23 @@ def _read_entries():
     path = _entries_path()
     if not os.path.exists(path):
         return []
-    with _csv_lock:
-        with open(path, 'r', newline='', encoding='utf-8') as f:
-            return list(csv.DictReader(f))
+    with _csv_lock, open(path, newline='', encoding='utf-8') as f:
+        return list(csv.DictReader(f))
 
 
 def _write_entries(entries):
     path = _ensure_entries_csv()
-    with _csv_lock:
-        with open(path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=ENTRY_HEADERS)
-            writer.writeheader()
-            writer.writerows(entries)
+    with _csv_lock, open(path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=ENTRY_HEADERS)
+        writer.writeheader()
+        writer.writerows(entries)
 
 
 def _append_entry(entry_dict):
     path = _ensure_entries_csv()
-    with _csv_lock:
-        with open(path, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=ENTRY_HEADERS)
-            writer.writerow(entry_dict)
+    with _csv_lock, open(path, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=ENTRY_HEADERS)
+        writer.writerow(entry_dict)
 
 
 def _email_already_entered(email):
@@ -222,7 +214,7 @@ def raffle_enter(request):
         if not proposed_username:
             proposed_username = email
 
-        choices = (valid_species + ['', '', ''])[:3]
+        choices = ([*valid_species, '', '', ''])[:3]
         entry = {
             'timestamp':         datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'first_name':        first_name,
@@ -304,8 +296,7 @@ def raffle_dashboard(request):
 
 @login_required(login_url='login')
 def raffle_upload_species(request):
-    """
-    POST: upload a CSV file to set/extend the raffle species list.
+    """POST: upload a CSV file to set/extend the raffle species list.
     Expected columns: species_name, quantity_available (quantity optional, defaults to 1).
     Adding species never affects existing entries.
     """
@@ -354,7 +345,7 @@ def raffle_upload_species(request):
 
     except Exception as e:
         logger.error('Species CSV upload failed: %s', str(e), exc_info=True)
-        messages.error(request, f'Error processing file: {str(e)}')
+        messages.error(request, f'Error processing file: {e!s}')
 
     return HttpResponseRedirect(reverse('raffle_dashboard'))
 
@@ -408,7 +399,7 @@ def raffle_pick_winner(request, species_name):
         messages.warning(request, f'No remaining eligible entries for "{species_name}".')
         return HttpResponseRedirect(reverse('raffle_dashboard'))
 
-    winner = random.choice(pool)
+    winner = random.choice(pool)  # noqa: S311 - a club raffle draw, not a security control
 
     updated_entries = []
     for e in entries:
@@ -434,8 +425,7 @@ def raffle_pick_winner(request, species_name):
 
 @login_required(login_url='login')
 def raffle_mark_manual_winner(request, species_name, email):
-    """
-    POST: manually mark a specific entrant as winner for a species.
+    """POST: manually mark a specific entrant as winner for a species.
     Used after an external wheel spinner picks the name.
     Respects quantity_available — won't exceed the allowed winner count.
     """
@@ -572,8 +562,7 @@ def raffle_export_entries(request):
 
 @login_required(login_url='login')
 def raffle_export_species_results(request):
-    """
-    Export a species-centric CSV: one row per species winner.
+    """Export a species-centric CSV: one row per species winner.
     Columns: species_name, quantity_available, winner_first_name, winner_last_name,
              winner_email, winner_proposed_username, account_created
     If a species has no winner yet, it still appears with blank winner fields.
@@ -633,8 +622,7 @@ def raffle_export_species_results(request):
 
 @login_required(login_url='login')
 def raffle_reset(request):
-    """
-    POST: Archive both CSV files by renaming them with a .YYYYMMDD extension.
+    """POST: Archive both CSV files by renaming them with a .YYYYMMDD extension.
     This clears the active raffle without permanently deleting any data.
     """
     _staff_required(request)

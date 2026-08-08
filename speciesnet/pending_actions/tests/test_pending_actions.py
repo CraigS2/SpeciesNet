@@ -217,7 +217,8 @@ class PendingActionTests(TestCase):
 
     def test_send_action_email_no_duplicate_archive_on_retry(self):
         """If send_email_message fails on the first attempt and succeeds on retry,
-        exactly one UserEmail archive row is created — not one per attempt."""
+        exactly one UserEmail archive row is created — not one per attempt.
+        """
         action, token = create_pending_action(
             self.status_action_type,
             payload=self._make_status_change_payload(),

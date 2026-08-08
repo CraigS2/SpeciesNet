@@ -77,8 +77,8 @@ class PendingActionAdmin(admin.ModelAdmin):
         self.message_user(request, f'{updated} action(s) reset to PENDING status.', level=messages.SUCCESS)
 
 
-# TaskResult is the bounded Celery task-activity log (default retention: 30 days, swept by # sweep_old_task_results).  
-# django_celery_results auto-registers TaskResult with its own TaskResultAdmin when its app config's admin module is imported. 
+# TaskResult is the bounded Celery task-activity log (default retention: 30 days, swept by # sweep_old_task_results).
+# django_celery_results auto-registers TaskResult with its own TaskResultAdmin when its app config's admin module is imported.
 # Since this module extends that default admin, unregister it first to avoide Django raising AlreadyRegistered at startup
 
 if admin.site.is_registered(TaskResult):
@@ -87,7 +87,7 @@ if admin.site.is_registered(TaskResult):
 @admin.register(TaskResult)
 class BoundedTaskResultAdmin(BaseTaskResultAdmin):
     # Extend the default TaskResult admin with a manual "clear old results" action.
-    actions = list(BaseTaskResultAdmin.actions or []) + ['clear_old_task_results_now']
+    actions = [*list(BaseTaskResultAdmin.actions or []), 'clear_old_task_results_now']
 
     @admin.action(description='Clear task results older than retention window (30 days) now')
     def clear_old_task_results_now(self, request, queryset):

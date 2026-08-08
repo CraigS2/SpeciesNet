@@ -1,5 +1,4 @@
-"""
-ASGI config for speciesnet project.
+"""ASGI config for speciesnet project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

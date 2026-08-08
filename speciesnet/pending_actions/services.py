@@ -25,7 +25,7 @@ def create_pending_action(action_type, *, user=None, payload=None, payload_schem
         payload=payload,
         payload_schema_version=payload_schema_version,
         expires_at=expires_at,
-        token_hash='pending',
+        token_hash='pending',  # noqa: S106 - placeholder overwritten by issue_token() below
     )
     token = action.issue_token()
     if enqueue_email:

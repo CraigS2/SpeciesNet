@@ -1,9 +1,11 @@
 import logging
+
+import requests
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-import requests
 from requests.auth import HTTPBasicAuth
+
 from species.models import Species
 
 logger = logging.getLogger(__name__)
@@ -21,8 +23,7 @@ SYNC_FIELDS = [
 
 
 class SpeciesSyncService:
-    """
-    Service to synchronize CARES species data from Site2 (source of truth) to Site1.
+    """Service to synchronize CARES species data from Site2 (source of truth) to Site1.
 
     Usage:
         service = SpeciesSyncService()
@@ -49,14 +50,14 @@ class SpeciesSyncService:
             raise
 
     def fetch_species(self, since=None):
-        """
-        Fetch all CARES species from Site2 API, following pagination.
+        """Fetch all CARES species from Site2 API, following pagination.
 
         Args:
             since: optional datetime to filter species updated after this time
 
         Yields:
             dict: serialized species data for each species
+
         """
         params = {}
         if since is not None:
@@ -81,8 +82,7 @@ class SpeciesSyncService:
         return self._fetch_page(url, params=params)
 
     def sync(self, since=None, dry_run=False):
-        """
-        Synchronize CARES species from Site2 to Site1.
+        """Synchronize CARES species from Site2 to Site1.
 
         For each species received from Site2:
           1. Look up the species on Site1 by name (the only reliable shared key).
@@ -104,6 +104,7 @@ class SpeciesSyncService:
 
         Returns:
             dict with keys: fetched, created, updated, skipped, errors
+
         """
         stats = {'fetched': 0, 'created': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
 
@@ -148,8 +149,7 @@ class SpeciesSyncService:
         return dt
 
     def _fields_match(self, local, remote):
-        """
-        Return True if the local Species record already reflects the remote data.
+        """Return True if the local Species record already reflects the remote data.
 
         Comparing field values directly is more reliable than comparing lastUpdated
         timestamps.  Species.lastUpdated uses auto_now=True, so any save (including
@@ -166,9 +166,7 @@ class SpeciesSyncService:
             remote_val = remote.get(field)
             if remote_val is not None and getattr(local, field) != remote_val:
                 return False
-        if not local.render_cares:
-            return False
-        return True
+        return local.render_cares
 
     @transaction.atomic
     def _sync_one(self, remote, name, stats, dry_run):
@@ -222,9 +220,8 @@ class SpeciesSyncService:
         """Update an existing Species record from remote data."""
         update_kwargs = {}
         for field in SYNC_FIELDS:
-            if field in remote and remote[field] is not None:
-                if getattr(local, field) != remote[field]:
-                    update_kwargs[field] = remote[field]
+            if field in remote and remote[field] is not None and getattr(local, field) != remote[field]:
+                update_kwargs[field] = remote[field]
         if not local.render_cares:
             update_kwargs['render_cares'] = True
         # Preserve the remote lastUpdated via QuerySet.update() which bypasses

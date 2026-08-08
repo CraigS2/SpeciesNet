@@ -1,20 +1,18 @@
-from django.db import models
+
 #from enum import Enum
 #from django.contrib.auth.models import User
 from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
-from django.utils.translation import gettext_lazy as _
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
 from django.utils import timezone
-import re
+from django.utils.translation import gettext_lazy as _
 
 ### Custom User
 
 class UserManager (BaseUserManager):
-    
+
     def create_user (self, email, username, password=None, **extra_fields):
         if not email:
             raise ValueError ('Email is required.')
@@ -27,7 +25,7 @@ class UserManager (BaseUserManager):
         user.set_password (password)
         user.save()
         return user
-    
+
     def create_superuser (self, email, username, password=None, **extra_fields):
         if not email:
             raise ValueError ('Email is required.')
@@ -46,7 +44,7 @@ class UserManager (BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-      
+
     id         = models.AutoField (primary_key=True)
     email      = models.EmailField (max_length=50, unique=True)
     first_name = models.CharField (max_length=100, blank=True)
@@ -55,7 +53,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     state      = models.CharField (max_length=100, blank=True)
     country    = models.CharField (max_length=100, blank=True)
 
-    date_joined = models.DateTimeField (auto_now_add=True) 
+    date_joined = models.DateTimeField (auto_now_add=True)
     last_login  = models.DateTimeField(blank=True, null=True)
 
     is_private_name      = models.BooleanField (default=False)
@@ -72,7 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     instagram_url = models.URLField(max_length=200, blank=True, null=True, verbose_name="Instagram Profile") #help_text="Full Instagram URL (e.g., https://instagram.com/username)")
     facebook_url = models.URLField(max_length=200, blank=True, null=True,  verbose_name="Facebook Profile")  #help_text="Full Facebook URL (e.g., https://facebook.com/username)")
-    youtube_url = models.URLField(max_length=200, blank=True, null=True,   verbose_name="YouTube Channel")   #help_text="Full YouTube URL (e.g., https://youtube.com/@username)")    
+    youtube_url = models.URLField(max_length=200, blank=True, null=True,   verbose_name="YouTube Channel")   #help_text="Full YouTube URL (e.g., https://youtube.com/@username)")
 
     prefer_tile_view = models.BooleanField (default=True)
 
@@ -82,15 +80,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     # username_validator = UnicodeUsernameValidator()
 
     objects = UserManager()
-    
+
     def clean(self):
         super().clean()
         self.email = self.__class__.objects.normalize_email(self.email)
-    
+
     def get_full_name(self):
         full_name = self.first_name + ' ' + self.last_name
-        return full_name.strip() 
- 
+        return full_name.strip()
+
     def get_display_name(self):
         """Return username without domain if it's an email address."""
         if '@' in self.username:
@@ -107,10 +105,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 class UserEmail (models.Model):
 
     name            = models.CharField  (max_length=240)
-    send_to         = models.ForeignKey (User, on_delete=models.SET_NULL, null=True, related_name='user_emails_to') 
-    send_from       = models.ForeignKey (User, on_delete=models.SET_NULL, null=True, related_name='user_emails_from') 
-    email_subject   = models.TextField  (blank=False) 
-    email_text      = models.TextField  (blank=False) 
+    send_to         = models.ForeignKey (User, on_delete=models.SET_NULL, null=True, related_name='user_emails_to')
+    send_from       = models.ForeignKey (User, on_delete=models.SET_NULL, null=True, related_name='user_emails_from')
+    email_subject   = models.TextField  (blank=False)
+    email_text      = models.TextField  (blank=False)
     created         = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -157,7 +155,7 @@ class Species (models.Model):
         EUROPE          = 'EUR', _('Europe')
         OTHER           = 'OTH', _('Other Region')
         UNDEFINED       = 'UDF', _('Undefined')
-        
+
     global_region       = models.CharField (max_length=3, choices=GlobalRegion.choices, default=GlobalRegion.AFRICA)
     local_distribution  = models.CharField (max_length=200, blank=True)
 
@@ -188,7 +186,7 @@ class Species (models.Model):
         RAINBOWFISH     = 'RAIN',  _('Melanotaeniidae - Oceania Rainbowfish')
         SQUEEKERS       = 'SQUE',  _('Mochokidae - Upside-down Catfish (Squeakers)')
         TOOTHCARPS      = 'NOTH',  _('Nothobranchiidae - African Killifish')
-        BETTAS          = 'BETT',  _('Osphronemidae - Bettas')        
+        BETTAS          = 'BETT',  _('Osphronemidae - Bettas')
         LIVEBEARERS     = 'POEC',  _('Poeciliidae - Livebearers')
         BLUEEYES        = 'PSMU',  _('Pseudomugilidae - Blue-eyed Rainbowfish')
         RIVULUS         = 'RIVU',  _('Rivulidae - South American Killifish')
@@ -208,20 +206,20 @@ class Species (models.Model):
         CRIT_ENDANGERED   = 'CR', _('Critically Endangered')
         EXTINCT_IN_WILD   = 'EW', _('Extinct in the Wild')
         EXTINCT           = 'EX', _('Extinct')
-    
+
     iucn_red_list         = models.CharField (max_length=2, choices=IucnRedList.choices, default=IucnRedList.UNDEFINED)
-    iucn_assessment_date  = models.DateField (null=True, blank=True)    
+    iucn_assessment_date  = models.DateField (null=True, blank=True)
 
     class CaresStatus (models.TextChoices):
         NOT_CARES_SPECIES = 'NOTC', _('Undefined')
-        CARES_NEAR_THREAT = 'CNT', _ ('Near Threatened')   
-        CARES_VULNERABLE  = 'CVU', _ ('Vulnerable')   
-        CARES_ENDANGERED  = 'CEN', _ ('Endangered')   
-        CARES_CRIT_ENDGR  = 'CCR', _ ('Critically Endangered')   
-        CARES_EXT_IN_WILD = 'CEW', _ ('Extinct in the Wild')   
-    
-    cares_classification         = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)    
-    cares_assessment_date        = models.DateField (null=True, blank=True)    
+        CARES_NEAR_THREAT = 'CNT', _ ('Near Threatened')
+        CARES_VULNERABLE  = 'CVU', _ ('Vulnerable')
+        CARES_ENDANGERED  = 'CEN', _ ('Endangered')
+        CARES_CRIT_ENDGR  = 'CCR', _ ('Critically Endangered')
+        CARES_EXT_IN_WILD = 'CEW', _ ('Extinct in the Wild')
+
+    cares_classification         = models.CharField (max_length=4, choices=CaresStatus.choices, default=CaresStatus.NOT_CARES_SPECIES)
+    cares_assessment_date        = models.DateField (null=True, blank=True)
     render_cares                 = models.BooleanField (default=False)           # cached value to speed rendering N species
     species_instance_count       = models.PositiveIntegerField (default=0)       # cached value to speed speciesSearch list views
     manage_collection_locations  = models.BooleanField (default=False)           # require use of SpeciesCollectionLocation table
@@ -229,9 +227,9 @@ class Species (models.Model):
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
-    created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species') 
+    created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_created_species')
     lastUpdated               = models.DateTimeField (auto_now=True)          # updated every DB FSpec save
-    last_edited_by            = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_last_edited_species') 
+    last_edited_by            = models.ForeignKey(User, on_delete=models.SET_NULL, editable=False, null=True, related_name='user_last_edited_species')
 
     class Meta:
         ordering = ['name'] # sorts in alphabetical order
@@ -241,7 +239,7 @@ class Species (models.Model):
     def genus_name (self):
         genus_name = self.name.lstrip()   # strips any leading space characters
         if ' ' in genus_name:
-            genus_name = genus_name.split(' ')[0] 
+            genus_name = genus_name.split(' ')[0]
         else:
             print ('Species name failed to resolve to genus name for species: ' + self.name)
         return genus_name
@@ -252,9 +250,9 @@ class Species (models.Model):
 class SpeciesComment (models.Model):
 
     name                      = models.CharField  (max_length=240)
-    user                      = models.ForeignKey (User, on_delete=models.CASCADE, editable=False, related_name='user_species_comments') 
-    species                   = models.ForeignKey (Species, on_delete=models.CASCADE, null=False, related_name='species_comments') 
-    comment                   = models.TextField  (blank=False) 
+    user                      = models.ForeignKey (User, on_delete=models.CASCADE, editable=False, related_name='user_species_comments')
+    species                   = models.ForeignKey (Species, on_delete=models.CASCADE, null=False, related_name='species_comments')
+    comment                   = models.TextField  (blank=False)
     created                   = models.DateTimeField (auto_now_add=True)
 
     class Meta:
@@ -266,8 +264,8 @@ class SpeciesComment (models.Model):
 class SpeciesReferenceLink (models.Model):
 
     name                      = models.CharField (max_length=240)
-    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_links') 
-    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_links') 
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_links')
+    species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=False, related_name='species_links')
     reference_url             = models.URLField  (max_length=500)  # help_text="Reference link URL - copy from browser"
     created                   = models.DateTimeField(auto_now_add=True)
 
@@ -276,12 +274,12 @@ class SpeciesReferenceLink (models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class SpeciesCollectionLocation(models.Model):
-    """
-    Species-scoped list of known wild collection locations.
+    """Species-scoped list of known wild collection locations.
     Managed by admins and optionally by users on ASN (Site 1).
     """
+
     species  = models.ForeignKey(Species, on_delete=models.CASCADE, related_name='collection_locations')
     name        = models.CharField(max_length=200)
     is_verified = models.BooleanField (default=False)                     # user-added locations need species admin verification
@@ -294,7 +292,7 @@ class SpeciesCollectionLocation(models.Model):
 
     def __str__(self):
         return f"{self.name}"
-    
+
 ### Species Feedback
 
 class SpeciesFeedback(models.Model):
@@ -328,21 +326,21 @@ class SpeciesFeedback(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name    
-    
+        return self.name
+
 class SpeciesAdmin (models.Model):
     name              = models.CharField (max_length=240)
     user              = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='species_admins') # deletes species instances if user deleted
     category          = models.CharField (max_length=3, choices=Species.Category.choices, default=Species.Category.UNDEFINED)
     last_updated      = models.DateTimeField(auto_now=True)
-    last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='species_admin_updaters') 
+    last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='species_admin_updaters')
     created           = models.DateTimeField (auto_now_add=True)
 
     class Meta:
         ordering = ['name']
 
     def __str__(self):
-        return self.name    
+        return self.name
 
 ### SpeciesInstance (Aquarist Species)
 
@@ -394,10 +392,10 @@ class SpeciesInstance (models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class SpeciesInstanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.PROTECT, null=False, related_name='species_instance_log_entries') 
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.PROTECT, null=False, related_name='species_instance_log_entries')
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     log_entry_video_url       = models.URLField (max_length=500, blank=True)  # help_text="YouTube video link"
     log_entry_notes           = models.TextField (null=False, blank=False)
@@ -409,7 +407,7 @@ class SpeciesInstanceLogEntry (models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class SpeciesInstanceLabel (models.Model):
     name                      = models.CharField(max_length=200)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=False, related_name='species_instance_labels') # deletes ALL log entries referencing any deleted species instance
@@ -423,14 +421,14 @@ class SpeciesInstanceLabel (models.Model):
         ordering = ['name']
 
     def __str__(self):
-        return f"Label: {self.name[:30]}"    
+        return f"Label: {self.name[:30]}"
 
 class SpeciesInstanceComment (models.Model):
 
     name                      = models.CharField (max_length=240)
     user                      = models.ForeignKey(User, on_delete=models.CASCADE, editable=False, related_name='user_species_instance_comments') # delestes species instances if user deleted
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.CASCADE, null=False, related_name='species_instance_comments')   # deletes ALL instances referencing any deleted species
-    comment                   = models.TextField(null=False, blank=False) 
+    comment                   = models.TextField(null=False, blank=False)
     created                   = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -445,8 +443,8 @@ class SpeciesInstanceComment (models.Model):
 class SpeciesMaintenanceLog (models.Model):
     name                      = models.CharField (max_length=240)
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='species_maintenance_logs')   # deletes ALL instances referencing any deleted species
-    collaborators             = models.ManyToManyField(User, related_name='user_maintenance_logs') 
-    speciesInstances          = models.ManyToManyField(SpeciesInstance, related_name='species_instance_maintenance_logs') 
+    collaborators             = models.ManyToManyField(User, related_name='user_maintenance_logs')
+    speciesInstances          = models.ManyToManyField(SpeciesInstance, related_name='species_instance_maintenance_logs')
     description               = models.TextField (blank=True)
     log_is_private            = models.BooleanField(default=False)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
@@ -454,10 +452,10 @@ class SpeciesMaintenanceLog (models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class SpeciesMaintenanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
-    speciesMaintenanceLog     = models.ForeignKey (SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')  
+    speciesMaintenanceLog     = models.ForeignKey (SpeciesMaintenanceLog, on_delete=models.CASCADE, null=False, related_name='species_maintenance_log_entries')
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     log_entry_video_url       = models.URLField (max_length=500, blank=True)                     # help_text="YouTube video link"
     log_entry_notes           = models.TextField (blank=False)
@@ -486,7 +484,7 @@ class AquaristClub (models.Model):
     bap_guidelines            = models.TextField (blank=True)
     bap_notes_template        = models.TextField (blank=True)
     bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
-    cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)  
+    cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)
     bap_start_date            = models.DateField (null=True, blank=True)
     bap_end_date              = models.DateField (null=True, blank=True)
     is_bap_club               = models.BooleanField (default=False)
@@ -500,7 +498,7 @@ class AquaristClub (models.Model):
 
     def __str__(self):
         return self.name
-    
+
 
 class AquaristClubMember (models.Model):
     name                      = models.CharField (max_length=240)
@@ -528,7 +526,7 @@ class CaresApprover (models.Model):
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=5, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
     last_updated      = models.DateTimeField(auto_now=True)
-    last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters') 
+    last_updated_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_updaters')
     created           = models.DateTimeField (auto_now_add=True)
 
     class Meta:
@@ -540,9 +538,9 @@ class CaresApprover (models.Model):
 class CaresRegistration (models.Model):
     name                      = models.CharField (max_length=240)
     aquarist_name             = models.CharField (max_length=240, blank=False, default='')
-    aquarist_email            = models.EmailField(max_length=50, null=True)  
-    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_cares_registrations') 
-    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations') 
+    aquarist_email            = models.EmailField(max_length=50, null=True)
+    cares_approver            = models.ForeignKey(CaresApprover, on_delete=models.SET_NULL, null=True, blank=True, related_name='approver_cares_registrations')
+    affiliate_club            = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, blank=True, related_name='club_cares_registrations')
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='cares_registrations')
     species_source            = models.TextField (blank=False, default='')
@@ -550,7 +548,7 @@ class CaresRegistration (models.Model):
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
     species_has_spawned       = models.BooleanField (default=False)
     young_available           = models.BooleanField (default=False)
-    offspring_shared          = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(500)], default=0)  
+    offspring_shared          = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(500)], default=0)
 
     class CaresRegistrationStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
@@ -560,17 +558,17 @@ class CaresRegistration (models.Model):
         RESUBMIT = 'RESU', _('Resubmitted')
         EXPIRED  = 'EXPI', _('Expired')
         CLOSED   = 'CLSD', _('Closed')
-    
+
     approver_notes            = models.TextField (blank=True)
     status                    = models.CharField (max_length=4, choices=CaresRegistrationStatus.choices, default=CaresRegistrationStatus.OPEN)
     asn_imported              = models.BooleanField (default=False)
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
 
-    last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates') 
+    last_updated_by           = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_cares_registration_last_updates')
     last_report_date          = models.DateField (null=True, blank=True)
 
     date_requested            = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
-    lastUpdated               = models.DateTimeField (auto_now=True)    
+    lastUpdated               = models.DateTimeField (auto_now=True)
 
     def __str__(self):
         return self.name
@@ -581,12 +579,12 @@ class CaresRegistration (models.Model):
 class BapSubmission (models.Model):
 
     name                      = models.CharField (max_length=240)
-    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_submissions') 
-    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
+    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_submissions')
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions')
     #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
-    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
-    
+    speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True)
+
     class BapSubmissionStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
         APPROVED = 'APRV', _('Approved')
@@ -596,23 +594,23 @@ class BapSubmission (models.Model):
 
     status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
     points                    = models.IntegerField (validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
-    request_points_review     = models.BooleanField (default=False)    
+    request_points_review     = models.BooleanField (default=False)
     notes                     = models.TextField (blank=True)
     breeder_comments          = models.TextField (blank=True)
     admin_comments            = models.TextField (blank=True)
     active                    = models.BooleanField (default=True)
     created                   = models.DateTimeField (auto_now_add=True)
-    lastUpdated               = models.DateTimeField (auto_now=True)    
+    lastUpdated               = models.DateTimeField (auto_now=True)
 
     def __str__(self):
         return self.name
-    
+
 
 class BapLeaderboard (models.Model):
 
     name                      = models.CharField (max_length=240)
-    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_leaderboards') 
-    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_leaderboards') 
+    aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_bap_leaderboards')
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_leaderboards')
     #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
     species_count             = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
@@ -623,13 +621,13 @@ class BapLeaderboard (models.Model):
 
 
     def __str__(self):
-        return self.name    
-    
+        return self.name
+
 
 class BapGenus (models.Model):
 
     name                      = models.CharField (max_length=240)
-    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_genus') 
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_genus')
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
     example_species           = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='example_bap_species')
     species_count             = models.PositiveIntegerField (default=0)       # cached value to eliminate N+1 queries in GenusPoints list view
@@ -642,24 +640,24 @@ class BapGenus (models.Model):
         verbose_name_plural = "BapGenus"
 
     def __str__(self):
-        return self.name    
+        return self.name
 
 
 class BapSpecies (models.Model):
 
     name                      = models.CharField (max_length=240)
     species                   = models.ForeignKey(Species, on_delete=models.CASCADE, null=True, related_name='bap_species') # deletes ALL instances referencing any deleted species
-    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_species') 
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_species')
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
     class Meta:
-        ordering = ['name'] # sorts in alphabetical order    
+        ordering = ['name'] # sorts in alphabetical order
         verbose_name_plural = "BapSpecies"
 
     def __str__(self):
-        return self.name            
+        return self.name
 
 
 ### ImportArchives
@@ -676,7 +674,7 @@ class ImportArchive (models.Model):
         PARTIAL  = 'PART', _('Partial Import')
         FULL     = 'FULL', _('Full Import')
         FAIL     = 'FAIL', _('Import Failure')
-    
+
     import_status             = models.CharField (max_length=4, choices=ImportStatus.choices, default=ImportStatus.PENDING)
     dateImported              = models.DateTimeField(auto_now_add=True)
 
@@ -748,8 +746,7 @@ class SpeciesImportStaging (models.Model):
 ### Page View Tracking
 
 class PageViewCount(models.Model):
-    """
-    Running total page view counters per object, split by visitor type.
+    """Running total page view counters per object, split by visitor type.
     Exactly 2 rows per tracked object (anonymous + authenticated).
     Updated on every qualifying page visit via F() expression increment.
     Counts are reset to 0 after each monthly snapshot by the snapshot_monthly_views management command.
@@ -783,8 +780,7 @@ class PageViewCount(models.Model):
 
 
 class PageViewMonthlySnapshot(models.Model):
-    """
-    Monthly delta snapshot of page views per object, split by visitor type.
+    """Monthly delta snapshot of page views per object, split by visitor type.
     Each row records the number of views that occurred during that specific month.
     Populated by the snapshot_monthly_views management command, which reads
     PageViewCount totals, writes the delta here, then resets PageViewCount.count to 0.
