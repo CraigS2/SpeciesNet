@@ -29,21 +29,35 @@ club matched by acronym (case-insensitive)
 # ── Constants ───────────────��──────────────────────────────────────────────────
 
 EXPECTED_HEADERS = [
-    'cares_member', 'cares_species', 'verified', 'source',
-    'breeding_group', 'acquisition_date', 'registration_date',
-    'email_address', 'club', 'last_update', 'notes',
+    "cares_member",
+    "cares_species",
+    "verified",
+    "source",
+    "breeding_group",
+    "acquisition_date",
+    "registration_date",
+    "email_address",
+    "club",
+    "last_update",
+    "notes",
 ]
 
 REQUIRED_FIELDS = [
-    'cares_member', 'cares_species', 'source',
-    'acquisition_date', 'registration_date', 'email_address', 'club',
+    "cares_member",
+    "cares_species",
+    "source",
+    "acquisition_date",
+    "registration_date",
+    "email_address",
+    "club",
 ]
 
-BOOL_TRUE_VALUES = {'y', 'yes', 't', 'true'}
+BOOL_TRUE_VALUES = {"y", "yes", "t", "true"}
 
-DATE_FORMAT = '%Y-%m-%d'
+DATE_FORMAT = "%Y-%m-%d"
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _parse_bool(raw: str) -> bool:
     """Return True if raw matches any recognised truthy token."""
@@ -108,83 +122,95 @@ def import_legacy_cares_registrations(import_archive, imported_by):
 
     """
     summary = {
-        'total': 0,
-        'imported': 0,
-        'skipped': 0,
-        'errors': 0,
-        'rows': [],
+        "total": 0,
+        "imported": 0,
+        "skipped": 0,
+        "errors": 0,
+        "rows": [],
     }
 
     try:
-        import_archive.import_csv_file.open('rb')
+        import_archive.import_csv_file.open("rb")
         raw_bytes = import_archive.import_csv_file.read()
         import_archive.import_csv_file.close()
     except Exception as exc:
-        logger.error('Legacy import: cannot open CSV file: %s', exc, exc_info=True)
-        summary['errors'] += 1
-        summary['rows'].append({
-            'row': 0, 'status': 'ERROR',
-            'cares_member': '', 'cares_species': '',
-            'message': f'Cannot open uploaded file: {exc}',
-        })
+        logger.error("Legacy import: cannot open CSV file: %s", exc, exc_info=True)
+        summary["errors"] += 1
+        summary["rows"].append(
+            {
+                "row": 0,
+                "status": "ERROR",
+                "cares_member": "",
+                "cares_species": "",
+                "message": f"Cannot open uploaded file: {exc}",
+            }
+        )
         return summary
 
     # Decode — handle optional UTF-8 BOM
-    raw_text = raw_bytes.decode('utf-8-sig')
+    raw_text = raw_bytes.decode("utf-8-sig")
 
     reader = csv.DictReader(io.StringIO(raw_text))
 
     if not reader.fieldnames:
-        summary['errors'] += 1
-        summary['rows'].append({
-            'row': 0, 'status': 'ERROR',
-            'cares_member': '', 'cares_species': '',
-            'message': 'File appears to be empty or has no header row.',
-        })
+        summary["errors"] += 1
+        summary["rows"].append(
+            {
+                "row": 0,
+                "status": "ERROR",
+                "cares_member": "",
+                "cares_species": "",
+                "message": "File appears to be empty or has no header row.",
+            }
+        )
         return summary
 
     actual_headers = [h.strip() for h in reader.fieldnames]
     missing_headers = [h for h in EXPECTED_HEADERS if h not in actual_headers]
     if missing_headers:
-        summary['errors'] += 1
-        summary['rows'].append({
-            'row': 0, 'status': 'ERROR',
-            'cares_member': '', 'cares_species': '',
-            'message': f'Missing required CSV headers: {", ".join(missing_headers)}',
-        })
+        summary["errors"] += 1
+        summary["rows"].append(
+            {
+                "row": 0,
+                "status": "ERROR",
+                "cares_member": "",
+                "cares_species": "",
+                "message": f"Missing required CSV headers: {', '.join(missing_headers)}",
+            }
+        )
         return summary
 
-    for row_num, row in enumerate(reader, start=2):   # row 1 = header
-        summary['total'] += 1
+    for row_num, row in enumerate(reader, start=2):  # row 1 = header
+        summary["total"] += 1
         row_result = {
-            'row': row_num,
-            'status': 'OK',
-            'cares_member': row.get('cares_member', '').strip(),
-            'cares_species': row.get('cares_species', '').strip(),
-            'message': '',
+            "row": row_num,
+            "status": "OK",
+            "cares_member": row.get("cares_member", "").strip(),
+            "cares_species": row.get("cares_species", "").strip(),
+            "message": "",
         }
 
         try:
-            cares_member          = row.get('cares_member', '').strip()
-            cares_species_name    = row.get('cares_species', '').strip()
-            verified_raw          = row.get('verified', '').strip()
-            source                = row.get('source', '').strip()
-            breeding_group_raw    = row.get('breeding_group', '').strip()
-            acquisition_date_raw  = row.get('acquisition_date', '').strip()
-            registration_date_raw = row.get('registration_date', '').strip()
-            email_address         = row.get('email_address', '').strip()
-            club_acronym          = row.get('club', '').strip()
-            last_update_raw       = row.get('last_update', '').strip()
+            cares_member = row.get("cares_member", "").strip()
+            cares_species_name = row.get("cares_species", "").strip()
+            verified_raw = row.get("verified", "").strip()
+            source = row.get("source", "").strip()
+            breeding_group_raw = row.get("breeding_group", "").strip()
+            acquisition_date_raw = row.get("acquisition_date", "").strip()
+            registration_date_raw = row.get("registration_date", "").strip()
+            email_address = row.get("email_address", "").strip()
+            club_acronym = row.get("club", "").strip()
+            last_update_raw = row.get("last_update", "").strip()
 
-            missing = [f for f in REQUIRED_FIELDS if not row.get(f, '').strip()]
+            missing = [f for f in REQUIRED_FIELDS if not row.get(f, "").strip()]
             if missing:
-                raise ValueError(f'Missing required field(s): {", ".join(missing)}')
+                raise ValueError(f"Missing required field(s): {', '.join(missing)}")
 
-            species           = _resolve_species(cares_species_name)
-            affiliate_club    = _resolve_club(club_acronym)
-            acquisition_date  = _parse_date(acquisition_date_raw)
+            species = _resolve_species(cares_species_name)
+            affiliate_club = _resolve_club(club_acronym)
+            acquisition_date = _parse_date(acquisition_date_raw)
             registration_date = _parse_date(registration_date_raw)
-            _parse_date(last_update_raw)   # informational
+            _parse_date(last_update_raw)  # informational
 
             if acquisition_date is None:
                 raise ValueError(f'Cannot parse acquisition_date: "{acquisition_date_raw}" (expected yyyy-mm-dd)')
@@ -195,14 +221,14 @@ def import_legacy_cares_registrations(import_archive, imported_by):
 
             status = (
                 CaresRegistration.CaresRegistrationStatus.APPROVED
-                if _parse_bool(verified_raw) or verified_raw.upper() in ('Y', 'YES')
+                if _parse_bool(verified_raw) or verified_raw.upper() in ("Y", "YES")
                 else CaresRegistration.CaresRegistrationStatus.OPEN
             )
 
             year_acquired = acquisition_date.year
 
             # Convention: "<species> - <aquarist>" matches existing naming pattern
-            reg_name = f'{cares_species_name} - {cares_member}'
+            reg_name = f"{cares_species_name} - {cares_member}"
 
             # Duplicate check - don't allow if existing match to email + species.
             duplicate = CaresRegistration.objects.filter(
@@ -212,32 +238,34 @@ def import_legacy_cares_registrations(import_archive, imported_by):
 
             if duplicate:
                 logger.info(
-                    'Legacy import row %d: skipped duplicate — '
+                    "Legacy import row %d: skipped duplicate — "
                     'email="%s" species="%s" already exists as registration id=%d.',
-                    row_num, email_address, cares_species_name, duplicate.id,
+                    row_num,
+                    email_address,
+                    cares_species_name,
+                    duplicate.id,
                 )
-                row_result['status'] = 'SKIPPED'
-                row_result['message'] = (
-                    f'Duplicate: registration id={duplicate.id} already exists '
-                    f'for this email + species combination.'
+                row_result["status"] = "SKIPPED"
+                row_result["message"] = (
+                    f"Duplicate: registration id={duplicate.id} already exists for this email + species combination."
                 )
-                summary['skipped'] += 1
-                summary['rows'].append(row_result)
+                summary["skipped"] += 1
+                summary["rows"].append(row_result)
                 continue
 
             reg = CaresRegistration(
-                name                = reg_name,
-                aquarist_name       = cares_member,
-                aquarist_email      = email_address,
-                species             = species,
-                species_source      = source,
-                affiliate_club      = affiliate_club,
-                species_has_spawned = is_breeding_group,
-                year_acquired       = year_acquired,
-                last_report_date    = registration_date,   # closest available date field
-                status              = status,
-                last_updated_by     = imported_by,
-                verification_photo  = '',   # no photo available for legacy records
+                name=reg_name,
+                aquarist_name=cares_member,
+                aquarist_email=email_address,
+                species=species,
+                species_source=source,
+                affiliate_club=affiliate_club,
+                species_has_spawned=is_breeding_group,
+                year_acquired=year_acquired,
+                last_report_date=registration_date,  # closest available date field
+                status=status,
+                last_updated_by=imported_by,
+                verification_photo="",  # no photo available for legacy records
             )
             reg.save()
 
@@ -253,19 +281,21 @@ def import_legacy_cares_registrations(import_archive, imported_by):
 
             logger.info(
                 'Legacy import row %d: saved CaresRegistration id=%d "%s".',
-                row_num, reg.id, reg_name,
+                row_num,
+                reg.id,
+                reg_name,
             )
-            row_result['status'] = 'IMPORTED'
-            row_result['message'] = f'Saved as registration id={reg.id}'
-            summary['imported'] += 1
+            row_result["status"] = "IMPORTED"
+            row_result["message"] = f"Saved as registration id={reg.id}"
+            summary["imported"] += 1
 
         except Exception as exc:
-            logger.warning('Legacy import row %d: %s', row_num, exc, exc_info=False)
-            row_result['status'] = 'ERROR'
-            row_result['message'] = str(exc)
-            summary['errors'] += 1
+            logger.warning("Legacy import row %d: %s", row_num, exc, exc_info=False)
+            row_result["status"] = "ERROR"
+            row_result["message"] = str(exc)
+            summary["errors"] += 1
 
-        summary['rows'].append(row_result)
+        summary["rows"].append(row_result)
 
     return summary
 
@@ -294,48 +324,48 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
 
     Returns dict: updated, skipped, errors, total, site_id
     """
-    site_id = getattr(settings, 'SITE_ID', 1)
+    site_id = getattr(settings, "SITE_ID", 1)
 
     csv_report_buffer = StringIO()
     csv_report_writer = csv.writer(csv_report_buffer)
-    csv_report_writer.writerow(['Row', 'Species_Name', 'Lookup_ID', 'Import_Status'])
+    csv_report_writer.writerow(["Row", "Species_Name", "Lookup_ID", "Import_Status"])
 
-    row_count    = 0
+    row_count = 0
     update_count = 0
-    skip_count   = 0
-    error_count  = 0
+    skip_count = 0
+    error_count = 0
 
-    with open(import_archive.import_csv_file.path, encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, encoding="utf-8") as import_file:
         for import_row in DictReader(import_file):
             row_count += 1
 
-            species_name               = (import_row.get('species_name') or '').strip()
-            asn_id_raw                 = (import_row.get('asn_id') or '').strip()
-            cso_id_raw                 = (import_row.get('cso_id') or '').strip()
-            render_cares_raw           = (import_row.get('render_cares') or '').strip()
-            species_instance_count_raw = (import_row.get('species_instance_count') or '').strip()
+            species_name = (import_row.get("species_name") or "").strip()
+            asn_id_raw = (import_row.get("asn_id") or "").strip()
+            cso_id_raw = (import_row.get("cso_id") or "").strip()
+            render_cares_raw = (import_row.get("render_cares") or "").strip()
+            species_instance_count_raw = (import_row.get("species_instance_count") or "").strip()
 
             # species_name is always required
             if not species_name:
                 error_count += 1
-                status_txt = 'ERROR - missing required field: species_name'
-                csv_report_writer.writerow([row_count, '', '', status_txt])
-                logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                status_txt = "ERROR - missing required field: species_name"
+                csv_report_writer.writerow([row_count, "", "", status_txt])
+                logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                 continue
 
             # skip non-CARES rows
             if not _parse_bool(render_cares_raw):
                 skip_count += 1
-                status_txt = f'SKIP - render_cares is not truthy ({render_cares_raw!r})'
-                csv_report_writer.writerow([row_count, species_name, '', status_txt])
-                logger.info('Species external_id import row %d: %s', row_count, status_txt)
+                status_txt = f"SKIP - render_cares is not truthy ({render_cares_raw!r})"
+                csv_report_writer.writerow([row_count, species_name, "", status_txt])
+                logger.info("Species external_id import row %d: %s", row_count, status_txt)
                 continue
 
             # site-specific field assignment
             if site_id == 1:
-                lookup_id_raw, external_id_raw, lookup_label, ext_label = asn_id_raw, cso_id_raw, 'asn_id', 'cso_id'
+                lookup_id_raw, external_id_raw, lookup_label, ext_label = asn_id_raw, cso_id_raw, "asn_id", "cso_id"
             else:
-                lookup_id_raw, external_id_raw, lookup_label, ext_label = cso_id_raw, asn_id_raw, 'cso_id', 'asn_id'
+                lookup_id_raw, external_id_raw, lookup_label, ext_label = cso_id_raw, asn_id_raw, "cso_id", "asn_id"
 
             # species lookup — primary by PK, fallback by name
             if lookup_id_raw:
@@ -343,28 +373,28 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
                     lookup_id = int(lookup_id_raw)
                 except (ValueError, TypeError):
                     error_count += 1
-                    status_txt = f'ERROR - invalid {lookup_label} (not an integer): {lookup_id_raw!r}'
+                    status_txt = f"ERROR - invalid {lookup_label} (not an integer): {lookup_id_raw!r}"
                     csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                     continue
 
                 try:
                     species = Species.objects.get(pk=lookup_id)
                 except Species.DoesNotExist:
                     error_count += 1
-                    status_txt = f'ERROR - species not found by {lookup_label}={lookup_id}'
+                    status_txt = f"ERROR - species not found by {lookup_label}={lookup_id}"
                     csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                     continue
 
                 if species.name.strip().lower() != species_name.lower():
                     error_count += 1
                     status_txt = (
-                        f'ERROR - name mismatch: CSV={species_name!r} '
-                        f'DB={species.name!r} for {lookup_label}={lookup_id}'
+                        f"ERROR - name mismatch: CSV={species_name!r} "
+                        f"DB={species.name!r} for {lookup_label}={lookup_id}"
                     )
                     csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                     continue
 
             else:
@@ -373,36 +403,33 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
                     lookup_id_raw = str(species.pk)
                 except ValueError as exc:
                     error_count += 1
-                    status_txt = f'ERROR - {lookup_label} not provided and {exc}'
-                    csv_report_writer.writerow([row_count, species_name, '', status_txt])
-                    logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                    status_txt = f"ERROR - {lookup_label} not provided and {exc}"
+                    csv_report_writer.writerow([row_count, species_name, "", status_txt])
+                    logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                     continue
 
             # external_id source value is required for truthy CARES rows
             if not external_id_raw:
                 error_count += 1
-                status_txt = (
-                    f'ERROR - render_cares is truthy but {ext_label} is missing '
-                    f'for species {species_name!r}'
-                )
+                status_txt = f"ERROR - render_cares is truthy but {ext_label} is missing for species {species_name!r}"
                 csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-                logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                 continue
 
             try:
                 new_external_id = int(external_id_raw)
             except (ValueError, TypeError):
                 error_count += 1
-                status_txt = f'ERROR - invalid {ext_label} (not an integer): {external_id_raw!r}'
+                status_txt = f"ERROR - invalid {ext_label} (not an integer): {external_id_raw!r}"
                 csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-                logger.warning('Species external_id import row %d: %s', row_count, status_txt)
+                logger.warning("Species external_id import row %d: %s", row_count, status_txt)
                 continue
 
             # apply DB updates — only write fields that actually change
             fields_to_save = []
             if species.external_id != new_external_id:
                 species.external_id = new_external_id
-                fields_to_save.append('external_id')
+                fields_to_save.append("external_id")
 
             # Site 2 only: update species_instance_count when a positive integer is supplied
             if site_id == 2 and species_instance_count_raw:
@@ -410,30 +437,32 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
                     new_count = int(species_instance_count_raw)
                     if new_count > 0 and species.species_instance_count != new_count:
                         species.species_instance_count = new_count
-                        fields_to_save.append('species_instance_count')
+                        fields_to_save.append("species_instance_count")
                 except (ValueError, TypeError):
                     logger.warning(
-                        'Species external_id import row %d: invalid species_instance_count %r '
-                        'for species %r — skipping count update',
-                        row_count, species_instance_count_raw, species_name,
+                        "Species external_id import row %d: invalid species_instance_count %r "
+                        "for species %r — skipping count update",
+                        row_count,
+                        species_instance_count_raw,
+                        species_name,
                     )
 
             if not fields_to_save:
                 skip_count += 1
-                status_txt = 'SKIP - no change: all values already match DB'
+                status_txt = "SKIP - no change: all values already match DB"
                 csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-                logger.info('Species external_id import row %d: %s', row_count, status_txt)
+                logger.info("Species external_id import row %d: %s", row_count, status_txt)
                 continue
 
             species.save(update_fields=fields_to_save)
             update_count += 1
 
-            status_txt = f'SUCCESS - updated [{", ".join(fields_to_save)}]  ({ext_label}={new_external_id})'
+            status_txt = f"SUCCESS - updated [{', '.join(fields_to_save)}]  ({ext_label}={new_external_id})"
             csv_report_writer.writerow([row_count, species_name, lookup_id_raw, status_txt])
-            logger.info('Species external_id import row %d: %s', row_count, status_txt)
+            logger.info("Species external_id import row %d: %s", row_count, status_txt)
 
-    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-    csv_report_filename = f'{current_user.username}_species_external_id_import_log.csv'
+    csv_report_file = ContentFile(csv_report_buffer.getvalue().encode("utf-8"))
+    csv_report_filename = f"{current_user.username}_species_external_id_import_log.csv"
     import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
     if update_count == 0 and error_count > 0:
@@ -443,15 +472,15 @@ def import_csv_species_external_ids(import_archive: ImportArchive, current_user:
     else:
         import_archive.import_status = ImportArchive.ImportStatus.FULL
 
-    import_archive.name = f'{current_user.username}_species_external_id_import'
+    import_archive.name = f"{current_user.username}_species_external_id_import"
     import_archive.save()
 
     summary = {
-        'updated': update_count,
-        'skipped': skip_count,
-        'errors':  error_count,
-        'total':   row_count,
-        'site_id': site_id,
+        "updated": update_count,
+        "skipped": skip_count,
+        "errors": error_count,
+        "total": row_count,
+        "site_id": site_id,
     }
-    logger.info('Species external_id import complete: %s', summary)
+    logger.info("Species external_id import complete: %s", summary)
     return summary

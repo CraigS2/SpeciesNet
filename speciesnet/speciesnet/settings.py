@@ -3,14 +3,21 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
-#ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'],
-                 os.environ['ALLOWED_HOST3'], os.environ['ALLOWED_HOST4']]
-#CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
-CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'],
-                        os.environ['CSRF_TRUSTED_ORIGIN3']]
+# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    os.environ["ALLOWED_HOST1"],
+    os.environ["ALLOWED_HOST2"],
+    os.environ["ALLOWED_HOST3"],
+    os.environ["ALLOWED_HOST4"],
+]
+# CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
+CSRF_TRUSTED_ORIGINS = [
+    os.environ["CSRF_TRUSTED_ORIGIN1"],
+    os.environ["CSRF_TRUSTED_ORIGIN2"],
+    os.environ["CSRF_TRUSTED_ORIGIN3"],
+]
 
 ###############################################
 # SITE_ID and SITE_DOMAIN must be aligned     #
@@ -18,41 +25,41 @@ CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRU
 # site2 configures cares species              #
 ###############################################
 
-SITE_ID = int(os.getenv('SITE_ID', '1'))
-SITE_DOMAIN = os.getenv('SITE_DOMAIN', 'your_domain.example.com')
+SITE_ID = int(os.getenv("SITE_ID", "1"))
+SITE_DOMAIN = os.getenv("SITE_DOMAIN", "your_domain.example.com")
 
-site_domain_1 = 'aquarist.example.com'
-site_domain_2 = 'cares.example.com'
-if SITE_ID==1:
+site_domain_1 = "aquarist.example.com"
+site_domain_2 = "cares.example.com"
+if SITE_ID == 1:
     site_domain_1 = SITE_DOMAIN
 else:
     site_domain_2 = SITE_DOMAIN
 
 SITE_CONFIGS = {
     1: {
-        'name': 'Aquarist Species',
-        'domain': site_domain_1,
+        "name": "Aquarist Species",
+        "domain": site_domain_1,
         #'logo': 'site1/logo.png',  # Path relative to static/
         #'primary_color': 'rgb(152, 199, 231)',  # ASN blue
         #'secondary_color': '#6c757d',
         #'contact_email': 'contact@aquarist.example.com',
-        'main_css': 'styles/site1/asn_main.css',
-        'navbar_template': 'site1/navbar.html',
-        'home_template': 'species/site1/home.html',
-        'about_us': 'species/site1/about_us.html',
+        "main_css": "styles/site1/asn_main.css",
+        "navbar_template": "site1/navbar.html",
+        "home_template": "species/site1/home.html",
+        "about_us": "species/site1/about_us.html",
     },
     2: {
-        'name': 'CARES Species',
-        'domain': site_domain_2,
+        "name": "CARES Species",
+        "domain": site_domain_2,
         #'logo': 'site2/logo.png',
         #'primary_color': 'rgb(183, 208, 189)',  # CARES green
         #'secondary_color': '#ffc107',
         #'contact_email': 'contact@cares.example.com',
-        'main_css': 'styles/site2/cares_main.css',
-        'navbar_template': 'site2/navbar.html',
-        'home_template': 'species/site2/home.html',
-        'about_us': 'species/site2/about_us.html',
-    }
+        "main_css": "styles/site2/cares_main.css",
+        "navbar_template": "site2/navbar.html",
+        "home_template": "species/site2/home.html",
+        "about_us": "species/site2/about_us.html",
+    },
 }
 
 CURRENT_SITE_CONFIG = SITE_CONFIGS.get(SITE_ID, SITE_CONFIGS[1])
@@ -63,28 +70,30 @@ CURRENT_SITE_CONFIG = SITE_CONFIGS.get(SITE_ID, SITE_CONFIGS[1])
 #########################################################
 
 DEBUG = False
-if (os.environ['DEBUG'] == 'True') or (os.environ['DEBUG'] == '1'):
+if (os.environ["DEBUG"] == "True") or (os.environ["DEBUG"] == "1"):
     DEBUG = True
-print ('DEBUG = ' + str(DEBUG))
+print("DEBUG = " + str(DEBUG))
 
 DEBUG_TOOLBAR = False
-if (os.environ['DEBUG_TOOLBAR'] == 'True'):
+if os.environ["DEBUG_TOOLBAR"] == "True":
     DEBUG_TOOLBAR = True
 
 if DEBUG and DEBUG_TOOLBAR:
+
     def show_toolbar(request):
         return True
+
     DEBUG_TOOLBAR_CONFIG = {
-        "SHOW_TOOLBAR_CALLBACK" : show_toolbar,
+        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
     }
-    print ('DEBUG_TOOLBAR is enabled!')
+    print("DEBUG_TOOLBAR is enabled!")
 
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-if os.environ.get('EMAIL_USE_TLS', 'True') == "True":
+if os.environ.get("EMAIL_USE_TLS", "True") == "True":
     EMAIL_USE_TLS = True
 else:
     EMAIL_USE_TLS = False
@@ -92,103 +101,103 @@ else:
 
 ### email configuration ###
 
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "user@example.com")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "unsecure")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "user@example.com")
 EMAIL_SUBJECT_PREFIX = ""
 
 ### logging ###
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '[%(asctime)s] [%(levelname)s] [%(name)s:%(lineno)s] %(message)s',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] [%(levelname)s] [%(name)s:%(lineno)s] %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
         },
-        'error': {
-            'format': '[%(asctime)s] [%(levelname)s] [%(name)s.%(funcName)s:%(lineno)s] %(message)s',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'standard',
-        },
-        'error_console': {
-            'level': 'ERROR',
-            'class': 'logging.StreamHandler',
-            'formatter': 'error',
+        "error": {
+            "format": "[%(asctime)s] [%(levelname)s] [%(name)s.%(funcName)s:%(lineno)s] %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
         },
-        'django.server': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
+        "error_console": {
+            "level": "ERROR",
+            "class": "logging.StreamHandler",
+            "formatter": "error",
         },
-        'django.request': {
-            'handlers': ['console', 'error_console'],
-            'level': 'INFO',
-            'propagate': False,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
-        'django.security': {
-            'handlers': ['console', 'error_console'],
-            'level': 'INFO',
-            'propagate': False,
+        "django.server": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "error_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console", "error_console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     # root logger catches everything not specified above
-    'root': {
-        'handlers': ['console', 'error_console'],
-        'level': 'INFO',
+    "root": {
+        "handlers": ["console", "error_console"],
+        "level": "INFO",
     },
 }
 
 ### Apps and Middleware ###
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'crispy_forms',
-    'crispy_bootstrap5',
-    'species.apps.SpeciesConfig',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
-    'django_recaptcha',
-    'django.contrib.sites',
-    'rest_framework',
-    'corsheaders',
-    'django_celery_beat',
-    'django_celery_results',
-    'pending_actions.apps.PendingActionsConfig',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "crispy_forms",
+    "crispy_bootstrap5",
+    "species.apps.SpeciesConfig",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "django_recaptcha",
+    "django.contrib.sites",
+    "rest_framework",
+    "corsheaders",
+    "django_celery_beat",
+    "django_celery_results",
+    "pending_actions.apps.PendingActionsConfig",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
 
@@ -196,109 +205,106 @@ MIDDLEWARE = [
 # for some debugging may need higher in list
 
 if DEBUG and DEBUG_TOOLBAR:
-    INSTALLED_APPS = [*INSTALLED_APPS, 'debug_toolbar']
-    MIDDLEWARE = [*MIDDLEWARE, 'debug_toolbar.middleware.DebugToolbarMiddleware']
+    INSTALLED_APPS = [*INSTALLED_APPS, "debug_toolbar"]
+    MIDDLEWARE = [*MIDDLEWARE, "debug_toolbar.middleware.DebugToolbarMiddleware"]
 
 ### Authentication ###
 
-SECURE_REFERRER_POLICY= "strict-origin-when-cross-origin"
-SECURE_CROSS_ORIGIN_OPENER_POLICY="same-origin-allow-popups"
-GOOGLE_OAUTH_LINK = os.environ.get('GOOGLE_OAUTH_LINK', 'unsecure')
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+GOOGLE_OAUTH_LINK = os.environ.get("GOOGLE_OAUTH_LINK", "unsecure")
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
         ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
+        "AUTH_PARAMS": {
+            "access_type": "online",
         },
-        'OAUTH_PKCE_ENABLED': True,
-        'FETCH_USERINFO': True
+        "OAUTH_PKCE_ENABLED": True,
+        "FETCH_USERINFO": True,
     }
 }
 
-SOCIALACCOUNT_EMAIL_AUTHENTICATION=True
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT=True
-SOCIALACCOUNT_LOGIN_ON_GET=True
-SOCIALACCOUNT_ALLOW_SIGNUPS = os.environ.get('ACCOUNT_SIGNUP_ENABLED', 'True') == 'True'
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_ALLOW_SIGNUPS = os.environ.get("ACCOUNT_SIGNUP_ENABLED", "True") == "True"
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
 ACCOUNT_FORMS = {
-    'signup': 'species.forms.CustomSignupForm',
-    'reset_password': 'species.forms.CustomResetPasswordForm',
+    "signup": "species.forms.CustomSignupForm",
+    "reset_password": "species.forms.CustomResetPasswordForm",
 }
 
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
-ACCOUNT_CONFIRM_EMAIL_ON_GET = os.environ.get('ACCOUNT_CONFIRM_EMAIL_ON_GET', 'False')
+ACCOUNT_CONFIRM_EMAIL_ON_GET = os.environ.get("ACCOUNT_CONFIRM_EMAIL_ON_GET", "False")
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'none')
-ACCOUNT_SIGNUP_ENABLED = os.environ.get('ACCOUNT_SIGNUP_ENABLED', 'True') == 'True'
+ACCOUNT_EMAIL_VERIFICATION = os.environ.get("ACCOUNT_EMAIL_VERIFICATION", "none")
+ACCOUNT_SIGNUP_ENABLED = os.environ.get("ACCOUNT_SIGNUP_ENABLED", "True") == "True"
 # print ('Settings ACCOUNT_SIGNUP_ENABLED: ' + str(ACCOUNT_SIGNUP_ENABLED))
-ACCOUNT_ALLOW_REGISTRATION = os.environ.get('ACCOUNT_ALLOW_REGISTRATION', 'True') == 'True'
+ACCOUNT_ALLOW_REGISTRATION = os.environ.get("ACCOUNT_ALLOW_REGISTRATION", "True") == "True"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
-ACCOUNT_DEFAULT_HTTP_PROTOCOL='https'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
 ACCOUNT_CHANGE_EMAIL = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
-RECAPTCHA_PUBLIC_KEY = os.environ.get('RECAPTCHA_PUBLIC_KEY', 'unsecure')
-RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY', 'unsecure')
+RECAPTCHA_PUBLIC_KEY = os.environ.get("RECAPTCHA_PUBLIC_KEY", "unsecure")
+RECAPTCHA_PRIVATE_KEY = os.environ.get("RECAPTCHA_PRIVATE_KEY", "unsecure")
 
 AUTHENTICATION_BACKENDS = [
     # Needed to login by username in Django admin, regardless of `allauth`
-    'django.contrib.auth.backends.ModelBackend',
-
+    "django.contrib.auth.backends.ModelBackend",
     # `allauth` specific authentication methods, such as login by e-mail
-    'allauth.account.auth_backends.AuthenticationBackend',
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 ### Session Timing ###
 
-SESSION_COOKIE_AGE = 120960000   # 120960000 generous - Keeps users logged in for a long time
+SESSION_COOKIE_AGE = 120960000  # 120960000 generous - Keeps users logged in for a long time
 
 ### Crispy Forms and Bootstrap CSS ###
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-ROOT_URLCONF = 'speciesnet.urls'
+ROOT_URLCONF = "speciesnet.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'templates'
-        ],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.request',
-                'species.context_processors.site_config',
-                'species.context_processors.environment_vars',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.request",
+                "species.context_processors.site_config",
+                "species.context_processors.environment_vars",
             ],
         },
     },
@@ -306,22 +312,24 @@ TEMPLATES = [
 
 ### WSGI - Web Server Gateway Interface ###
 
-WSGI_APPLICATION = 'speciesnet.wsgi.application'
+WSGI_APPLICATION = "speciesnet.wsgi.application"
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'django-db')
-CELERY_RESULT_EXPIRES = int(os.environ.get('CELERY_RESULT_EXPIRES_DAYS', '30')) * 86400
-CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
-CELERY_TASK_EAGER_PROPAGATES = os.environ.get('CELERY_TASK_EAGER_PROPAGATES', 'True') == 'True'
-CELERY_TASK_DEFAULT_QUEUE = os.environ.get('CELERY_TASK_DEFAULT_QUEUE', 'default')
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "django-db")
+CELERY_RESULT_EXPIRES = int(os.environ.get("CELERY_RESULT_EXPIRES_DAYS", "30")) * 86400
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "False") == "True"
+CELERY_TASK_EAGER_PROPAGATES = os.environ.get("CELERY_TASK_EAGER_PROPAGATES", "True") == "True"
+CELERY_TASK_DEFAULT_QUEUE = os.environ.get("CELERY_TASK_DEFAULT_QUEUE", "default")
 CELERY_TASK_QUEUES = {
-    'default': {},
-    'emails': {},
+    "default": {},
+    "emails": {},
     # Reserved for future species-sync work; no sync tasks are implemented in this PR.
-    'sync': {},
+    "sync": {},
 }
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-PENDING_ACTION_BASE_URL = os.environ.get('PENDING_ACTION_BASE_URL', os.environ.get('SITE2_URL') or os.environ.get('SITE1_URL') or 'http://localhost:8000')
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+PENDING_ACTION_BASE_URL = os.environ.get(
+    "PENDING_ACTION_BASE_URL", os.environ.get("SITE2_URL") or os.environ.get("SITE1_URL") or "http://localhost:8000"
+)
 
 ### Database Configuration ###
 
@@ -335,39 +343,39 @@ PENDING_ACTION_BASE_URL = os.environ.get('PENDING_ACTION_BASE_URL', os.environ.g
 # }
 
 # mariadb production Database
-db_engine = os.environ.get('DATABASE_ENGINE', 'django.db.backends.mysql')
+db_engine = os.environ.get("DATABASE_ENGINE", "django.db.backends.mysql")
 DATABASES = {
-    'default': {
-        'ENGINE': db_engine,
-        'NAME': os.environ.get('DATABASE_NAME', 'speciesnet'),
-        'USER': os.environ.get('DATABASE_USER', 'mysqluser'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'unsecure'),
-        'HOST': os.environ.get('DATABASE_HOST', 'db'),
-        'PORT': os.environ.get('DATABASE_PORT', '3306'),
+    "default": {
+        "ENGINE": db_engine,
+        "NAME": os.environ.get("DATABASE_NAME", "speciesnet"),
+        "USER": os.environ.get("DATABASE_USER", "mysqluser"),
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD", "unsecure"),
+        "HOST": os.environ.get("DATABASE_HOST", "db"),
+        "PORT": os.environ.get("DATABASE_PORT", "3306"),
     }
 }
-if 'mysql' in db_engine:
-    DATABASES['default']['OPTIONS'] = {'charset': 'utf8mb4'}
+if "mysql" in db_engine:
+    DATABASES["default"]["OPTIONS"] = {"charset": "utf8mb4"}
 
 ### Custom User Model ###
 
-AUTH_USER_MODEL = 'species.User'
-ACCOUNT_USER_MODEL_USERNAME_FIELD='username'  # Allauth integration with custom user model
+AUTH_USER_MODEL = "species.User"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"  # Allauth integration with custom user model
 
 ### Password validation ###
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -376,12 +384,12 @@ AUTH_PASSWORD_VALIDATORS = [
 # The container mounts persistent volumes at /static and /media. Both are
 # overridable so the test suite can run outside the container (CI, local dev).
 
-STATIC_ROOT = os.environ.get('STATIC_ROOT', '/static/')
-STATIC_URL  = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
+STATIC_ROOT = os.environ.get("STATIC_ROOT", "/static/")
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
-MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/media/')
-MEDIA_URL = '/media/'
+MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/media/")
+MEDIA_URL = "/media/"
 
 # Static files (CSS, JavaScript, Images)
 # STATIC_ROOT defines the absolute path where 'collectstatic' will be populated
@@ -389,49 +397,49 @@ MEDIA_URL = '/media/'
 # STATIC_FILES_DIRs defines additional project folders for static files
 # Default is to include the project app folder: ./speciesnet/species/static
 
-#STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
-#MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Raffle feature - CSV file stored in the persistent media volume
 
-RAFFLE_CSV_PATH         = os.path.join(MEDIA_ROOT, 'raffle_entries.csv')
-RAFFLE_SPECIES_CSV_PATH = os.path.join(MEDIA_ROOT, 'raffle_species.csv')
+RAFFLE_CSV_PATH = os.path.join(MEDIA_ROOT, "raffle_entries.csv")
+RAFFLE_SPECIES_CSV_PATH = os.path.join(MEDIA_ROOT, "raffle_species.csv")
 
 ### Internationalization ###
 
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
 ### Default primary key field type ###
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ### Django REST Framework ###
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAdminUser',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAdminUser",
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 100,
 }
 
 ### CORS Configuration ###
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:8000',
-    'http://localhost:8001',
+    "http://localhost:8000",
+    "http://localhost:8001",
 ]
 
 # Allow additional production origins via environment variables
-SITE1_URL = os.environ.get('SITE1_URL', '')
-SITE2_URL = os.environ.get('SITE2_URL', '')
+SITE1_URL = os.environ.get("SITE1_URL", "")
+SITE2_URL = os.environ.get("SITE2_URL", "")
 if SITE1_URL:
     CORS_ALLOWED_ORIGINS.append(SITE1_URL)
 if SITE2_URL:
@@ -439,10 +447,9 @@ if SITE2_URL:
 
 ### API Service Account ###
 
-API_SERVICE_EMAIL = os.environ.get('API_SERVICE_EMAIL', 'api_service@localhost')
-API_SERVICE_PASSWORD = os.environ.get('API_SERVICE_PASSWORD', 'changeme_in_production')
+API_SERVICE_EMAIL = os.environ.get("API_SERVICE_EMAIL", "api_service@localhost")
+API_SERVICE_PASSWORD = os.environ.get("API_SERVICE_PASSWORD", "changeme_in_production")
 
 ### Target API URL (Site2 URL for Site1, Site1 URL for Site2) ###
 
-TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
-
+TARGET_API_URL = os.environ.get("TARGET_API_URL", "http://localhost:8001")

@@ -11,16 +11,16 @@ class SpeciesSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = Species
         fields = [
-            'name',
-            'alt_name',
-            'description',
-            'global_region',
-            'local_distribution',
-            'cares_family',
-            'iucn_red_list',
-            'cares_classification',
-            'render_cares',
-            'created',
-            'lastUpdated',
+            "name",
+            "alt_name",
+            "description",
+            "global_region",
+            "local_distribution",
+            "cares_family",
+            "iucn_red_list",
+            "cares_classification",
+            "render_cares",
+            "created",
+            "lastUpdated",
         ]
         read_only_fields = fields

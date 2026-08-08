@@ -23,25 +23,29 @@ logger = logging.getLogger(__name__)
 
 # user_can_edit | user_is_admin
 
-def user_is_admin (cur_user: User):
+
+def user_is_admin(cur_user: User):
     user_is_admin = False
     if cur_user.is_authenticated and cur_user.is_admin:
         user_is_admin = True
     return user_is_admin
 
-def user_can_edit (cur_user: User):
+
+def user_can_edit(cur_user: User):
     userCanEdit = False
     if cur_user.is_authenticated and cur_user.is_staff:
         userCanEdit = True
     return userCanEdit
 
-def user_can_edit_a (cur_user: User, aquarist: User):
+
+def user_can_edit_a(cur_user: User, aquarist: User):
     userCanEdit = False
     if cur_user.is_authenticated and (cur_user.is_staff or aquarist == cur_user):
         userCanEdit = True
     return userCanEdit
 
-def user_can_edit_s (cur_user: User, species: Species):
+
+def user_can_edit_s(cur_user: User, species: Species):
     created_date = species.created.date()
     today_date = datetime.today().date()
     userCanEdit = False
@@ -49,28 +53,32 @@ def user_can_edit_s (cur_user: User, species: Species):
         if cur_user.is_staff or cur_user.is_admin or cur_user.is_species_admin:
             userCanEdit = True
         elif created_date == today_date and species.created_by == cur_user:
-            userCanEdit = True                   # Allow non-admin creator to edit species on same day of creation
+            userCanEdit = True  # Allow non-admin creator to edit species on same day of creation
     return userCanEdit
 
-def user_can_edit_si (cur_user: User, speciesInstance: SpeciesInstance):
+
+def user_can_edit_si(cur_user: User, speciesInstance: SpeciesInstance):
     userCanEdit = False
     if cur_user.is_authenticated and (cur_user.is_staff or speciesInstance.user == cur_user):
         userCanEdit = True
     return userCanEdit
 
-def user_can_edit_srl (cur_user: User, speciesReferenceLink: SpeciesReferenceLink):
+
+def user_can_edit_srl(cur_user: User, speciesReferenceLink: SpeciesReferenceLink):
     userCanEdit = False
     if cur_user.is_authenticated and (cur_user.is_staff or speciesReferenceLink.user == cur_user):
         userCanEdit = True
     return userCanEdit
 
-def user_can_edit_sc (cur_user: User, speciesComment: SpeciesComment):
+
+def user_can_edit_sc(cur_user: User, speciesComment: SpeciesComment):
     userCanEdit = False
     if cur_user.is_authenticated and (cur_user.is_staff or speciesComment.user == cur_user):
         userCanEdit = True
     return userCanEdit
 
-def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenanceLog):
+
+def user_can_edit_sml(cur_user: User, speciesMaintenanceLog: SpeciesMaintenanceLog):
     speciesInstances = speciesMaintenanceLog.speciesInstances
     userCanEdit = False
     if cur_user.is_authenticated:
@@ -79,79 +87,83 @@ def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenance
         else:
             for speciesInstance in speciesInstances.all():
                 if speciesInstance.user == cur_user:
-                    userCanEdit = True                   # allow all contributors to edit/delete
+                    userCanEdit = True  # allow all contributors to edit/delete
     return userCanEdit
 
-def user_can_edit_club (cur_user: User, club: AquaristClub):
+
+def user_can_edit_club(cur_user: User, club: AquaristClub):
     userCanEdit = False
     if cur_user.is_authenticated:
         if cur_user.is_staff:
             userCanEdit = True
         else:
-            print ('user_can_edit_club: seeing if member exists')
+            print("user_can_edit_club: seeing if member exists")
             try:
                 member = AquaristClubMember.objects.get(user=cur_user, club=club)
-                if (member.is_club_admin or member.is_cares_admin):
+                if member.is_club_admin or member.is_cares_admin:
                     userCanEdit = True
-                    print ('Club Member is club admin: ' + cur_user.username)
+                    print("Club Member is club admin: " + cur_user.username)
             except ObjectDoesNotExist:
                 # user is not a member
-                print ('Club Member not found: ' + cur_user.username + ' can join')
+                print("Club Member not found: " + cur_user.username + " can join")
             except MultipleObjectsReturned:
-                print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-                logger.error('Club edit check: multiple entries found for %s', cur_user.username)
+                print("Error multiple objects found AquaristClubMember: " + cur_user.username)
+                logger.error("Club edit check: multiple entries found for %s", cur_user.username)
     return userCanEdit
 
 
-def user_can_edit_cares_reg (cur_user: User, caresReg: CaresRegistration):
+def user_can_edit_cares_reg(cur_user: User, caresReg: CaresRegistration):
     userCanEdit = False
     if cur_user.is_authenticated:
         if cur_user.is_staff or cur_user.is_admin:
             userCanEdit = True
-        elif cur_user.is_species_admin and caresReg.cares_approver :
-            userCanEdit = (caresReg.cares_approver.approver  == cur_user)
+        elif cur_user.is_species_admin and caresReg.cares_approver:
+            userCanEdit = caresReg.cares_approver.approver == cur_user
     return userCanEdit
 
-def user_is_club_member (cur_user: User, club: AquaristClub):
+
+def user_is_club_member(cur_user: User, club: AquaristClub):
     user_is_member = False
     if cur_user.is_authenticated:
         try:
             AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=True)
             user_is_member = True
-            print ('Club Member found: ' + cur_user.username)
+            print("Club Member found: " + cur_user.username)
         except ObjectDoesNotExist:
-            pass # user is not a member
+            pass  # user is not a member
         except MultipleObjectsReturned:
-            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-            logger.error('Club member check: multiple entries found for %s', cur_user.username)
+            print("Error multiple objects found AquaristClubMember: " + cur_user.username)
+            logger.error("Club member check: multiple entries found for %s", cur_user.username)
     return user_is_member
 
-def user_is_pending_club_member (cur_user: User, club: AquaristClub):
+
+def user_is_pending_club_member(cur_user: User, club: AquaristClub):
     user_is_pending = False
     if cur_user.is_authenticated:
         try:
             AquaristClubMember.objects.get(user=cur_user, club=club, membership_approved=False)
             user_is_pending = True
-            print ('Club Member found: ' + cur_user.username)
+            print("Club Member found: " + cur_user.username)
         except ObjectDoesNotExist:
-            pass # user is not a pending member
+            pass  # user is not a pending member
         except MultipleObjectsReturned:
-            print ('Error multiple objects found AquaristClubMember: ' + cur_user.username)
-            logger.error('Club member check: multiple entries found for %s', cur_user.username)
+            print("Error multiple objects found AquaristClubMember: " + cur_user.username)
+            logger.error("Club member check: multiple entries found for %s", cur_user.username)
     return user_is_pending
 
 
-def get_sml_available_collaborators (speciesMaintenanceLog: SpeciesMaintenanceLog):
+def get_sml_available_collaborators(speciesMaintenanceLog: SpeciesMaintenanceLog):
     species = speciesMaintenanceLog.species
     collaborators = speciesMaintenanceLog.collaborators.all()
     allSpeciesInstances = SpeciesInstance.objects.filter(species=species, currently_keep=True)
     available_collaborators = []
     for speciesInstance in allSpeciesInstances:
         if speciesInstance.user not in collaborators and speciesInstance.user not in available_collaborators:
-            available_collaborators.append (speciesInstance.user)
+            available_collaborators.append(speciesInstance.user)
     return available_collaborators
 
-def get_sml_collaborator_choices (speciesMaintenanceLog: SpeciesMaintenanceLog):
+
+def get_sml_collaborator_choices(speciesMaintenanceLog: SpeciesMaintenanceLog):
     species = speciesMaintenanceLog.species
     speciesInstances = SpeciesInstance.objects.filter(species=species, currently_keep=True)
     collaborators = speciesMaintenanceLog.collaborators.all()
@@ -162,7 +174,8 @@ def get_sml_collaborator_choices (speciesMaintenanceLog: SpeciesMaintenanceLog):
             choices.append(choice)
     return choices
 
-def get_sml_available_speciesInstances (speciesMaintenanceLog: SpeciesMaintenanceLog):
+
+def get_sml_available_speciesInstances(speciesMaintenanceLog: SpeciesMaintenanceLog):
     species = speciesMaintenanceLog.species
     collaborators = speciesMaintenanceLog.collaborators.all()
     curSpeciesInstances = speciesMaintenanceLog.speciesInstances.all()
@@ -170,10 +183,11 @@ def get_sml_available_speciesInstances (speciesMaintenanceLog: SpeciesMaintenanc
     available_speciesInstances = []
     for speciesInstance in allSpeciesInstances:
         if speciesInstance not in curSpeciesInstances and speciesInstance.user in collaborators:
-            available_speciesInstances.append (speciesInstance)
+            available_speciesInstances.append(speciesInstance)
     return available_speciesInstances
 
-def get_sml_speciesInstance_choices (speciesMaintenanceLog: SpeciesMaintenanceLog):
+
+def get_sml_speciesInstance_choices(speciesMaintenanceLog: SpeciesMaintenanceLog):
     species = speciesMaintenanceLog.species
     groupSpeciesInstances = speciesMaintenanceLog.speciesInstances.all()
     collaborators = speciesMaintenanceLog.collaborators.all()
@@ -181,37 +195,46 @@ def get_sml_speciesInstance_choices (speciesMaintenanceLog: SpeciesMaintenanceLo
     choices = []
     for speciesInstance in speciesInstances:
         choice = (speciesInstance.id, speciesInstance.name)
-        if choice not in choices and speciesInstance not in groupSpeciesInstances and speciesInstance.user in collaborators:
+        if (
+            choice not in choices
+            and speciesInstance not in groupSpeciesInstances
+            and speciesInstance.user in collaborators
+        ):
             choices.append(choice)
     return choices
 
-def validate_sml_collection (speciesMaintenanceLog: SpeciesMaintenanceLog):
+
+def validate_sml_collection(speciesMaintenanceLog: SpeciesMaintenanceLog):
     return True
+
 
 ### security checks on text and url importing ###
 
-ALLOWED_TAGS = ['b', 'i', 'u', 'em', 'strong', 'a']
-ALLOWED_ATTRIBUTES = { 'a': ['href', 'title', 'rel'], }
+ALLOWED_TAGS = ["b", "i", "u", "em", "strong", "a"]
+ALLOWED_ATTRIBUTES = {
+    "a": ["href", "title", "rel"],
+}
+
 
 def sanitize_text(input_text):
-    return bleach.clean(input_text, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, strip=True )
+    return bleach.clean(input_text, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, strip=True)
 
 
 def validate_url(url):
     url = str(url).strip()
     parsed = urlparse(url)
-    if parsed.scheme not in ['http', 'https']:
-        raise ValidationError('Only http and https URLs are allowed.')
+    if parsed.scheme not in ["http", "https"]:
+        raise ValidationError("Only http and https URLs are allowed.")
     if not parsed.netloc:
-        raise ValidationError('Invalid URL!')
+        raise ValidationError("Invalid URL!")
 
 
 def get_youtube_embedded_id(video_url):
     # Find matching url pattern - YouTube ID is alwasy 11 chars
     patterns = [
-        r'(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})',
-        r'(?:youtu\.be\/)([a-zA-Z0-9_-]{11})',
-        r'(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})',
+        r"(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})",
+        r"(?:youtu\.be\/)([a-zA-Z0-9_-]{11})",
+        r"(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})",
     ]
     for pattern in patterns:
         match = re.search(pattern, video_url)
@@ -219,22 +242,26 @@ def get_youtube_embedded_id(video_url):
             return match.group(1)
     return None
 
+
 def get_youtube_embedded_url_from_id(video_id):
     if video_id:
         return f"https://www.youtube.com/embed/{video_id}"
     return None
 
-def processVideoURL (video_url_field: URLField):
-    print ('Processing video url: ' + str(video_url_field))
+
+def processVideoURL(video_url_field: URLField):
+    print("Processing video url: " + str(video_url_field))
     video_id = get_youtube_embedded_id(video_url_field)
-    print ('YouTube video ID: ' + str(video_id))
+    print("YouTube video ID: " + str(video_id))
     video_url = None
-    if (video_id):
-        video_url = get_youtube_embedded_url_from_id (video_id)
-        print ('Revised video URL: ' + str(video_url))
+    if video_id:
+        video_url = get_youtube_embedded_url_from_id(video_id)
+        print("Revised video URL: " + str(video_url))
     return video_url
 
+
 ### validate and clean-normalize social media urls ###
+
 
 def normalize_url(url):
     if not url:
@@ -242,11 +269,12 @@ def normalize_url(url):
     url = url.strip()
     if not url:
         return None
-    if not url.startswith(('http://', 'https://')):
-        url = f'https://{url}'
-    if url.startswith('http://'):
-        url = url.replace('http://', 'https://', 1)
+    if not url.startswith(("http://", "https://")):
+        url = f"https://{url}"
+    if url.startswith("http://"):
+        url = url.replace("http://", "https://", 1)
     return url
+
 
 # the following validation methods utilize 'urlparse'
 # e.g. the url "https://www.instagram.com/username?ref=badge"
@@ -255,6 +283,7 @@ def normalize_url(url):
 #             params='', query='ref=badge', fragment='')
 # netloc is what needs to match social media domains
 
+
 def validate_normalize_instagram_url(url):
     # netloc must be 'instagram.com' or 'instagr.am'
     url = normalize_url(url)
@@ -262,11 +291,11 @@ def validate_normalize_instagram_url(url):
         return None
     try:
         parsed = urlparse(url)
-        domain = parsed.netloc.split(':')[0].lower()  # Remove port if present
-        domain = domain.removeprefix('www.')  # Remove 'www.'
-        domain = domain.removeprefix('m.')  # Remove 'm.'
-        print('Domain is ' + str(domain))
-        if domain not in ('instagram.com', 'instagr.am'):
+        domain = parsed.netloc.split(":")[0].lower()  # Remove port if present
+        domain = domain.removeprefix("www.")  # Remove 'www.'
+        domain = domain.removeprefix("m.")  # Remove 'm.'
+        print("Domain is " + str(domain))
+        if domain not in ("instagram.com", "instagr.am"):
             return None
     except Exception:
         return None
@@ -292,8 +321,8 @@ def validate_normalize_facebook_url(url):
         return None
     try:
         parsed = urlparse(url)
-        domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
-        if domain not in ('facebook.com', 'fb.com'):
+        domain = parsed.netloc.lower().replace("www.", "").replace("m.", "")
+        if domain not in ("facebook.com", "fb.com"):
             return None
     except Exception:
         return None
@@ -307,10 +336,9 @@ def validate_normalize_youtube_url(url):
         return None
     try:
         parsed = urlparse(url)
-        domain = parsed.netloc.lower().replace('www.', '').replace('m.', '')
-        if domain not in ('youtube.com', 'youtu.be'):
+        domain = parsed.netloc.lower().replace("www.", "").replace("m.", "")
+        if domain not in ("youtube.com", "youtu.be"):
             return None
     except Exception:
         return None
     return url
-

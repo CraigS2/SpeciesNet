@@ -4,7 +4,7 @@
 import logging
 from csv import DictReader
 
-#from django.views import View
+# from django.views import View
 from smtplib import SMTPException
 
 from django.conf import settings
@@ -44,7 +44,7 @@ from species.asn_tools.asn_csv_tools import (
     import_csv_aquarist_clubs,
     import_csv_bap_genus,
     # CARES imports
-    import_csv_caresRegistrations,  #import_csv_caresRegistrations_cso,
+    import_csv_caresRegistrations,  # import_csv_caresRegistrations_cso,
     import_csv_species,
     import_csv_speciesInstances,
 )
@@ -153,16 +153,18 @@ logger = logging.getLogger(__name__)
 
 ### Site 1 Creation Notification Email
 
+
 def send_asn_notification_email(subject, body):
     """Send an admin notification email to itself for Site 1 (ASN) creation events."""
-    if getattr(settings, 'SITE_ID', 1) != 1:
+    if getattr(settings, "SITE_ID", 1) != 1:
         return
     from_email = settings.DEFAULT_FROM_EMAIL
     try:
         EmailMessage(subject, body, from_email, [from_email]).send(fail_silently=False)
-        logger.info('ASN notification email sent: %s', subject)
+        logger.info("ASN notification email sent: %s", subject)
     except Exception as e:
-        logger.error('ASN notification email failed - %s: %s', subject, str(e))
+        logger.error("ASN notification email failed - %s: %s", subject, str(e))
+
 
 def record_page_view(page_type, object_id, is_authenticated):
     """Increment the PageViewCount for the given page_type + object_id + visitor_type.
@@ -170,13 +172,12 @@ def record_page_view(page_type, object_id, is_authenticated):
     Silently swallows any exception so a tracking failure never breaks a page load.
     """
     try:
-        visitor_type = PageViewCount.VisitorType.AUTHENTICATED if is_authenticated else PageViewCount.VisitorType.ANONYMOUS
-        obj, _ = PageViewCount.objects.get_or_create(
-            page_type=page_type,
-            object_id=object_id,
-            visitor_type=visitor_type,
-            defaults={'count': 0}
+        visitor_type = (
+            PageViewCount.VisitorType.AUTHENTICATED if is_authenticated else PageViewCount.VisitorType.ANONYMOUS
         )
-        PageViewCount.objects.filter(pk=obj.pk).update(count=F('count') + 1)
+        obj, _ = PageViewCount.objects.get_or_create(
+            page_type=page_type, object_id=object_id, visitor_type=visitor_type, defaults={"count": 0}
+        )
+        PageViewCount.objects.filter(pk=obj.pk).update(count=F("count") + 1)
     except Exception:
-        logger.warning('record_page_view failed for page_type=%s object_id=%s', page_type, object_id, exc_info=True)
+        logger.warning("record_page_view failed for page_type=%s object_id=%s", page_type, object_id, exc_info=True)

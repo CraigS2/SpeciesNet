@@ -12,4 +12,4 @@ class RetriableTask(Task):
     ignore_result = False
 
     # Keep queue names explicit so a future sync queue can be introduced cleanly.
-    queue = 'emails'
+    queue = "emails"

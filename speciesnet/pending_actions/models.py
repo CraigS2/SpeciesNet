@@ -15,7 +15,7 @@ class ActionType(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ['slug']
+        ordering = ["slug"]
 
     def __str__(self):
         return self.display_name
@@ -28,14 +28,16 @@ class ActionType(models.Model):
 
 class PendingAction(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'PENDING', 'Pending'
-        COMPLETED = 'COMPLETED', 'Completed'
-        EXPIRED = 'EXPIRED', 'Expired'
-        CANCELLED = 'CANCELLED', 'Cancelled'
+        PENDING = "PENDING", "Pending"
+        COMPLETED = "COMPLETED", "Completed"
+        EXPIRED = "EXPIRED", "Expired"
+        CANCELLED = "CANCELLED", "Cancelled"
 
-    action_type = models.ForeignKey(ActionType, on_delete=models.PROTECT, related_name='pending_actions')
+    action_type = models.ForeignKey(ActionType, on_delete=models.PROTECT, related_name="pending_actions")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='pending_actions')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="pending_actions"
+    )
     token_hash = models.CharField(max_length=64, unique=True, db_index=True)
     payload = models.JSONField(default=dict)
     payload_schema_version = models.PositiveSmallIntegerField(default=1)
@@ -45,11 +47,11 @@ class PendingAction(models.Model):
     response_data = models.JSONField(null=True, blank=True)
 
     class Meta:
-        indexes = [models.Index(fields=['status', 'expires_at'])]
-        ordering = ['-created_at']
+        indexes = [models.Index(fields=["status", "expires_at"])]
+        ordering = ["-created_at"]
 
     def __str__(self):
-        return f'{self.action_type.slug}#{self.pk} ({self.status})'
+        return f"{self.action_type.slug}#{self.pk} ({self.status})"
 
     @property
     def is_expired(self):
@@ -59,10 +61,10 @@ class PendingAction(models.Model):
         if self.status == self.Status.PENDING and self.is_expired:
             self.status = self.Status.EXPIRED
             if save:
-                self.save(update_fields=['status'])
+                self.save(update_fields=["status"])
 
     def issue_token(self):
         token = generate_signed_token(self.pk)
         self.token_hash = hash_token(token)
-        self.save(update_fields=['token_hash'])
+        self.save(update_fields=["token_hash"])
         return token

@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 # Fields synced from Site2 to Site1
 SYNC_FIELDS = [
-    'alt_name',
-    'description',
-    'global_region',
-    'local_distribution',
-    'cares_family',
-    'iucn_red_list',
-    'cares_classification',
+    "alt_name",
+    "description",
+    "global_region",
+    "local_distribution",
+    "cares_family",
+    "iucn_red_list",
+    "cares_classification",
 ]
 
 
@@ -31,13 +31,13 @@ class SpeciesSyncService:
     """
 
     def __init__(self, target_url=None, email=None, password=None):
-        self.target_url = (target_url or getattr(settings, 'TARGET_API_URL', 'http://localhost:8001')).rstrip('/')
-        self.email = email or getattr(settings, 'API_SERVICE_EMAIL', 'api_service@localhost')
-        self.password = password or getattr(settings, 'API_SERVICE_PASSWORD', 'changeme_in_production')
+        self.target_url = (target_url or getattr(settings, "TARGET_API_URL", "http://localhost:8001")).rstrip("/")
+        self.email = email or getattr(settings, "API_SERVICE_EMAIL", "api_service@localhost")
+        self.password = password or getattr(settings, "API_SERVICE_PASSWORD", "changeme_in_production")
         self.auth = HTTPBasicAuth(self.email, self.password)
 
     def _build_url(self, path):
-        return f'{self.target_url}{path}'
+        return f"{self.target_url}{path}"
 
     def _fetch_page(self, url, params=None):
         """Fetch a single page from the API, returning the parsed JSON response."""
@@ -46,7 +46,7 @@ class SpeciesSyncService:
             response.raise_for_status()
             return response.json()
         except requests.RequestException as exc:
-            logger.error('Failed to fetch from %s: %s', url, exc)
+            logger.error("Failed to fetch from %s: %s", url, exc)
             raise
 
     def fetch_species(self, since=None):
@@ -61,24 +61,24 @@ class SpeciesSyncService:
         """
         params = {}
         if since is not None:
-            params['since'] = since.isoformat()
+            params["since"] = since.isoformat()
 
-        url = self._build_url('/api/species-sync/')
+        url = self._build_url("/api/species-sync/")
         while url:
             data = self._fetch_page(url, params=params)
             params = {}  # params only needed for first request; pagination URLs include them
-            results = data.get('results', data) if isinstance(data, dict) else data
+            results = data.get("results", data) if isinstance(data, dict) else data
             if isinstance(results, list):
                 yield from results
-            next_url = data.get('next') if isinstance(data, dict) else None
+            next_url = data.get("next") if isinstance(data, dict) else None
             url = next_url
 
     def get_stats(self, since=None):
         """Fetch sync statistics from Site2 API."""
         params = {}
         if since is not None:
-            params['since'] = since.isoformat()
-        url = self._build_url('/api/species-sync/stats/')
+            params["since"] = since.isoformat()
+        url = self._build_url("/api/species-sync/stats/")
         return self._fetch_page(url, params=params)
 
     def sync(self, since=None, dry_run=False):
@@ -106,35 +106,38 @@ class SpeciesSyncService:
             dict with keys: fetched, created, updated, skipped, errors
 
         """
-        stats = {'fetched': 0, 'created': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
+        stats = {"fetched": 0, "created": 0, "updated": 0, "skipped": 0, "errors": 0}
 
         try:
             remote_species_list = list(self.fetch_species(since=since))
         except Exception as exc:
-            logger.error('Could not fetch species from Site2: %s', exc)
-            stats['errors'] += 1
+            logger.error("Could not fetch species from Site2: %s", exc)
+            stats["errors"] += 1
             return stats
 
-        stats['fetched'] = len(remote_species_list)
-        logger.info('Fetched %d species from Site2', stats['fetched'])
+        stats["fetched"] = len(remote_species_list)
+        logger.info("Fetched %d species from Site2", stats["fetched"])
 
         for remote in remote_species_list:
-            name = remote.get('name', '').strip()
+            name = remote.get("name", "").strip()
             if not name:
-                logger.warning('Skipping species with empty name: %s', remote)
-                stats['errors'] += 1
+                logger.warning("Skipping species with empty name: %s", remote)
+                stats["errors"] += 1
                 continue
 
             try:
                 self._sync_one(remote, name, stats, dry_run)
             except Exception as exc:
                 logger.error('Error syncing species "%s": %s', name, exc)
-                stats['errors'] += 1
+                stats["errors"] += 1
 
         logger.info(
-            'Sync complete: fetched=%d created=%d updated=%d skipped=%d errors=%d',
-            stats['fetched'], stats['created'], stats['updated'],
-            stats['skipped'], stats['errors'],
+            "Sync complete: fetched=%d created=%d updated=%d skipped=%d errors=%d",
+            stats["fetched"],
+            stats["created"],
+            stats["updated"],
+            stats["skipped"],
+            stats["errors"],
         )
         return stats
 
@@ -143,6 +146,7 @@ class SpeciesSyncService:
         if value is None:
             return None
         from django.utils.dateparse import parse_datetime
+
         dt = parse_datetime(value)
         if dt is not None and timezone.is_naive(dt):
             dt = timezone.make_aware(dt, timezone.utc)
@@ -180,8 +184,8 @@ class SpeciesSyncService:
             # Species does not exist on Site1 at all – create it unconditionally.
             if not dry_run:
                 self._create_species(remote, name)
-            logger.info('[%s] Created species "%s" (new – not found in Site1)', 'DRY-RUN' if dry_run else 'SYNC', name)
-            stats['created'] += 1
+            logger.info('[%s] Created species "%s" (new – not found in Site1)', "DRY-RUN" if dry_run else "SYNC", name)
+            stats["created"] += 1
             return
 
         # Species found in Site1 – compare field values to decide whether to update.
@@ -191,28 +195,28 @@ class SpeciesSyncService:
         logger.info('"%s" already exists in Site1 – comparing fields', name)
         if self._fields_match(local, remote):
             logger.info('Skipping "%s": all fields already match Site2', name)
-            stats['skipped'] += 1
+            stats["skipped"] += 1
             return
 
         if not dry_run:
             self._update_species(local, remote)
-        logger.info('[%s] Updated species "%s" (fields differ from Site2)', 'DRY-RUN' if dry_run else 'SYNC', name)
-        stats['updated'] += 1
+        logger.info('[%s] Updated species "%s" (fields differ from Site2)', "DRY-RUN" if dry_run else "SYNC", name)
+        stats["updated"] += 1
 
     def _create_species(self, remote, name):
         """Create a new Species record from remote data."""
-        kwargs = {'name': name}
+        kwargs = {"name": name}
         for field in SYNC_FIELDS:
             if field in remote and remote[field] is not None:
                 kwargs[field] = remote[field]
         # render_cares=True since we only receive CARES species from Site2
-        kwargs['render_cares'] = True
+        kwargs["render_cares"] = True
         species = Species.objects.create(**kwargs)
         # Preserve the remote lastUpdated so future syncs compare correctly.
         # Species.lastUpdated uses auto_now=True which would otherwise overwrite
         # the timestamp with the sync time, causing every subsequent sync to skip
         # this species (since the local timestamp would always be newer).
-        remote_last_updated = self._parse_remote_dt(remote.get('lastUpdated'))
+        remote_last_updated = self._parse_remote_dt(remote.get("lastUpdated"))
         if remote_last_updated is not None:
             Species.objects.filter(pk=species.pk).update(lastUpdated=remote_last_updated)
 
@@ -223,11 +227,11 @@ class SpeciesSyncService:
             if field in remote and remote[field] is not None and getattr(local, field) != remote[field]:
                 update_kwargs[field] = remote[field]
         if not local.render_cares:
-            update_kwargs['render_cares'] = True
+            update_kwargs["render_cares"] = True
         # Preserve the remote lastUpdated via QuerySet.update() which bypasses
         # auto_now, so future syncs can correctly detect whether Site2 is newer.
-        remote_last_updated = self._parse_remote_dt(remote.get('lastUpdated'))
+        remote_last_updated = self._parse_remote_dt(remote.get("lastUpdated"))
         if remote_last_updated is not None:
-            update_kwargs['lastUpdated'] = remote_last_updated
+            update_kwargs["lastUpdated"] = remote_last_updated
         if update_kwargs:
             Species.objects.filter(pk=local.pk).update(**update_kwargs)

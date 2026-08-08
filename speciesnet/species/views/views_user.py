@@ -6,38 +6,39 @@ from .base import *
 
 ### User Profile
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def userProfile(request):
     aquarist = request.user
-    context = {'aquarist': aquarist}
-    logger.info('User %s visited their profile page', request.user.username)
-    if getattr(settings, 'SITE_ID', 1) == 2:
-        return render(request, 'species/cares/userProfileCares.html', context)
-    return render(request, 'species/userProfile.html', context)
+    context = {"aquarist": aquarist}
+    logger.info("User %s visited their profile page", request.user.username)
+    if getattr(settings, "SITE_ID", 1) == 2:
+        return render(request, "species/cares/userProfileCares.html", context)
+    return render(request, "species/userProfile.html", context)
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def editUserProfile(request):
     cur_user = request.user
 
-    if getattr(settings, 'SITE_ID', 1) == 2:
+    if getattr(settings, "SITE_ID", 1) == 2:
         # Site 2 (CARES): simplified form, no social URLs or privacy/preferences
-        if request.method == 'POST':
+        if request.method == "POST":
             form = UserProfileFormCares(request.POST, instance=cur_user)
             if form.is_valid():
                 form.save()
-                logger.info('User %s edited their profile page', request.user.username)
-                messages.success(request, 'User profile updated successfully!')
-                context = {'aquarist': request.user}
-                return render(request, 'species/cares/userProfileCares.html', context)
-            messages.error(request, 'Please correct the errors below')
+                logger.info("User %s edited their profile page", request.user.username)
+                messages.success(request, "User profile updated successfully!")
+                context = {"aquarist": request.user}
+                return render(request, "species/cares/userProfileCares.html", context)
+            messages.error(request, "Please correct the errors below")
         else:
             form = UserProfileFormCares(instance=cur_user)
-        context = {'form': form, 'user': request.user}
-        return render(request, 'species/cares/editUserProfileCares.html', context)
+        context = {"form": form, "user": request.user}
+        return render(request, "species/cares/editUserProfileCares.html", context)
 
     # Site 1 (ASN): full form with social URL validation, privacy and preferences
-    if request.method == 'POST':
+    if request.method == "POST":
         form = UserProfileForm2(request.POST, instance=cur_user)
         if form.is_valid():
             # handling social urls outside normal validation to cleanly map 3 cases
@@ -46,41 +47,42 @@ def editUserProfile(request):
             if cur_user.instagram_url:
                 valid_url = validate_normalize_instagram_url(cur_user.instagram_url)
                 if not valid_url:
-                    form.add_error('instagram_url', 'Please enter a valid Instagram URL')
+                    form.add_error("instagram_url", "Please enter a valid Instagram URL")
                     url_validation_failed = True
                 else:
                     cur_user.instagram_url = valid_url
             if cur_user.facebook_url:
                 valid_url = validate_normalize_facebook_url(cur_user.facebook_url)
                 if not valid_url:
-                    form.add_error('facebook_url', 'Please enter a valid Facebook URL')
+                    form.add_error("facebook_url", "Please enter a valid Facebook URL")
                     url_validation_failed = True
                 else:
                     cur_user.facebook_url = valid_url
             if cur_user.youtube_url:
                 valid_url = validate_normalize_youtube_url(cur_user.youtube_url)
                 if not valid_url:
-                    form.add_error('youtube_url', 'Please enter a valid YouTube URL')
+                    form.add_error("youtube_url", "Please enter a valid YouTube URL")
                     url_validation_failed = True
                 else:
                     cur_user.youtube_url = valid_url
             if not url_validation_failed:
                 cur_user.save()
-                logger.info('User %s edited their profile page', request.user.username)
-                messages.success(request, 'User profile updated successfully!')
-                context = {'aquarist': request.user}
-                return render(request, 'species/userProfile.html', context)
+                logger.info("User %s edited their profile page", request.user.username)
+                messages.success(request, "User profile updated successfully!")
+                context = {"aquarist": request.user}
+                return render(request, "species/userProfile.html", context)
 
         if not form.is_valid() or url_validation_failed:
-            messages.error(request, 'Please correct the errors below')
+            messages.error(request, "Please correct the errors below")
     else:
         form = UserProfileForm2(instance=cur_user)
 
-    context = {'form': form, 'user': request.user}
-    return render(request, 'species/editUserProfile.html', context)
+    context = {"form": form, "user": request.user}
+    return render(request, "species/editUserProfile.html", context)
 
 
 ### View Aquarist Profile (with Tile/List Toggle)
+
 
 def aquarist(request, pk):
     """Display an aquarist's fishroom with species they keep.
@@ -89,34 +91,44 @@ def aquarist(request, pk):
     aquarist = User.objects.get(id=pk)
     userCanEdit = user_can_edit_a(request.user, aquarist)
 
-    view_type = 'tile'
-    view_choice = request.GET.get('view')
-    if view_choice in ['tile', 'list']:
-        view_type = view_choice            # toggle tile/view selected on page
+    view_type = "tile"
+    view_choice = request.GET.get("view")
+    if view_choice in ["tile", "list"]:
+        view_type = view_choice  # toggle tile/view selected on page
     elif request.user.is_authenticated and not request.user.prefer_tile_view:
-        view_type = 'list'                 # user has list as view preference
+        view_type = "list"  # user has list as view preference
 
-    speciesKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=True).select_related('species').order_by('species__name')
-    speciesPreviouslyKept = SpeciesInstance.objects.filter(user=aquarist, currently_keep=False).select_related('species').order_by('species__name')
+    speciesKept = (
+        SpeciesInstance.objects.filter(user=aquarist, currently_keep=True)
+        .select_related("species")
+        .order_by("species__name")
+    )
+    speciesPreviouslyKept = (
+        SpeciesInstance.objects.filter(user=aquarist, currently_keep=False)
+        .select_related("species")
+        .order_by("species__name")
+    )
     if request.user.is_authenticated:
-        logger.info('User %s visited aquarist page for %s.', request.user.username, aquarist.username)
+        logger.info("User %s visited aquarist page for %s.", request.user.username, aquarist.username)
     else:
-        logger.info('Anonymous user visited aquarist page for %s.', aquarist.username)
+        logger.info("Anonymous user visited aquarist page for %s.", aquarist.username)
     context = {
-        'aquarist': aquarist,
-        'speciesKept': speciesKept,
-        'speciesPreviouslyKept': speciesPreviouslyKept,
-        'userCanEdit': userCanEdit,
-        'current_view': view_type,  # Pass view type to template for button state
+        "aquarist": aquarist,
+        "speciesKept": speciesKept,
+        "speciesPreviouslyKept": speciesPreviouslyKept,
+        "userCanEdit": userCanEdit,
+        "current_view": view_type,  # Pass view type to template for button state
     }
-    if view_type == 'tile':
-        template = 'species/aquarist1.html'  # Tile view template
+    if view_type == "tile":
+        template = "species/aquarist1.html"  # Tile view template
     else:
-        template = 'species/aquarist2.html'   # List view template
+        template = "species/aquarist2.html"  # List view template
     record_page_view(PageViewCount.PageType.USER, aquarist.id, request.user.is_authenticated)
     return render(request, template, context)
 
+
 ### Aquarists Directory
+
 
 class AquaristListView(ListView):
     model = User
@@ -127,36 +139,37 @@ class AquaristListView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         queryset = User.objects.all()
-        query_text = self.request.GET.get('q', '')
+        query_text = self.request.GET.get("q", "")
         if query_text:
             queryset = queryset.filter(
-                Q(username__icontains=query_text) |
-                Q(first_name__icontains=query_text) |
-                Q(last_name__icontains=query_text)
+                Q(username__icontains=query_text)
+                | Q(first_name__icontains=query_text)
+                | Q(last_name__icontains=query_text)
             )
             queryset = queryset.exclude(is_private_name=True)
         return queryset
 
     def get_context_data(self, **kwargs):
         if self.request.user.is_authenticated:
-            logger.info('User %s visited aquarists page.', self.request.user.username)
+            logger.info("User %s visited aquarists page.", self.request.user.username)
         else:
-            logger.info('Anonymous user visited aquarists page.')
+            logger.info("Anonymous user visited aquarists page.")
         context = super().get_context_data(**kwargs)
-        context['query_text'] = self.request.GET.get('q', '')
-        context['recent_speciesInstances'] = SpeciesInstance.objects.all()[:36]
+        context["query_text"] = self.request.GET.get("q", "")
+        context["recent_speciesInstances"] = SpeciesInstance.objects.all()[:36]
         return context
 
 
 ### Email Aquarist
 
+
 def emailAquarist(request, pk):
     aquarist = User.objects.get(id=pk)
     cur_user = request.user
     form = EmailAquaristForm()
-    context = {'form':  form, 'aquarist':  aquarist}
+    context = {"form": form, "aquarist": aquarist}
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form2 = EmailAquaristForm(request.POST)
         mailed_msg = f"Your email to {aquarist.username} has been sent."
         mailed = False
@@ -183,8 +196,8 @@ def emailAquarist(request, pk):
                     email.email_text,
                     email.send_from.email,
                     [email.send_to.email],
-                    bcc=['aquaristspecies@gmail.com'],
-                    cc=[email.send_from.email]
+                    bcc=["aquaristspecies@gmail.com"],
+                    cc=[email.send_from.email],
                 )
             else:
                 email.email_text = (
@@ -198,7 +211,7 @@ def emailAquarist(request, pk):
                     email.email_text,
                     email.send_from.email,
                     [email.send_to.email],
-                    bcc=['aquaristspecies@gmail.com']
+                    bcc=["aquaristspecies@gmail.com"],
                 )
 
             email.save()
@@ -206,13 +219,18 @@ def emailAquarist(request, pk):
             try:
                 email_message.send(fail_silently=False)
                 mailed = True
-                logger.info('User %s sent email to %s', request.user.username, aquarist.username)
+                logger.info("User %s sent email to %s", request.user.username, aquarist.username)
             except SMTPException as e:
                 mailed_msg = f"An error occurred sending your email to {aquarist.username}.SMTP Exception: {e!s}"
-                logger.error('User %s email failed to send to %s: SMTPException %s', request.user.username, aquarist.username, str(e))
+                logger.error(
+                    "User %s email failed to send to %s: SMTPException %s",
+                    request.user.username,
+                    aquarist.username,
+                    str(e),
+                )
             except Exception as e:
                 mailed_msg = f"An error occurred sending your email to {aquarist.username}.Exception: {e!s}"
-                logger.error('User %s email failed to send to %s: %s', request.user.username, aquarist.username, str(e))
+                logger.error("User %s email failed to send to %s: %s", request.user.username, aquarist.username, str(e))
 
         if not mailed:
             messages.error(request, mailed_msg)
@@ -220,41 +238,43 @@ def emailAquarist(request, pk):
             messages.success(request, mailed_msg)
         return HttpResponseRedirect(reverse("aquarist", args=[aquarist.id]))
 
-    return render(request, 'species/emailAquarist.html', context)
+    return render(request, "species/emailAquarist.html", context)
 
 
 ### Login and Logout
 
-def loginUser(request):
-    page = 'login'
-    if request.user.is_authenticated:
-        return redirect('home')
 
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+def loginUser(request):
+    page = "login"
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
         try:
             user = User.objects.get(email=email)
         except Exception:
-            messages.error(request, 'Login failed - user not found')
+            messages.error(request, "Login failed - user not found")
 
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            return redirect('home')
-        messages.error(request, 'User Email or Password does not exist')
+            return redirect("home")
+        messages.error(request, "User Email or Password does not exist")
 
-    context = {'page':  page}
-    return render(request, 'species/login_register.html', context)
+    context = {"page": page}
+    return render(request, "species/login_register.html", context)
 
 
 def logoutUser(request):
     logout(request)
-    return redirect('home')
+    return redirect("home")
 
 
 ### Export Aquarists
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def exportAquarists(request):
     return export_csv_aquarists()

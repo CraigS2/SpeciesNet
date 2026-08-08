@@ -7,18 +7,20 @@ from .base import *
 
 ### View All Clubs
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def aquaristClubs(request):
     aquaristClubs = AquaristClub.objects.all()
     userCanEdit = user_can_edit(request.user)
-    context = {'aquaristClubs':  aquaristClubs, 'userCanEdit': userCanEdit}
-    logger.info('User %s visited aquaristClubs', request.user.username)
-    return render(request, 'species/aquaristClubs.html', context)
+    context = {"aquaristClubs": aquaristClubs, "userCanEdit": userCanEdit}
+    logger.info("User %s visited aquaristClubs", request.user.username)
+    return render(request, "species/aquaristClubs.html", context)
 
 
 ### View Single Club
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def aquaristClub(request, pk):
     club = get_object_or_404(AquaristClub, id=pk)
     aquaristClubMembers = None
@@ -28,44 +30,45 @@ def aquaristClub(request, pk):
     userIsMember = user_is_club_member(cur_user, club)
     userIsPending = user_is_pending_club_member(cur_user, club)
     enableClubFeatures = True
-    site_id = getattr(settings, 'SITE_ID', 1)
+    site_id = getattr(settings, "SITE_ID", 1)
     if site_id == 2:
         enableClubFeatures = False
 
-    logger.info('User %s visited club:  %s (%s)', request.user.username, club.name, str(club.id))
+    logger.info("User %s visited club:  %s (%s)", request.user.username, club.name, str(club.id))
     context = {
-        'aquaristClub': club,
-        'aquaristClubMembers': aquaristClubMembers,
-        'enableClubFeatures': enableClubFeatures,
-        'userIsAdmin': userIsAdmin,
-        'userCanEdit': userCanEdit,
-        'userIsMember': userIsMember,
-        'userIsPending': userIsPending
+        "aquaristClub": club,
+        "aquaristClubMembers": aquaristClubMembers,
+        "enableClubFeatures": enableClubFeatures,
+        "userIsAdmin": userIsAdmin,
+        "userCanEdit": userCanEdit,
+        "userIsMember": userIsMember,
+        "userIsPending": userIsPending,
     }
     record_page_view(PageViewCount.PageType.AQUARIST_CLUB, club.id, request.user.is_authenticated)
-    return render(request, 'species/aquaristClub.html', context)
+    return render(request, "species/aquaristClub.html", context)
 
 
 ### Create Club
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def createAquaristClub(request):
     # While in beta restrict creation of clubs to staff level admin only
     if not request.user.is_staff:
         raise PermissionDenied
 
-    site_id = getattr(settings, 'SITE_ID', 1)
-    is_site2 = (site_id == 2)
+    site_id = getattr(settings, "SITE_ID", 1)
+    is_site2 = site_id == 2
 
-    if request.method == 'POST':
+    if request.method == "POST":
         if is_site2:
             form = AquaristClubForm2BB(request.POST, request.FILES)
         else:
             form = AquaristClubForm2(request.POST, request.FILES)
 
-        print ('Processing create Aquarist Club form')
+        print("Processing create Aquarist Club form")
         if form.is_valid():
-            print ('Processing create Aquarist Club form - validated input')
+            print("Processing create Aquarist Club form - validated input")
             aquaristClub = form.save(commit=False)  # creates instance, no DB write
             if is_site2:
                 aquaristClub.require_member_approval = False
@@ -76,34 +79,35 @@ def createAquaristClub(request):
             aquaristClub.save()
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
-            logger.info('User %s created club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
+            logger.info("User %s created club: %s (%s)", request.user.username, aquaristClub.name, str(aquaristClub.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
 
-        print('Form errors:', form.errors)
+        print("Form errors:", form.errors)
 
-    #form = AquaristClubForm()
-    print ('Initializing create Aquarist Club form')
+    # form = AquaristClubForm()
+    print("Initializing create Aquarist Club form")
     if is_site2:
-        form = AquaristClubForm2BB()   # Bare Bones Club no BAP etc.
+        form = AquaristClubForm2BB()  # Bare Bones Club no BAP etc.
     else:
         form = AquaristClubForm2()
 
-    context = {'form':  form}
-    return render(request, 'species/createAquaristClub.html', context)
+    context = {"form": form}
+    return render(request, "species/createAquaristClub.html", context)
 
 
 ### Edit Club
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def editAquaristClub(request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     userCanEdit = user_can_edit_club(request.user, aquaristClub)
-    site_id = getattr(settings, 'SITE_ID', 1)
+    site_id = getattr(settings, "SITE_ID", 1)
 
     if not userCanEdit:
         raise PermissionDenied
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
         if site_id == 2:
             form = AquaristClubForm2BB(request.POST, request.FILES, instance=aquaristClub)
@@ -115,22 +119,23 @@ def editAquaristClub(request, pk):
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
             form.save()
-            logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
+            logger.info("User %s edited club: %s (%s)", request.user.username, aquaristClub.name, str(aquaristClub.id))
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
 
-    #form = AquaristClubForm2()
+    # form = AquaristClubForm2()
     if site_id == 2:
-        form = AquaristClubForm2BB(instance=aquaristClub)   # Bare Bones Club no BAP etc.
+        form = AquaristClubForm2BB(instance=aquaristClub)  # Bare Bones Club no BAP etc.
     else:
         form = AquaristClubForm2(instance=aquaristClub)
 
-    context = {'form':  form, 'aquaristClub': aquaristClub}
-    return render(request, 'species/editAquaristClub.html', context)
+    context = {"form": form, "aquaristClub": aquaristClub}
+    return render(request, "species/editAquaristClub.html", context)
 
 
 ### Delete Club
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def deleteAquaristClub(request, pk):
     aquaristClub = AquaristClub.objects.get(id=pk)
     userCanEdit = user_can_edit_club(request.user, aquaristClub)
@@ -138,20 +143,21 @@ def deleteAquaristClub(request, pk):
     if not userCanEdit:
         raise PermissionDenied
 
-    if request.method == 'POST':
-        logger.info('User %s deleted club: %s', request.user.username, aquaristClub.name)
+    if request.method == "POST":
+        logger.info("User %s deleted club: %s", request.user.username, aquaristClub.name)
         aquaristClub.delete()
-        return redirect('aquaristClubs')
+        return redirect("aquaristClubs")
 
-    object_type = 'Aquarist Club'
+    object_type = "Aquarist Club"
     object_name = aquaristClub.name
-    context = {'object_type': object_type, 'object_name': object_name}
-    return render(request, 'species/deleteConfirmation.html', context)
+    context = {"object_type": object_type, "object_name": object_name}
+    return render(request, "species/deleteConfirmation.html", context)
 
 
 ### Club Admin
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def aquaristClubAdmin(request, pk):
     cur_user = request.user
     club = AquaristClub.objects.get(id=pk)
@@ -161,12 +167,13 @@ def aquaristClubAdmin(request, pk):
     if not userCanEdit:
         raise PermissionDenied
 
-    logger.info('User %s aquaristClubAdmin for club: %s (%s)', request.user.username, club.name, str(club.id))
-    context = {'club':  club, 'clubMembers':  clubMembers}
-    return render(request, 'species/aquaristClubAdmin.html', context)
+    logger.info("User %s aquaristClubAdmin for club: %s (%s)", request.user.username, club.name, str(club.id))
+    context = {"club": club, "clubMembers": clubMembers}
+    return render(request, "species/aquaristClubAdmin.html", context)
 
 
 ### Club Members List
+
 
 class AquaristClubMemberListView(LoginRequiredMixin, ListView):
     model = AquaristClubMember
@@ -176,11 +183,11 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        self.club = get_object_or_404(AquaristClub, pk=self.kwargs['pk'])
+        self.club = get_object_or_404(AquaristClub, pk=self.kwargs["pk"])
         print("AquaristClubMemberListView setup called")
 
     def get_club(self):
-        club_id = self.kwargs.get('pk')
+        club_id = self.kwargs.get("pk")
         return AquaristClub.objects.get(id=club_id)
 
     def get_queryset(self):
@@ -197,16 +204,18 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['club'] = self.get_club()
-        context['userCanEdit'] = self.get_userCanEdit()
-        logger.info('User %s viewed AquaristClubMemberListView for club: %s',
-                   self.request.user.username, self.get_club().name)
+        context["club"] = self.get_club()
+        context["userCanEdit"] = self.get_userCanEdit()
+        logger.info(
+            "User %s viewed AquaristClubMemberListView for club: %s", self.request.user.username, self.get_club().name
+        )
         return context
 
 
 ### View Single Club Member
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def aquaristClubMember(request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
     userCanEdit = user_can_edit_club(request.user, aquaristClubMember.club)
@@ -214,23 +223,28 @@ def aquaristClubMember(request, pk):
     if not (user_is_club_member(request.user, aquaristClubMember.club) or userCanEdit):
         raise PermissionDenied
 
-    logger.info('User %s viewed Club Member: %s (%s)',
-               request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))
-    context = {'aquaristClubMember': aquaristClubMember, 'userCanEdit': userCanEdit}
-    return render(request, 'species/aquaristClubMember.html', context)
+    logger.info(
+        "User %s viewed Club Member: %s (%s)",
+        request.user.username,
+        aquaristClubMember.name,
+        str(aquaristClubMember.id),
+    )
+    context = {"aquaristClubMember": aquaristClubMember, "userCanEdit": userCanEdit}
+    return render(request, "species/aquaristClubMember.html", context)
 
 
 ### Create Club Member (Join Club)
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def createAquaristClubMember(request, pk):
     club = AquaristClub.objects.get(id=pk)
     user = request.user
     form = AquaristClubMemberJoinForm()
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AquaristClubMemberJoinForm(request.POST)
-        form.instance.name = club.acronym + ': ' + user.username
+        form.instance.name = club.acronym + ": " + user.username
         form.instance.user = request.user
         form.instance.club = club
 
@@ -243,16 +257,17 @@ def createAquaristClubMember(request, pk):
                 print("New Club Membership request - needs admin approval")
             member.bap_participant = True
             member.save()
-            logger.info('User %s joined club:  %s (%s)', request.user.username, club.name, str(club.id))
+            logger.info("User %s joined club:  %s (%s)", request.user.username, club.name, str(club.id))
             return HttpResponseRedirect(reverse("aquaristClub", args=[club.id]))
 
-    context = {'form':  form, 'aquaristClub': club}
-    return render(request, 'species/createAquaristClubMember.html', context)
+    context = {"form": form, "aquaristClub": club}
+    return render(request, "species/createAquaristClubMember.html", context)
 
 
 ### Edit Club Member
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def editAquaristClubMember(request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
     club = aquaristClubMember.club
@@ -262,21 +277,26 @@ def editAquaristClubMember(request, pk):
         raise PermissionDenied
 
     form = AquaristClubMemberForm(instance=aquaristClubMember)
-    if request.method == 'POST':
+    if request.method == "POST":
         form2 = AquaristClubMemberForm(request.POST, instance=aquaristClubMember)
         if form2.is_valid:
             form2.save()
-            logger.info('User %s edited club member: %s (%s)',
-                       request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))
+            logger.info(
+                "User %s edited club member: %s (%s)",
+                request.user.username,
+                aquaristClubMember.name,
+                str(aquaristClubMember.id),
+            )
         return HttpResponseRedirect(reverse("aquaristClubMembers", args=[club.id]))
 
-    context = {'form': form, 'aquaristClubMember': aquaristClubMember}
-    return render(request, 'species/editAquaristClubMember.html', context)
+    context = {"form": form, "aquaristClubMember": aquaristClubMember}
+    return render(request, "species/editAquaristClubMember.html", context)
 
 
 ### Delete Club Member
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def deleteAquaristClubMember(request, pk):
     aquaristClubMember = AquaristClubMember.objects.get(id=pk)
     aquaristClub = aquaristClubMember.club
@@ -285,17 +305,22 @@ def deleteAquaristClubMember(request, pk):
     if not userCanEdit:
         raise PermissionDenied
 
-    if request.method == 'POST':
-        logger.info('User %s deleted club member: %s (%s)',
-                   request.user.username, aquaristClubMember.name, str(aquaristClubMember.id))
+    if request.method == "POST":
+        logger.info(
+            "User %s deleted club member: %s (%s)",
+            request.user.username,
+            aquaristClubMember.name,
+            str(aquaristClubMember.id),
+        )
         aquaristClubMember.delete()
         return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
 
-    context = {'aquaristClubMember': aquaristClubMember, 'aquaristClub':  aquaristClub}
-    return render(request, 'species/deleteAquaristClubMember.html', context)
+    context = {"aquaristClubMember": aquaristClubMember, "aquaristClub": aquaristClub}
+    return render(request, "species/deleteAquaristClubMember.html", context)
 
 
 ### Cares Liaison Dashboard
+
 
 class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
     model = SpeciesInstance
@@ -305,25 +330,29 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        self.club = get_object_or_404(AquaristClub, pk=self.kwargs['pk'])
+        self.club = get_object_or_404(AquaristClub, pk=self.kwargs["pk"])
         print("AquaristClubCaresLiaisonListView setup called")
 
     def get_club(self):
-        club_id = self.kwargs.get('pk')
+        club_id = self.kwargs.get("pk")
         return AquaristClub.objects.get(id=club_id)
 
     def get_queryset(self):
         # Base queryset
-        queryset = SpeciesInstance.objects.filter(
-            species__render_cares=True,
-            currently_keep=True,
-            user__user_club_members__club=self.get_club(),
-            user__user_club_members__membership_approved=True
-        ).select_related('user', 'species').distinct()
+        queryset = (
+            SpeciesInstance.objects.filter(
+                species__render_cares=True,
+                currently_keep=True,
+                user__user_club_members__club=self.get_club(),
+                user__user_club_members__membership_approved=True,
+            )
+            .select_related("user", "species")
+            .distinct()
+        )
 
         # Apply filters from GET parameters
-        selected_member = self.request.GET.get('member')
-        selected_species = self.request.GET.get('species_kept')
+        selected_member = self.request.GET.get("member")
+        selected_species = self.request.GET.get("species_kept")
 
         if selected_member:
             queryset = queryset.filter(user_id=selected_member)
@@ -343,35 +372,41 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['club'] = self.get_club()
-        context['userCanEdit'] = self.get_userCanEdit()
+        context["club"] = self.get_club()
+        context["userCanEdit"] = self.get_userCanEdit()
 
         # Get base queryset (without pagination and without current filters applied)
-        base_queryset = SpeciesInstance.objects.filter(
-            species__render_cares=True,
-            currently_keep=True,
-            user__user_club_members__club=self.get_club(),
-            user__user_club_members__membership_approved=True
-        ).select_related('user', 'species').distinct()
+        base_queryset = (
+            SpeciesInstance.objects.filter(
+                species__render_cares=True,
+                currently_keep=True,
+                user__user_club_members__club=self.get_club(),
+                user__user_club_members__membership_approved=True,
+            )
+            .select_related("user", "species")
+            .distinct()
+        )
 
-        club_members = base_queryset.values_list(
-            'user__id', 'user__first_name', 'user__last_name'
-        ).distinct().order_by('user__last_name', 'user__first_name')
-        context['club_members'] = [
-            (user_id, f"{first_name} {last_name}")
-            for user_id, first_name, last_name in club_members
+        club_members = (
+            base_queryset.values_list("user__id", "user__first_name", "user__last_name")
+            .distinct()
+            .order_by("user__last_name", "user__first_name")
+        )
+        context["club_members"] = [
+            (user_id, f"{first_name} {last_name}") for user_id, first_name, last_name in club_members
         ]
 
-        species_list = base_queryset.values_list(
-            'species__id', 'species__name'
-        ).distinct().order_by('species__name')
-        context['species_kept_list'] = list(species_list)
+        species_list = base_queryset.values_list("species__id", "species__name").distinct().order_by("species__name")
+        context["species_kept_list"] = list(species_list)
 
-        context['selected_member'] = self.request.GET.get('member', '')
-        context['selected_species_kept'] = self.request.GET.get('species_kept', '')
+        context["selected_member"] = self.request.GET.get("member", "")
+        context["selected_species_kept"] = self.request.GET.get("species_kept", "")
 
-        logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s',
-                   self.request.user.username, self.get_club().name)
+        logger.info(
+            "User %s viewed AquaristClubCaresLiaisonListView for club: %s",
+            self.request.user.username,
+            self.get_club().name,
+        )
         return context
 
 
@@ -391,10 +426,12 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
 #     form = ImportCsvForm()
 #     return render(request, "species/importAquaristClubs.html", {"form": form})
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def exportAquaristClubs(request):
     return export_csv_aquaristClubs()
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def exportAquaristClubMembers(request):
     return export_csv_aquaristClubMembers()

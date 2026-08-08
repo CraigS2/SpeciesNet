@@ -14,52 +14,54 @@ from .base import *
 
 ### Species Reports
 
+
 def speciesProfilesWithPhotos(request):
-    species_with_photos = Species.objects.exclude(species_image__in=['', None])
-    context = {'species_with_photos': species_with_photos}
-    return render(request, 'species/speciesProfilesWithPhotos.html', context)
+    species_with_photos = Species.objects.exclude(species_image__in=["", None])
+    context = {"species_with_photos": species_with_photos}
+    return render(request, "species/speciesProfilesWithPhotos.html", context)
 
 
 ### Species Instances with Photos
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def speciesInstancesWithPhotos(request):
-    si_with_photos = SpeciesInstance.objects.exclude(aquarist_species_image__in=['', None])
-    context = {'si_with_photos': si_with_photos}
-    return render(request, 'species/speciesInstancesWithPhotos.html', context)
+    si_with_photos = SpeciesInstance.objects.exclude(aquarist_species_image__in=["", None])
+    context = {"si_with_photos": si_with_photos}
+    return render(request, "species/speciesInstancesWithPhotos.html", context)
 
 
 ### Species Instance Labels (QR Codes)
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def speciesInstancesWithLabels(request):
     si_labels = SpeciesInstanceLabel.objects.all()
-    context = {'si_labels': si_labels}
-    return render(request, 'species/speciesInstancesWithLabels.html', context)
-
+    context = {"si_labels": si_labels}
+    return render(request, "species/speciesInstancesWithLabels.html", context)
 
 
 ### Species Instance Reports
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def speciesInstancesWithVideos(request):
     """View all species instances that have YouTube videos."""
     # Need to filter on both null and empty string cases - so use an exclude set
     speciesInstances = SpeciesInstance.objects.exclude(
-        Q(aquarist_species_video_url__isnull=True) |
-        Q(aquarist_species_video_url='')
+        Q(aquarist_species_video_url__isnull=True) | Q(aquarist_species_video_url="")
     )
 
     if request.user.is_authenticated:
-        logger.info('User %s visited speciesInstancesWithVideos page.', request.user.username)
+        logger.info("User %s visited speciesInstancesWithVideos page.", request.user.username)
     else:
-        logger.info('Anonymous user visited speciesInstancesWithVideos page.')
+        logger.info("Anonymous user visited speciesInstancesWithVideos page.")
 
-    context = {'speciesInstances': speciesInstances}
-    return render(request, 'species/speciesInstancesWithVideos.html', context)
+    context = {"speciesInstances": speciesInstances}
+    return render(request, "species/speciesInstancesWithVideos.html", context)
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def speciesInstancesWithLogs(request):
     """View all species instances that have log entries."""
     log_entries = SpeciesInstanceLogEntry.objects.all()
@@ -73,18 +75,15 @@ def speciesInstancesWithLogs(request):
     speciesInstancesEmpty = len(speciesInstances) == 0
 
     if request.user.is_authenticated:
-        logger.info('User %s visited speciesInstancesWithLogs page.', request.user.username)
+        logger.info("User %s visited speciesInstancesWithLogs page.", request.user.username)
     else:
-        logger.info('Anonymous user visited speciesInstancesWithLogs page.')
+        logger.info("Anonymous user visited speciesInstancesWithLogs page.")
 
-    context = {
-        'speciesInstances':  speciesInstances,
-        'speciesInstancesEmpty': speciesInstancesEmpty
-    }
-    return render(request, 'species/speciesInstancesWithLogs.html', context)
+    context = {"speciesInstances": speciesInstances, "speciesInstancesEmpty": speciesInstancesEmpty}
+    return render(request, "species/speciesInstancesWithLogs.html", context)
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def speciesInstancesWithEmptyLogs(request):
     """View and clean up species instances with logging enabled but no log entries
     Admin can bulk disable logging for these instances.
@@ -94,32 +93,35 @@ def speciesInstancesWithEmptyLogs(request):
 
     # Leverage a single query utilizing the reverse lookup related_name - filtering on the null case
     speciesInstances = SpeciesInstance.objects.filter(
-        enable_species_log=True,
-        species_instance_log_entries__isnull=True
+        enable_species_log=True, species_instance_log_entries__isnull=True
     )
 
     # Optional action to clear all empty log speciesInstance.enable_species_log flags
-    if request.method == 'POST':
-        print('Clearing empty speciesInstance logs .. .')
-        if request.POST.get('action') == 'clear_flags':
+    if request.method == "POST":
+        print("Clearing empty speciesInstance logs .. .")
+        if request.POST.get("action") == "clear_flags":
             si_list = list(speciesInstances)  # Triggers django's lazy querysets
             count = len(si_list)  # Gets length without query being executed twice
 
             for speciesInstance in si_list:
                 speciesInstance.enable_species_log = False
                 speciesInstance.save()
-                logger.info('Cleanup: speciesInstance %s (%s) has empty log, enable_species_log reset to False',
-                           speciesInstance.name, speciesInstance.id)
+                logger.info(
+                    "Cleanup: speciesInstance %s (%s) has empty log, enable_species_log reset to False",
+                    speciesInstance.name,
+                    speciesInstance.id,
+                )
 
-            logger.info('Admin user %s cleared %d empty speciesInstanceLogs', request.user.username, count)
-            messages.success(request, f'Successfully disabled logging for {count} species instances.')
-            return redirect('speciesInstancesWithEmptyLogs')
+            logger.info("Admin user %s cleared %d empty speciesInstanceLogs", request.user.username, count)
+            messages.success(request, f"Successfully disabled logging for {count} species instances.")
+            return redirect("speciesInstancesWithEmptyLogs")
 
-    context = {'speciesInstances':  speciesInstances}
-    return render(request, 'species/speciesInstancesWithEmptyLogs.html', context)
+    context = {"speciesInstances": speciesInstances}
+    return render(request, "species/speciesInstancesWithEmptyLogs.html", context)
 
 
 ### Admin Tools Pages
+
 
 def tools(request):
     """Main admin tools dashboard - collection of utilities for CSV import/export and DB maintenance."""
@@ -132,8 +134,8 @@ def tools(request):
     if not userCanEdit:
         raise PermissionDenied
 
-    logger.info('Admin user %s visited tools page', request.user.username)
-    return render(request, 'species/tools.html')
+    logger.info("Admin user %s visited tools page", request.user.username)
+    return render(request, "species/tools.html")
 
 
 def tools2(request):
@@ -147,14 +149,15 @@ def tools2(request):
     if not userCanEdit:
         raise PermissionDenied
 
-    logger.info('Admin user %s visited tools2 page', request.user.username)
-    return render(request, 'species/tools2.html')
+    logger.info("Admin user %s visited tools2 page", request.user.username)
+    return render(request, "species/tools2.html")
 
 
 ### DB text field integrity cleanup - eliminate use of NULL with search-replace of NULL with empty text strings
 ### This requires an immediate DB migration to enforce the pattern of no-NULL text field usage
 
-def db_null_text_integrity_cleanup (modify_db=False):
+
+def db_null_text_integrity_cleanup(modify_db=False):
 
     # All field types that store text and should use blank=True not null=True
     TEXT_FIELD_TYPES = (
@@ -175,19 +178,20 @@ def db_null_text_integrity_cleanup (modify_db=False):
     checked_count = 0
     mode = "DRY_RUN"
     if modify_db:
-          mode = "FIXING"
+        mode = "FIXING"
 
-    print(f"\n{'='*70}")   # Outputs a string of ========= ... 70x
+    print(f"\n{'=' * 70}")  # Outputs a string of ========= ... 70x
     print(f"  {mode}:  Checking all text-based fields for NULL values")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     for model in apps.get_models():
         # Find all text fields with null=True
         text_fields = [
-            field for field in model._meta.get_fields()
+            field
+            for field in model._meta.get_fields()
             if isinstance(field, TEXT_FIELD_TYPES)
-            #and getattr(field, 'null', False)  # Only check fields with null=True
-            #and hasattr(field, 'name')  # Skip reverse relations
+            # and getattr(field, 'null', False)  # Only check fields with null=True
+            # and hasattr(field, 'name')  # Skip reverse relations
         ]
         if not text_fields:
             continue
@@ -196,7 +200,7 @@ def db_null_text_integrity_cleanup (modify_db=False):
         for field in text_fields:
             checked_count += 1
             field_type = field.__class__.__name__
-            filter_kwargs = {f'{field.name}__isnull': True}
+            filter_kwargs = {f"{field.name}__isnull": True}
 
             try:
                 null_count = model.objects.filter(**filter_kwargs).count()
@@ -204,22 +208,28 @@ def db_null_text_integrity_cleanup (modify_db=False):
                 if null_count > 0:
                     total_nulls += null_count
 
-                    results.append({
-                        'model': f'{model._meta.app_label}.{model._meta. object_name}',
-                        'field': field. name,
-                        'field_type': field_type,
-                        'count': null_count,
-                    })
+                    results.append(
+                        {
+                            "model": f"{model._meta.app_label}.{model._meta.object_name}",
+                            "field": field.name,
+                            "field_type": field_type,
+                            "count": null_count,
+                        }
+                    )
 
                     if not modify_db:
-                        print(f"ISSUE:  {model._meta.app_label}.{model._meta. object_name}. {field.name} ({field_type}): {null_count} NULLs found")
+                        print(
+                            f"ISSUE:  {model._meta.app_label}.{model._meta.object_name}. {field.name} ({field_type}): {null_count} NULLs found"
+                        )
                     else:
                         # write '' to NULLs
                         with transaction.atomic():
-                            update_kwargs = {field.name: ''}
+                            update_kwargs = {field.name: ""}
                             fixed = model.objects.filter(**filter_kwargs).update(**update_kwargs)
                             total_fixed += fixed
-                            print(f"SUCCESS: {model._meta.app_label}.{model._meta.object_name}.{field.name} ({field_type}): Fixed {fixed} NULLs")
+                            print(
+                                f"SUCCESS: {model._meta.app_label}.{model._meta.object_name}.{field.name} ({field_type}): Fixed {fixed} NULLs"
+                            )
                 else:
                     # Optional: print clean fields too
                     # print(f"SUCCESS: {model._meta.app_label}. {model._meta.object_name}.{field.name} ({field_type}): Clean")
@@ -229,7 +239,7 @@ def db_null_text_integrity_cleanup (modify_db=False):
                 print(f"ERROR: Error processing {model._meta.app_label}.{model._meta.object_name}.{field.name}: {e}")
 
     # Summary
-    print("\n" + "="*70) # Outputs a string of ========= ... 70x
+    print("\n" + "=" * 70)  # Outputs a string of ========= ... 70x
     if not modify_db:
         if total_nulls == 0:
             print("SUCCESS: No NULL values found in any text-based fields!")
@@ -244,9 +254,10 @@ def db_null_text_integrity_cleanup (modify_db=False):
         for result in results:
             print(f"  - {result['model']}.{result['field']} ({result['field_type']}): {result['count']} fixed")
 
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     return results
+
 
 def initialize_cares_species_fields():
 
@@ -267,7 +278,7 @@ def initialize_cares_species_fields():
         elif species.cares_classification == Species.CaresStatus.VULNERABLE:
             species.iucn_red_list = Species.IucnRedList.VULNERABLE
         else:
-            print ('CARES Species not mapped to IUCN Red List: ' + species.name)
+            print("CARES Species not mapped to IUCN Red List: " + species.name)
             unmapped_redlist_count = unmapped_redlist_count + 1
 
         if species.category == Species.Category.ANABATIDS:
@@ -285,15 +296,24 @@ def initialize_cares_species_fields():
         elif species.category == Species.Category.LOACHES:
             species.cares_family = Species.CaresFamily.LOACHES
         else:
-            print ('CARES Species not mapped to Cares Family: ' + species.name)
+            print("CARES Species not mapped to Cares Family: " + species.name)
             unmapped_category_count = unmapped_category_count + 1
 
         species.save()
 
-    message_text = 'Cares Migration (total: (' + str(species_count) + ') (unmapped category: ' + str(unmapped_category_count) + ') (unmapped redlist: (' + str(unmapped_redlist_count) + ')'
-    print (message_text)
+    message_text = (
+        "Cares Migration (total: ("
+        + str(species_count)
+        + ") (unmapped category: "
+        + str(unmapped_category_count)
+        + ") (unmapped redlist: ("
+        + str(unmapped_redlist_count)
+        + ")"
+    )
+    print(message_text)
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def enforceSpeciesNameSingleQuotes(request):
     """Species name consistency utility: replaces all curly/smart quote variants
     in species name and alt_name fields with standard single quotes, then
@@ -304,57 +324,65 @@ def enforceSpeciesNameSingleQuotes(request):
 
     changes = []
 
-    if request.method == 'POST':
+    if request.method == "POST":
         # Unicode quote characters to normalise → straight single quote
-        QUOTE_MAP = str.maketrans({
-            '\u2018': "'",   # left single quotation mark  '
-            '\u2019': "'",   # right single quotation mark '
-            '\u201A': "'",   # single low-9 quotation mark ‚
-            '\u201B': "'",   # single high-reversed-9      ‛
-            '\u0060': "'",   # grave accent                `
-            '\u00B4': "'",   # acute accent                ´
-            '\u2032': "'",   # prime                       ′
-            '\u0022': "'",   # double quote → single       "
-            '\u201C': "'",   # left double quotation mark  "
-            '\u201D': "'",   # right double quotation mark "
-        })
+        QUOTE_MAP = str.maketrans(
+            {
+                "\u2018": "'",  # left single quotation mark  '
+                "\u2019": "'",  # right single quotation mark '
+                "\u201a": "'",  # single low-9 quotation mark ‚
+                "\u201b": "'",  # single high-reversed-9      ‛
+                "\u0060": "'",  # grave accent                `
+                "\u00b4": "'",  # acute accent                ´
+                "\u2032": "'",  # prime                       ′
+                "\u0022": "'",  # double quote → single       "
+                "\u201c": "'",  # left double quotation mark  "
+                "\u201d": "'",  # right double quotation mark "
+            }
+        )
 
         for species in Species.objects.all():
-            original_name     = species.name or ''
-            original_alt_name = species.alt_name or ''
+            original_name = species.name or ""
+            original_alt_name = species.alt_name or ""
 
-            new_name     = original_name.translate(QUOTE_MAP)
+            new_name = original_name.translate(QUOTE_MAP)
             new_alt_name = original_alt_name.translate(QUOTE_MAP)
 
             fields_updated = []
             if new_name != original_name:
                 species.name = new_name
-                fields_updated.append('name')
+                fields_updated.append("name")
             if new_alt_name != original_alt_name:
                 species.alt_name = new_alt_name
-                fields_updated.append('alt_name')
+                fields_updated.append("alt_name")
 
             if not fields_updated:
                 continue
 
             species.save(update_fields=fields_updated)
 
-            changes.append({
-                'id':            species.id,
-                'original_name': original_name,
-                'new_name':      new_name,
-                'fields':        ', '.join(fields_updated),
-            })
+            changes.append(
+                {
+                    "id": species.id,
+                    "original_name": original_name,
+                    "new_name": new_name,
+                    "fields": ", ".join(fields_updated),
+                }
+            )
             logger.info(
                 'Admin %s: enforced single quotes on species id=%d "%s" → "%s" (fields: %s)',
-                request.user.username, species.id, original_name, new_name, ', '.join(fields_updated),
+                request.user.username,
+                species.id,
+                original_name,
+                new_name,
+                ", ".join(fields_updated),
             )
 
-    context = {'changes': changes}
-    return render(request, 'species/tools/enforceSpeciesNameSingleQuotes.html', context)
+    context = {"changes": changes}
+    return render(request, "species/tools/enforceSpeciesNameSingleQuotes.html", context)
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def collectSpeciesData(request):
     """Data aggregation tool ** BETA ** needs significant work to be user friendly
     Inputs a species list with csv header: Family, Species
@@ -362,23 +390,23 @@ def collectSpeciesData(request):
     Outputs roughly structured csv with heaer: FishBase URL, Distribution, Biology, Conservation Notes, IUCN Status.
     """
     current_user = request.user
-    userCanEdit = user_is_admin (request.user)
+    userCanEdit = user_is_admin(request.user)
     if not userCanEdit:
         raise PermissionDenied
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ImportCsvForm(request.POST, request.FILES)
         if form.is_valid():
             import_archive = form.save()
-            #TODO sort out mechanims of downloading csv output and displaying progress and/or summary results
-            return collect_species_data_as_csv (import_archive, current_user)
-            #return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
+            # TODO sort out mechanims of downloading csv output and displaying progress and/or summary results
+            return collect_species_data_as_csv(import_archive, current_user)
+            # return HttpResponseRedirect(reverse("importArchiveResults", args=[import_archive.id]))
 
     form = ImportCsvForm()
     return render(request, "species/importSpecies.html", {"form": form})
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def collectionLocations(request):
     """Admin list view of all SpeciesCollectionLocation entries.
     Filterable by species name. Shows name, species, and is_verified.
@@ -386,46 +414,48 @@ def collectionLocations(request):
     if not (request.user.is_staff or request.user.is_admin):
         raise PermissionDenied
 
-    species_filter = request.GET.get('species', '').strip()
+    species_filter = request.GET.get("species", "").strip()
 
-    locations = SpeciesCollectionLocation.objects.select_related('species').all()
+    locations = SpeciesCollectionLocation.objects.select_related("species").all()
     if species_filter:
         locations = locations.filter(species__name__icontains=species_filter)
 
     context = {
-        'locations': locations,
-        'species_filter': species_filter,
-        'total_count': locations.count(),
+        "locations": locations,
+        "species_filter": species_filter,
+        "total_count": locations.count(),
     }
-    return render(request, 'species/collectionLocations.html', context)
+    return render(request, "species/collectionLocations.html", context)
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def exportSpeciesCollectionLocations(request):
     if not (request.user.is_staff or request.user.is_admin):
         raise PermissionDenied
 
     response = HttpResponse(
-        content_type='text/csv',
-        headers={'Content-Disposition': 'attachment; filename="species_collection_locations.csv"'},
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="species_collection_locations.csv"'},
     )
     writer = csv.writer(response)
-    writer.writerow(['id', 'species_id', 'species_name', 'name', 'created'])
+    writer.writerow(["id", "species_id", "species_name", "name", "created"])
 
-    locations = SpeciesCollectionLocation.objects.select_related('species').all()
+    locations = SpeciesCollectionLocation.objects.select_related("species").all()
     for location in locations:
-        writer.writerow([
-            location.id,
-            location.species_id,
-            location.species.name,
-            location.name,
-            location.created,
-        ])
+        writer.writerow(
+            [
+                location.id,
+                location.species_id,
+                location.species.name,
+                location.name,
+                location.created,
+            ]
+        )
 
     return response
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def importSpeciesCollectionLocations(request):
     if not (request.user.is_staff or request.user.is_admin):
         raise PermissionDenied
@@ -433,7 +463,7 @@ def importSpeciesCollectionLocations(request):
     summary = None
     form = ImportSpeciesCollectionLocationsForm()
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ImportSpeciesCollectionLocationsForm(request.POST, request.FILES)
         if form.is_valid():
             created_count = 0
@@ -441,57 +471,53 @@ def importSpeciesCollectionLocations(request):
             error_count = 0
             errors = []
 
-            csv_file = TextIOWrapper(form.cleaned_data['csv_file'].file, encoding='utf-8-sig')
+            csv_file = TextIOWrapper(form.cleaned_data["csv_file"].file, encoding="utf-8-sig")
             reader = csv.DictReader(csv_file)
-            required_columns = {'species_id', 'species_name', 'name'}
+            required_columns = {"species_id", "species_name", "name"}
 
             if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
                 error_count += 1
-                errors.append((1, '', 'Missing required CSV columns: species_id, species_name, name'))
+                errors.append((1, "", "Missing required CSV columns: species_id, species_name, name"))
             else:
                 for row_num, row in enumerate(reader, start=2):
-                    species_id_raw = (row.get('species_id') or '').strip()
-                    species_name = (row.get('species_name') or '').strip()
-                    location_name = (row.get('name') or '').strip()
+                    species_id_raw = (row.get("species_id") or "").strip()
+                    species_name = (row.get("species_name") or "").strip()
+                    location_name = (row.get("name") or "").strip()
 
                     if not species_id_raw or not location_name:
                         error_count += 1
-                        errors.append((row_num, species_name, 'Missing required species_id or name'))
+                        errors.append((row_num, species_name, "Missing required species_id or name"))
                         continue
 
                     try:
                         species = Species.objects.get(pk=int(species_id_raw))
                     except (ValueError, Species.DoesNotExist):
                         error_count += 1
-                        errors.append((row_num, species_name, f'Species not found for species_id={species_id_raw}'))
+                        errors.append((row_num, species_name, f"Species not found for species_id={species_id_raw}"))
                         continue
 
                     duplicate_exists = SpeciesCollectionLocation.objects.filter(
-                        species=species,
-                        name__iexact=location_name
+                        species=species, name__iexact=location_name
                     ).exists()
                     if duplicate_exists:
                         skipped_count += 1
                         continue
 
-                    SpeciesCollectionLocation.objects.create(
-                        species=species,
-                        name=location_name
-                    )
+                    SpeciesCollectionLocation.objects.create(species=species, name=location_name)
                     created_count += 1
 
             summary = {
-                'created': created_count,
-                'skipped_duplicates': skipped_count,
-                'errors': error_count,
-                'error_rows': errors,
+                "created": created_count,
+                "skipped_duplicates": skipped_count,
+                "errors": error_count,
+                "error_rows": errors,
             }
 
-    context = {'form': form, 'summary': summary}
-    return render(request, 'species/import/importSpeciesCollectionLocations.html', context)
+    context = {"form": form, "summary": summary}
+    return render(request, "species/import/importSpeciesCollectionLocations.html", context)
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def importSpeciesInstanceCollectionLocations(request):
     if not (request.user.is_staff or request.user.is_admin):
         raise PermissionDenied
@@ -499,7 +525,7 @@ def importSpeciesInstanceCollectionLocations(request):
     summary = None
     form = ImportSpeciesInstanceCollectionLocationsForm()
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ImportSpeciesInstanceCollectionLocationsForm(request.POST, request.FILES)
         if form.is_valid():
             updated_count = 0
@@ -507,77 +533,81 @@ def importSpeciesInstanceCollectionLocations(request):
             error_count = 0
             errors = []
 
-            csv_file = TextIOWrapper(form.cleaned_data['csv_file'].file, encoding='utf-8-sig')
+            csv_file = TextIOWrapper(form.cleaned_data["csv_file"].file, encoding="utf-8-sig")
             reader = csv.DictReader(csv_file)
-            required_columns = {'species_instance_id', 'name', 'collection_location_name'}
+            required_columns = {"species_instance_id", "name", "collection_location_name"}
 
             if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
                 error_count += 1
-                errors.append((1, '', 'Missing required CSV columns: species_instance_id, name, collection_location_name'))
+                errors.append(
+                    (1, "", "Missing required CSV columns: species_instance_id, name, collection_location_name")
+                )
             else:
                 for row_num, row in enumerate(reader, start=2):
-                    si_id_raw = (row.get('species_instance_id') or '').strip()
-                    instance_name = (row.get('name') or '').strip()
-                    location_name = (row.get('collection_location_name') or '').strip()
+                    si_id_raw = (row.get("species_instance_id") or "").strip()
+                    instance_name = (row.get("name") or "").strip()
+                    location_name = (row.get("collection_location_name") or "").strip()
 
                     if not si_id_raw or not location_name:
                         error_count += 1
-                        errors.append((row_num, instance_name, 'Missing required species_instance_id or collection_location_name'))
+                        errors.append(
+                            (row_num, instance_name, "Missing required species_instance_id or collection_location_name")
+                        )
                         continue
 
                     try:
-                        species_instance = SpeciesInstance.objects.select_related('species').get(pk=int(si_id_raw))
+                        species_instance = SpeciesInstance.objects.select_related("species").get(pk=int(si_id_raw))
                     except (ValueError, SpeciesInstance.DoesNotExist):
                         error_count += 1
-                        errors.append((row_num, instance_name, f'SpeciesInstance not found for id={si_id_raw}'))
+                        errors.append((row_num, instance_name, f"SpeciesInstance not found for id={si_id_raw}"))
                         continue
 
                     location = SpeciesCollectionLocation.objects.filter(
-                        species=species_instance.species,
-                        name__iexact=location_name
+                        species=species_instance.species, name__iexact=location_name
                     ).first()
 
                     if not location:
                         not_found_count += 1
-                        errors.append((row_num, instance_name, f'Collection location not found: {location_name}'))
+                        errors.append((row_num, instance_name, f"Collection location not found: {location_name}"))
                         continue
 
                     species_instance.collection_location = location
-                    species_instance.save(update_fields=['collection_location'])
+                    species_instance.save(update_fields=["collection_location"])
                     updated_count += 1
 
             summary = {
-                'updated': updated_count,
-                'not_found': not_found_count,
-                'errors': error_count,
-                'error_rows': errors,
+                "updated": updated_count,
+                "not_found": not_found_count,
+                "errors": error_count,
+                "error_rows": errors,
             }
 
-    context = {'form': form, 'summary': summary}
-    return render(request, 'species/import/importSpeciesInstanceCollectionLocations.html', context)
+    context = {"form": form, "summary": summary}
+    return render(request, "species/import/importSpeciesInstanceCollectionLocations.html", context)
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def speciesWithManageCollectionLocations(request):
 
     if not request.user.is_staff:
         raise PermissionDenied
 
-    species_list = Species.objects.filter(manage_collection_locations=True).order_by('name')
+    species_list = Species.objects.filter(manage_collection_locations=True).order_by("name")
 
-    logger.info('Admin user %s viewed speciesWithManageCollectionLocations', request.user.username)
-    context = {'species_list': species_list}
-    return render(request, 'species/tools/speciesWithManageCollectionLocations.html', context)
+    logger.info("Admin user %s viewed speciesWithManageCollectionLocations", request.user.username)
+    context = {"species_list": species_list}
+    return render(request, "species/tools/speciesWithManageCollectionLocations.html", context)
 
 
 def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
     cur_registrations = CaresRegistration.objects.all()
     for reg in cur_registrations:
-        reg_name  = reg.aquarist.first_name + ' ' + reg.aquarist.last_name
+        reg_name = reg.aquarist.first_name + " " + reg.aquarist.last_name
         reg_email = reg.aquarist.email
-        print ('Reg Migration: ' + reg_name + ' | ' + reg_email)
+        print("Reg Migration: " + reg_name + " | " + reg_email)
         if modify_db:
             reg.aquarist_email = reg_email
-            reg.aquarist_name  = reg_name
+            reg.aquarist_name = reg_name
             reg.save()
 
 
@@ -604,18 +634,20 @@ def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
 #             print ('Dirty Deed Cleanup - checked CARES Classification no change for ' + species.name)
 #     return
 
+
 def dirtyDeedCleanBogusAssessmentDates():
-    clear_cares_date_species_set = Species.objects.filter(cares_assessment_date='1900-01-01')
+    clear_cares_date_species_set = Species.objects.filter(cares_assessment_date="1900-01-01")
     for species in clear_cares_date_species_set:
         species.cares_assessment_date = None
         species.save()
-        print ('Dirty Deed Cleanup - set cares_assessment_date to None for ' + species.name)
+        print("Dirty Deed Cleanup - set cares_assessment_date to None for " + species.name)
 
-    clear_iucn_date_species_set = Species.objects.filter(iucn_assessment_date='1900-01-01')
+    clear_iucn_date_species_set = Species.objects.filter(iucn_assessment_date="1900-01-01")
     for species in clear_iucn_date_species_set:
         species.iucn_assessment_date = None
         species.save()
-        print ('Dirty Deed Cleanup - set iucn_assessment_date to None for ' + species.name)
+        print("Dirty Deed Cleanup - set iucn_assessment_date to None for " + species.name)
+
 
 def dirtyDeed(request):
     """One-off admin utility for database maintenance tasks.
@@ -632,7 +664,7 @@ def dirtyDeed(request):
         raise PermissionDenied
 
     # Dirty deed goes here ...  then return to tools2
-    #dirtyDeedMigrateCaresClassifications()
+    # dirtyDeedMigrateCaresClassifications()
     dirtyDeedCleanBogusAssessmentDates()
 
     # ### Registration dev-only migration work in progress ###
@@ -640,12 +672,12 @@ def dirtyDeed(request):
     # dirtyDeedMigrateWorkingRegistrations (modify_db)
 
     ### DB NULL - Empty String Cleanup ###
-    #modify_db = True
+    # modify_db = True
     # modify_db = False
     # db_null_text_integrity_cleanup(modify_db)
 
     ### Initialize CARES Properties ###
-    #initialize_cares_species_fields()
+    # initialize_cares_species_fields()
 
-    logger.info('Admin user %s executed dirtyDeed', request.user.username)
-    return render(request, 'species/tools2.html')
+    logger.info("Admin user %s executed dirtyDeed", request.user.username)
+    return render(request, "species/tools2.html")
