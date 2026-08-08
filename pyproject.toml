@@ -1,0 +1,138 @@
+# Tooling configuration only. Runtime dependencies live in requirements.txt and
+# the project is still installed/run the way the Dockerfile does it.
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["speciesnet"]
+
+# Django generates and rewrites migrations in its own style; linting or
+# formatting them produces churn on every `makemigrations`.
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+# Everything below is either (a) permanently inapplicable to this codebase or
+# (b) a backlog item: the rule is real, but the existing violation count is too
+# large to fix in the change that introduced linting. Delete entries as they are
+# burned down -- each removal should be its own commit.
+ignore = [
+    # --- Conflicts with the formatter (ruff's own recommendation) ---
+    # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "COM812",  # missing-trailing-comma
+    "COM819",  # prohibited-trailing-comma
+    "ISC001",  # single-line-implicit-string-concatenation
+    "ISC002",  # multi-line-implicit-string-concatenation
+    "Q000",    # bad-quotes-inline-string      -- quote style is the formatter's job
+    "Q001",    # bad-quotes-multiline-string
+    "Q002",    # bad-quotes-docstring
+    "Q003",    # avoidable-escaped-quote
+    "D206",    # docstring-tab-indentation
+    "D300",    # triple-single-quotes
+    "E111",    # indentation-with-invalid-multiple
+    "E114",    # indentation-with-invalid-multiple-comment
+    "E117",    # over-indented
+    "W191",    # tab-indentation
+
+    # --- Inapplicable to this project ---
+    "CPY001",  # missing-copyright-notice
+    "D203",    # incompatible with D211
+    "D213",    # incompatible with D212
+    "PT009",   # pytest-unittest-assertion: the suite is django.test.TestCase
+    "PT027",   # pytest-unittest-raises-assertion: ditto
+    "TID252",  # relative-imports: Django apps use them idiomatically
+    "PLC0415", # import-outside-top-level: used deliberately to break import cycles
+
+    # --- Naming: Django views/urls are camelCase throughout ---
+    # Renaming means touching every urls.py entry and template {% url %} tag.
+    "N802",    # invalid-function-name
+    "N803",    # invalid-argument-name
+    "N806",    # non-lowercase-variable-in-function
+    "N815",    # mixed-case-variable-in-class-scope
+
+    # --- Line width is the formatter's job ---
+    # `ruff format` wraps everything it can at line-length; what E501 has left
+    # to report is long comments and string literals it is not allowed to split.
+    "E501",    # line-too-long
+
+    # --- Backlog: documentation ---
+    "D1",      # undocumented-* (public module/class/method/function/init)
+    "D205",    # missing-blank-line-after-summary
+    "D401",    # non-imperative-mood
+
+    # --- Backlog: type annotations ---
+    "ANN",     # flake8-annotations
+
+    # --- Backlog: star imports in species/views/__init__.py ---
+    "F403",    # undefined-local-with-import-star
+    "F405",    # undefined-local-with-import-star-usage
+
+    # --- Backlog: diagnostics/logging hygiene ---
+    "T201",    # print
+    "G003",    # logging-string-concat
+    "G004",    # logging-f-string
+    "G201",    # logging-exc-info
+    "TRY400",  # error-instead-of-exception
+    "BLE001",  # blind-except
+    "TRY003",  # raise-vanilla-args
+    "TRY300",  # try-consider-else
+    "TRY301",  # raise-within-try
+    "EM101",   # raw-string-in-exception
+    "EM102",   # f-string-in-exception
+
+    # --- Backlog: dead code and TODOs ---
+    "ERA001",  # commented-out-code
+    "FIX002",  # line-contains-todo
+    "TD002",   # missing-todo-author
+    "TD003",   # missing-todo-link
+    "TD004",   # missing-todo-colon
+
+    # --- Backlog: complexity ---
+    "C901",    # complex-structure
+    "PLR0911", # too-many-return-statements
+    "PLR0912", # too-many-branches
+    "PLR0913", # too-many-arguments
+    "PLR0915", # too-many-statements
+    "PLR2004", # magic-value-comparison
+
+    # --- Backlog: assorted ---
+    "ARG001",  # unused-function-argument
+    "ARG002",  # unused-method-argument
+    "DJ006",   # django-exclude-with-model-form
+    "DJ012",   # django-unordered-body-content-in-model
+    "DJ007",   # django-all-with-model-form
+    "DJ001",   # django-nullable-model-string-field
+    "FBT001",  # boolean-type-hint-positional-argument
+    "FBT002",  # boolean-default-value-positional-argument
+    "FBT003",  # boolean-positional-value-in-call
+    "PTH",     # flake8-use-pathlib
+    "RUF012",  # mutable-class-default (Django Meta/admin class attributes)
+    "RUF022",  # unsorted-dunder-all: species/views/__all__ is grouped by feature
+               #                      area to mirror the import block above it
+    "SLF001",  # private-member-access
+    "N818",    # error-suffix-on-exception-name (renaming is a cross-module change)
+    "SIM108",  # if-else-block-instead-of-if-exp (readability call, not a defect)
+    "PERF401", # manual-list-comprehension
+    "TRY004",  # type-check-without-type-error (swaps the exception class callers catch)
+    "DTZ002",  # call-datetime-today
+    "DTZ005",  # call-datetime-now-without-tzinfo
+    "DTZ007",  # call-datetime-strptime-without-zone
+    "DTZ011",  # call-date-today
+    "RUF001",  # ambiguous-unicode-character-string
+    "RUF002",  # ambiguous-unicode-character-docstring
+    "RUF003",  # ambiguous-unicode-character-comment
+]
+
+[tool.ruff.lint.per-file-ignores]
+# species/views/__init__.py exists purely to re-export the view functions that
+# urls.py imports; every name in it is "unused" by definition.
+"**/__init__.py" = ["F401"]
+# views/base.py is the shared import hub: every views_*.py does `from .base
+# import *`, so its imports are used everywhere except in base.py itself.
+"speciesnet/species/views/base.py" = ["F401"]
+# Test fixtures legitimately hard-code credentials.
+"**/tests/**" = ["S101", "S105", "S106"]
+
+[tool.ruff.format]
+docstring-code-format = true

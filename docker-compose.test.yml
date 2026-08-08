@@ -10,6 +10,9 @@ services:
         MYSQL_ROOT_PASSWORD: test_root_password
       expose: 
         - 3306
+      # published so `make test` can run the suite natively against this container
+      ports:
+        - "127.0.0.1:3306:3306"
       tmpfs: 
         - /var/lib/mysql
       command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
