@@ -356,6 +356,12 @@ DATABASES = {
 }
 if "mysql" in db_engine:
     DATABASES["default"]["OPTIONS"] = {"charset": "utf8mb4"}
+    # The connection charset above does not control CREATE DATABASE, so the
+    # test database would otherwise inherit whatever the server default is.
+    # docker-compose.test.yml passes these as server flags; stating them here
+    # makes the test database identical on any MariaDB, including the CI
+    # service container, which takes no command arguments.
+    DATABASES["default"]["TEST"] = {"CHARSET": "utf8mb4", "COLLATION": "utf8mb4_unicode_ci"}
 
 ### Custom User Model ###
 

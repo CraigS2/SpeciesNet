@@ -39,7 +39,7 @@ lint-fix:
 test:
 	source ./test.env && \
 	mkdir -p "$$MEDIA_ROOT" "$$STATIC_ROOT" && \
-	cd speciesnet && $(PYTHON) manage.py test $(TEST_LABELS) -v $(TEST_VERBOSITY)
+	cd speciesnet && $(PYTHON) manage.py test --noinput $(TEST_LABELS) -v $(TEST_VERBOSITY)
 
 test-db-up:
 	$(COMPOSE_TEST) up -d test_db
