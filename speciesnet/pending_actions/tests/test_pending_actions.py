@@ -11,7 +11,14 @@ from pending_actions.registry import get_handler_for_action_type
 from pending_actions.services import create_pending_action
 from pending_actions.services_email import send_email_message as real_send_email_message
 from pending_actions.tasks import send_action_email, sweep_expired_actions
-from species.models import CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
+from species.models import (
+    CaresApprover,
+    CaresRegistration,
+    Species,
+    SpeciesCollectionLocation,
+    User,
+    UserEmail,
+)
 from species.services.email_services import send_new_registration_notification, send_status_change_email
 
 
@@ -181,6 +188,15 @@ class PendingActionTests(TestCase):
 
     def test_send_action_email_creates_useremail_archive_for_new_registration(self):
         """send_new_registration_notification (fan-out) still creates UserEmail rows under the async flow."""
+        approver_user = User.objects.create_user(
+            email='approver@example.com', username='approver', password='pass12345'
+        )
+        CaresApprover.objects.create(
+            name='Approver',
+            approver=approver_user,
+            specialty=self.species.cares_family,
+        )
+
         before = UserEmail.objects.count()
         send_new_registration_notification(self.registration)
         # Fan-out sends to each approver with an email — there should be new UserEmail rows.

@@ -373,25 +373,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Raffle feature - CSV file stored in the persistent media volume
-
-RAFFLE_CSV_PATH         = os.path.join('/media/', 'raffle_entries.csv')
-RAFFLE_SPECIES_CSV_PATH = os.path.join('/media/', 'raffle_species.csv')
-
-### Internationalization ###
-
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-
 ### Static and Media File Configuration ###
 
-STATIC_ROOT = '/static/'
+# The container mounts persistent volumes at /static and /media. Both are
+# overridable so the test suite can run outside the container (CI, local dev).
+
+STATIC_ROOT = os.environ.get('STATIC_ROOT', '/static/')
 STATIC_URL  = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
 
-MEDIA_ROOT = '/media/'
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/media/')
 MEDIA_URL = '/media/'
 
 # Static files (CSS, JavaScript, Images)
@@ -402,6 +393,18 @@ MEDIA_URL = '/media/'
 
 #STATICFILES_DIRS = [os.path.join(BASE_DIR,'species/static')]
 #MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Raffle feature - CSV file stored in the persistent media volume
+
+RAFFLE_CSV_PATH         = os.path.join(MEDIA_ROOT, 'raffle_entries.csv')
+RAFFLE_SPECIES_CSV_PATH = os.path.join(MEDIA_ROOT, 'raffle_species.csv')
+
+### Internationalization ###
+
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
 
 ### Default primary key field type ###
 
