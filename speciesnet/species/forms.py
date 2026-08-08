@@ -458,8 +458,7 @@ class CaresRegistrationAnonymousForm (ModelForm):
         fields = '__all__'
         exclude = ['name', 'species', 'aquarist', 'affiliate_club', 'offspring_shared', 'status', 
                    'last_updated_by', 'last_report_date', 'cares_approver', 'approver_notes', 'collection_location']
-        widgets = { 'species_source': forms.Textarea(attrs={'rows':3,'cols':50}),
-                    'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
+        widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
 
 class CaresRegistrationAnonymousForm2(ModelForm):
@@ -646,7 +645,6 @@ class CaresRegistrationAdminForm (ModelForm):
         fields = '__all__'
         exclude = ['name', 'species', 'collection_location']
         widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
 
 # registration submition by Cares Admin

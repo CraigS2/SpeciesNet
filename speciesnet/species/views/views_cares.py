@@ -614,13 +614,13 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
         approvers = CaresRegistration.objects.values_list(
             'cares_approver__id', 'cares_approver__name'
         ).distinct().order_by('cares_approver__name')
-        context['approvers'] = [(id, name) for id, name in approvers if id is not None]
+        context['approvers'] = [(approver_id, name) for approver_id, name in approvers if approver_id is not None]
         
         # Get unique clubs
         clubs = CaresRegistration.objects.values_list(
             'affiliate_club__id', 'affiliate_club__name'
         ).distinct().order_by('affiliate_club__name')
-        context['clubs'] = [(id, name) for id, name in clubs if id is not None]
+        context['clubs'] = [(club_id, name) for club_id, name in clubs if club_id is not None]
         
         context['cares_families'] = Species.CaresFamily.choices
         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices

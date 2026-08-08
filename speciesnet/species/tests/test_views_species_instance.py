@@ -205,7 +205,6 @@ class SpeciesInstanceEditViewTest(TestCase):
         time.sleep(0.1)
         
         self.client.post(reverse('editSpeciesInstance', args=[self.species_instance.id]), {
-            'name': 'Hoo Dunnit Again',
             'unique_traits': 'Longer fin',
             'genetic_traits': 'WC',
             'year_acquired':  2008,

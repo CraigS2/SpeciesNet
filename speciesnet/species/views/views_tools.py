@@ -9,6 +9,9 @@ from .base import *
 import csv
 from io import TextIOWrapper
 
+from django.apps import apps
+from django.db import models, transaction
+
 ### Species Reports
 
 def speciesProfilesWithPhotos(request):
@@ -159,9 +162,6 @@ def tools2(request):
 
 ### DB text field integrity cleanup - eliminate use of NULL with search-replace of NULL with empty text strings
 ### This requires an immediate DB migration to enforce the pattern of no-NULL text field usage
-
-from django.apps import apps
-from django.db import models, transaction
 
 def db_null_text_integrity_cleanup (modify_db=False):
 

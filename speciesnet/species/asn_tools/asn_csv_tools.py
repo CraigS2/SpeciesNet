@@ -1,5 +1,5 @@
 from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus
-from species.models import ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation
+from species.models import BapSubmission, ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation
 from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 
 from django.db import transaction
@@ -277,7 +277,7 @@ def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-        csv_report_filename = current_user.username + '_' + bap_club.acronym + "_club_import_log.csv"
+        csv_report_filename = current_user.username + '_' + club.acronym + "_club_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
         # persist import archive

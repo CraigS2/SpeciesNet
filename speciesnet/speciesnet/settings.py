@@ -18,7 +18,7 @@ CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRU
 # site2 configures cares species              #
 ###############################################
 
-SITE_ID = int(os.getenv('SITE_ID', 1))
+SITE_ID = int(os.getenv('SITE_ID', '1'))
 SITE_DOMAIN = os.getenv('SITE_DOMAIN', 'your_domain.example.com')
 
 site_domain_1 = 'aquarist.example.com'
@@ -95,7 +95,7 @@ else:
 ### email configuration ###
 
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = os.environ.get('EMAIL_PORT', 587)
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
