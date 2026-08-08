@@ -102,3 +102,44 @@ To get the latest source from github and build/run locally:
 	GitKraken is free for non-commercial use and requires any GitHub repos be open source to enable the free license. Download and install, and open the SpeciesNet folder. 
 
 -----------------------------------
+
+## Linting and tests
+
+Continuous integration runs on every pull request (`.github/workflows/ci.yml`)
+and invokes the same two `make` targets you can run locally, so a green run on
+your machine means a green run on the pull request.
+
+Install the tooling once:
+
+    python3 -m pip install -r requirements.txt -r requirements-dev.txt
+
+### Lint
+
+    make lint         # ruff check + ruff format --check, exactly what CI runs
+    make lint-fix     # apply the autofixes and reformat
+
+Ruff is configured in `pyproject.toml`. It runs with `select = ["ALL"]` and an
+explicit ignore list; entries marked "backlog" there are rules the codebase does
+not satisfy yet and are meant to be burned down one commit at a time. Ruff is
+pinned in `requirements-dev.txt` so a new ruff release cannot break CI on its
+own.
+
+### Tests
+
+The suite needs a MariaDB matching production. Start one, then run the tests:
+
+    make test-db-up   # docker compose, publishes 127.0.0.1:3306
+    make test
+    make test-db-down
+
+`make test` sources `test.env`, which supplies the environment Django needs.
+Every value in that file defers to whatever is already exported, so you can
+override a single setting without editing it:
+
+    DATABASE_HOST=db.example.com make test
+    make test TEST_LABELS=species.tests.test_models
+
+The formatting-only commit is listed in `.git-blame-ignore-revs`. To keep it out
+of `git blame` output:
+
+    git config blame.ignoreRevsFile .git-blame-ignore-revs

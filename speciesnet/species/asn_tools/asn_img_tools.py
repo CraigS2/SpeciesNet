@@ -1,18 +1,18 @@
-from PIL import Image, ImageOps
-from pillow_heif import register_heif_opener
-#from django.db import models
-from django.db.models import ImageField
-from django.core.files import File
-from io import BytesIO
 import os
+from io import BytesIO
+
 import qrcode
-from django.conf import settings
 from django.contrib import messages
+from django.core.files import File
+
+# from django.db import models
+from django.db.models import ImageField
+from PIL import Image, ImageOps
 
 
-#def processUploadedImageFile (image_field: ImageField, species_or_instance_name, request):
+# def processUploadedImageFile (image_field: ImageField, species_or_instance_name, request):
 def processUploadedImageFile(image_field: ImageField, species_or_instance_name, request, delete_original_file=True):
-    #register_heif_opener() # must be done before form upload or rejects heic files
+    # register_heif_opener() # must be done before form upload or rejects heic files
     img = Image.open(image_field.path)
 
     split_path = os.path.split(image_field.path)
@@ -33,36 +33,36 @@ def processUploadedImageFile(image_field: ImageField, species_or_instance_name, 
     # 5: Rotated 90° CCW, then flipped horizontally, 6: Rotated 90° CW (Clockwise) - common for portrait photos,
     # 7: Rotated 90° CW, then flipped horizontally, 8: Rotated 90° CCW (Counter-clockwise)
     transpose_img = False
-    try: 
+    try:
         exif = img.getexif()
         if exif:
-            orientation = exif.get(0x0112) # orientation tag
-            if orientation is not None: 
+            orientation = exif.get(0x0112)  # orientation tag
+            if orientation is not None:
                 try:
                     orientation = int(orientation)
                     if orientation > 1:
                         transpose_img = True
-                        print('Image transpose needed - EXIF orientation: ' + str(orientation))
+                        print("Image transpose needed - EXIF orientation: " + str(orientation))
                 except (ValueError, TypeError):
-                    print('Image processing exception: invalid EXIF orientation: ' + str(orientation))
+                    print("Image processing exception: invalid EXIF orientation: " + str(orientation))
     except Exception as e:
-        print('Image processing exception: Could not read EXIF data: ' + str(e))
-    
+        print("Image processing exception: Could not read EXIF data: " + str(e))
+
     try:
         # fix for cameras/phones which require EXIF orientation read and matching transpose
         if transpose_img:
             img = ImageOps.exif_transpose(img)
-            print('Image transposed to manageEXIF orientation')
-            
+            print("Image transposed to manageEXIF orientation")
+
         # fix for png image support - png images support transparency
-        if img.mode == 'RGBA':
-            fill_color = '#E5E4E2'  # platinum very light grey default background color
+        if img.mode == "RGBA":
+            fill_color = "#E5E4E2"  # platinum very light grey default background color
             background = Image.new(img.mode[:-1], img.size, fill_color)
             background.paste(img, img.split()[-1])
             img = background
 
-        if not img.mode == 'RGB':
-            img = img.convert('RGB')    # fails without .png fix above throws OSError: cannot write mode RGBA as JPEG
+        if img.mode != "RGB":
+            img = img.convert("RGB")  # fails without .png fix above throws OSError: cannot write mode RGBA as JPEG
 
         # resize to 480x320
         img.thumbnail((480, 320))
@@ -70,26 +70,25 @@ def processUploadedImageFile(image_field: ImageField, species_or_instance_name, 
         # save the new .jpg and delete the original uploaded file
         memBlob = BytesIO()
         memBlob.seek(0)
-        img.save(memBlob, 'JPEG', quality=95)
+        img.save(memBlob, "JPEG", quality=95)
 
         # update Django image_field to newly saved file - delete the original uploaded image
         if delete_original_file:
-            image_field.delete (save=False) # deletes old file and sets image_field empty
-            
+            image_field.delete(save=False)  # deletes old file and sets image_field empty
+
         image_field.save(new_image_name, File(memBlob))
         img.close()
 
     except OSError:
-        error_msg = ("Error processing uploaded image file: " + uploaded_image_filename)
-        messages.error (request, error_msg)
+        error_msg = "Error processing uploaded image file: " + uploaded_image_filename
+        messages.error(request, error_msg)
         try:
             img.close()
         except OSError:
-            print ("Unable to close opened image file")
-    return
+            print("Unable to close opened image file")
 
 
-def generate_qr_code (image_field: ImageField, url_text, species_or_instance_name, request):
+def generate_qr_code(image_field: ImageField, url_text, species_or_instance_name, request):
 
     qr = qrcode.QRCode(
         version=1,
@@ -104,8 +103,6 @@ def generate_qr_code (image_field: ImageField, url_text, species_or_instance_nam
     buffer = BytesIO()
     img.save(buffer, format="PNG")
 
-    name = species_or_instance_name + '_qr_code'
+    name = species_or_instance_name + "_qr_code"
     image_field.save(name, File(buffer))
     img.close()
-
-    return

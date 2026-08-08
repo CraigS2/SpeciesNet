@@ -11,35 +11,35 @@ logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = (
-        'Snapshot monthly page view counts into PageViewMonthlySnapshot and reset '
-        'PageViewCount.count to 0. Defaults to the previous calendar month.'
+        "Snapshot monthly page view counts into PageViewMonthlySnapshot and reset "
+        "PageViewCount.count to 0. Defaults to the previous calendar month."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--year',
+            "--year",
             type=int,
             default=None,
-            help='Year to snapshot (default: previous month\'s year)',
+            help="Year to snapshot (default: previous month's year)",
         )
         parser.add_argument(
-            '--month',
+            "--month",
             type=int,
             default=None,
-            help='Month to snapshot, 1–12 (default: previous month)',
+            help="Month to snapshot, 1–12 (default: previous month)",
         )
         parser.add_argument(
-            '--dry-run',
-            action='store_true',
+            "--dry-run",
+            action="store_true",
             default=False,
-            help='Print what would be written without modifying the database',
+            help="Print what would be written without modifying the database",
         )
 
     def handle(self, *args, **options):
         # Determine target year/month
-        if options['year'] is not None and options['month'] is not None:
-            year = options['year']
-            month = options['month']
+        if options["year"] is not None and options["month"] is not None:
+            year = options["year"]
+            month = options["month"]
         else:
             today = date.today()
             if today.month == 1:
@@ -49,12 +49,10 @@ class Command(BaseCommand):
                 year = today.year
                 month = today.month - 1
 
-        dry_run = options['dry_run']
+        dry_run = options["dry_run"]
 
-        self.stdout.write(
-            f'{"[DRY RUN] " if dry_run else ""}Snapshotting page views for {year}/{month:02d} ...'
-        )
-        logger.info('snapshot_monthly_views started: year=%s month=%s dry_run=%s', year, month, dry_run)
+        self.stdout.write(f"{'[DRY RUN] ' if dry_run else ''}Snapshotting page views for {year}/{month:02d} ...")
+        logger.info("snapshot_monthly_views started: year=%s month=%s dry_run=%s", year, month, dry_run)
 
         rows_processed = 0
         total_count = 0
@@ -64,22 +62,19 @@ class Command(BaseCommand):
             qs = PageViewCount.objects.filter(count__gt=0)
             for row in qs:
                 self.stdout.write(
-                    f'  Would snapshot: {row.get_page_type_display()} '
-                    f'({row.object_id}) [{row.get_visitor_type_display()}] '
-                    f'= {row.count} views → {year}/{month:02d}'
+                    f"  Would snapshot: {row.get_page_type_display()} "
+                    f"({row.object_id}) [{row.get_visitor_type_display()}] "
+                    f"= {row.count} views → {year}/{month:02d}"
                 )
                 rows_processed += 1
                 total_count += row.count
 
             self.stdout.write(
                 self.style.WARNING(
-                    f'[DRY RUN] Would process {rows_processed} rows totalling {total_count} views. '
-                    'No changes made.'
+                    f"[DRY RUN] Would process {rows_processed} rows totalling {total_count} views. No changes made."
                 )
             )
-            logger.info(
-                'snapshot_monthly_views dry-run complete: rows=%s total=%s', rows_processed, total_count
-            )
+            logger.info("snapshot_monthly_views dry-run complete: rows=%s total=%s", rows_processed, total_count)
             return
 
         # Live run — atomic block with select_for_update to prevent races
@@ -95,29 +90,32 @@ class Command(BaseCommand):
                     visitor_type=row.visitor_type,
                     year=year,
                     month=month,
-                    defaults={'count': 0},
+                    defaults={"count": 0},
                 )
                 summary.count += delta
-                summary.save(update_fields=['count'])
+                summary.save(update_fields=["count"])
 
                 row.count = 0
-                row.save(update_fields=['count'])
+                row.save(update_fields=["count"])
 
                 self.stdout.write(
-                    f'  Snapshotted: {row.get_page_type_display()} '
-                    f'({row.object_id}) [{row.get_visitor_type_display()}] '
-                    f'= {delta} views → {year}/{month:02d} '
-                    f'({"created" if created else "updated"})'
+                    f"  Snapshotted: {row.get_page_type_display()} "
+                    f"({row.object_id}) [{row.get_visitor_type_display()}] "
+                    f"= {delta} views → {year}/{month:02d} "
+                    f"({'created' if created else 'updated'})"
                 )
                 rows_processed += 1
                 total_count += delta
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'Done. Processed {rows_processed} rows totalling {total_count} views for {year}/{month:02d}.'
+                f"Done. Processed {rows_processed} rows totalling {total_count} views for {year}/{month:02d}."
             )
         )
         logger.info(
-            'snapshot_monthly_views complete: year=%s month=%s rows=%s total=%s',
-            year, month, rows_processed, total_count,
+            "snapshot_monthly_views complete: year=%s month=%s rows=%s total=%s",
+            year,
+            month,
+            rows_processed,
+            total_count,
         )

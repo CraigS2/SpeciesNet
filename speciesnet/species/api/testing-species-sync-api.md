@@ -285,34 +285,34 @@ docker compose --project-name site2 exec django_gunicorn python manage.py shell
 ```python
 from species.models import User, Species
 
-admin = User.objects.get(username='admin')
+admin = User.objects.get(username="admin")
 
 Species.objects.create(
-    name='Nothobranchius guentheri',
-    alt_name='Rachow\'s Notho',
-    description='Annual killifish from Tanzania.',
-    global_region='AFR',
-    local_distribution='Zanzibar Island, Tanzania',
-    cares_family='OKF',
-    iucn_red_list='EN',
-    cares_classification='ENDA',
+    name="Nothobranchius guentheri",
+    alt_name="Rachow's Notho",
+    description="Annual killifish from Tanzania.",
+    global_region="AFR",
+    local_distribution="Zanzibar Island, Tanzania",
+    cares_family="OKF",
+    iucn_red_list="EN",
+    cares_classification="ENDA",
     render_cares=True,
     created_by=admin,
 )
 
 Species.objects.create(
-    name='Ptychochromis insolitus',
-    description='Malagasy cichlid, possibly extinct in the wild.',
-    global_region='AFR',
-    local_distribution='Madagascar',
-    cares_family='CIC',
-    iucn_red_list='CR',
-    cares_classification='EXCT',
+    name="Ptychochromis insolitus",
+    description="Malagasy cichlid, possibly extinct in the wild.",
+    global_region="AFR",
+    local_distribution="Madagascar",
+    cares_family="CIC",
+    iucn_red_list="CR",
+    cares_classification="EXCT",
     render_cares=True,
     created_by=admin,
 )
 
-print(Species.objects.filter(render_cares=True).count(), 'CARES species created')
+print(Species.objects.filter(render_cares=True).count(), "CARES species created")
 exit()
 ```
 
@@ -458,10 +458,11 @@ docker compose --project-name site1 exec django_gunicorn python manage.py shell
 
 ```python
 from species.models import Species
+
 cares = Species.objects.filter(render_cares=True)
-print(cares.count(), 'CARES species on Site1')
+print(cares.count(), "CARES species on Site1")
 for s in cares:
-    print(f'  {s.name} | {s.cares_classification} | updated={s.lastUpdated}')
+    print(f"  {s.name} | {s.cares_classification} | updated={s.lastUpdated}")
 exit()
 ```
 
@@ -476,8 +477,9 @@ docker compose --project-name site2 exec django_gunicorn python manage.py shell
 
 ```python
 from species.models import Species
-s = Species.objects.get(name='Nothobranchius guentheri')
-s.description = 'Updated description after last sync.'
+
+s = Species.objects.get(name="Nothobranchius guentheri")
+s.description = "Updated description after last sync."
 s.save()
 exit()
 ```

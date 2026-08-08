@@ -1,0 +1,3 @@
+# Developer/CI tooling. Pinned so `make lint` behaves identically on a laptop
+# and on a GitHub Actions runner.
+ruff==0.16.2

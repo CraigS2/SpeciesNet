@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    # Pull requests are covered by the pull_request trigger; limiting push to
+    # master keeps branch pushes from running the same jobs twice.
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.11'  # matches the Dockerfile
+
+jobs:
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      # Linting needs ruff only, not the project's runtime dependencies.
+      - run: pip install -r requirements-dev.txt
+
+      - run: make lint
+
+  test:
+    name: django tests
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11.4.2
+        env:
+          MARIADB_ROOT_PASSWORD: test_root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      # mysqlclient ships no Linux wheels, so it is compiled from source. The
+      # pip cache above stores the resulting wheel for subsequent runs.
+      - name: Install mysqlclient build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends default-libmysqlclient-dev pkg-config
+
+      - run: pip install -r requirements.txt
+
+      - run: make test
+        env:
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: 3306
+          DATABASE_USER: root
+          DATABASE_PASSWORD: test_root_password

@@ -19,19 +19,19 @@ from .services_email import send_email_message
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, base=RetriableTask, queue='emails')
+@shared_task(bind=True, base=RetriableTask, queue="emails")
 def send_action_email(self, pending_action_id):
-    action = PendingAction.objects.select_related('action_type', 'user').get(pk=pending_action_id)
+    action = PendingAction.objects.select_related("action_type", "user").get(pk=pending_action_id)
     handler = get_handler_for_action_type(action.action_type)
     email_context = handler.build_email_context(action)
-    subject = email_context['subject']
-    to_email = email_context['to_email']
+    subject = email_context["subject"]
+    to_email = email_context["to_email"]
     if not to_email:
-        logger.error('Pending action email skipped due to missing recipient. action_id=%s', action.id)
+        logger.error("Pending action email skipped due to missing recipient. action_id=%s", action.id)
         return False
     html_body = render_to_string(action.action_type.email_template, email_context)
     plain_body = strip_tags(html_body)
-    reply_to = email_context.get('reply_to')
+    reply_to = email_context.get("reply_to")
     email_message = EmailMessage(
         subject=subject,
         body=html_body,
@@ -39,7 +39,7 @@ def send_action_email(self, pending_action_id):
         to=[to_email],
         reply_to=[reply_to] if reply_to else None,
     )
-    email_message.content_subtype = 'html'
+    email_message.content_subtype = "html"
 
     # Archive contract: send first, then record in UserEmail exactly once on success.
     # If send_email_message raises, RetriableTask will retry — no archive row is created
@@ -48,31 +48,31 @@ def send_action_email(self, pending_action_id):
     # sweep_old_task_results cleanup task (which only touches TaskResult rows).
     send_email_message(email_message)
 
-    archive_text = email_context.get('archive_text') or plain_body
-    archive_name = email_context.get('archive_name', f'Pending action email {action.id}')
+    archive_text = email_context.get("archive_text") or plain_body
+    archive_name = email_context.get("archive_name", f"Pending action email {action.id}")
     UserEmail.objects.create(
         name=archive_name,
-        send_to=email_context.get('send_to_user'),
-        send_from=email_context.get('send_from_user'),
+        send_to=email_context.get("send_to_user"),
+        send_from=email_context.get("send_from_user"),
         email_subject=subject,
         email_text=archive_text,
     )
-    logger.info('Sent pending action email action_id=%s action_type=%s', action.id, action.action_type.slug)
+    logger.info("Sent pending action email action_id=%s action_type=%s", action.id, action.action_type.slug)
     return True
 
 
-@shared_task(bind=True, base=RetriableTask, queue='emails')
+@shared_task(bind=True, base=RetriableTask, queue="emails")
 def sweep_expired_actions(self):
     now = timezone.now()
     updated = PendingAction.objects.filter(
         status=PendingAction.Status.PENDING,
         expires_at__lt=now,
     ).update(status=PendingAction.Status.EXPIRED)
-    logger.info('Expired %s pending actions', updated)
+    logger.info("Expired %s pending actions", updated)
     return updated
 
 
-@shared_task(bind=True, base=RetriableTask, queue='default')
+@shared_task(bind=True, base=RetriableTask, queue="default")
 def sweep_old_task_results(self):
     """Delete TaskResult rows older than the configured retention window.
 
@@ -83,8 +83,8 @@ def sweep_old_task_results(self):
     """
     from django_celery_results.models import TaskResult
 
-    retention_days = int(os.environ.get('TASK_RESULT_RETENTION_DAYS', '30'))
+    retention_days = int(os.environ.get("TASK_RESULT_RETENTION_DAYS", "30"))
     cutoff = timezone.now() - timedelta(days=retention_days)
     deleted, _ = TaskResult.objects.filter(date_done__lt=cutoff).delete()
-    logger.info('Swept %s old TaskResult rows (older than %s days)', deleted, retention_days)
+    logger.info("Swept %s old TaskResult rows (older than %s days)", deleted, retention_days)
     return deleted
