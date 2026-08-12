@@ -1,10 +1,12 @@
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import escape, strip_tags
 
+from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.models import CaresRegistration, UserEmail
 
-from .forms import ConfirmPendingActionForm
+from .forms import CaresClarificationResponseForm, ConfirmPendingActionForm
 from .registry import ActionHandler, register
 
 
@@ -18,6 +20,32 @@ class CaresStatusChangeHandler(ActionHandler):
         missing = required.difference(payload.keys())
         if missing:
             raise ValueError(f'Missing required CARES status payload values: {sorted(missing)}')
+
+    def _get_registration(self, action):
+        return CaresRegistration.objects.filter(pk=action.payload.get('registration_id')).first()
+
+    def _is_pending_clarification(self, action):
+        registration = self._get_registration(action)
+        return registration is not None and registration.status == CaresRegistration.CaresRegistrationStatus.PENDING
+
+    def get_response_form_class(self, action=None):
+        if action is not None and self._is_pending_clarification(action):
+            return CaresClarificationResponseForm
+        return self.response_form_class
+
+    def requires_response(self, action):
+        """
+        cares_status_change is shared by every registration status transition
+        (approved, declined, pending-clarification, etc.) but only the PENDING
+        status genuinely requires the aquarist to respond/clarify. All other
+        status-change notifications are informational and should be considered
+        complete once the email is sent — leaving them PENDING forever is misleading.
+        """
+        registration = self._get_registration(action)
+        if registration is None:
+            # Registration missing/deleted — nothing meaningful to wait on.
+            return False
+        return registration.status == CaresRegistration.CaresRegistrationStatus.PENDING
 
     def build_email_context(self, action, token=None):
         registration = CaresRegistration.objects.select_related('species').get(pk=action.payload['registration_id'])
@@ -44,7 +72,51 @@ class CaresStatusChangeHandler(ActionHandler):
             'archive_text': archive_body,
         }
 
-    def on_completed(self, action, response_data):
+    def on_completed(self, action, response_data, request=None):
+        """
+        Handles both response form variants:
+        - ConfirmPendingActionForm: simple acknowledgement, nothing further to persist.
+        - CaresClarificationResponseForm: aquarist may have supplied response_text
+          and/or an updated_photo. response_text (plus a 'Species photo updated' note
+          when a photo was supplied) is appended to species_source (avoiding a schema
+          migration for a dedicated field). updated_photo replaces verification_photo
+          and is run through processUploadedImageFile for consistent resizing, exactly
+          like every other verification-photo upload path in this codebase. The
+          registration is moved from PENDING back to RESUBMIT so it re-enters the
+          approver's queue.
+        """
+        registration = self._get_registration(action)
+        if registration is None:
+            return None
+
+        response_text = (response_data.get('response_text') or '').strip()
+        updated_photo = response_data.get('updated_photo')
+
+        note_parts = []
+        if response_text:
+            note_parts.append(response_text)
+        if updated_photo:
+            note_parts.append('Species photo updated')
+
+        if note_parts:
+            today = timezone.now().strftime('%Y-%m-%d')
+            appended = f"Updated {today}:\n" + '\n'.join(note_parts)
+            registration.species_source = f'{registration.species_source}\n\n{appended}'.strip()
+
+        if updated_photo:
+            registration.verification_photo = updated_photo
+
+        if registration.status == CaresRegistration.CaresRegistrationStatus.PENDING:
+            registration.status = CaresRegistration.CaresRegistrationStatus.RESUBMIT
+
+        registration.save()
+
+        # processUploadedImageFile opens image_field.path, so it must run after the
+        # file above has already been written to disk via registration.save().
+        if updated_photo:
+            processUploadedImageFile(registration.verification_photo, registration.name, request)
+            registration.save(update_fields=['verification_photo'])
+
         return None
 
 

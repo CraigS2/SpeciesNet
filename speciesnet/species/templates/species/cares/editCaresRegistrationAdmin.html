@@ -21,7 +21,7 @@
 
                     <div class="css_class='mb-3 section-bordered">
                         <h4><b>Details:</b></h4>
-                        <p><b>Aquarist Source:</b>&nbsp;&nbsp;{{registration.species_source}}</p>
+                        <p><b>Aquarist Source:</b>&nbsp;&nbsp;{{registration.species_source|linebreaksbr}}</p>
                         <p><b>Year Acquired:</b>&nbsp;&nbsp;{{registration.year_acquired}}</p>
                         <p><b>Collection Location:</b>&nbsp;&nbsp;
                             {% if registration.collection_location %}

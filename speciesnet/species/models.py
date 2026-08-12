@@ -176,7 +176,7 @@ class Species (models.Model):
         LV_CICHLIDS     = 'LVCIC', _('Cichlidae - Lake Victoria')
         MA_CICHLIDS     = 'MACIC', _('Cichlidae - Madagascar')
         NA_CICHLIDS     = 'NACIC', _('Cichlidae - North Africa')
-        SA_CICHLIDS     = 'SACIC', _('Cichlidae - South Africa')
+        SA_CICHLIDS     = 'SACIC', _('Cichlidae - South America')
         WA_CICHLIDS     = 'WACIC', _('Cichlidae - West Africa')
         LOACHES         = 'COBI',  _('Cobitidae - True Loaches')
         CYPRINDAE       = 'CYPR',  _('Cyprinidae - Minnows and Carps')

@@ -57,6 +57,12 @@ def send_action_email(self, pending_action_id):
         email_subject=subject,
         email_text=archive_text,
     )
+
+    if not handler.requires_response(action) and action.status == PendingAction.Status.PENDING:
+        action.status = PendingAction.Status.COMPLETED
+        action.responded_at = timezone.now()
+        action.save(update_fields=['status', 'responded_at'])
+
     logger.info('Sent pending action email action_id=%s action_type=%s', action.id, action.action_type.slug)
     return True
 
@@ -74,13 +80,7 @@ def sweep_expired_actions(self):
 
 @shared_task(bind=True, base=RetriableTask, queue='default')
 def sweep_old_task_results(self):
-    """Delete TaskResult rows older than the configured retention window.
-
-    Retention is time-based: rows are deleted when their date_done exceeds
-    TASK_RESULT_RETENTION_DAYS (default 30 days).  This is bounded operational
-    debugging data only.  UserEmail rows (the permanent email archive) are
-    never touched by this task.
-    """
+    """Delete TaskResult rows older than the configured retention window e.g. 30 days"""
     from django_celery_results.models import TaskResult
 
     retention_days = int(os.environ.get('TASK_RESULT_RETENTION_DAYS', '30'))

@@ -50,10 +50,17 @@ class PendingActionConfirmView(FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_class(self):
-        form_class = self.handler.get_response_form_class(self.action.action_type)
+        form_class = self.handler.get_response_form_class(self.action)
         if form_class is None:
             raise Http404('This action does not accept responses.')
         return form_class
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Ensure uploaded files (e.g. an updated verification photo) reach the form.
+        if self.request.method in ('POST', 'PUT'):
+            kwargs['files'] = self.request.FILES
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -64,9 +71,9 @@ class PendingActionConfirmView(FormView):
     def form_valid(self, form):
         self.action.status = PendingAction.Status.COMPLETED
         self.action.responded_at = timezone.now()
-        self.action.response_data = form.cleaned_data
+        self.action.response_data = {k: v for k, v in form.cleaned_data.items() if k != 'updated_photo'}
         self.action.save(update_fields=['status', 'responded_at', 'response_data'])
-        self.handler.on_completed(self.action, form.cleaned_data)
+        self.handler.on_completed(self.action, form.cleaned_data, request=self.request)
         return render(self.request, 'pending_actions/completed.html', {'action': self.action})
 
 

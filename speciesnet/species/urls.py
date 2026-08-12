@@ -210,6 +210,7 @@ urlpatterns = [
     path('species-manage-collection-locations/', views.speciesWithManageCollectionLocations, name='speciesWithManageCollectionLocations'),
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
+    path('tools/flush-pending-emails/', views.flushPendingActionEmails, name="flushPendingActionEmails"),
     path('pageviews/top_ranking/', views.pageviewsTopRanking, name='pageviewsTopRanking'),
 
     ### Species Import Workflow ###

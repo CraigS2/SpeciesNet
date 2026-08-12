@@ -20,6 +20,9 @@ def send_new_registration_notification(registration):
     This is an FYI notification, so it uses the pending-actions email pipeline
     without requiring a response workflow.
     """
+
+    print ('Email services start: send_new_registration_notification')
+
     if registration is None or registration.species is None:
         logger.error('send_new_registration_notification called with invalid registration.')
         return 0
@@ -38,6 +41,7 @@ def send_new_registration_notification(registration):
             )
             continue
 
+        print ('Email services create_pending_action email to: ' + approver_user.username)
         create_pending_action(
             action_type,
             user=approver_user,

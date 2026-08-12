@@ -96,7 +96,7 @@ from .views_tools import (
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
     enforceSpeciesNameSingleQuotes, collectSpeciesData, collectionLocations,
     exportSpeciesCollectionLocations, importSpeciesCollectionLocations, importSpeciesInstanceCollectionLocations,
-    speciesWithManageCollectionLocations, tools, tools2, dirtyDeed
+    speciesWithManageCollectionLocations, flushPendingActionEmails, tools, tools2, dirtyDeed
 )
 
 # Species Import with Review-Approve Workflow
