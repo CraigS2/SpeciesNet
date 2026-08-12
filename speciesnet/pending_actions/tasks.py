@@ -26,9 +26,21 @@ def send_action_email(self, pending_action_id):
     email_context = handler.build_email_context(action)
     subject = email_context['subject']
     to_email = email_context['to_email']
+
     if not to_email:
         logger.error('Pending action email skipped due to missing recipient. action_id=%s', action.id)
         return False
+    if not action.action_type.email_template:
+        logger.error('Pending action email skipped due to missing action_type.email_template: action_id=%s', action.id)
+        return False
+
+    template_name = (action.action_type.email_template or '').strip()
+    if not template_name:
+        logger.error('Pending action email skipped due to missing/blank email_template. action_id=%s action_type=%s', action.id, action.action_type.slug)
+        return False
+
+    print ('Error checking found no issues with: send_action_email.action_type.email_template')
+    
     html_body = render_to_string(action.action_type.email_template, email_context)
     plain_body = strip_tags(html_body)
     reply_to = email_context.get('reply_to')
