@@ -780,12 +780,12 @@ def importCaresRegistrations(request):
     return render(request, 'species/cares/importCaresRegistrations.html', context)
 
 
-@login_required(login_url='login')
-def exportCaresRegistrationsPending(request):
-    userCanEdit = user_can_edit(request.user)
-    if not userCanEdit:
-        raise PermissionDenied()
-    return export_csv_caresRegistrations_asn_pending()
+# @login_required(login_url='login')
+# def exportCaresRegistrationsPending(request):
+#     userCanEdit = user_can_edit(request.user)
+#     if not userCanEdit:
+#         raise PermissionDenied()
+#     return export_csv_caresRegistrations_asn_pending()
 
 
 

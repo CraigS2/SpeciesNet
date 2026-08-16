@@ -61,8 +61,7 @@ from species.asn_tools.asn_csv_tools import (
     export_csv_species, export_csv_speciesInstances, export_csv_aquarists,
     export_csv_aquaristClubs, export_csv_aquaristClubMembers,
     # CARES exports
-    export_csv_caresRegistrations, export_csv_caresRegistrations_asn,
-    export_csv_caresRegistrations_asn_pending, export_csv_caresRegistrations_cso,
+    export_csv_caresRegistrations, export_csv_caresRegistrations_asn,export_csv_caresRegistrations_cso,
     # CARES imports
     import_csv_caresRegistrations, #import_csv_caresRegistrations_cso,
     import_csv_species, import_csv_speciesInstances, import_csv_aquarist_clubs,
