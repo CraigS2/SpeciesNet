@@ -2,7 +2,7 @@ from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubM
 from species.models import ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation
 from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import FileField, Q
 from django.db.models.functions import Lower
 #from django.contrib.auth.models import User
@@ -1167,6 +1167,15 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                     photo_filename = photo_url.split('/')[-1] or f'cares_reg_{email}_{species_name}.jpg'
                     registration.verification_photo.save(photo_filename, ContentFile(response.content), save=False)
                     registration.save()
+            except IntegrityError as exc:
+                # Database-level unique constraint violation – the external_id
+                # is already present (e.g. both CSV and API paths ran concurrently).
+                # Log and skip gracefully rather than treating it as an error.
+                skip_count += 1
+                status_txt = f'SKIP - duplicate external_id={site1_id} (IntegrityError): {exc}'
+                csv_report_writer.writerow([row_count, email, species_name, status_txt])
+                logger.warning('CARES reg import row %d: %s', row_count, status_txt)
+                continue
             except Exception as exc:
                 error_count += 1
                 status_txt = f'ERROR - failed to save registration: {exc}'

@@ -445,3 +445,7 @@ API_SERVICE_PASSWORD = os.environ.get('API_SERVICE_PASSWORD', 'changeme_in_produ
 
 TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
 
+### Admin notification email (used for sync error alerts) ###
+
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+

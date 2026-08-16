@@ -807,3 +807,48 @@ class PageViewMonthlySnapshot(models.Model):
 
     def __str__(self):
         return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.year}/{self.month:02d} = {self.count}'
+
+
+### Registration Sync State
+
+class RegistrationSyncState(models.Model):
+    """
+    Tracks the timestamp of the last successful nightly registration sync run
+    for each sync direction so incremental runs only process new/changed records.
+
+    direction choices:
+      'site1_to_site2' – Site2 pulling new OPEN registrations from Site1
+      'site2_to_site1' – Site1 pulling APRV/DECL status updates from Site2
+    """
+
+    DIRECTION_SITE1_TO_SITE2 = 'site1_to_site2'
+    DIRECTION_SITE2_TO_SITE1 = 'site2_to_site1'
+    DIRECTION_CHOICES = [
+        (DIRECTION_SITE1_TO_SITE2, 'Site1 → Site2 (new registrations)'),
+        (DIRECTION_SITE2_TO_SITE1, 'Site2 → Site1 (status updates)'),
+    ]
+
+    direction      = models.CharField(max_length=20, choices=DIRECTION_CHOICES, unique=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True,
+                                          help_text='Timestamp of the last successful sync run for this direction.')
+    updated_at     = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Registration Sync State'
+        verbose_name_plural = 'Registration Sync States'
+
+    def __str__(self):
+        return f'{self.get_direction_display()} – last synced: {self.last_synced_at}'
+
+    @classmethod
+    def get_last_synced(cls, direction):
+        """Return the last_synced_at datetime for the given direction, or None."""
+        try:
+            return cls.objects.get(direction=direction).last_synced_at
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def set_last_synced(cls, direction, dt):
+        """Upsert the last_synced_at timestamp for the given direction."""
+        cls.objects.update_or_create(direction=direction, defaults={'last_synced_at': dt})
