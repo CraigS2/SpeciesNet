@@ -19,7 +19,8 @@
 
     <div class="div-line-below">
         <h2>Club Membership</h2>
-        <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' club.id %}" role="button">View all Club Members</a></p>    
+        <p><a class="btn btn-secondary" href="{% url 'aquaristClubMembers' club.id %}" role="button">View all Club Members</a></p>
+        <p><a class="btn btn-outline-primary" href="{% url 'importProxyMembers' club.id %}" role="button">Invite Members by Email</a></p>
         {% for member in clubMembers %}
             <div>
                 <h5><a href="{% url 'aquaristClubMember' member.id %}">{{member.user.get_display_name}}</a></h5>

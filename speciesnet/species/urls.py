@@ -40,6 +40,7 @@ urlpatterns = [
     path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
     path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
+    path('importProxyMembers/<str:pk>/', views.importProxyMembers, name="importProxyMembers"),
 
     ### Aquarist Club BAP Programs ###
 
