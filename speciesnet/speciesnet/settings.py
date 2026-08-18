@@ -10,7 +10,7 @@ ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'],
                  os.environ['ALLOWED_HOST3'], os.environ['ALLOWED_HOST4']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
 CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], 
-                        os.environ['CSRF_TRUSTED_ORIGIN3']]
+                        os.environ['CSRF_TRUSTED_ORIGIN3'], os.environ['CSRF_TRUSTED_ORIGIN4']]
 
 ###############################################
 # SITE_ID and SITE_DOMAIN must be aligned     #
@@ -100,6 +100,18 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
 EMAIL_SUBJECT_PREFIX = ""
+
+
+### Admin notification email (used for sync error alerts) ###
+
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+
+### BCC recipients for all pending-action emails (new reg, status change, etc.) ###
+### Comma-separated list in .env, e.g.: EMAIL_BCC_ADDRESSES=alice@example.com,bob@example.com ###
+
+EMAIL_BCC_ADDRESSES = [
+    addr.strip() for addr in os.environ.get('EMAIL_BCC_ADDRESSES', '').split(',') if addr.strip()
+]
 
 ### logging ###
 

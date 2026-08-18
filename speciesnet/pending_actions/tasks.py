@@ -50,6 +50,8 @@ def send_action_email(self, pending_action_id):
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[to_email],
         reply_to=[reply_to] if reply_to else None,
+        #cc=settings.EMAIL_BCC_ADDRESSES or None,
+        bcc=settings.EMAIL_BCC_ADDRESSES or None,
     )
     email_message.content_subtype = 'html'
 

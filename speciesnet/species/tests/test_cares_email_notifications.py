@@ -6,7 +6,9 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.test import override_settings
 
+from pending_actions.tasks import send_action_email
 from species.asn_tools.asn_cares_tools import get_notification_approvers
 from species.models import CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
 from species.services.email_services import send_new_registration_notification, send_status_change_email
@@ -111,6 +113,22 @@ class CaresEmailNotificationTests(TestCase):
         self.assertEqual(mail.outbox[0].reply_to, [settings.DEFAULT_FROM_EMAIL])
         self.assertIn('Review this update', mail.outbox[0].body)
         self.assertTrue(UserEmail.objects.filter(send_to=None, email_subject='Status Update').exists())
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    EMAIL_BCC_ADDRESSES=['bcc@example.com'],
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
+def test_bcc_applied(self):
+    mail.outbox = []
+    sent = send_status_change_email(
+        self.registration,
+        'Status Update',
+        'Your registration status has changed.',
+    )
+    self.assertTrue(sent)
+    self.assertEqual(len(mail.outbox), 1)
+    self.assertIn('bcc@example.com', mail.outbox[-1].bcc)
 
     def test_transition_helper_matches_required_statuses(self):
         self.assertTrue(

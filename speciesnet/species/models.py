@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 #from enum import Enum
 #from django.contrib.auth.models import User
 from django.contrib.auth.base_user import BaseUserManager
@@ -546,6 +547,7 @@ class CaresRegistration (models.Model):
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='cares_registrations')
     species_source            = models.TextField (blank=False, default='')
+    submitter_notes           = models.TextField (blank=False, default='')
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
     species_has_spawned       = models.BooleanField (default=False)
