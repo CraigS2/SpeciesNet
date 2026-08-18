@@ -245,6 +245,8 @@ ACCOUNT_FORMS = {
     'reset_password': 'species.forms.CustomResetPasswordForm',
 }
 
+ACCOUNT_ADAPTER = 'species.adapters.SpeciesNetAccountAdapter'
+
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = os.environ.get('ACCOUNT_CONFIRM_EMAIL_ON_GET', 'False')
 ACCOUNT_EMAIL_REQUIRED = True

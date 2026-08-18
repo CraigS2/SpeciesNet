@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
@@ -155,4 +156,51 @@ class CaresNewRegistrationNotificationHandler(ActionHandler):
             'archive_name': f"CARES registration notification to {action.payload['username']}",
             'archive_text': f"To: {action.payload['approver_name']}\nEmail: {action.payload['to_email']}\n{plain_body}",
             'send_to_user': action.user,
+        }
+
+
+@register('proxy_user_invite')
+class ProxyUserInviteHandler(ActionHandler):
+    """
+    Handles the proxy_user_invite action type.
+
+    The invite email contains a single-use activation link.  The recipient
+    lands on ProxyActivationView (not PendingActionConfirmView) which handles
+    password-setting and account activation directly.  This handler's only
+    responsibility is building the email context; there is no response form
+    and on_completed is never called through the confirm view for this type.
+    """
+
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'club_id', 'club_name', 'user_id', 'base_url'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required proxy invite payload values: {sorted(missing)}')
+
+    def requires_response(self, action):
+        return False
+
+    def build_email_context(self, action, token=None):
+        token = token or action.payload.get('token')
+        base_url = action.payload.get('base_url', '').rstrip('/')
+        # Activation URL handled by pending_actions.views.ProxyActivationView
+        activation_path = reverse('proxy_activate', args=[token]) if token else ''
+        activation_url = f'{base_url}{activation_path}' if base_url else activation_path
+        club_name = action.payload.get('club_name', '')
+        invited_by = action.payload.get('invited_by_username', '')
+        return {
+            'action': action,
+            'to_email': action.payload['to_email'],
+            'club_name': club_name,
+            'invited_by_username': invited_by,
+            'activation_url': activation_url,
+            'subject': f'You have been invited to join {club_name} on AquaristSpecies',
+            'archive_name': f'Proxy invite to {action.payload["to_email"]} for {club_name}',
+            'archive_text': (
+                f"Invited: {action.payload['to_email']}\n"
+                f"Club: {club_name}\n"
+                f"Invited by: {invited_by}\n"
+                f"Activation URL: {activation_url}"
+            ),
         }

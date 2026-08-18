@@ -3,10 +3,11 @@ from django import forms
 from django.forms import formset_factory
 from django.forms.formsets import formset_factory
 from django.utils import timezone
+from django.core.validators import MinValueValidator, validate_email
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
-from django.core.validators import MinValueValidator
+import re
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
@@ -1783,3 +1784,45 @@ class SpeciesFeedbackForm(ModelForm):
             del self.fields['email']
         else:
             self.fields['email'].required = True            
+
+
+class ProxyMemberImportForm(forms.Form):
+    """
+    Form for club admins to bulk-import proxy members.
+
+    Accepts a newline- or comma-separated list of email addresses.
+    Each address is validated individually; invalid addresses are
+    reported to the admin rather than silently skipped.
+    """
+    email_list = forms.CharField(
+        label='Email addresses',
+        widget=forms.Textarea(attrs={
+            'rows': 10,
+            'placeholder': 'Enter one email address per line, or comma-separated',
+            'class': 'form-control',
+        }),
+        help_text='One email per line (or comma-separated). Existing accounts are skipped and reported.',
+    )
+
+    def clean_email_list(self):
+        raw = self.cleaned_data.get('email_list', '')
+        # Support both newline and comma as separators
+        raw_emails = re.split(r'[\n,]+', raw)
+        valid = []
+        invalid = []
+        for addr in raw_emails:
+            addr = addr.strip().lower()
+            if not addr:
+                continue
+            try:
+                validate_email(addr)
+                valid.append(addr)
+            except Exception:
+                invalid.append(addr)
+        if invalid:
+            raise forms.ValidationError(
+                f'The following are not valid email addresses: {", ".join(invalid)}'
+            )
+        if not valid:
+            raise forms.ValidationError('Please enter at least one valid email address.')
+        return valid

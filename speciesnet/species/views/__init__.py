@@ -60,7 +60,7 @@ from .views_club import (
     deleteAquaristClub, aquaristClubAdmin, AquaristClubMemberListView,
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
     deleteAquaristClubMember, AquaristClubCaresLiaisonListView,
-    exportAquaristClubs, exportAquaristClubMembers
+    exportAquaristClubs, exportAquaristClubMembers, importProxyMembers
 )
 
 # CLub BAP
@@ -146,6 +146,7 @@ __all__ = [
     'deleteAquaristClub', 'aquaristClubAdmin', 'AquaristClubMemberListView',
     'aquaristClubMember', 'createAquaristClubMember', 'editAquaristClubMember',
     'deleteAquaristClubMember', AquaristClubCaresLiaisonListView,
+    'importProxyMembers',
 
     # Cares
     'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 
