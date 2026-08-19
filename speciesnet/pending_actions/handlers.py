@@ -204,3 +204,44 @@ class ProxyUserInviteHandler(ActionHandler):
                 f"Activation URL: {activation_url}"
             ),
         }
+
+
+@register('bap_join_invite')
+class BapJoinInviteHandler(ActionHandler):
+    """
+    Informational email sent to active (non-proxy) users who appear on a BAP
+    auction CSV but are not yet members of the importing club.
+
+    The email lists the species from their rows and invites them to join the
+    club to submit BAP entries.  No response is required.
+    """
+
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'club_id', 'club_name', 'species_list'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required bap_join_invite payload values: {sorted(missing)}')
+
+    def requires_response(self, action):
+        return False
+
+    def build_email_context(self, action, token=None):
+        club_name = action.payload.get('club_name', '')
+        species_list = action.payload.get('species_list', [])
+        join_url = action.payload.get('join_url', '')
+        return {
+            'action': action,
+            'to_email': action.payload['to_email'],
+            'club_name': club_name,
+            'species_list': species_list,
+            'join_url': join_url,
+            'subject': f'Join {club_name} to submit BAP entries',
+            'archive_name': f'BAP join invite to {action.payload["to_email"]} for {club_name}',
+            'archive_text': (
+                f"To: {action.payload['to_email']}\n"
+                f"Club: {club_name}\n"
+                f"Species: {', '.join(species_list)}\n"
+                f"Join URL: {join_url}"
+            ),
+        }

@@ -9,6 +9,7 @@ BAP (Breeder Award Program) related views:
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from species.services.bap_service import resolve_bap_points, create_bap_submission
 
 ### BAP Submission Views
 
@@ -37,69 +38,20 @@ def createBapSubmission(request, pk):
     if not (user_is_club_member(request.user, club) or request.user.is_staff):
         raise PermissionDenied
     
-    print('BAP Submission club name:  ' + club.name)
     speciesInstance = SpeciesInstance.objects.get(id=request.session['species_instance_id'])
     logger.info("request.session['species_instance_id'] retrieved for bapSubmission: %s", 
                str(request.session['species_instance_id']))
-    
-    bapClubMember = AquaristClubMember.objects.get(user=speciesInstance.user, club=club)
-    bapClubMember.bap_participant = True
-    species_name = speciesInstance.species.name
-    bapGenus = None
-    bapSpecies = None
-    bap_points = 0
-    genus_name = None
-    form = None
 
-    # Lookup species first - if not found lookup genus
-    try:
-        bapSpecies = BapSpecies.objects.get(name=species_name, club=club)
-        bap_points = bapSpecies.points
-        bapGenus = species_name.split(' ')[0]
-        print('Create BAP Submission species points set:  ' + str(bap_points))
-    except ObjectDoesNotExist:
-        pass  # Valid case - override at species level not found
-    except MultipleObjectsReturned: 
-        error_msg = "BAP Submission:  multiple entries for BAP Species Points found!"
-        messages.error(request, error_msg)
-        logger.error('User %s creating bapSubmission for club %s:  multiple BapSpecies entries found', 
-                    request.user.username, club.name)
+    pts = resolve_bap_points(speciesInstance, club)
 
-    # Lookup genus if species points unassigned
-    bapGenusFound = False
-    if bap_points == 0:
-        genus_name = None
-        if species_name and ' ' in species_name:
-            genus_name = species_name.split(' ')[0]
-            try:
-                bapGenus = BapGenus.objects.get(name=genus_name, club=club)
-                bap_points = bapGenus.points
-                bapGenusFound = True
-                print('BAP Submission genus points set: ' + str(bap_points))
-            except ObjectDoesNotExist:
-                warning_msg = (
-                    f"{genus_name} points not yet configured. Default points value applied and genus is "
-                    f"marked for review by your BAP Admin.  Please proceed with your BAP Submission."
-                )
-                messages.info(request, warning_msg)
-                bap_points = club.bap_default_points
-                logger.warning('User %s creating bapSubmission for club %s: No BapGenus entry found:  %s.  Club default points used.',
-                             request.user.username, club.name, genus_name)
-            except MultipleObjectsReturned:
-                error_msg = "Create BAP Submission: multiple entries for BAP Genus found!"
-                messages.error(request, error_msg)
-                logger.error('User %s creating bapSubmission for club %s:  Multiple BapGenus entries found:  %s.',
-                           request.user.username, club.name, genus_name)
+    for warning in pts['warnings']:
+        if 'not yet configured' in warning:
+            messages.info(request, warning)
         else:
-            error_msg = "Create BAP Submission: species failed to resolve genus name."
-            messages.error(request, error_msg)
-            logger.error('User %s creating bapSubmission for club %s: species %s failed to resolve genus name.',
-                       request.user.username, club.name, species_name)
+            messages.error(request, warning)
 
-    if bap_points > 0:
-        if speciesInstance.species.render_cares:
-            bap_points = bap_points * club.cares_muliplier
-        
+    form = None
+    if pts['points'] > 0:
         name = f"{speciesInstance.user.username} - {club.name} - {speciesInstance.name}"
         notes = club.bap_notes_template
         form = BapSubmissionForm(initial={
@@ -113,26 +65,7 @@ def createBapSubmission(request, pk):
         if request.method == 'POST': 
             form = BapSubmissionForm(request.POST)
             if form.is_valid():
-                bap_submission = form.save(commit=False)
-                bap_submission.name = name
-                bap_submission.aquarist = speciesInstance.user
-                bap_submission.club = club
-                bap_submission.speciesInstance = speciesInstance
-                bap_submission.points = bap_points
-                
-                if not bapGenusFound and genus_name is not None:
-                    bapGenus = BapGenus(
-                        name=genus_name,
-                        club=club,
-                        example_species=speciesInstance.species,
-                        points=club.bap_default_points
-                    )
-                    bapGenus.save()
-                    bap_submission.request_points_review = True
-                    bap_submission.admin_comments = 'Genus points not configured. Default club points applied.  Please review.'
-                
-                bap_submission.save()
-                bapClubMember.save()
+                bap_submission = create_bap_submission(speciesInstance, club, committed_by=request.user)
 
                 send_asn_notification_email(
                     subject=f'ASN: New BAP Submission - {bap_submission.speciesInstance.species.name}',
