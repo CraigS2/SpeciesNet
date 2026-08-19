@@ -302,7 +302,9 @@ def reviewBapImport(request, pk):
     rows = _read_working_csv(batch)
     # Determine headers dynamically (may include Import status after partial run)
     fieldnames = list(rows[0].keys()) if rows else WORKING_COLS
-    context = {'batch': batch, 'club': club, 'rows': rows, 'headers': fieldnames}
+    # Convert to list-of-lists for reliable template rendering
+    rows_as_lists = [[row.get(h, '') for h in fieldnames] for row in rows]
+    context = {'batch': batch, 'club': club, 'rows': rows_as_lists, 'headers': fieldnames}
     return render(request, 'species/bap_import_review.html', context)
 
 

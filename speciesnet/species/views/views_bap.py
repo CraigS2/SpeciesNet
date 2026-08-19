@@ -65,7 +65,12 @@ def createBapSubmission(request, pk):
         if request.method == 'POST': 
             form = BapSubmissionForm(request.POST)
             if form.is_valid():
-                bap_submission = create_bap_submission(speciesInstance, club, committed_by=request.user)
+                user_notes = form.cleaned_data.get('notes', '')
+                bap_submission = create_bap_submission(
+                    speciesInstance, club,
+                    committed_by=request.user,
+                    notes_override=user_notes,
+                )
 
                 send_asn_notification_email(
                     subject=f'ASN: New BAP Submission - {bap_submission.speciesInstance.species.name}',

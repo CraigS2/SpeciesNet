@@ -49,12 +49,14 @@
                 </thead>
                 <tbody>
                   {% for row in rows %}
-                    <tr class="{% if row.Import_status and 'Error' in row.Import_status %}table-danger{% elif row.Import_status and 'Created' in row.Import_status %}table-success{% elif row.Import_status and 'Skipped' in row.Import_status %}table-warning{% endif %}">
+                    {% with import_status=row|last %}
+                    <tr class="{% if 'Error' in import_status %}table-danger{% elif 'Created' in import_status %}table-success{% elif 'Skipped' in import_status %}table-warning{% endif %}">
                       <td>{{ forloop.counter }}</td>
-                      {% for h in headers %}
-                        <td>{{ row|dictsort:h }}</td>
+                      {% for cell in row %}
+                        <td>{{ cell }}</td>
                       {% endfor %}
                     </tr>
+                    {% endwith %}
                   {% endfor %}
                 </tbody>
               </table>

@@ -114,13 +114,21 @@ def resolve_bap_points(species_instance, club) -> dict:
     return result
 
 
-def create_bap_submission(species_instance, club, committed_by=None):
+def create_bap_submission(species_instance, club, committed_by=None, notes_override=None):
     """
     Create a BapSubmission for *species_instance* in *club*.
 
     Also:
     - Creates a BapGenus entry if needed (genus not configured).
     - Sets AquaristClubMember.bap_participant = True.
+
+    Parameters
+    ----------
+    species_instance : SpeciesInstance
+    club             : AquaristClub
+    committed_by     : User who triggered the creation (optional, for logging)
+    notes_override   : str — if provided, used instead of ``club.bap_notes_template``
+                       (allows the manual submission form to pass user-edited notes)
 
     Returns the saved BapSubmission instance.
     Raises ValueError if points resolve to 0 (misconfiguration / unresolvable genus).
@@ -159,7 +167,7 @@ def create_bap_submission(species_instance, club, committed_by=None):
         )
 
     name = f'{species_instance.user.username} - {club.name} - {species_instance.name}'
-    notes = club.bap_notes_template
+    notes = notes_override if notes_override is not None else club.bap_notes_template
 
     admin_comments = ''
     request_points_review = False
