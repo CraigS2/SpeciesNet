@@ -42,6 +42,12 @@ urlpatterns = [
     path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
     path('importProxyMembers/<str:pk>/', views.importProxyMembers, name="importProxyMembers"),
 
+    ### BAP CSV Import Workflow ###
+
+    path('bap/import/upload/<int:pk>/', views.uploadBapImport, name="uploadBapImport"),
+    path('bap/import/review/<int:pk>/', views.reviewBapImport, name="reviewBapImport"),
+    path('bap/import/process/<int:pk>/', views.processBapImport, name="processBapImport"),
+
     ### Aquarist Club BAP Programs ###
 
     path('bapSubmission/<str:pk>/', views.bapSubmission, name="bapSubmission"),

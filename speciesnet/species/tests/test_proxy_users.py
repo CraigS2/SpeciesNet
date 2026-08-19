@@ -79,22 +79,51 @@ def _make_club_admin(club, email='admin@test.com'):
 # ---------------------------------------------------------------------------
 
 class GenerateUniqueUsernameTests(TestCase):
+    """
+    generate_unique_username now takes a club object and uses the persistent
+    next_member_number counter to derive {acronym}_memberNN usernames.
+    """
+
+    def setUp(self):
+        self.club = _make_club(name='Alpha Club', acronym='AC')
 
     def test_simple_derivation(self):
-        self.assertEqual(generate_unique_username('alice@example.com'), 'alice')
+        # Counter starts at 1, so first name should be AC_member01
+        username = generate_unique_username(self.club)
+        self.assertEqual(username, 'AC_member01')
 
-    def test_suffix_when_taken(self):
-        User.objects.create_user(email='bob@test.com', username='bob', password='x')
-        self.assertEqual(generate_unique_username('bob@test.com'), 'bob_2')
+    def test_counter_increments(self):
+        u1 = generate_unique_username(self.club)
+        u2 = generate_unique_username(self.club)
+        self.assertEqual(u1, 'AC_member01')
+        self.assertEqual(u2, 'AC_member02')
 
-    def test_increments_further(self):
-        User.objects.create_user(email='carol@test.com', username='carol', password='x')
-        User.objects.create_user(email='carol2@test.com', username='carol_2', password='x')
-        self.assertEqual(generate_unique_username('carol@test.com'), 'carol_3')
+    def test_two_digit_padding(self):
+        # Force counter to 9 then verify padding
+        from species.models import AquaristClub
+        AquaristClub.objects.filter(pk=self.club.pk).update(next_member_number=9)
+        self.club.refresh_from_db()
+        username = generate_unique_username(self.club)
+        self.assertEqual(username, 'AC_member09')
 
-    def test_empty_local_part_falls_back(self):
-        result = generate_unique_username('@example.com')
-        self.assertEqual(result, 'member')
+    def test_three_digit_unpadded(self):
+        from species.models import AquaristClub
+        AquaristClub.objects.filter(pk=self.club.pk).update(next_member_number=100)
+        self.club.refresh_from_db()
+        username = generate_unique_username(self.club)
+        self.assertEqual(username, 'AC_member100')
+
+    def test_blank_acronym_uses_fallback(self):
+        club_no_acronym = _make_club(name='No Acronym Club', acronym='')
+        username = generate_unique_username(club_no_acronym)
+        self.assertTrue(username.startswith('CLUB_member'))
+
+    def test_collision_adds_suffix(self):
+        # Pre-create a user that would collide
+        User.objects.create_user(email='x@test.com', username='AC_member01', password='x')
+        username = generate_unique_username(self.club)
+        # Counter increments normally; collision suffix appended
+        self.assertEqual(username, 'AC_member01_2')
 
 
 # ---------------------------------------------------------------------------

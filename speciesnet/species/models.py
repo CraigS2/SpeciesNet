@@ -493,6 +493,7 @@ class AquaristClub (models.Model):
     is_bap_club               = models.BooleanField (default=False)
     is_cares_club             = models.BooleanField (default=False)
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
+    next_member_number        = models.PositiveIntegerField(default=1)  # persistent counter for proxy username generation
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -854,3 +855,60 @@ class RegistrationSyncState(models.Model):
     def set_last_synced(cls, direction, dt):
         """Upsert the last_synced_at timestamp for the given direction."""
         cls.objects.update_or_create(direction=direction, defaults={'last_synced_at': dt})
+
+
+### BapImportBatch - working CSV for BAP auction import workflow
+
+import re as _re
+import os as _os
+
+
+def _sanitize_filename(text: str) -> str:
+    """Replace characters unsafe for filenames with underscores."""
+    return _re.sub(r'[^\w\-.]', '_', text or 'untitled')
+
+
+class BapImportBatch(models.Model):
+
+    class Status(models.TextChoices):
+        REVIEW    = 'REVIEW',    _('In Review')
+        PROCESSED = 'PROCESSED', _('Processed')
+
+    club             = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_import_batches')
+    auction_name     = models.CharField(max_length=240)
+    auction_date     = models.DateField(null=True, blank=True)
+    working_csv_file = models.FileField(upload_to='bap_imports/working/', null=True, blank=True)
+    status           = models.CharField(max_length=12, choices=Status.choices, default=Status.REVIEW)
+    created_by       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bap_import_batches_created')
+    created_at       = models.DateTimeField(auto_now_add=True)
+    processed_by     = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_import_batches_processed')
+    processed_at     = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'BAP Import Batch'
+        verbose_name_plural = 'BAP Import Batches'
+
+    def __str__(self):
+        return f'{self.club.name} – {self.auction_name} ({self.status})'
+
+    def clean(self):
+        # Enforce at most one REVIEW batch per club
+        if self.status == self.Status.REVIEW:
+            qs = BapImportBatch.objects.filter(club=self.club, status=self.Status.REVIEW)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError(
+                    f'Club "{self.club.name}" already has a batch in REVIEW status. '
+                    'Process or discard it before starting a new import.'
+                )
+
+    def archive_filename(self):
+        """Return the sanitized archive filename based on Club + Admin + Auction Name."""
+        admin_name = self.created_by.username if self.created_by else 'unknown'
+        return (
+            f'{_sanitize_filename(self.club.name)}'
+            f'_{_sanitize_filename(admin_name)}'
+            f'_{_sanitize_filename(self.auction_name)}.csv'
+        )

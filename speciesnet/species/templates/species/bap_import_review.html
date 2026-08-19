@@ -1,0 +1,76 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-12">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4 class="my-0">BAP Import Review — {{ batch.auction_name }} &mdash; {{ club.name }}</h4>
+          <div>
+            <form method="post" action="{% url 'processBapImport' batch.pk %}" class="d-inline"
+                  onsubmit="return confirm('Process all rows now? This cannot be undone.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success btn-sm">&#9654; Process BAP Submissions</button>
+            </form>
+          </div>
+        </div>
+        <div class="card-body px-3 py-2">
+          <p class="text-muted small mb-2">
+            Review and correct the <strong>Species name</strong> and <strong>Breeder points</strong> columns before processing.
+            You may re-upload a corrected CSV to replace the working file.
+          </p>
+          <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center mb-3">
+            {% csrf_token %}
+            <div class="col-auto">
+              <input type="file" name="replace_csv" class="form-control form-control-sm" accept=".csv" required>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Replace Working File</button>
+            </div>
+          </form>
+
+          {% if rows %}
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered table-hover small">
+                <thead class="table-light">
+                  <tr>
+                    <th>#</th>
+                    {% for h in headers %}
+                      <th>{{ h }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in rows %}
+                    {% with import_status=row|last %}
+                    <tr class="{% if 'Error' in import_status %}table-danger{% elif 'Created' in import_status %}table-success{% elif 'Skipped' in import_status %}table-warning{% endif %}">
+                      <td>{{ forloop.counter }}</td>
+                      {% for cell in row %}
+                        <td>{{ cell }}</td>
+                      {% endfor %}
+                    </tr>
+                    {% endwith %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No rows found in working file.</p>
+          {% endif %}
+
+        </div>
+      </div>
+
+      <a href="{% url 'aquaristClub' club.pk %}" class="btn btn-secondary btn-sm">&#8592; Back to Club</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

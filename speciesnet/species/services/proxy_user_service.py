@@ -2,8 +2,9 @@
 Proxy user account service.
 
 Provides:
-  - generate_unique_username(email)  — derive a DB-unique username from an email address
-  - create_proxy_user(email, club, invited_by)  — create one proxy User + membership + invite action
+  - generate_unique_username(club)   — derive a DB-unique username using {acronym}_memberNN
+  - create_proxy_user(email, club, invited_by, first_name='', last_name='')
+                                     — create one proxy User + membership + invite action
   - import_proxy_users(email_list, club, invited_by)  — bulk import, returns per-row outcome list
 """
 
@@ -12,6 +13,7 @@ import logging
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 
 from pending_actions.models import ActionType, PendingAction
 from pending_actions.services import create_pending_action
@@ -26,6 +28,11 @@ def _get_member_model():
     return AquaristClubMember
 
 
+def _get_club_model():
+    from species.models import AquaristClub
+    return AquaristClub
+
+
 # ---------------------------------------------------------------------------
 # Outcome constants returned per-row from import_proxy_users
 # ---------------------------------------------------------------------------
@@ -36,29 +43,58 @@ OUTCOME_ALREADY_INVITED   = 'already_invited'
 OUTCOME_ERROR             = 'error'
 
 
-def generate_unique_username(email: str) -> str:
+def generate_unique_username(club) -> str:
     """
-    Derive a unique username from the local part of an email address.
+    Derive a unique username for a new proxy user belonging to *club*.
 
-    Strips everything from '@' onwards, then appends a numeric suffix
-    (_2, _3 …) until the candidate does not already exist in the DB.
+    Format: ``{acronym}_memberNN`` where NN is zero-padded to 2 digits for
+    01-99, then unpadded for 100+.  Uses and atomically increments
+    ``club.next_member_number`` to avoid races/collisions.
+
+    The ``club`` object is refreshed from the DB inside this function so that
+    the caller does not need to worry about stale ``next_member_number`` values
+    after the increment.
     """
-    base = email.split('@')[0].strip()
-    if not base:
-        base = 'member'
+    AquaristClub = _get_club_model()
 
+    # Atomically increment the counter and read the value we just claimed.
+    AquaristClub.objects.filter(pk=club.pk).update(next_member_number=F('next_member_number') + 1)
+    club.refresh_from_db(fields=['next_member_number', 'acronym'])
+    # next_member_number was incremented, so the number we just "owned" is the
+    # pre-increment value, i.e. next_member_number - 1.
+    number = club.next_member_number - 1
+
+    acronym = (club.acronym or 'CLUB').strip() or 'CLUB'
+    if number < 100:
+        suffix = f'{number:02d}'
+    else:
+        suffix = str(number)
+
+    base = f'{acronym}_member{suffix}'
+
+    # Uniqueness safety-net: if there is somehow a collision (e.g. hand-created
+    # users with the same pattern), append an extra disambiguating suffix.
     candidate = base
-    counter = 2
+    extra = 2
     while User.objects.filter(username=candidate).exists():
-        candidate = f'{base}_{counter}'
-        counter += 1
+        candidate = f'{base}_{extra}'
+        extra += 1
     return candidate
 
 
 @transaction.atomic
-def create_proxy_user(email: str, club, invited_by) -> tuple:
+def create_proxy_user(email: str, club, invited_by,
+                      first_name: str = '', last_name: str = '') -> tuple:
     """
     Create a proxy User, an AquaristClubMember, and a proxy_user_invite PendingAction.
+
+    Parameters
+    ----------
+    email       : seller / member email address
+    club        : AquaristClub instance
+    invited_by  : User who triggered the creation (Club Admin)
+    first_name  : optional – populated from Seller name if known
+    last_name   : optional
 
     Returns (outcome, detail) where:
       - outcome is one of the OUTCOME_* constants
@@ -71,7 +107,6 @@ def create_proxy_user(email: str, club, invited_by) -> tuple:
     # --- Guard: email already registered ---
     existing = User.objects.filter(email=email).first()
     if existing is not None:
-        # Check if already a member of this club
         if AquaristClubMember.objects.filter(user=existing, club=club).exists():
             return OUTCOME_EXISTING_ACCOUNT, {'email': email, 'note': 'existing account, already a club member'}
         return OUTCOME_EXISTING_ACCOUNT, {'email': email, 'note': 'existing account, not a club member — manual invite required'}
@@ -82,7 +117,6 @@ def create_proxy_user(email: str, club, invited_by) -> tuple:
         action_type=action_type,
         status=PendingAction.Status.PENDING,
     ).filter(
-        # payload is a JSONField; filter on the stored email value
         payload__to_email=email,
         payload__club_id=club.pk,
     ).exists()
@@ -90,10 +124,12 @@ def create_proxy_user(email: str, club, invited_by) -> tuple:
         return OUTCOME_ALREADY_INVITED, {'email': email}
 
     # --- Create the proxy User ---
-    username = generate_unique_username(email)
+    username = generate_unique_username(club)
     user = User(
         email=email,
         username=username,
+        first_name=first_name,
+        last_name=last_name,
         is_proxy=True,
         is_active=False,
         is_private_email=True,
@@ -102,20 +138,17 @@ def create_proxy_user(email: str, club, invited_by) -> tuple:
     user.save()
 
     # --- Create the AquaristClubMember row ---
+    display_name = f'{first_name} {last_name}'.strip() or username
     member = AquaristClubMember.objects.create(
-        name=f'{club.acronym}: {username}' if club.acronym else username,
+        name=f'{club.acronym}: {display_name}' if club.acronym else display_name,
         club=club,
         user=user,
         bap_participant=False,
-        membership_approved=True,   # club admin is creating this account; membership is implicit
+        membership_approved=True,
         is_club_admin=False,
     )
 
     # --- Queue the invite email via the PendingAction pipeline ---
-    # enqueue_email=False so we can store the token in the payload before the
-    # Celery task runs and the handler calls build_email_context (which needs
-    # the token to construct the activation URL).  This mirrors the pattern
-    # used by send_status_change_email in species/services/email_services.py.
     base_url = getattr(settings, 'PENDING_ACTION_BASE_URL', '').rstrip('/')
     payload = {
         'to_email': email,
@@ -124,7 +157,7 @@ def create_proxy_user(email: str, club, invited_by) -> tuple:
         'invited_by_username': invited_by.username if invited_by else '',
         'user_id': user.pk,
         'base_url': base_url,
-        'token': '',        # placeholder; real value stored below
+        'token': '',
     }
     action, token = create_pending_action(
         action_type,
@@ -163,7 +196,6 @@ def import_proxy_users(email_list: list, club, invited_by) -> list:
         if not email:
             continue
 
-        # Deduplicate within the same import batch
         if email in seen_in_batch:
             results.append({'email': email, 'outcome': OUTCOME_ALREADY_INVITED, 'note': 'duplicate within this import'})
             continue
