@@ -2,11 +2,13 @@
 BAP (Breeder Award Program) CSV Import workflow views.
 
 Provides three steps:
-  1. Upload  — uploadBapImport     — parse CSV, classify accounts, fuzzy-fill Species name
-  2. Review  — reviewBapImport     — display/edit working CSV; re-upload to replace
+  1. Upload  — uploadBapImport     — parse CSV, drop non-truthy Breeder points rows,
+                                      classify accounts, fuzzy-fill Species name
+  2. Review  — reviewBapImport     — display/edit working CSV; save inline edits or re-upload to replace
   3. Process — processBapImport    — create proxy users, species instances, BAP submissions
 """
 
+import base64
 import csv
 import difflib
 import io
@@ -49,6 +51,13 @@ REQUIRED_INPUT_COLS = [
 ]
 
 WORKING_COLS = REQUIRED_INPUT_COLS + ['Account status']
+
+# Session keys used to stash an uploaded CSV while we confirm discarding an
+# existing REVIEW batch (browsers cannot pre-populate a file input, so we
+# cache the bytes instead of asking the admin to re-select the file).
+SESSION_PENDING_CSV_B64 = 'bap_import_pending_csv_b64'
+SESSION_PENDING_CSV_NAME = 'bap_import_pending_csv_name'
+SESSION_PENDING_CSV_CLUB = 'bap_import_pending_csv_club'
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -98,7 +107,9 @@ def _fuzzy_fill_species(rows: list) -> list:
     For rows where 'Species name' is blank, attempt a fuzzy match against
     the Species pool using the 'Lot' text.
 
-    Mutates rows in-place and returns them.  Only called at upload time.
+    Mutates rows in-place and returns them.  Called on every full-CSV
+    (re)load — initial upload AND 'Replace Working File' — so blank
+    Species name cells always get the same best-effort pre-fill treatment.
     """
     pool = _build_species_name_pool()
     if not pool:
@@ -121,6 +132,15 @@ def _fuzzy_fill_species(rows: list) -> list:
 def _parse_breeder_points(value: str) -> bool:
     """Return True if value is a truthy BAP indicator ('yes', 'true', '1', etc.)."""
     return str(value).strip().lower() in ('yes', 'true', '1', 'y')
+
+
+def _filter_truthy_breeder_points(rows: list) -> list:
+    """
+    Drop rows where 'Breeder points' is not truthy.  Applied on every full
+    CSV (re)load — initial upload AND 'Replace Working File'.
+    The 'Breeder points' column itself is always retained on surviving rows.
+    """
+    return [row for row in rows if _parse_breeder_points(row.get('Breeder points', ''))]
 
 
 def _sanitize_for_filename(text: str) -> str:
@@ -147,6 +167,63 @@ def _write_working_csv(rows: list, fieldnames: list) -> bytes:
     return buf.getvalue().encode('utf-8')
 
 
+def _rows_dicts_to_lists(rows_dicts: list, headers: list) -> list:
+    """Convert list of dict rows into list of value-lists, ordered by *headers*."""
+    return [[row.get(h, '') for h in headers] for row in rows_dicts]
+
+
+def _build_working_rows_from_raw(raw_content: str):
+    """
+    Shared pipeline for turning a raw CSV string into working rows:
+    filter non-truthy Breeder points -> keep required cols + Account status
+    -> fuzzy-fill Species name.
+
+    Returns (filtered_rows, skipped_count).
+    """
+    reader = csv.DictReader(io.StringIO(raw_content))
+    all_rows = list(reader)
+
+    total_before = len(all_rows)
+    all_rows = _filter_truthy_breeder_points(all_rows)
+    skipped_count = total_before - len(all_rows)
+
+    filtered_rows = []
+    for row in all_rows:
+        filtered = {col: row.get(col, '') for col in REQUIRED_INPUT_COLS}
+        filtered['Account status'] = _classify_account_status(filtered.get('Seller email', ''))
+        filtered_rows.append(filtered)
+
+    filtered_rows = _fuzzy_fill_species(filtered_rows)
+    return filtered_rows, skipped_count
+
+
+def _clear_pending_csv_session(request):
+    request.session.pop(SESSION_PENDING_CSV_B64, None)
+    request.session.pop(SESSION_PENDING_CSV_NAME, None)
+    request.session.pop(SESSION_PENDING_CSV_CLUB, None)
+
+
+def _apply_row_edits_from_post(rows: list, post_data) -> list:
+    """
+    Overlay any 'row_{idx}_species_name' / 'row_{idx}_breeder_points' fields
+    present in *post_data* onto *rows* (in place).
+
+    Used by both the explicit 'Save Edits' action AND 'Process BAP
+    Submissions' — the Process button submits the same table-edit form
+    (via the HTML `form=` / `formaction` attributes), so any unsaved edits
+    in the table are always applied before processing, whether or not the
+    admin clicked Save Edits first.
+    """
+    for idx, row in enumerate(rows):
+        species_key = f'row_{idx}_species_name'
+        points_key = f'row_{idx}_breeder_points'
+        if species_key in post_data:
+            row['Species name'] = post_data[species_key].strip()
+        if points_key in post_data:
+            row['Breeder points'] = post_data[points_key].strip()
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # View 1 – Upload
 # ---------------------------------------------------------------------------
@@ -154,9 +231,14 @@ def _write_working_csv(rows: list, fieldnames: list) -> bytes:
 @login_required(login_url='login')
 def uploadBapImport(request, pk):
     """
-    Upload a BAP auction CSV.  Runs account-status classification and a
-    one-time fuzzy species-name pre-fill, then saves a BapImportBatch in
-    REVIEW status.
+    Upload a BAP auction CSV.  Drops rows where 'Breeder points' is not
+    truthy (they have no value for BAP processing), runs account-status
+    classification and a one-time fuzzy species-name pre-fill on the
+    remaining rows, then saves a BapImportBatch in REVIEW status.
+
+    If the club already has a REVIEW batch, the uploaded file's bytes are
+    cached in the session so the admin does not have to re-select the file
+    a second time just to confirm discarding the old batch.
     """
     club = get_object_or_404(AquaristClub, pk=pk)
 
@@ -166,51 +248,78 @@ def uploadBapImport(request, pk):
     existing_review = BapImportBatch.objects.filter(club=club, status=BapImportBatch.Status.REVIEW).first()
 
     if request.method == 'POST':
-        # Confirm-discard step: if user confirmed discarding old batch
         confirm_discard = request.POST.get('confirm_discard') == '1'
-        csv_file = request.FILES.get('csv_file')
 
-        if not csv_file:
-            messages.error(request, 'Please choose a CSV file to upload.')
-            context = {'club': club, 'existing_review': existing_review}
-            return render(request, 'species/bap_import_upload.html', context)
+        if confirm_discard:
+            # Pull the previously-uploaded bytes back out of the session —
+            # no re-selection of the file required.
+            b64 = request.session.get(SESSION_PENDING_CSV_B64)
+            original_name = request.session.get(SESSION_PENDING_CSV_NAME, 'upload.csv')
+            cached_club_pk = request.session.get(SESSION_PENDING_CSV_CLUB)
 
-        if existing_review and not confirm_discard:
-            # Ask for confirmation before discarding
-            context = {
-                'club': club,
-                'existing_review': existing_review,
-                'warn_discard': True,
-                'uploaded_file_name': csv_file.name,
-            }
-            return render(request, 'species/bap_import_upload.html', context)
+            if not b64 or cached_club_pk != club.pk:
+                messages.error(request, 'Your upload expired or could not be found. Please choose the file again.')
+                _clear_pending_csv_session(request)
+                context = {'club': club, 'existing_review': existing_review}
+                return render(request, 'species/bap_import_upload.html', context)
 
-        # Parse uploaded CSV
+            try:
+                raw_bytes = base64.b64decode(b64)
+                raw_content = raw_bytes.decode('utf-8-sig')
+            except Exception as exc:
+                messages.error(request, f'Could not read cached CSV file: {exc}')
+                _clear_pending_csv_session(request)
+                context = {'club': club, 'existing_review': existing_review}
+                return render(request, 'species/bap_import_upload.html', context)
+
+            uploaded_file_name = original_name
+
+        else:
+            csv_file = request.FILES.get('csv_file')
+
+            if not csv_file:
+                messages.error(request, 'Please choose a CSV file to upload.')
+                context = {'club': club, 'existing_review': existing_review}
+                return render(request, 'species/bap_import_upload.html', context)
+
+            try:
+                raw_bytes = csv_file.read()
+                raw_content = raw_bytes.decode('utf-8-sig')
+            except Exception as exc:
+                messages.error(request, f'Could not read CSV file: {exc}')
+                context = {'club': club, 'existing_review': existing_review}
+                return render(request, 'species/bap_import_upload.html', context)
+
+            uploaded_file_name = csv_file.name
+
+            if existing_review:
+                # Cache the bytes and ask for confirmation before discarding
+                # the old batch — no need to make the admin re-select the file.
+                request.session[SESSION_PENDING_CSV_B64] = base64.b64encode(raw_bytes).decode('ascii')
+                request.session[SESSION_PENDING_CSV_NAME] = uploaded_file_name
+                request.session[SESSION_PENDING_CSV_CLUB] = club.pk
+                context = {
+                    'club': club,
+                    'existing_review': existing_review,
+                    'warn_discard': True,
+                    'uploaded_file_name': uploaded_file_name,
+                }
+                return render(request, 'species/bap_import_upload.html', context)
+
+        # --- From here on we have raw_content ready to process ---
         try:
-            raw_content = csv_file.read().decode('utf-8-sig')
-            reader = csv.DictReader(io.StringIO(raw_content))
-            all_rows = list(reader)
+            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content)
         except Exception as exc:
-            messages.error(request, f'Could not read CSV file: {exc}')
+            messages.error(request, f'Could not parse CSV file: {exc}')
+            _clear_pending_csv_session(request)
             context = {'club': club, 'existing_review': existing_review}
             return render(request, 'species/bap_import_upload.html', context)
-
-        # Keep only required columns; add Account status
-        filtered_rows = []
-        for row in all_rows:
-            filtered = {col: row.get(col, '') for col in REQUIRED_INPUT_COLS}
-            filtered['Account status'] = _classify_account_status(filtered.get('Seller email', ''))
-            filtered_rows.append(filtered)
-
-        # Fuzzy-fill Species name (upload-time only)
-        filtered_rows = _fuzzy_fill_species(filtered_rows)
 
         # Extract auction metadata from first row
         auction_name = filtered_rows[0].get('Auction name', '').strip() if filtered_rows else ''
         auction_date_str = filtered_rows[0].get('Auction date', '').strip() if filtered_rows else ''
         auction_date = None
         if auction_date_str:
-            from datetime import date
             import dateutil.parser
             try:
                 auction_date = dateutil.parser.parse(auction_date_str).date()
@@ -218,7 +327,7 @@ def uploadBapImport(request, pk):
                 auction_date = None
 
         with transaction.atomic():
-            # Discard old REVIEW batch if confirmed
+            # Discard old REVIEW batch (only reached here if confirmed)
             if existing_review:
                 if existing_review.working_csv_file:
                     try:
@@ -227,12 +336,11 @@ def uploadBapImport(request, pk):
                         pass
                 existing_review.delete()
 
-            # Build the working CSV bytes
             csv_bytes = _write_working_csv(filtered_rows, WORKING_COLS)
 
             batch = BapImportBatch(
                 club=club,
-                auction_name=auction_name or csv_file.name,
+                auction_name=auction_name or uploaded_file_name,
                 auction_date=auction_date,
                 status=BapImportBatch.Status.REVIEW,
                 created_by=request.user,
@@ -241,7 +349,12 @@ def uploadBapImport(request, pk):
             filename = f'working_{batch.pk}_{_sanitize_for_filename(auction_name or "batch")}.csv'
             batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
 
-        messages.success(request, f'Uploaded {len(filtered_rows)} rows. Review and correct before processing.')
+        _clear_pending_csv_session(request)
+
+        summary_msg = f'Uploaded {len(filtered_rows)} rows. Review and correct before processing.'
+        if skipped_count:
+            summary_msg += f' ({skipped_count} row{"s" if skipped_count != 1 else ""} without Breeder points were skipped.)'
+        messages.success(request, summary_msg)
         return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
 
     context = {'club': club, 'existing_review': existing_review}
@@ -255,8 +368,15 @@ def uploadBapImport(request, pk):
 @login_required(login_url='login')
 def reviewBapImport(request, pk):
     """
-    Display the working CSV for review.  Supports re-upload to replace the
-    working file (full CSV replacement; same format required).
+    Display the working CSV for review.  Supports:
+      - inline edits to 'Species name' and 'Breeder points' saved back to the
+        working CSV (POST save_edits=1). Setting 'Breeder points' to a
+        non-truthy value (e.g. 'No') excludes that row from processing
+        without removing it from the working file.
+      - full-file re-upload to replace the working file (POST replace_csv),
+        which runs the SAME pipeline as initial upload: drops rows without a
+        truthy 'Breeder points' value AND fuzzy-fills blank Species name
+        cells, so re-uploads behave identically to the first upload.
     """
     batch = get_object_or_404(BapImportBatch, pk=pk)
     club = batch.club
@@ -268,27 +388,57 @@ def reviewBapImport(request, pk):
         messages.info(request, 'This import batch has already been processed.')
         return HttpResponseRedirect(reverse('aquaristClub', args=[club.pk]))
 
+    # --- Handle inline row edits (Species name / Breeder points) ---
+    if request.method == 'POST' and request.POST.get('save_edits') == '1':
+        rows = _read_working_csv(batch)
+        fieldnames = list(rows[0].keys()) if rows else WORKING_COLS
+
+        rows = _apply_row_edits_from_post(rows, request.POST)
+
+        csv_bytes = _write_working_csv(rows, fieldnames)
+        if batch.working_csv_file:
+            batch.working_csv_file.delete(save=False)
+        filename = f'working_{batch.pk}_edited.csv'
+        batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
+        messages.success(request, 'Row edits saved.')
+        return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
+
+    # --- Handle full-file replacement ---
     if request.method == 'POST' and 'replace_csv' in request.FILES:
         csv_file = request.FILES['replace_csv']
         try:
             raw_content = csv_file.read().decode('utf-8-sig')
-            reader = csv.DictReader(io.StringIO(raw_content))
-            new_rows = list(reader)
         except Exception as exc:
             messages.error(request, f'Could not read replacement CSV: {exc}')
-            rows = _read_working_csv(batch)
-            context = {'batch': batch, 'club': club, 'rows': rows, 'headers': WORKING_COLS + ['Import status']}
+            rows_dicts = _read_working_csv(batch)
+            headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS + ['Import status']
+            rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
+            context = {
+                'batch': batch,
+                'club': club,
+                'rows': rows_as_lists,
+                'headers': headers,
+                'species_col_index': headers.index('Species name') if 'Species name' in headers else -1,
+                'points_col_index': headers.index('Breeder points') if 'Breeder points' in headers else -1,
+            }
             return render(request, 'species/bap_import_review.html', context)
 
-        # Re-classify accounts and keep working columns
-        filtered_rows = []
-        for row in new_rows:
-            filtered = {col: row.get(col, '') for col in REQUIRED_INPUT_COLS}
-            filtered['Account status'] = _classify_account_status(filtered.get('Seller email', ''))
-            # Preserve any Import status column if present (re-upload after partial process)
-            if 'Import status' in row:
-                filtered['Import status'] = row['Import status']
-            filtered_rows.append(filtered)
+        try:
+            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content)
+        except Exception as exc:
+            messages.error(request, f'Could not parse replacement CSV: {exc}')
+            rows_dicts = _read_working_csv(batch)
+            headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS + ['Import status']
+            rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
+            context = {
+                'batch': batch,
+                'club': club,
+                'rows': rows_as_lists,
+                'headers': headers,
+                'species_col_index': headers.index('Species name') if 'Species name' in headers else -1,
+                'points_col_index': headers.index('Breeder points') if 'Breeder points' in headers else -1,
+            }
+            return render(request, 'species/bap_import_review.html', context)
 
         csv_bytes = _write_working_csv(filtered_rows, WORKING_COLS)
 
@@ -296,15 +446,25 @@ def reviewBapImport(request, pk):
             batch.working_csv_file.delete(save=False)
         filename = f'working_{batch.pk}_revised.csv'
         batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
-        messages.success(request, 'Working file replaced.')
+
+        replace_msg = 'Working file replaced.'
+        if skipped_count:
+            replace_msg += f' ({skipped_count} row{"s" if skipped_count != 1 else ""} without Breeder points were skipped.)'
+        messages.success(request, replace_msg)
         return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
 
-    rows = _read_working_csv(batch)
+    rows_dicts = _read_working_csv(batch)
     # Determine headers dynamically (may include Import status after partial run)
-    fieldnames = list(rows[0].keys()) if rows else WORKING_COLS
-    # Convert to list-of-lists for reliable template rendering
-    rows_as_lists = [[row.get(h, '') for h in fieldnames] for row in rows]
-    context = {'batch': batch, 'club': club, 'rows': rows_as_lists, 'headers': fieldnames}
+    headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS
+    rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
+    context = {
+        'batch': batch,
+        'club': club,
+        'rows': rows_as_lists,
+        'headers': headers,
+        'species_col_index': headers.index('Species name') if 'Species name' in headers else -1,
+        'points_col_index': headers.index('Breeder points') if 'Breeder points' in headers else -1,
+    }
     return render(request, 'species/bap_import_review.html', context)
 
 
@@ -316,6 +476,12 @@ def reviewBapImport(request, pk):
 def processBapImport(request, pk):
     """
     Process a REVIEW-status BapImportBatch synchronously.
+
+    Any unsaved inline edits to 'Species name' / 'Breeder points' submitted
+    alongside this request (the Process button shares the same table-edit
+    form as 'Save Edits') are applied to the working rows FIRST, so the
+    admin never has to click Save Edits before processing — edits are
+    always captured.
 
     For each row with a valid Species name AND Breeder points == truthy:
     - Resolve species (exact iexact match)
@@ -340,6 +506,10 @@ def processBapImport(request, pk):
 
     rows = _read_working_csv(batch)
 
+    # Apply any inline edits submitted with this request before processing,
+    # so unsaved table edits are never lost even if 'Save Edits' wasn't clicked.
+    rows = _apply_row_edits_from_post(rows, request.POST)
+
     # ---------- First pass: identify active non-members ----------
     active_non_member_species: dict[str, list[str]] = {}  # email → [species_names]
     for row in rows:
@@ -361,8 +531,9 @@ def processBapImport(request, pk):
     # Send one invite per active non-member (deduped)
     _send_bap_join_invites(active_non_member_species, club, request)
 
+
     # ---------- Second pass: process rows ----------
-    FINAL_COLS = WORKING_COLS + ['Import status']
+    FINAL_COLS = ['Row'] + WORKING_COLS + ['Import status']
 
     for row in rows:
         # Ensure Import status column exists
@@ -432,28 +603,35 @@ def processBapImport(request, pk):
                     is_club_admin=False,
                 )
 
-            # 3. Get-or-create SpeciesInstance
-            species_instance, _ = SpeciesInstance.objects.get_or_create(
-                user=user_obj,
-                species=species_obj,
-                defaults={
-                    'name': f'{user_obj.username} - {species_obj.name}',
-                },
-            )
+            # 3. Get-or-create SpeciesInstance (tolerate pre-existing duplicates)
+            existing_instances = SpeciesInstance.objects.filter(user=user_obj, species=species_obj)
+            if existing_instances.exists():
+                species_instance = existing_instances.first()
+            else:
+                species_instance = SpeciesInstance.objects.create(
+                    user=user_obj,
+                    species=species_obj,
+                    name=f'{user_obj.username} - {species_obj.name}',
+                )
 
             # 4. Create BapSubmission
             submission = create_bap_submission(species_instance, club, committed_by=request.user)
-            row['Import status'] = f'Created (submission #{submission.pk})'
+            row['Import status'] = f'SUCCESS: Created (submission #{submission.pk})'            
 
         except Exception as exc:
             logger.exception('BAP import row error: row=%s', row)
             row['Import status'] = f'Error: {exc}'
 
-    # ---------- Finalise: write results back, archive ----------
-    _finalise_batch(batch, rows, FINAL_COLS, request.user)
+    # Add 1-based row numbers so the results page can display them
+    for idx, row in enumerate(rows, start=1):
+        row['Row'] = idx
 
-    messages.success(request, 'BAP import processed. See Import status column for row results.')
-    return HttpResponseRedirect(reverse('aquaristClub', args=[club.pk]))
+    # ---------- Finalise: write results back, archive ----------
+    import_archive = _finalise_batch(batch, rows, FINAL_COLS, request.user)
+
+
+    messages.success(request, 'BAP import processed. See Import status column for row results below.')
+    return HttpResponseRedirect(reverse('importArchiveResults', args=[import_archive.id]))
 
 
 # ---------------------------------------------------------------------------
@@ -556,10 +734,35 @@ def _finalise_batch(batch: BapImportBatch, rows: list, fieldnames: list, process
     batch.save()
 
     # Create linked ImportArchive record so it shows up in the standard archive UI
-    ImportArchive.objects.create(
+    import_archive = ImportArchive.objects.create(
         name=archive_name,
         aquarist=processed_by,
-        import_csv_file=batch.working_csv_file,
         import_status=ImportArchive.ImportStatus.FULL,
     )
+    import_archive.import_results_file.save(
+        archive_name,
+        ContentFile(csv_bytes),
+        save=True,
+    )
+
+    # # Save under archive name
+    # batch.working_csv_file.save(
+    #     f'bap_imports/archive/{archive_name}',
+    #     ContentFile(csv_bytes),
+    #     save=False,
+    # )
+    # batch.status = BapImportBatch.Status.PROCESSED
+    # batch.processed_by = processed_by
+    # batch.processed_at = timezone.now()
+    # batch.save()
+
+    # # Create linked ImportArchive record so it shows up in the standard archive UI
+    # import_archive = ImportArchive.objects.create(
+    #     name=archive_name,
+    #     aquarist=processed_by,
+    #     import_csv_file=batch.working_csv_file,
+    #     import_status=ImportArchive.ImportStatus.FULL,
+    # )
+
     logger.info('BapImportBatch #%s finalised as %s', batch.pk, archive_name)
+    return import_archive

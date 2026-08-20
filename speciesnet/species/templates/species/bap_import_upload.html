@@ -9,12 +9,6 @@
         </div>
         <div class="card-body px-4 py-3">
 
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-
           {% if warn_discard %}
             <div class="alert alert-warning">
               <strong>Warning:</strong> Club <strong>{{ club.name }}</strong> already has a
@@ -60,7 +54,7 @@
                 <label class="form-label fw-semibold">Select CSV File</label>
                 <input type="file" name="csv_file" class="form-control" accept=".csv" required>
               </div>
-              <button type="submit" class="btn btn-primary">Upload and Review</button>
+              <button type="submit" class="btn btn-secondary">Upload and Review</button>
               <a href="{% url 'aquaristClub' club.pk %}" class="btn btn-secondary ms-2">Cancel</a>
             </form>
           {% endif %}
