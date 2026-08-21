@@ -9,7 +9,13 @@ BAP (Breeder Award Program) related views:
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
-from species.services.bap_service import resolve_bap_points, create_bap_submission
+from species.services.bap_service import (
+    approve_bap_submission,
+    create_bap_submission,
+    recalculate_bap_leaderboard_for_year,
+    resolve_bap_points,
+)
+from species.services.notes_service import notes_requirements_met
 
 ### BAP Submission Views
 
@@ -27,7 +33,12 @@ def bapSubmission(request, pk):
     
     logger.info('User %s viewed bapSubmission: %s (%s)', 
                request.user.username, bap_submission.name, str(bap_submission.id))
-    context = {'bap_submission': bap_submission, 'userCanEdit': userCanEdit}
+    note_check = notes_requirements_met(bap_submission.speciesInstance, bap_submission.club)
+    context = {
+        'bap_submission': bap_submission,
+        'userCanEdit': userCanEdit,
+        'missing_required_notes': note_check.get('missing_fields', []),
+    }
     return render(request, 'species/bapSubmission.html', context)
 
 
@@ -71,6 +82,9 @@ def createBapSubmission(request, pk):
                     committed_by=request.user,
                     notes_override=user_notes,
                 )
+                note_check = notes_requirements_met(speciesInstance, club)
+                if note_check['nudge_fields']:
+                    messages.info(request, f'Optional notes not provided: {", ".join(note_check["nudge_fields"])}')
 
                 send_asn_notification_email(
                     subject=f'ASN: New BAP Submission - {bap_submission.speciesInstance.species.name}',
@@ -119,19 +133,37 @@ def editBapSubmission(request, pk):
         
         print('editBapSubmission post value points:  ' + str(request.POST.get('points')))
         if form.is_valid():
-            bap_submission = form.save(commit=True)
-            bap_submission.name = name
-            bap_submission.aquarist = aquarist
-            bap_submission.club = bapClub
-            bap_submission.speciesInstance = speciesInstance
-            bap_submission.save()
+            pending = form.save(commit=False)
+            pending.name = name
+            pending.aquarist = aquarist
+            pending.club = bapClub
+            pending.speciesInstance = speciesInstance
+            pending.species = speciesInstance.species if speciesInstance else pending.species
+            new_status = form.cleaned_data.get('status')
+            try:
+                if userIsBapAdmin and new_status == BapSubmission.BapSubmissionStatus.APPROVED:
+                    pending.save()
+                    pending = approve_bap_submission(pending, request.user)
+                else:
+                    pending.save()
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                context = {'form': form, 'bap_submission': bap_submission, 'userIsBapAdmin': userIsBapAdmin}
+                return render(request, 'species/editBapSubmission.html', context)
+            bap_submission = pending
             print('editBapSubmission cleaned_data points: ' + str(form.cleaned_data.get('points')))
             print('bap_submission edit - points after edit: ' + str(bap_submission.points))
             logger.info('User %s edited bapSubmission:  %s (%s)',
                        request.user.username, bap_submission.name, str(bap_submission.id))
             return HttpResponseRedirect(reverse("bapSubmission", args=[bap_submission.id]))
     
-    context = {'form':  form, 'bap_submission': bap_submission, 'userIsBapAdmin': userIsBapAdmin}
+    note_check = notes_requirements_met(bap_submission.speciesInstance, bap_submission.club)
+    context = {
+        'form': form,
+        'bap_submission': bap_submission,
+        'userIsBapAdmin': userIsBapAdmin,
+        'missing_required_notes': note_check.get('missing_fields', []),
+    }
     return render(request, 'species/editBapSubmission.html', context)
 
 
@@ -166,9 +198,10 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
     paginate_by = 200
 
     def get_bap_club(self):
-        bap_club_id = self.kwargs.get('pk')
-        bap_club = AquaristClub.objects.get(id=bap_club_id)
-        return bap_club
+        if not hasattr(self, '_bap_club'):
+            bap_club_id = self.kwargs.get('pk')
+            self._bap_club = AquaristClub.objects.get(id=bap_club_id)
+        return self._bap_club
 
     def get_queryset(self):
         bap_club = self.get_bap_club()
@@ -196,6 +229,10 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
         selected_bap_participant_id = self.request.GET.get('bap_participants', 'all')
         context['selected_bap_participant_id'] = selected_bap_participant_id
         context['userCanEdit'] = user_can_edit_club(self.request.user, self.get_bap_club()) or self.request.user.is_staff
+        context['bap_tier_by_user'] = {
+            lt.aquarist_id: lt.current_tier
+            for lt in BapLifetimeTotal.objects.filter(club=self.get_bap_club()).select_related('current_tier')
+        }
         
         logger.info('User %s viewed bapSubmissions', self.request.user.username)
         
@@ -204,6 +241,10 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
             context['bap_submissions'] = self.get_queryset().filter(aquarist=aquarist_id)
         else:
             context['bap_submissions'] = self.get_queryset()
+
+        for sub in context['bap_submissions']:
+            tier = context['bap_tier_by_user'].get(sub.aquarist_id)
+            sub.current_tier_display = f'{tier.icon} {tier.name}'.strip() if tier else ''
         
         return context
 
@@ -218,77 +259,31 @@ def exportBapSubmissions(request, pk):
 ### BAP Leaderboard
 
 class BapLeaderboardView(LoginRequiredMixin, ListView):
-    model = BapSubmission
+    model = BapLeaderboard
     template_name = "species/bapLeaderboard.html"
     context_object_name = "bap_leaderboard"
     paginate_by = 50
 
     def get_bap_club(self):
-        bap_club_id = self.kwargs.get('pk')
-        bap_club = AquaristClub.objects.get(id=bap_club_id)
-        return bap_club
+        if not hasattr(self, '_bap_club'):
+            bap_club_id = self.kwargs.get('pk')
+            self._bap_club = AquaristClub.objects.get(id=bap_club_id)
+        return self._bap_club
 
     def get_queryset(self):
         bap_club = self.get_bap_club()
         if not (user_is_club_member(self.request.user, bap_club) or self.request.user.is_staff):
             raise PermissionDenied
         
-        # TODO manage 'BAP Year' which may be calendar year or school year
-        year = 2025
-
-        # Regenerate full list each time
-        bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year)
-        for entry in bap_leaderboard: 
-            entry.species_count = 0
-            entry.cares_species_count = 0
-            entry.points = 0
-            entry.save()
-
-        print ('BAP Leaderboard CLEARED')
-
-        bap_submissions = BapSubmission.objects.filter(
-            club=bap_club,
-            year=year,
-            status=BapSubmission.BapSubmissionStatus.APPROVED
-        )
-        aquarist_ids = bap_submissions.values_list('aquarist', flat=True).distinct()
-        
-        for aquarist_id in aquarist_ids:
-            bap_leaderboard_entry, created = BapLeaderboard.objects.get_or_create(aquarist_id=aquarist_id)
-            if created:
-                bap_leaderboard_entry.name = f"{year} - {bap_club.name} - {bap_leaderboard_entry. aquarist.username}"
-                bap_leaderboard_entry.club = bap_club
-                bap_leaderboard_entry.year = year
-            
-            cur_aquarist_submissions = bap_submissions.filter(aquarist_id=aquarist_id)
-            bap_leaderboard_entry.species_count = 0
-            bap_leaderboard_entry.cares_species_count = 0
-            bap_leaderboard_entry.points = 0
-            
-            for bap_submission in cur_aquarist_submissions:
-                bap_leaderboard_entry.species_count += 1
-                if bap_submission.speciesInstance.species.render_cares:
-                    bap_leaderboard_entry.cares_species_count += 1
-                bap_leaderboard_entry.points += bap_submission.points
-                print ('  BAP Leaderboard Entry updated: ' + bap_leaderboard_entry.name + ' (' + str(bap_leaderboard_entry.points) + ')')
-            
-            bap_leaderboard_entry.save()
-            print ('BAP Leaderboard Entry finalized: ' + bap_leaderboard_entry.name + ' (' + str(bap_leaderboard_entry.points) + ')')
-        
-        # Clear out any zero value entries
-        bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year)
-        for entry in bap_leaderboard:
-            if entry.points == 0:
-                entry.delete()
-
-        # Return clean updated list
-        bap_leaderboard = BapLeaderboard.objects.filter(club=bap_club, year=year).order_by('-points')
-        return bap_leaderboard
+        current_year = BapYear.objects.get_open(bap_club)
+        return recalculate_bap_leaderboard_for_year(bap_club, current_year)
 
     def get_context_data(self, **kwargs):
         logger.info('User %s viewed bapLeaderboard', self.request.user.username)
         context = super().get_context_data(**kwargs)
         context['bap_club'] = self.get_bap_club()
+        context['bap_lifetime_totals'] = BapLifetimeTotal.objects.filter(club=self.get_bap_club()).select_related('aquarist', 'current_tier').order_by('-points', '-species_count')
+        context['current_bap_year'] = BapYear.objects.get_open(self.get_bap_club())
         record_page_view(PageViewCount.PageType.BAP_LEADERBOARD, self.get_bap_club().id, self.request.user.is_authenticated)
         return context
 

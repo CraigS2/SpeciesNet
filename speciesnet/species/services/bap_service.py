@@ -1,19 +1,12 @@
-"""
-BAP (Breeder Award Program) service functions.
-
-Provides:
-  - resolve_bap_points(species_instance, club) -> dict
-        Returns points, genus/species objects, and admin notes.
-  - create_bap_submission(species_instance, club, committed_by=None) -> BapSubmission
-        Creates the BapSubmission record (and BapGenus if needed).
-
-These are extracted from the original createBapSubmission view so that both the
-manual web flow and the CSV import flow use identical point-resolution logic.
-"""
+"""BAP service functions."""
 
 import logging
-
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.db import transaction
+
+from species.services.email_services import send_notes_required_email
+from species.services.notes_service import notes_requirements_met
+from species.services.tier_service import resolve_tier_for_points
 
 logger = logging.getLogger(__name__)
 
@@ -22,34 +15,49 @@ def _get_models():
     from species.models import (
         AquaristClubMember,
         BapGenus,
+        BapLeaderboard,
+        BapLifetimeTotal,
         BapSpecies,
         BapSubmission,
+        BapTier,
+        BapYear,
         SpeciesInstance,
     )
-    return AquaristClubMember, BapGenus, BapSpecies, BapSubmission, SpeciesInstance
+    return (
+        AquaristClubMember,
+        BapGenus,
+        BapLeaderboard,
+        BapLifetimeTotal,
+        BapSpecies,
+        BapSubmission,
+        BapTier,
+        BapYear,
+        SpeciesInstance,
+    )
+
+
+def has_approved_bap_species(aquarist, club, species, exclude_submission_id=None) -> bool:
+    _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
+    qs = BapSubmission.objects.filter(
+        aquarist=aquarist,
+        club=club,
+        species=species,
+        status=BapSubmission.BapSubmissionStatus.APPROVED,
+    )
+    if exclude_submission_id:
+        qs = qs.exclude(pk=exclude_submission_id)
+    return qs.exists()
+
+
+def _mark_submission_duplicate(submission, reason):
+    _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
+    submission.status = BapSubmission.BapSubmissionStatus.DUPLICATE
+    submission.admin_comments = reason
+    submission.save(update_fields=['status', 'admin_comments', 'lastUpdated'])
 
 
 def resolve_bap_points(species_instance, club) -> dict:
-    """
-    Determine the BAP points for *species_instance* in *club*.
-
-    Resolution order:
-      1. BapSpecies override (species-level)
-      2. BapGenus override (genus-level)
-      3. club.bap_default_points (fallback — a new BapGenus entry is NOT created
-         here; that happens in create_bap_submission so it only occurs on actual
-         submission, not on repeated point lookups)
-
-    Returns a dict with keys:
-      points           : int — resolved points (0 if species name is missing/unusual)
-      bap_species      : BapSpecies instance or None
-      bap_genus        : BapGenus instance or None
-      genus_name       : str — parsed genus, or None
-      genus_found      : bool — True if a BapGenus row was found (vs fallback used)
-      new_genus_needed : bool — True if neither BapSpecies nor BapGenus exists
-      warnings         : list of str — human-readable messages for admin
-    """
-    _, BapGenus, BapSpecies, _, _ = _get_models()
+    _, BapGenus, _, _, BapSpecies, _, _, _, _ = _get_models()
 
     species_name = species_instance.species.name
     result = {
@@ -62,14 +70,11 @@ def resolve_bap_points(species_instance, club) -> dict:
         'warnings': [],
     }
 
-    # 1. Species-level override
     try:
         bap_species = BapSpecies.objects.get(name=species_name, club=club)
         result['bap_species'] = bap_species
         result['points'] = bap_species.points
         result['genus_name'] = species_name.split(' ')[0] if ' ' in species_name else None
-        logger.debug('BAP points from BapSpecies: species=%s club=%s points=%s', species_name, club.name, bap_species.points)
-        # Apply CARES multiplier
         if species_instance.species.render_cares:
             result['points'] = result['points'] * club.cares_muliplier
         return result
@@ -80,7 +85,6 @@ def resolve_bap_points(species_instance, club) -> dict:
         logger.error('Multiple BapSpecies entries: species=%s club=%s', species_name, club.name)
         return result
 
-    # 2. Genus-level override
     if ' ' in species_name:
         genus_name = species_name.split(' ')[0]
         result['genus_name'] = genus_name
@@ -89,7 +93,6 @@ def resolve_bap_points(species_instance, club) -> dict:
             result['bap_genus'] = bap_genus
             result['points'] = bap_genus.points
             result['genus_found'] = True
-            logger.debug('BAP points from BapGenus: genus=%s club=%s points=%s', genus_name, club.name, bap_genus.points)
         except ObjectDoesNotExist:
             result['new_genus_needed'] = True
             result['points'] = club.bap_default_points
@@ -97,7 +100,6 @@ def resolve_bap_points(species_instance, club) -> dict:
                 f'{genus_name} points not yet configured. Default points value applied and genus is '
                 f'marked for review by your BAP Admin.  Please proceed with your BAP Submission.'
             )
-            logger.warning('No BapGenus for genus=%s club=%s — using default points=%s', genus_name, club.name, club.bap_default_points)
         except MultipleObjectsReturned:
             result['warnings'].append(f'Multiple BapGenus entries found for "{genus_name}" — using 0 points.')
             logger.error('Multiple BapGenus entries: genus=%s club=%s', genus_name, club.name)
@@ -107,35 +109,35 @@ def resolve_bap_points(species_instance, club) -> dict:
         logger.error('Cannot parse genus from species_name=%s', species_name)
         return result
 
-    # Apply CARES multiplier
     if result['points'] > 0 and species_instance.species.render_cares:
         result['points'] = result['points'] * club.cares_muliplier
 
     return result
 
 
+def _current_open_bap_year(club):
+    _, _, _, _, _, _, _, BapYear, _ = _get_models()
+    return BapYear.objects.get_open(club)
+
+
 def create_bap_submission(species_instance, club, committed_by=None, notes_override=None):
-    """
-    Create a BapSubmission for *species_instance* in *club*.
+    (
+        AquaristClubMember,
+        BapGenus,
+        _,
+        _,
+        _,
+        BapSubmission,
+        _,
+        _,
+        _,
+    ) = _get_models()
 
-    Also:
-    - Creates a BapGenus entry if needed (genus not configured).
-    - Sets AquaristClubMember.bap_participant = True.
-
-    Parameters
-    ----------
-    species_instance : SpeciesInstance
-    club             : AquaristClub
-    committed_by     : User who triggered the creation (optional, for logging)
-    notes_override   : str — if provided, used instead of ``club.bap_notes_template``
-                       (allows the manual submission form to pass user-edited notes)
-
-    Returns the saved BapSubmission instance.
-    Raises ValueError if points resolve to 0 (misconfiguration / unresolvable genus).
-    """
-    _, BapGenus, _, BapSubmission, _ = _get_models()
-    from species.models import AquaristClubMember
-    from django.utils import timezone
+    if has_approved_bap_species(species_instance.user, club, species_instance.species):
+        raise ValueError(
+            f'You already have an approved BAP entry for {species_instance.species.name}. '
+            f'Duplicate species submissions are not permitted.'
+        )
 
     pts = resolve_bap_points(species_instance, club)
     if pts['points'] == 0:
@@ -144,7 +146,6 @@ def create_bap_submission(species_instance, club, committed_by=None, notes_overr
             f'in club "{club.name}". Check BapSpecies/BapGenus configuration.'
         )
 
-    # Create BapGenus entry if this is the first submission for this genus
     if pts['new_genus_needed'] and pts['genus_name']:
         bap_genus = BapGenus(
             name=pts['genus_name'],
@@ -153,42 +154,146 @@ def create_bap_submission(species_instance, club, committed_by=None, notes_overr
             points=club.bap_default_points,
         )
         bap_genus.save()
-        pts['bap_genus'] = bap_genus
-        logger.info('Created new BapGenus: genus=%s club=%s', pts['genus_name'], club.name)
 
-    # Mark the club member as a BAP participant
     try:
         club_member = AquaristClubMember.objects.get(user=species_instance.user, club=club)
         club_member.bap_participant = True
         club_member.save(update_fields=['bap_participant'])
     except AquaristClubMember.DoesNotExist:
-        raise ValueError(
-            f'User "{species_instance.user.username}" is not a member of club "{club.name}".'
-        )
+        raise ValueError(f'User "{species_instance.user.username}" is not a member of club "{club.name}".')
 
-    name = f'{species_instance.user.username} - {club.name} - {species_instance.name}'
-    notes = notes_override if notes_override is not None else club.bap_notes_template
-
-    admin_comments = ''
-    request_points_review = False
-    if pts['new_genus_needed']:
-        request_points_review = True
-        admin_comments = 'Genus points not configured. Default club points applied.  Please review.'
+    current_year = _current_open_bap_year(club)
+    year_value = current_year.year_label if current_year else species_instance.created.year
 
     submission = BapSubmission(
-        name=name,
+        name=f'{species_instance.user.username} - {club.name} - {species_instance.name}',
         aquarist=species_instance.user,
         club=club,
         speciesInstance=species_instance,
+        species=species_instance.species,
+        bap_year=current_year,
+        year=year_value,
         points=pts['points'],
-        notes=notes,
-        request_points_review=request_points_review,
-        admin_comments=admin_comments,
+        notes=notes_override if notes_override is not None else club.bap_notes_template,
+        request_points_review=bool(pts['new_genus_needed']),
+        admin_comments='Genus points not configured. Default club points applied.  Please review.' if pts['new_genus_needed'] else '',
     )
     submission.save()
 
-    logger.info(
-        'BapSubmission created: user=%s club=%s species=%s points=%s',
-        species_instance.user.username, club.name, species_instance.species.name, pts['points'],
+    note_check = notes_requirements_met(species_instance, club)
+    if note_check['missing_fields']:
+        send_notes_required_email(submission=submission, program='BAP')
+
+    logger.info('BapSubmission created: user=%s club=%s species=%s points=%s', species_instance.user.username, club.name, species_instance.species.name, pts['points'])
+    return submission
+
+
+def recalculate_bap_leaderboard_for_year(club, bap_year):
+    _, _, BapLeaderboard, _, _, BapSubmission, _, _, _ = _get_models()
+
+    if bap_year is None:
+        return BapLeaderboard.objects.none()
+
+    if BapLeaderboard.objects.filter(club=club, bap_year=bap_year, is_final=True).exists():
+        return BapLeaderboard.objects.filter(club=club, bap_year=bap_year).order_by('-points', '-species_count')
+
+    with transaction.atomic():
+        BapLeaderboard.objects.filter(club=club, bap_year=bap_year).delete()
+
+        submissions = BapSubmission.objects.filter(
+            club=club,
+            bap_year=bap_year,
+            status=BapSubmission.BapSubmissionStatus.APPROVED,
+        ).select_related('speciesInstance__species', 'aquarist')
+
+        per_user = {}
+        for sub in submissions:
+            if sub.aquarist_id not in per_user:
+                per_user[sub.aquarist_id] = {'species_count': 0, 'cares_species_count': 0, 'points': 0, 'aq': sub.aquarist}
+            per_user[sub.aquarist_id]['species_count'] += 1
+            if sub.species and sub.species.render_cares:
+                per_user[sub.aquarist_id]['cares_species_count'] += 1
+            elif sub.speciesInstance and sub.speciesInstance.species.render_cares:
+                per_user[sub.aquarist_id]['cares_species_count'] += 1
+            per_user[sub.aquarist_id]['points'] += sub.points
+
+        entries = []
+        for user_id, data in per_user.items():
+            entries.append(BapLeaderboard(
+                name=f'{bap_year.year_label} - {club.name} - {data["aq"].username}',
+                aquarist_id=user_id,
+                club=club,
+                bap_year=bap_year,
+                year=bap_year.year_label,
+                species_count=data['species_count'],
+                cares_species_count=data['cares_species_count'],
+                points=data['points'],
+                is_final=False,
+            ))
+        if entries:
+            BapLeaderboard.objects.bulk_create(entries)
+
+    return BapLeaderboard.objects.filter(club=club, bap_year=bap_year).order_by('-points', '-species_count')
+
+
+def _update_bap_lifetime_total(submission):
+    _, _, _, BapLifetimeTotal, _, _, BapTier, _, _ = _get_models()
+    total, created = BapLifetimeTotal.objects.get_or_create(
+        aquarist=submission.aquarist,
+        club=submission.club,
+        defaults={
+            'species_count': 0,
+            'cares_species_count': 0,
+            'points': 0,
+            'first_award_year': submission.bap_year,
+            'last_award_year': submission.bap_year,
+        }
     )
+
+    total.species_count += 1
+    if submission.species and submission.species.render_cares:
+        total.cares_species_count += 1
+    total.points += submission.points
+
+    if total.first_award_year is None and submission.bap_year:
+        total.first_award_year = submission.bap_year
+    if submission.bap_year:
+        if total.last_award_year is None or submission.bap_year.year_label > total.last_award_year.year_label:
+            total.last_award_year = submission.bap_year
+
+    total.current_tier = resolve_tier_for_points(submission.club, BapTier.Program.BAP, total.points)
+    total.save()
+
+
+def approve_bap_submission(submission, admin_user):
+    _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
+
+    if submission.status == BapSubmission.BapSubmissionStatus.APPROVED:
+        return submission
+
+    if has_approved_bap_species(
+        submission.aquarist,
+        submission.club,
+        submission.species or (submission.speciesInstance.species if submission.speciesInstance else None),
+        exclude_submission_id=submission.id,
+    ):
+        reason = f'Automatically set to duplicate: {submission.species.name if submission.species else submission.speciesInstance.species.name} already approved for this aquarist in this club.'
+        _mark_submission_duplicate(submission, reason)
+        raise ValueError('Duplicate species submissions are not permitted once a species is approved.')
+
+    notes_check = notes_requirements_met(submission.speciesInstance, submission.club)
+    if notes_check['missing_fields']:
+        raise ValueError(f'Approval blocked. Missing required notes: {", ".join(notes_check["missing_fields"])}')
+
+    with transaction.atomic():
+        submission.status = BapSubmission.BapSubmissionStatus.APPROVED
+        if submission.species is None and submission.speciesInstance:
+            submission.species = submission.speciesInstance.species
+        if submission.bap_year is None:
+            submission.bap_year = _current_open_bap_year(submission.club)
+        if submission.bap_year:
+            submission.year = submission.bap_year.year_label
+        submission.save()
+        _update_bap_lifetime_total(submission)
+
     return submission

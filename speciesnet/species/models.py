@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from decimal import Decimal
 import re
 
 ### Custom User
@@ -492,6 +493,11 @@ class AquaristClub (models.Model):
     bap_end_date              = models.DateField (null=True, blank=True)
     is_bap_club               = models.BooleanField (default=False)
     is_cares_club             = models.BooleanField (default=False)
+    cares_smp_multiplier      = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.50'))
+    cares_smp_year_cap        = models.PositiveIntegerField(default=5)
+    is_smp_club               = models.BooleanField(default=False)
+    require_spawning_notes    = models.BooleanField(default=False)
+    require_fry_rearing_notes = models.BooleanField(default=False)
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
     next_member_number        = models.PositiveIntegerField(default=1)  # persistent counter for proxy username generation
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
@@ -581,6 +587,87 @@ class CaresRegistration (models.Model):
 
 ### BAP Program
 
+class BapYearManager(models.Manager):
+    def get_open(self, club):
+        return self.filter(club=club, status=BapYear.Status.OPEN).order_by('start_date').first()
+
+
+class BapYear(models.Model):
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', _('Open')
+        CLOSED = 'CLSD', _('Closed')
+
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_years')
+    name = models.CharField(max_length=240, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    year_label = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], null=True, blank=True)
+    status = models.CharField(max_length=4, choices=Status.choices, default=Status.OPEN)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='closed_bap_years')
+    bap_breeder_of_year = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_breeder_of_year_awards')
+
+    objects = BapYearManager()
+
+    class Meta:
+        ordering = ['-year_label', '-start_date']
+        constraints = [
+            models.UniqueConstraint(fields=['club', 'year_label'], name='uniq_bapyear_club_year_label'),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.year_label is None and self.end_date:
+            self.year_label = self.end_date.year
+        if not self.name and self.year_label:
+            self.name = f'{self.year_label} BAP Year'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name or f'{self.club} {self.year_label}'
+
+
+class BapTier(models.Model):
+    class Program(models.TextChoices):
+        BAP = 'BAP', _('BAP')
+        SMP = 'SMP', _('SMP')
+
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_tiers')
+    program = models.CharField(max_length=3, choices=Program.choices)
+    name = models.CharField(max_length=120)
+    threshold_points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    icon = models.CharField(max_length=20, blank=True)
+    sort_order = models.IntegerField(default=1)
+    created = models.DateTimeField(auto_now_add=True)
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['threshold_points']
+        unique_together = ['club', 'program', 'sort_order']
+
+    def __str__(self):
+        return f'{self.club.acronym or self.club.name} {self.program} {self.name}'
+
+
+class BapLifetimeTotal(models.Model):
+    aquarist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bap_lifetime_totals')
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_lifetime_totals')
+    species_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    cares_species_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    current_tier = models.ForeignKey(BapTier, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_lifetime_members')
+    first_award_year = models.ForeignKey('BapYear', on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_lifetime_first_awards')
+    last_award_year = models.ForeignKey('BapYear', on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_lifetime_last_awards')
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['aquarist', 'club'], name='uniq_bap_lifetime_aquarist_club'),
+        ]
+        ordering = ['-points', '-species_count']
+
+    def __str__(self):
+        return f'{self.club} {self.aquarist} BAP lifetime'
+
 class BapSubmission (models.Model):
 
     name                      = models.CharField (max_length=240)
@@ -588,7 +675,9 @@ class BapSubmission (models.Model):
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
     #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    bap_year                  = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_submissions')
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
+    species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_submissions')
     
     class BapSubmissionStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
@@ -596,6 +685,7 @@ class BapSubmission (models.Model):
         DECLINED = 'DECL', _('Declined')
         RESUBMIT = 'RESU', _('Resubmitted')
         CLOSED   = 'CLSD', _('Closed')
+        DUPLICATE = 'DUPL', _('Duplicate')
 
     status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
     points                    = models.IntegerField (validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
@@ -609,7 +699,16 @@ class BapSubmission (models.Model):
 
     def __str__(self):
         return self.name
-    
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['aquarist', 'club', 'species'],
+                condition=Q(status='APRV'),
+                name='uniq_approved_bap_species_per_aquarist'
+            ),
+        ]
+     
 
 class BapLeaderboard (models.Model):
 
@@ -618,15 +717,85 @@ class BapLeaderboard (models.Model):
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_leaderboards') 
     #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    bap_year                  = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_leaderboard_entries')
     species_count             = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     cares_species_count       = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    is_final                  = models.BooleanField(default=False)
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)  # compare dates of aquarist BAP submissions and only update when needed
 
 
     def __str__(self):
         return self.name    
+
+
+class SmpSubmission(models.Model):
+    name = models.CharField(max_length=240)
+    aquarist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_smp_submissions')
+    club = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_smp_submissions')
+    species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='smp_submissions')
+    speciesInstance = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True, related_name='smp_submissions')
+    bap_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_submissions')
+    maintenance_year_number = models.PositiveIntegerField(default=1)
+    base_points = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
+    smp_points = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    year = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    status = models.CharField(max_length=4, choices=BapSubmission.BapSubmissionStatus.choices, default=BapSubmission.BapSubmissionStatus.OPEN)
+    notes = models.TextField(blank=True)
+    breeder_comments = models.TextField(blank=True)
+    admin_comments = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+    created = models.DateTimeField(auto_now_add=True)
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['aquarist', 'club', 'species', 'bap_year'],
+                condition=Q(status='APRV'),
+                name='uniq_approved_smp_species_per_year'
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class SmpLeaderboard(models.Model):
+    name = models.CharField(max_length=240)
+    aquarist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_smp_leaderboards')
+    club = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_smp_leaderboards')
+    year = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    bap_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_leaderboard_entries')
+    species_count = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
+    points = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    is_final = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class SmpLifetimeTotal(models.Model):
+    aquarist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='smp_lifetime_totals')
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='smp_lifetime_totals')
+    species_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    current_tier = models.ForeignKey(BapTier, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_lifetime_members')
+    first_award_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_lifetime_first_awards')
+    last_award_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_lifetime_last_awards')
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['aquarist', 'club'], name='uniq_smp_lifetime_aquarist_club'),
+        ]
+        ordering = ['-points', '-species_count']
+
+    def __str__(self):
+        return f'{self.club} {self.aquarist} SMP lifetime'
     
 
 class BapGenus (models.Model):

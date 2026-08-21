@@ -6,6 +6,11 @@
     <h4><b>BAP Submission</b></h4>
     <h5><b>Aquarist:</b> {{bap_submission.aquarist.first_name}} {{bap_submission.aquarist.last_name}}</a></h5>
     <h5><b>Species:</b> &nbsp;&nbsp;{{bap_submission.speciesInstance.name}}</h4>
+    {% if missing_required_notes %}
+        <div class="alert alert-warning">
+            ⚠ Approval is blocked until required notes are provided: {{ missing_required_notes|join:", " }}
+        </div>
+    {% endif %}
     {% if not userIsBapAdmin %}
         <h5><b>Points:</b> &nbsp;&nbsp;{{bap_submission.points}}</h5>
     {% endif %}

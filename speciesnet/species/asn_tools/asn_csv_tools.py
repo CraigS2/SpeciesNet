@@ -809,8 +809,10 @@ def export_csv_aquaristClubMembers():
     return response
 
 
-def export_csv_bap_submissions():
+def export_csv_bap_submissions(club_id=None):
     bap_submissions = BapSubmission.objects.all()
+    if club_id is not None:
+        bap_submissions = bap_submissions.filter(club_id=club_id)
     response = HttpResponse (
         content_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="aquarist_club_member_export.csv"'},
@@ -818,8 +820,8 @@ def export_csv_bap_submissions():
 
     writer = csv.writer(response)
     writer.writerow([
-        # name   club    year    speciesInstance
-        'name', 'club', 'year', 'speciesInstance',
+        # name   club    year   bap_year   species   speciesInstance
+        'name', 'club', 'year', 'bap_year', 'species', 'speciesInstance',
         # status   points    request_points_review    notes
         'status', 'points', 'request_points_review', 'notes',
         # breeder_comments    admin_comments  active  created lastUpdated
@@ -827,8 +829,8 @@ def export_csv_bap_submissions():
         ])
     for bap_s in bap_submissions:
         writer.writerow([
-            # name  aquarist   year speciesInstance
-            bap_s.name, bap_s.aquarist, bap_s.year, bap_s.speciesInstance,
+            # name  aquarist   year  bap_year species speciesInstance
+            bap_s.name, bap_s.aquarist, bap_s.year, getattr(bap_s.bap_year, 'name', ''), getattr(bap_s.species, 'name', ''), bap_s.speciesInstance,
             #     status        points        request_points_review         notes
             bap_s.status, bap_s.points, bap_s.request_points_review, bap_s.notes,
             # breeder_comments    admin_comments  active  created lastUpdated

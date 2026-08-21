@@ -14,6 +14,11 @@
     <div>
         <h4>BAP Submission:</h4>
         <p><b>Status:</b> &nbsp;&nbsp;{{bap_submission.get_status_display}}</p>
+        {% if missing_required_notes %}
+            <div class="alert alert-warning">
+                ⚠ Waiting on required notes from aquarist: {{ missing_required_notes|join:", " }}
+            </div>
+        {% endif %}
         <p><b>Year:</b>&nbsp;&nbsp;{{bap_submission.year}}</p>
 
         {% if bap_submission.request_points_review %}
