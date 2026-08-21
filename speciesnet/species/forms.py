@@ -11,7 +11,7 @@ import re
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
-from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
+from .models import BapSubmission, BapGenus, BapSpecies, BapTier, SmpSubmission, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
@@ -1185,6 +1185,7 @@ class BapSubmissionFilterForm (forms.Form):
         ('DECL', 'Declined'),
         ('RESU', 'Resubmitted'),
         ('CLSD', 'Closed'),
+        ('DUPL', 'Duplicate'),
         ('',    'All Status Options'),
     ]
     status = forms.ChoiceField (choices = STATUS_CHOICES, required = False)
@@ -1194,7 +1195,7 @@ class BapSubmissionForm (ModelForm):
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'speciesInstance', 'status', 'active']
+        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'bap_year', 'speciesInstance', 'species', 'status', 'active']
         widgets = {'notes': forms.Textarea(attrs={'rows':8,'cols':50}),} 
 
     def __init__(self, *args, **kwargs):
@@ -1210,7 +1211,7 @@ class BapSubmissionFormEdit (ModelForm):
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'points', 'admin_comments', 'active' ]
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'points', 'admin_comments', 'active' ]
         widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
                     'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),}   
 
@@ -1218,10 +1219,40 @@ class BapSubmissionFormAdminEdit (ModelForm):
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'active' ]
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'active' ]
         widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
                     'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'admin_comments': forms.Textarea(attrs={'rows':2,'cols':50}),}                   
+
+class SmpSubmissionForm(ModelForm):
+    class Meta:
+        model = SmpSubmission
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'club', 'year', 'bap_year', 'speciesInstance', 'species', 'maintenance_year_number', 'base_points', 'smp_points', 'status', 'active']
+        widgets = {'notes': forms.Textarea(attrs={'rows': 8, 'cols': 50})}
+
+
+class SmpSubmissionFormEdit(ModelForm):
+    class Meta:
+        model = SmpSubmission
+        fields = '__all__'
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'maintenance_year_number', 'base_points', 'smp_points', 'admin_comments', 'active']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 8, 'cols': 50}),
+            'breeder_comments': forms.Textarea(attrs={'rows': 1, 'cols': 50}),
+        }
+
+
+class SmpSubmissionFormAdminEdit(ModelForm):
+    class Meta:
+        model = SmpSubmission
+        fields = '__all__'
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'maintenance_year_number', 'base_points', 'smp_points', 'active']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 8, 'cols': 50}),
+            'breeder_comments': forms.Textarea(attrs={'rows': 1, 'cols': 50}),
+            'admin_comments': forms.Textarea(attrs={'rows': 2, 'cols': 50}),
+        }
 
 class BapGenusForm (ModelForm):
     class Meta:
@@ -1234,6 +1265,13 @@ class BapSpeciesForm (ModelForm):
         model = BapSpecies
         fields = '__all__'
         exclude = ['name', 'species', 'club']        
+
+
+class BapTierForm(ModelForm):
+    class Meta:
+        model = BapTier
+        fields = '__all__'
+        exclude = ['club']
 
 class AquaristClubForm (ModelForm):
     class Meta:
@@ -1316,6 +1354,11 @@ class AquaristClubForm2 (ModelForm):
             'style': 'max-width: 500px;',
             'class': 'form-control'
         }) 
+        self.fields['is_smp_club'].help_text = 'Enables CARES SMP submissions and leaderboard features.'
+        self.fields['is_smp_club'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
         self.fields['bap_guidelines'].widget.attrs.update({
             'placeholder': "Short summary of your Club's BAP rules",
             'style': 'max-width: 750px;',
@@ -1345,7 +1388,11 @@ class AquaristClubForm2 (ModelForm):
         self.fields['bap_end_date'].widget.attrs.update({
             'style': 'max-width: 250px;',
             'class': 'form-control'
-        })        
+        })
+        self.fields['cares_smp_multiplier'].help_text = 'SMP points multiplier applied to base BAP points.'
+        self.fields['cares_smp_year_cap'].help_text = 'Maximum maintenance year multiplier applied in SMP.'
+        self.fields['require_spawning_notes'].help_text = 'Require spawning notes before BAP/SMP approval.'
+        self.fields['require_fry_rearing_notes'].help_text = 'Require fry-rearing notes before BAP/SMP approval.'
 
         self.helper.layout = Layout(
             # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
@@ -1373,6 +1420,10 @@ class AquaristClubForm2 (ModelForm):
                         css_class='form-group col-md-4 mb-3'
                     ),
                     Column(
+                        Field('is_smp_club', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
                         Field('require_member_approval', css_class='form-check'),
                         css_class='form-group col-md-4 mb-3'
                     ),                
@@ -1384,6 +1435,7 @@ class AquaristClubForm2 (ModelForm):
                             <small>💡 <strong>Checking options turns on or off Club features. </strong><br>
                                     Checking <i>BAP Club</i> enables the BAP program for your club. &nbsp;Unchecking hides all BAP features.<br>
                                     Checking <i>CARES Club</i> enables the CARES Liaison role. &nbsp;Unchecking disables CARES features.<br>
+                                    Checking <i>SMP Club</i> enables CARES SMP submissions/leaderboards for eligible club members.<br>
                         </div>
                     """),      
                 ),                  
@@ -1398,6 +1450,10 @@ class AquaristClubForm2 (ModelForm):
                 Field('cares_muliplier', css_class='mb-1'),
                 Field('bap_start_date', css_class='mb-1'),
                 Field('bap_end_date', css_class='mb-1'),
+                Field('cares_smp_multiplier', css_class='mb-1'),
+                Field('cares_smp_year_cap', css_class='mb-1'),
+                Field('require_spawning_notes', css_class='mb-1'),
+                Field('require_fry_rearing_notes', css_class='mb-1'),
                 css_class='mb-3 section-bordered'
             ),  
 

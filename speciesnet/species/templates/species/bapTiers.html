@@ -1,0 +1,12 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+  <h3>{{ club.name }} - {{ program }} Tiers</h3>
+  {% if userCanEdit %}<p><a class="btn btn-secondary" href="{% url 'createBapTier' club.id %}?program={{ program }}">Create Tier</a></p>{% endif %}
+  <table class="table table-striped"><thead><tr><th>Order</th><th>Name</th><th>Icon</th><th>Threshold</th><th></th></tr></thead><tbody>
+  {% for tier in bap_tiers %}
+    <tr><td>{{ tier.sort_order }}</td><td>{{ tier.name }}</td><td>{{ tier.icon }}</td><td>{{ tier.threshold_points }}</td><td>{% if userCanEdit %}<a href="{% url 'editBapTier' tier.id %}">Edit</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5">No tiers configured.</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock content %}

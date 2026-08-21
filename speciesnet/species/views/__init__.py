@@ -73,6 +73,12 @@ from .views_bap import (
     importClubBapGenus, exportClubBapGenus, exportBapSubmissions
 )
 
+from .views_smp import (
+    smpSubmission, createSmpSubmission, editSmpSubmission, deleteSmpSubmission,
+    SmpSubmissionsView, SmpLeaderboardView,
+    BapTierView, createBapTier, editBapTier, deleteBapTier,
+)
+
 # User Experience
 from .views_ux import (
     home, about_us, howItWorks, bap_overview, cares_overview, 
@@ -164,6 +170,9 @@ __all__ = [
     'BapSubmissionsView', 'BapLeaderboardView', 'BapGenusView', 'BapSpeciesView',
     'BapGenusSpeciesView', 'editBapGenus', 'deleteBapGenus', 'createBapSpecies',
     'editBapSpecies', 'deleteBapSpecies',
+    'smpSubmission', 'createSmpSubmission', 'editSmpSubmission', 'deleteSmpSubmission',
+    'SmpSubmissionsView', 'SmpLeaderboardView',
+    'BapTierView', 'createBapTier', 'editBapTier', 'deleteBapTier',
     
     # Import
     'exportSpecies', 'exportAquarists', 'exportSpeciesInstances',

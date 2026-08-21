@@ -5,9 +5,9 @@ from django.utils import timezone
 from django.utils.html import escape, strip_tags
 
 from species.asn_tools.asn_img_tools import processUploadedImageFile
-from species.models import CaresRegistration, UserEmail
+from species.models import CaresRegistration, UserEmail, SpeciesInstance
 
-from .forms import CaresClarificationResponseForm, ConfirmPendingActionForm
+from .forms import BapNotesRequiredForm, CaresClarificationResponseForm, ConfirmPendingActionForm
 from .registry import ActionHandler, register
 
 
@@ -245,3 +245,52 @@ class BapJoinInviteHandler(ActionHandler):
                 f"Join URL: {join_url}"
             ),
         }
+
+
+@register('bap_notes_required')
+class BapNotesRequiredHandler(ActionHandler):
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'speciesInstance_id', 'missing_fields', 'program', 'subject'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required bap_notes_required payload values: {sorted(missing)}')
+
+    def get_response_form_class(self, action=None):
+        return BapNotesRequiredForm
+
+    def build_email_context(self, action, token=None):
+        token = token or action.payload.get('token')
+        confirm_path = reverse('pending_action_confirm', args=[token]) if token else ''
+        site_url = action.payload.get('site_url', '').rstrip('/')
+        confirm_url = f'{site_url}{confirm_path}' if site_url else confirm_path
+        si = SpeciesInstance.objects.filter(pk=action.payload.get('speciesInstance_id')).select_related('species').first()
+        species_name = si.species.name if si and si.species else 'species'
+        missing_fields = action.payload.get('missing_fields', [])
+        return {
+            'action': action,
+            'subject': action.payload.get('subject'),
+            'to_email': action.payload.get('to_email'),
+            'confirm_url': confirm_url,
+            'program': action.payload.get('program'),
+            'species_name': species_name,
+            'missing_fields': missing_fields,
+            'archive_name': f'{action.payload.get("program")} notes request to {action.payload.get("to_email")}',
+            'archive_text': f'{action.payload.get("program")} notes requested for {species_name}. Missing: {", ".join(missing_fields)}. Link: {confirm_url}',
+            'body': f'Please provide the required notes for {species_name} to continue your {action.payload.get("program")} submission.',
+        }
+
+    def on_completed(self, action, response_data, request=None):
+        species_instance = SpeciesInstance.objects.filter(pk=action.payload.get('speciesInstance_id')).first()
+        if species_instance is None:
+            return None
+        update_fields = []
+        if 'spawning_notes' in response_data:
+            species_instance.spawning_notes = response_data.get('spawning_notes', '')
+            update_fields.append('spawning_notes')
+        if 'fry_rearing_notes' in response_data:
+            species_instance.fry_rearing_notes = response_data.get('fry_rearing_notes', '')
+            update_fields.append('fry_rearing_notes')
+        if update_fields:
+            species_instance.save(update_fields=update_fields)
+        return None

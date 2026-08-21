@@ -68,7 +68,14 @@ class PendingActionConfirmView(FormView):
         # Ensure uploaded files (e.g. an updated verification photo) reach the form.
         if self.request.method in ('POST', 'PUT'):
             kwargs['files'] = self.request.FILES
+        if self.action.action_type.slug == 'bap_notes_required':
+            kwargs['missing_fields'] = self.action.payload.get('missing_fields', [])
         return kwargs
+
+    def get_template_names(self):
+        if self.action.action_type.slug == 'bap_notes_required':
+            return ['species/notesRequiredForm.html']
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
