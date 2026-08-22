@@ -331,7 +331,7 @@ class ProcessBapImportViewTests(TestCase):
         csv_bytes = _make_csv_bytes(rows)
         batch = BapImportBatch.objects.create(
             club=self.club,
-            auction_name='Test Auction',
+            club_or_auction_name='Test Auction',
             status=BapImportBatch.Status.REVIEW,
             created_by=self.admin,
         )

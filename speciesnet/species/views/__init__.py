@@ -114,7 +114,7 @@ from .views_species_import import (
 
 # BAP Import Workflow
 from .views_bap_import import (
-    uploadBapImport, reviewBapImport, processBapImport,
+    uploadBapImport, reviewBapImport, processBapImport, pullBapImportFromAuction,
 )
 
 # Species Feedback
@@ -196,7 +196,7 @@ __all__ = [
     'importSpeciesReferenceLinks',
 
     # BAP Import Workflow
-    'uploadBapImport', 'reviewBapImport', 'processBapImport',
+    'uploadBapImport', 'reviewBapImport', 'processBapImport', 'pullBapImportFromAuction',
 
     # Species Feedback
     'submitSpeciesFeedback', 'speciesFeedbackTools', 'approveSpeciesFeedback', 'deleteSpeciesFeedback',

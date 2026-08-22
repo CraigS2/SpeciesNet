@@ -463,3 +463,11 @@ TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
 
+
+
+### Per-club auction.fish API key encryption ###
+# Root Fernet key protecting all per-club auction.fish API keys stored in the
+# database.  MUST be a stable, backed-up secret — losing it permanently
+# undecrypts all stored keys.  Generate with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')

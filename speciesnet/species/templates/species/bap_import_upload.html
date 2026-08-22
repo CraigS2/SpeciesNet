@@ -12,7 +12,7 @@
           {% if warn_discard %}
             <div class="alert alert-warning">
               <strong>Warning:</strong> Club <strong>{{ club.name }}</strong> already has a
-              pending import in review for auction <em>{{ existing_review.auction_name }}</em>.
+              pending import in review for auction <em>{{ existing_review.club_or_auction_name }}</em>.
               Uploading a new file will discard that working import permanently.
               Click <strong>Confirm and Upload</strong> to continue, or
               <a href="{% url 'reviewBapImport' existing_review.pk %}">go back to review</a>.
@@ -33,7 +33,7 @@
               <div class="alert alert-info">
                 There is already a
                 <a href="{% url 'reviewBapImport' existing_review.pk %}">pending import</a>
-                for <strong>{{ existing_review.auction_name }}</strong> in review.
+                for <strong>{{ existing_review.club_or_auction_name }}</strong> in review.
                 Uploading a new file will replace it.
               </div>
             {% endif %}

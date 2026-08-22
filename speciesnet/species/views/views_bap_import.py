@@ -34,6 +34,7 @@ from species.models import (
 
 from species.services.bap_service import create_bap_submission, resolve_bap_points
 from species.services.proxy_user_service import create_proxy_user, OUTCOME_CREATED
+from species.asn_tools.auction_fish_api import fetch_bap_lots, AuctionFishAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -342,8 +343,8 @@ def uploadBapImport(request, pk):
 
             batch = BapImportBatch(
                 club=club,
-                auction_name=auction_name or uploaded_file_name,
-                auction_date=auction_date,
+                club_or_auction_name=auction_name or uploaded_file_name,
+                auction_pull_date=auction_date,
                 status=BapImportBatch.Status.REVIEW,
                 created_by=request.user,
             )
@@ -816,3 +817,165 @@ def _finalise_batch(batch: BapImportBatch, rows: list, fieldnames: list, process
 
     logger.info('BapImportBatch #%s finalised as %s', batch.pk, archive_name)
     return import_archive
+
+# ---------------------------------------------------------------------------
+# View 4 – Pull from Auction.fish API
+# ---------------------------------------------------------------------------
+
+@login_required(login_url='login')
+def pullBapImportFromAuction(request, pk):
+    """
+    Pull BAP-eligible lots from the auction.fish API for *club* and create
+    a BapImportBatch in REVIEW status, exactly as if the data had been
+    uploaded via a CSV.
+
+    GET  — render pull configuration form (date range).
+    POST — validate dates, call fetch_bap_lots(), build working CSV, create
+           BapImportBatch, redirect to reviewBapImport.
+    """
+    from datetime import date, timedelta
+
+    club = get_object_or_404(AquaristClub, pk=pk)
+
+    if not _user_is_bap_admin(request.user, club):
+        raise PermissionDenied
+
+    # Default date range: last 30 days
+    today = date.today()
+    default_end = today.isoformat()
+    default_start = (today - timedelta(days=30)).isoformat()
+
+    if not club.has_auction_fish_api_key:
+        context = {
+            'club': club,
+            'no_key': True,
+            'default_start': default_start,
+            'default_end': default_end,
+        }
+        return render(request, 'species/bap_import_pull.html', context)
+
+    if request.method == 'GET':
+        context = {
+            'club': club,
+            'default_start': default_start,
+            'default_end': default_end,
+        }
+        return render(request, 'species/bap_import_pull.html', context)
+
+    # POST — validate and execute
+    start_str = request.POST.get('start', '').strip()
+    end_str = request.POST.get('end', '').strip()
+    form_errors = []
+
+    start_date = end_date = None
+    if not start_str:
+        form_errors.append('Start date is required.')
+    else:
+        try:
+            start_date = date.fromisoformat(start_str)
+        except ValueError:
+            form_errors.append('Start date must be a valid YYYY-MM-DD date.')
+
+    if not end_str:
+        form_errors.append('End date is required.')
+    else:
+        try:
+            end_date = date.fromisoformat(end_str)
+        except ValueError:
+            form_errors.append('End date must be a valid YYYY-MM-DD date.')
+
+    if start_date and end_date and start_date > end_date:
+        form_errors.append('Start date must be on or before end date.')
+
+    if form_errors:
+        context = {
+            'club': club,
+            'form_errors': form_errors,
+            'start': start_str,
+            'end': end_str,
+            'default_start': default_start,
+            'default_end': default_end,
+        }
+        return render(request, 'species/bap_import_pull.html', context)
+
+    # Call auction.fish API
+    try:
+        lots = fetch_bap_lots(club, start_date, end_date)
+    except AuctionFishAPIError as exc:
+        context = {
+            'club': club,
+            'api_error': str(exc),
+            'start': start_str,
+            'end': end_str,
+            'default_start': default_start,
+            'default_end': default_end,
+        }
+        return render(request, 'species/bap_import_pull.html', context)
+
+    # Filter to bap_eligible lots only
+    eligible_lots = [lot for lot in lots if lot.get('bap_eligible')]
+
+    if not eligible_lots:
+        context = {
+            'club': club,
+            'no_lots': True,
+            'start': start_str,
+            'end': end_str,
+            'default_start': default_start,
+            'default_end': default_end,
+        }
+        return render(request, 'species/bap_import_pull.html', context)
+
+    # Build working rows in the same format the CSV pipeline uses
+    batch_label = f'auction.fish pull {start_str} to {end_str}'
+    filtered_rows = []
+    for lot in eligible_lots:
+        seller_name = lot.get('seller_name', '')
+        seller_email = lot.get('seller_email', '')
+        row = {
+            'Auction name': batch_label,
+            'Auction date': end_str,
+            'Lot number': str(lot.get('lot_id', '')),
+            'Lot': lot.get('lot_name', ''),
+            'Species name': lot.get('lot_name', ''),
+            'Seller': seller_name,
+            'Seller email': seller_email,
+            'Breeder points': 'yes',
+            'Account status': _classify_account_status(seller_email),
+        }
+        filtered_rows.append(row)
+
+    filtered_rows = _fuzzy_fill_species(filtered_rows)
+
+    existing_review = BapImportBatch.objects.filter(
+        club=club, status=BapImportBatch.Status.REVIEW
+    ).first()
+
+    with transaction.atomic():
+        if existing_review:
+            if existing_review.working_csv_file:
+                try:
+                    existing_review.working_csv_file.delete(save=False)
+                except Exception:
+                    pass
+            existing_review.delete()
+
+        csv_bytes = _write_working_csv(filtered_rows, WORKING_COLS)
+
+        batch = BapImportBatch(
+            club=club,
+            club_or_auction_name=batch_label,
+            auction_pull_date=end_date,
+            status=BapImportBatch.Status.REVIEW,
+            created_by=request.user,
+        )
+        batch.save()
+        filename = f'working_{batch.pk}_{_sanitize_for_filename(batch_label)}.csv'
+        batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
+
+    messages.success(
+        request,
+        f'Pulled {len(filtered_rows)} BAP-eligible lot(s) from auction.fish '
+        f'({start_str} to {end_str}). Review and correct before processing.'
+    )
+    return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
