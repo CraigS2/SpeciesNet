@@ -79,7 +79,7 @@ def resolve_smp_points(species_instance, club, bap_year):
     }
 
 
-def create_smp_submission(species_instance, club, committed_by=None, notes_override=None):
+def create_smp_submission(species_instance, club, committed_by=None):
     AquaristClubMember, _, _, _, _, _, SmpSubmission = _get_models()
 
     if not species_instance.species.render_cares:
@@ -112,7 +112,7 @@ def create_smp_submission(species_instance, club, committed_by=None, notes_overr
         maintenance_year_number=points_data['maintenance_year_number'],
         base_points=points_data['base_points'],
         smp_points=points_data['smp_points'],
-        notes=notes_override or club.bap_notes_template,
+        notes='',
     )
 
     note_check = notes_requirements_met(species_instance, club)

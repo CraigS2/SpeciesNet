@@ -1190,39 +1190,177 @@ class BapSubmissionFilterForm (forms.Form):
     ]
     status = forms.ChoiceField (choices = STATUS_CHOICES, required = False)
 
-
 class BapSubmissionForm (ModelForm):
+    spawning_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Spawning Notes',
+    )
+    fry_rearing_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Fry Rearing Notes',
+    )
+
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'bap_year', 'speciesInstance', 'species', 'status', 'active']
-        widgets = {'notes': forms.Textarea(attrs={'rows':8,'cols':50}),} 
+        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'bap_year', 'speciesInstance', 'species', 'status', 'active', 'notes']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, species_instance=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if species_instance is not None:
+            self.fields['spawning_notes'].initial = species_instance.spawning_notes
+            self.fields['fry_rearing_notes'].initial = species_instance.fry_rearing_notes
         self.helper = FormHelper()
+        self.helper.form_tag = False
         self.helper.form_method = 'post'
         self.helper.layout = Layout(
-            Field('notes', css_class='mb-3'),
+            Field('spawning_notes', css_class='mb-3'),
+            Field('fry_rearing_notes', css_class='mb-3'),
             Submit('submit', 'Submit', css_class='btn btn-primary')
         )
 
+
 class BapSubmissionFormEdit (ModelForm):
+    spawning_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Spawning Notes',
+    )
+    fry_rearing_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Fry Rearing Notes',
+    )
+
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'points', 'admin_comments', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
-                    'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),}   
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'status', 'year', 'points', 'admin_comments', 'active', 'notes']
+        widgets = {'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50, 'class': 'form-control', 'style': 'max-width: 700px;'}),}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.speciesInstance_id:
+            si = self.instance.speciesInstance
+            self.fields['spawning_notes'].initial = si.spawning_notes
+            self.fields['fry_rearing_notes'].initial = si.fry_rearing_notes
+
+        self.fields['request_points_review'].label = 'Request Points Review'
+
+        self.fields['spawning_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['fry_rearing_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['breeder_comments'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = False
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+        self.helper.layout = Layout(
+            Field('spawning_notes', css_class='mb-3'),
+            Field('fry_rearing_notes', css_class='mb-3'),
+            Field('breeder_comments', css_class='mb-3'),
+            Field('request_points_review', wrapper_class='form-check mb-3'),
+        )
 
 class BapSubmissionFormAdminEdit (ModelForm):
+    spawning_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Spawning Notes',
+    )
+    fry_rearing_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Fry Rearing Notes',
+    )
+
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
-                    'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'admin_comments': forms.Textarea(attrs={'rows':2,'cols':50}),}                   
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'active', 'notes']
+        widgets = {'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50, 'class': 'form-control', 'style': 'max-width: 700px;'}),
+                    'admin_comments': forms.Textarea(attrs={'rows':2,'cols':50, 'class': 'form-control', 'style': 'max-width: 700px;'}),}        
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.speciesInstance_id:
+            si = self.instance.speciesInstance
+            self.fields['spawning_notes'].initial = si.spawning_notes
+            self.fields['fry_rearing_notes'].initial = si.fry_rearing_notes
+
+        self.fields['status'].widget.attrs.update({
+            'style': 'max-width: 200px;',
+            'class': 'form-select',
+        })
+        self.fields['year'].widget.attrs.update({
+            'style': 'max-width: 150px;',
+            'class': 'form-control',
+        })
+        self.fields['points'].widget.attrs.update({
+            'style': 'max-width: 150px;',
+            'class': 'form-control',
+        })
+        self.fields['request_points_review'].label = 'Request Points Review'
+        self.fields['spawning_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['fry_rearing_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['breeder_comments'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control',
+        })
+        self.fields['admin_comments'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control',
+        })
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = False
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+        self.helper.layout = Layout(
+            Field('status', css_class='mb-3'),
+            Field('year', css_class='mb-3'),
+            Div(
+                Div(HTML('<label class="col-form-label fw-bold">Points</label>'), css_class='col-md-2'),
+                Div(
+                    HTML('''
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div style="max-width: 150px;">{{ form.points }}</div>
+                            <div class="form-check ms-4 mb-0 d-flex align-items-center">
+                                {{ form.request_points_review }}
+                                <label class="form-check-label ms-1 mb-0" for="{{ form.request_points_review.id_for_label }}">Request Points Review</label>
+                            </div>
+                        </div>
+                    '''),
+                    css_class='col-md-10'
+                ),
+                css_class='row mb-3'
+            ),
+            Field('breeder_comments', css_class='mb-3'),
+            Field('spawning_notes', css_class='mb-3'),
+            Field('fry_rearing_notes', css_class='mb-3'),
+            Field('admin_comments', css_class='mb-3'),
+        )
 
 class SmpSubmissionForm(ModelForm):
     class Meta:

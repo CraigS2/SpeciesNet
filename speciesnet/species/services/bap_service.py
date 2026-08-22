@@ -120,7 +120,7 @@ def _current_open_bap_year(club):
     return BapYear.objects.get_open(club)
 
 
-def create_bap_submission(species_instance, club, committed_by=None, notes_override=None):
+def create_bap_submission(species_instance, club, committed_by=None):
     (
         AquaristClubMember,
         BapGenus,
@@ -174,7 +174,7 @@ def create_bap_submission(species_instance, club, committed_by=None, notes_overr
         bap_year=current_year,
         year=year_value,
         points=pts['points'],
-        notes=notes_override if notes_override is not None else club.bap_notes_template,
+        notes=club.bap_notes_template,
         request_points_review=bool(pts['new_genus_needed']),
         admin_comments='Genus points not configured. Default club points applied.  Please review.' if pts['new_genus_needed'] else '',
     )

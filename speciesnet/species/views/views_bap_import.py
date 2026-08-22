@@ -26,10 +26,12 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
 
+
 from species.models import (
-    AquaristClub, AquaristClubMember, BapImportBatch,
+    AquaristClub, AquaristClubMember, BapImportBatch, BapSubmission, BapYear,
     ImportArchive, Species, SpeciesInstance, User,
 )
+
 from species.services.bap_service import create_bap_submission, resolve_bap_points
 from species.services.proxy_user_service import create_proxy_user, OUTCOME_CREATED
 
@@ -614,28 +616,57 @@ def processBapImport(request, pk):
                     name=f'{user_obj.username} - {species_obj.name}',
                 )
 
-            # 4. Create BapSubmission
-            try:
-                submission = create_bap_submission(species_instance, club, committed_by=request.user)
-                row['Import status'] = f'SUCCESS: Created (submission #{submission.pk})'
-            except ValueError as exc:
-                err = str(exc)
-                if 'Duplicate species submissions are not permitted' in err:
-                    cur_year = BapYear.objects.get_open(club)
-                    dup = BapSubmission.objects.create(
-                        name=f'{species_instance.user.username} - {club.name} - {species_instance.name}',
-                        aquarist=species_instance.user,
-                        club=club,
-                        speciesInstance=species_instance,
-                        species=species_instance.species,
-                        bap_year=cur_year,
-                        year=cur_year.year_label if cur_year else timezone.now().year,
-                        status=BapSubmission.BapSubmissionStatus.DUPLICATE,
-                        admin_comments=f'Import duplicate blocked: {species_instance.species.name} already approved for this aquarist in this club.',
-                    )
-                    row['Import status'] = f'DUPLICATE: {dup.admin_comments}'
-                else:
-                    row['Import status'] = f'Error: {err}'
+            # 4. Create BapSubmission — block duplicates for ANY OPEN or APPROVED submission to prevent duplicates on re-import
+            auction_name = row.get('Auction name', '').strip()
+            lot_text = row.get('Lot', '').strip()
+            import_trace_note = f'Imported from auction "{auction_name}" — Lot: {lot_text}' if (auction_name or lot_text) else ''
+
+            existing_active_submission = BapSubmission.objects.filter(
+                aquarist=species_instance.user,
+                club=club,
+                species=species_instance.species,
+                status__in=[
+                    BapSubmission.BapSubmissionStatus.OPEN,
+                    BapSubmission.BapSubmissionStatus.APPROVED,
+                ],
+            ).first()
+
+            if existing_active_submission:
+                status_msg = (
+                    f'Import duplicate blocked: {species_instance.species.name} already has an '
+                    f'active submission (#{existing_active_submission.pk}, status='
+                    f'{existing_active_submission.get_status_display()}) for this aquarist in this club.'
+                )
+                row['Import status'] = f'DUPLICATE: {status_msg}'
+            else:
+                try:
+                    submission = create_bap_submission(species_instance, club, committed_by=request.user)
+                    if import_trace_note:
+                        submission.admin_comments = (
+                            f'{submission.admin_comments}\n{import_trace_note}'.strip()
+                            if submission.admin_comments else import_trace_note
+                        )
+                        submission.save(update_fields=['admin_comments'])
+                    row['Import status'] = f'SUCCESS: Created (submission #{submission.pk})'
+                except ValueError as exc:
+                    err = str(exc)
+                    if 'Duplicate species submissions are not permitted' in err:
+                        cur_year = BapYear.objects.get_open(club)
+                        status_msg = f'Import duplicate blocked: {species_instance.species.name} already approved for this aquarist in this club.'
+                        dup = BapSubmission.objects.create(
+                            name=f'{species_instance.user.username} - {club.name} - {species_instance.name}',
+                            aquarist=species_instance.user,
+                            club=club,
+                            speciesInstance=species_instance,
+                            species=species_instance.species,
+                            bap_year=cur_year,
+                            year=cur_year.year_label if cur_year else timezone.now().year,
+                            status=BapSubmission.BapSubmissionStatus.DUPLICATE,
+                            admin_comments=import_trace_note,
+                        )
+                        row['Import status'] = f'DUPLICATE: {status_msg}'
+                    else:
+                        row['Import status'] = f'Error: {err}'
 
         except Exception as exc:
             logger.exception('BAP import row error: row=%s', row)

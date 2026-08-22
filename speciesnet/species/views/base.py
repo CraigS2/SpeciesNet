@@ -32,12 +32,13 @@ from species.models import (
     User, AquaristClub, AquaristClubMember, Species, SpeciesComment,
     SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLabel,
     SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry,
-    ImportArchive, BapYear, BapTier, BapLifetimeTotal,
-    BapSubmission, BapLeaderboard, BapGenus, BapSpecies,
+    ImportArchive, BapSubmission, BapLeaderboard, BapGenus, BapSpecies,
+    BapYear, BapTier, BapLifetimeTotal, BapImportBatch,
     SmpSubmission, SmpLeaderboard, SmpLifetimeTotal,
     CaresRegistration, CaresApprover, SpeciesImportStaging,
     PageViewCount
 )
+
 from django.db.models import F
 
 # Local forms

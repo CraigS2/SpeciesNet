@@ -64,23 +64,24 @@ def createBapSubmission(request, pk):
     form = None
     if pts['points'] > 0:
         name = f"{speciesInstance.user.username} - {club.name} - {speciesInstance.name}"
-        notes = club.bap_notes_template
         form = BapSubmissionForm(initial={
             'name': name,
             'aquarist': speciesInstance.user,
             'club': club,
-            'notes': notes,
             'speciesInstance': speciesInstance
-        })
+        }, species_instance=speciesInstance)
         
         if request.method == 'POST': 
-            form = BapSubmissionForm(request.POST)
+            form = BapSubmissionForm(request.POST, species_instance=speciesInstance)
             if form.is_valid():
-                user_notes = form.cleaned_data.get('notes', '')
+                # Save spawning/fry-rearing notes onto the linked SpeciesInstance
+                speciesInstance.spawning_notes = form.cleaned_data.get('spawning_notes', '')
+                speciesInstance.fry_rearing_notes = form.cleaned_data.get('fry_rearing_notes', '')
+                speciesInstance.save()
+
                 bap_submission = create_bap_submission(
                     speciesInstance, club,
                     committed_by=request.user,
-                    notes_override=user_notes,
                 )
                 note_check = notes_requirements_met(speciesInstance, club)
                 if note_check['nudge_fields']:
@@ -132,6 +133,7 @@ def editBapSubmission(request, pk):
             form = BapSubmissionFormEdit(request.POST, instance=bap_submission)
         
         print('editBapSubmission post value points:  ' + str(request.POST.get('points')))
+
         if form.is_valid():
             pending = form.save(commit=False)
             pending.name = name
@@ -140,6 +142,13 @@ def editBapSubmission(request, pk):
             pending.speciesInstance = speciesInstance
             pending.species = speciesInstance.species if speciesInstance else pending.species
             new_status = form.cleaned_data.get('status')
+
+            # Save spawning/fry-rearing notes onto the linked SpeciesInstance
+            if speciesInstance:
+                speciesInstance.spawning_notes = form.cleaned_data.get('spawning_notes', '')
+                speciesInstance.fry_rearing_notes = form.cleaned_data.get('fry_rearing_notes', '')
+                speciesInstance.save()
+
             try:
                 if userIsBapAdmin and new_status == BapSubmission.BapSubmissionStatus.APPROVED:
                     pending.save()
@@ -203,6 +212,14 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
             self._bap_club = AquaristClub.objects.get(id=bap_club_id)
         return self._bap_club
 
+    def get(self, request, *args, **kwargs):
+        # If no status filter was specified (fresh link into the page) default to status OPEN
+        if 'status' not in request.GET:
+            querystring = request.GET.copy()
+            querystring['status'] = BapSubmission.BapSubmissionStatus.OPEN
+            return redirect(f'{request.path}?{querystring.urlencode()}')
+        return super().get(request, *args, **kwargs)
+    
     def get_queryset(self):
         bap_club = self.get_bap_club()
         if not (user_is_club_member(self.request.user, bap_club) or self.request.user.is_staff):
