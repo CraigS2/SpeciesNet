@@ -98,6 +98,7 @@ services:
         CELERY_BROKER_URL: "redis://redis:6379/0"
         CELERY_RESULT_BACKEND: "redis://redis:6379/0"
         EMAIL_BCC_ADDRESSES: admin1@example.com,admin2@example.com
+        FIELD_ENCRYPTION_KEY: "RKhpkHjRg0Hb4CIigrG-wm1kXA1DfqCFTGwlL4xLExM="
       entrypoint: []
       command: sh /entrypoint.test.sh
       networks:

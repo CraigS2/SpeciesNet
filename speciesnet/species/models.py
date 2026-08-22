@@ -6,12 +6,68 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from decimal import Decimal
 import re
+
+# ---------------------------------------------------------------------------
+# Fernet-based encrypted text field (uses `cryptography` which is already a
+# dependency via requests/urllib3 and other packages).  We avoid adding a new
+# pip dependency (django-cryptography) by implementing the minimal field
+# ourselves — symmetric encryption with a single root key stored in
+# settings.FIELD_ENCRYPTION_KEY.
+# ---------------------------------------------------------------------------
+import base64 as _b64
+from cryptography.fernet import Fernet as _Fernet, InvalidToken as _InvalidToken
+from django.conf import settings as _settings
+
+
+def _get_fernet():
+    key = getattr(_settings, 'FIELD_ENCRYPTION_KEY', None)
+    if not key:
+        raise ImproperlyConfigured(
+            'FIELD_ENCRYPTION_KEY is not set. '
+            'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+        )
+    if isinstance(key, str):
+        key = key.encode()
+    return _Fernet(key)
+
+
+class EncryptedTextField(models.TextField):
+    """
+    A TextField that transparently encrypts values at rest using Fernet
+    symmetric encryption.  The raw key is sourced from
+    ``settings.FIELD_ENCRYPTION_KEY``.
+
+    Storing: plaintext → encrypt → base64-encoded ciphertext stored in DB.
+    Reading: ciphertext from DB → decrypt → plaintext returned to Python.
+
+    An empty string / None is stored as-is (no encryption of empty values).
+    """
+
+    def from_db_value(self, value, expression, connection):
+        if not value:
+            return value
+        try:
+            return _get_fernet().decrypt(value.encode()).decode()
+        except (_InvalidToken, ValueError):
+            # Return the raw ciphertext rather than crashing on mis-keyed data
+            return value
+
+    def get_prep_value(self, value):
+        if not value:
+            return value
+        raw = super().get_prep_value(value)
+        return _get_fernet().encrypt(raw.encode()).decode()
+
+    def to_python(self, value):
+        # When Django calls to_python during form validation the value may
+        # already be plaintext (from a fresh form POST), so just return it.
+        return value
 
 ### Custom User
 
@@ -500,6 +556,13 @@ class AquaristClub (models.Model):
     require_fry_rearing_notes = models.BooleanField(default=False)
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
     next_member_number        = models.PositiveIntegerField(default=1)  # persistent counter for proxy username generation
+    # auction.fish integration
+    auction_fish_slug         = models.CharField(max_length=200, blank=True,
+                                    help_text="Club slug on auction.fish, e.g. 'pioneer-valley-aquarium-society'")
+    auction_fish_api_key      = EncryptedTextField(blank=True,
+                                    help_text="API key for auction.fish (encrypted at rest; never redisplayed after save)")
+    auction_fish_api_key_hint = models.CharField(max_length=30, blank=True,
+                                    help_text="Redacted fingerprint of the stored API key, e.g. 'ck_539d••••1010'")
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -508,6 +571,21 @@ class AquaristClub (models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def has_auction_fish_api_key(self) -> bool:
+        """True when an auction.fish API key is currently stored for this club."""
+        return bool(self.auction_fish_api_key)
+
+    @staticmethod
+    def _compute_api_key_hint(raw_key: str) -> str:
+        """Return a redacted fingerprint like 'ck_539d••••1010' (first 6 + last 4 chars)."""
+        if not raw_key:
+            return ''
+        key = raw_key.strip()
+        if len(key) <= 10:
+            return key[:2] + '••••' + key[-2:] if len(key) > 4 else '••••'
+        return key[:6] + '••••' + key[-4:]
     
 
 class AquaristClubMember (models.Model):
@@ -1044,8 +1122,8 @@ class BapImportBatch(models.Model):
         PROCESSED = 'PROCESSED', _('Processed')
 
     club             = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_import_batches')
-    auction_name     = models.CharField(max_length=240)
-    auction_date     = models.DateField(null=True, blank=True)
+    club_or_auction_name = models.CharField(max_length=240)
+    auction_pull_date    = models.DateField(null=True, blank=True)
     working_csv_file = models.FileField(upload_to='bap_imports/working/', null=True, blank=True)
     status           = models.CharField(max_length=12, choices=Status.choices, default=Status.REVIEW)
     created_by       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bap_import_batches_created')
@@ -1059,7 +1137,7 @@ class BapImportBatch(models.Model):
         verbose_name_plural = 'BAP Import Batches'
 
     def __str__(self):
-        return f'{self.club.name} – {self.auction_name} ({self.status})'
+        return f'{self.club.name} – {self.club_or_auction_name} ({self.status})'
 
     def clean(self):
         # Enforce at most one REVIEW batch per club
@@ -1079,5 +1157,5 @@ class BapImportBatch(models.Model):
         return (
             f'{_sanitize_filename(self.club.name)}'
             f'_{_sanitize_filename(admin_name)}'
-            f'_{_sanitize_filename(self.auction_name)}.csv'
+            f'_{_sanitize_filename(self.club_or_auction_name)}.csv'
         )

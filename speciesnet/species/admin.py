@@ -92,7 +92,14 @@ class SpeciesFeedbackAdmin(admin.ModelAdmin):
 
 admin.site.register (User, UserAdmin)  
 admin.site.register (UserEmail)
-admin.site.register (AquaristClub)
+
+
+@admin.register(AquaristClub)
+class AquaristClubAdmin(admin.ModelAdmin):
+    # Never expose the raw encrypted key in the admin — even to superusers.
+    exclude = ('auction_fish_api_key',)
+
+
 admin.site.register (AquaristClubMember)
 admin.site.register (Species)
 admin.site.register (SpeciesComment)

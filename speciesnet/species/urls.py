@@ -47,6 +47,7 @@ urlpatterns = [
     path('bap/import/upload/<int:pk>/', views.uploadBapImport, name="uploadBapImport"),
     path('bap/import/review/<int:pk>/', views.reviewBapImport, name="reviewBapImport"),
     path('bap/import/process/<int:pk>/', views.processBapImport, name="processBapImport"),
+    path('bap/import/pull/<int:pk>/', views.pullBapImportFromAuction, name="pullBapImportFromAuction"),
 
     ### Aquarist Club BAP Programs ###
 

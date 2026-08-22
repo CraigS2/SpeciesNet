@@ -1425,9 +1425,30 @@ class AquaristClubForm (ModelForm):
                    'bap_notes_template': forms.Textarea(attrs={'rows':8,'cols':50}),}
         
 class AquaristClubForm2 (ModelForm):
+    # Write-only API key input — always rendered blank; never pre-populated.
+    # Kept outside Meta.fields so it cannot accidentally be written via the
+    # normal ModelForm save() path.
+    auction_fish_api_key_input = forms.CharField(
+        required=False,
+        label='Auction.fish API Key',
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={'class': 'form-control', 'style': 'max-width: 500px;',
+                   'autocomplete': 'new-password',
+                   'placeholder': 'Paste new API key to update (leave blank to keep existing)'}
+        ),
+    )
+    clear_auction_fish_api_key = forms.BooleanField(
+        required=False,
+        label='Clear API Key',
+        help_text='Check to remove the stored API key and hint.',
+    )
+
     class Meta:
         model = AquaristClub
-        exclude = ['next_member_number']
+        # Explicitly list fields — never use __all__ to avoid accidentally
+        # including auction_fish_api_key (the encrypted raw field).
+        exclude = ['next_member_number', 'auction_fish_api_key']
         widgets = {
             'about':              forms.Textarea(attrs={'rows': 3}),  
             'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),  
@@ -1531,6 +1552,11 @@ class AquaristClubForm2 (ModelForm):
         self.fields['cares_smp_year_cap'].help_text = 'Maximum maintenance year multiplier applied in SMP.'
         self.fields['require_spawning_notes'].help_text = 'Require spawning notes before BAP/SMP approval.'
         self.fields['require_fry_rearing_notes'].help_text = 'Require fry-rearing notes before BAP/SMP approval.'
+        self.fields['auction_fish_slug'].widget.attrs.update({
+            'placeholder': 'e.g. pioneer-valley-aquarium-society',
+            'style': 'max-width: 500px;',
+            'class': 'form-control',
+        })
 
         self.helper.layout = Layout(
             # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
@@ -1574,7 +1600,7 @@ class AquaristClubForm2 (ModelForm):
                                     Checking <i>BAP Club</i> enables the BAP program for your club. &nbsp;Unchecking hides all BAP features.<br>
                                     Checking <i>CARES Club</i> enables the CARES Liaison role. &nbsp;Unchecking disables CARES features.<br>
                                     Checking <i>SMP Club</i> enables CARES SMP submissions/leaderboards for eligible club members.<br>
-                        </div>
+                            </div>
                     """),      
                 ),                  
                 css_class='mb-3 section-bordered'
@@ -1595,6 +1621,19 @@ class AquaristClubForm2 (ModelForm):
                 css_class='mb-3 section-bordered'
             ),  
 
+            Fieldset(
+                'Auction.fish Integration',
+                Field('auction_fish_slug', css_class='mb-1'),
+                Field('auction_fish_api_key_input', css_class='mb-1'),
+                HTML('{% if aquaristClub.has_auction_fish_api_key %}'
+                     '<p class="text-success mb-1"><small>🔑 Key configured: <code>{{ aquaristClub.auction_fish_api_key_hint }}</code></small></p>'
+                     '{% else %}'
+                     '<p class="text-muted mb-1"><small>No key configured.</small></p>'
+                     '{% endif %}'),
+                Field('clear_auction_fish_api_key', css_class='mb-1'),
+                css_class='mb-3 section-bordered',
+            ),
+
             # Submit Buttons
             FormActions(
                 Submit('submit', 'Save Club Configuration', css_class='btn btn-success btn-lg'),
@@ -1602,6 +1641,33 @@ class AquaristClubForm2 (ModelForm):
                 css_class='mt-2'
             )
         )
+
+    def save(self, commit=True):
+        """
+        Handle write-only auction.fish API key logic:
+        - If 'Clear API Key' is checked, clear key and hint regardless of
+          whether a new key value was also submitted (clear takes precedence).
+        - Otherwise, if a non-blank key was submitted, encrypt-and-store it
+          and recompute the hint.
+        - If submitted key is blank and clear is unchecked, the existing key
+          and hint are left completely untouched (strict no-op).
+        """
+        club = super().save(commit=False)
+        new_key = self.cleaned_data.get('auction_fish_api_key_input', '').strip()
+        do_clear = self.cleaned_data.get('clear_auction_fish_api_key', False)
+
+        if do_clear:
+            # Clearing takes precedence over any new value that may also be present.
+            club.auction_fish_api_key = ''
+            club.auction_fish_api_key_hint = ''
+        elif new_key:
+            club.auction_fish_api_key = new_key
+            club.auction_fish_api_key_hint = AquaristClub._compute_api_key_hint(new_key)
+        # else: blank submission + checkbox unchecked → no-op; existing key/hint unchanged.
+
+        if commit:
+            club.save()
+        return club
 # Bare Bones Club Creation/Edit form for CARES Site 2 usage only
 class AquaristClubForm2BB (ModelForm):
     class Meta:
