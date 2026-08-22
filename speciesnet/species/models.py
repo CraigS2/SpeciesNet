@@ -6,7 +6,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -37,9 +37,6 @@ def _get_fernet():
     return _Fernet(key)
 
 
-from django.core.exceptions import ImproperlyConfigured
-
-
 class EncryptedTextField(models.TextField):
     """
     A TextField that transparently encrypts values at rest using Fernet
@@ -57,7 +54,7 @@ class EncryptedTextField(models.TextField):
             return value
         try:
             return _get_fernet().decrypt(value.encode()).decode()
-        except (_InvalidToken, Exception):
+        except (_InvalidToken, ValueError):
             # Return the raw ciphertext rather than crashing on mis-keyed data
             return value
 

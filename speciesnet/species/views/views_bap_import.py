@@ -951,13 +951,14 @@ def pullBapImportFromAuction(request, pk):
         club=club, status=BapImportBatch.Status.REVIEW
     ).first()
 
+    # Capture the old file reference before entering the transaction so we
+    # can delete it from storage AFTER the transaction commits successfully.
+    # File-system operations are not rolled back by DB transactions, so we
+    # keep them outside to avoid orphaned files on rollback.
+    old_file = existing_review.working_csv_file if existing_review else None
+
     with transaction.atomic():
         if existing_review:
-            if existing_review.working_csv_file:
-                try:
-                    existing_review.working_csv_file.delete(save=False)
-                except Exception:
-                    pass
             existing_review.delete()
 
         csv_bytes = _write_working_csv(filtered_rows, WORKING_COLS)
@@ -972,6 +973,13 @@ def pullBapImportFromAuction(request, pk):
         batch.save()
         filename = f'working_{batch.pk}_{_sanitize_for_filename(batch_label)}.csv'
         batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
+
+    # Delete old working file after the transaction has committed successfully.
+    if old_file:
+        try:
+            old_file.delete(save=False)
+        except Exception:
+            pass
 
     messages.success(
         request,
