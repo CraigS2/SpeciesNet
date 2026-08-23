@@ -373,6 +373,17 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
         
         context['selected_member'] = self.request.GET.get('member', '')
         context['selected_species_kept'] = self.request.GET.get('species_kept', '')
+
+        # slick tweaking of the existing context appends objects in memory 'enriching' them for rendering related data
+        page_species_instances = context.get(self.context_object_name) or context.get('object_list') or []
+        for species_instance in page_species_instances:
+            registration = CaresRegistration.objects.filter(
+                species=species_instance.species,
+                aquarist_email__iexact=species_instance.user.email
+            ).order_by('-lastUpdated').first()
+            species_instance.cares_registration_status = (
+                registration.get_status_display() if registration else None
+            )        
         
         logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s', 
                    self.request.user.username, self.get_club().name)

@@ -84,14 +84,14 @@
                                         {% else  %}
                                             No
                                         {% endif  %}                                        
-                                    </td>     
+                                    </td>
                                     <td style='text-align:center'>
-                                        {% if species_instance.cares_registered  %}
-                                            Yes
-                                        {% else  %}
-                                            No
-                                        {% endif  %}                                        
-                                    </td>                                                                        
+                                        {% if species_instance.cares_registration_status %}
+                                            {{ species_instance.cares_registration_status }}
+                                        {% else %}
+                                            Not Registered
+                                        {% endif %}
+                                    </td>                                                                                                        
                                 </tr>
                             {% endfor %}
                         </tbody>

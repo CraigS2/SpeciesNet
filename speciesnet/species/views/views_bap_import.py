@@ -937,7 +937,7 @@ def pullBapImportFromAuction(request, pk):
             'Auction date': end_str,
             'Lot number': str(lot.get('lot_id', '')),
             'Lot': lot.get('lot_name', ''),
-            'Species name': lot.get('lot_name', ''),
+            'Species name': '',
             'Seller': seller_name,
             'Seller email': seller_email,
             'Breeder points': 'yes',
