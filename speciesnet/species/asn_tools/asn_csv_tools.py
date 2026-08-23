@@ -1081,6 +1081,8 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                     logger.warning('CARES reg import row %d: invalid species_asn_id %r — falling back to name match', row_count, species_asn_id_raw)
                 except ObjectDoesNotExist:
                     logger.warning('CARES reg import row %d: species_asn_id=%s not found — falling back to name match', row_count, species_asn_id_raw)
+                except MultipleObjectsReturned:
+                    logger.warning('CARES reg import row %d: multiple species match external_id=%s — falling back to name match', row_count, species_asn_id_raw)
 
             if matched_species is None:
                 try:

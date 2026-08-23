@@ -260,9 +260,9 @@ class Command(BaseCommand):
                     f'({asn_species_name!r}) — no matching CSO row confirms this pairing.'
                 )
                 candidates = [
-                    (r_id, r.get('species', ''))
-                    for r_id, r in {_int_or_none(r.get('species_cso_id')): r for r in cso_rows if r.get('species')}.items()
-                    if r_id is not None
+                    (_int_or_none(r.get('species_cso_id')), r.get('species', ''))
+                    for r in cso_rows
+                    if _int_or_none(r.get('species_cso_id')) is not None
                 ]
                 match = _best_fuzzy_match(asn_species_name, candidates)
                 if match:
