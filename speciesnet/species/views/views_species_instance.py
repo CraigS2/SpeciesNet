@@ -554,10 +554,6 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.cares_approver  = None   # assigned later by CARES admin
                 cares_reg.save()
 
-                # Set external_id = own PK so CSO import can correlate approval responses
-                cares_reg.external_id = cares_reg.pk
-                cares_reg.save(update_fields=['external_id'])
-
                 if cares_reg.verification_photo:
                     # .name is the relative path within MEDIA_ROOT
                     if (cares_reg.verification_photo.name == species_instance.aquarist_species_image.name):

@@ -860,7 +860,10 @@ def _collection_location_name(collection_location):
 def export_csv_caresRegistrations_asn():
     """
     ASN Site1 export: all CARES Registrations for transfer to the CSO (CaresSpecies.org) site.
-    Includes external_id so CSO can correlate approval responses back to ASN.
+    asn_id  = this registration's own id on ASN (Site1).
+    cso_id  = reg.external_id when truthy (the linked CSO record id), else blank.
+    species_asn_id = species' own local id on ASN (Site1).
+    species_cso_id = species.external_id when truthy, else blank.
     """
     registrations = CaresRegistration.objects.all()
     response = HttpResponse(
@@ -869,25 +872,27 @@ def export_csv_caresRegistrations_asn():
     )
     writer = csv.writer(response)
     writer.writerow([
-        # id   external_id    name    aquarist_name    aquarist_email    affiliate_club    species    collection_location
-        'id', 'external_id', 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',
-        # species_source   year_acquired    verification_photo    verification_photo_url 
-        'species_source', 'year_acquired', 'verification_photo', 'verification_photo_url', 
-        # species_has_spawned   young_available    offspring_shared
-        'species_has_spawned', 'young_available', 'offspring_shared',
+        # asn_id   cso_id    name    aquarist_name    aquarist_email    affiliate_club    species    collection_location
+        'asn_id', 'cso_id', 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',
+        # species_source   year_acquired    verification_photo    verification_photo_url
+        'species_source', 'year_acquired', 'verification_photo', 'verification_photo_url',
+        # species_asn_id   species_cso_id    species_has_spawned   young_available    offspring_shared
+        'species_asn_id', 'species_cso_id', 'species_has_spawned', 'young_available', 'offspring_shared',
         # cares_approver   approver_notes    status
         'cares_approver', 'approver_notes', 'status',
         # date_requested   lastUpdated    last_updated_by    last_report_date
         'date_requested', 'lastUpdated', 'last_updated_by', 'last_report_date'
     ])
     for reg in registrations:
+        cso_id = reg.external_id if reg.external_id else ''
+        species_cso_id = reg.species.external_id if reg.species.external_id else ''
         writer.writerow([
-            #   id      external_id      name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
-            reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
-            #   species_source      year_acquired      verification_photo   verification_photo_url 
+            #   asn_id    cso_id    name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
+            reg.id, cso_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
+            #   species_source      year_acquired      verification_photo    verification_photo_url
             reg.species_source, reg.year_acquired, reg.verification_photo, _build_media_url(reg.verification_photo),
-            #   species_has_spawned      young_available      offspring_shared
-            reg.species_has_spawned, reg.young_available, reg.offspring_shared,
+            #   species_asn_id    species_cso_id    species_has_spawned      young_available      offspring_shared
+            reg.species.id, species_cso_id, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
             #   cares_approver      approver_notes      status
             reg.cares_approver, reg.approver_notes, reg.status,
             #   date_requested      lastUpdated      last_updated_by      last_report_date
@@ -938,9 +943,12 @@ def export_csv_caresRegistrations_asn():
 def export_csv_caresRegistrations_cso():
     """
     CSO Site2 export: all CaresRegistrations for round-trip back to ASN Site1.
-    Includes external_id so ASN can match and update its original records.
-    Only rows with external_id > 0 are meaningful to ASN; all rows are exported
-    and ASN import will skip those with external_id = 0 or null.
+    cso_id  = this registration's own id on CSO (Site2).
+    asn_id  = reg.external_id when truthy (the linked ASN record id), else blank.
+    species_cso_id = species' own local id on CSO (Site2).
+    species_asn_id = species.external_id when truthy, else blank.
+    Only rows with a populated asn_id are processed by ASN's status-update import;
+    all rows are exported and the ASN import will skip those with blank/missing asn_id.
     """
     registrations = CaresRegistration.objects.all()
     response = HttpResponse(
@@ -949,23 +957,30 @@ def export_csv_caresRegistrations_cso():
     )
     writer = csv.writer(response)
     writer.writerow([
-        # id   external_id    name    aquarist_name    aquarist_email    affiliate_club    species    collection_location
-        'id', 'external_id', 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',
+        # cso_id   asn_id    name    aquarist_name    aquarist_email    affiliate_club    species    collection_location
+        'cso_id', 'asn_id', 'name', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species', 'collection_location',
         # species_source   year_acquired    verification_photo
         'species_source', 'year_acquired', 'verification_photo',
-        # species_has_spawned   young_available    offspring_shared
-        'species_has_spawned', 'young_available', 'offspring_shared',
+        # species_cso_id   species_asn_id    species_has_spawned   young_available    offspring_shared
+        'species_cso_id', 'species_asn_id', 'species_has_spawned', 'young_available', 'offspring_shared',
         # cares_approver   approver_notes    status    asn_imported
         'cares_approver', 'approver_notes', 'status', 'asn_imported',
         # date_requested   lastUpdated    last_updated_by    last_report_date
         'date_requested', 'lastUpdated', 'last_updated_by', 'last_report_date'
     ])
     for reg in registrations:
+        asn_id = reg.external_id if reg.external_id else ''
+        species_asn_id = reg.species.external_id if reg.species.external_id else ''
         writer.writerow([
-            reg.id, reg.external_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
+            #   cso_id    asn_id    name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
+            reg.id, asn_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
+            #   species_source      year_acquired      verification_photo
             reg.species_source, reg.year_acquired, reg.verification_photo,
-            reg.species_has_spawned, reg.young_available, reg.offspring_shared,
+            #   species_cso_id    species_asn_id    species_has_spawned      young_available      offspring_shared
+            reg.species.id, species_asn_id, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
+            #   cares_approver      approver_notes      status      asn_imported
             reg.cares_approver, reg.approver_notes, reg.status, reg.asn_imported,
+            #   date_requested      lastUpdated      last_updated_by      last_report_date
             reg.date_requested, reg.lastUpdated, reg.last_updated_by, reg.last_report_date
         ])
     return response
@@ -1000,11 +1015,12 @@ def import_csv_caresRegistrations(import_archive: ImportArchive, current_user: U
 def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Site2 branch: Creates new CaresRegistration records
-    Required CSV columns: id, aquarist_name, aquarist_email, species, species_source, collection_location, year_acquired,
-    verification_photo_url, species_has_spawned, young_available, offspring_shared, asn_imported, date_requested
+    Required CSV columns: asn_id, aquarist_name, aquarist_email, species, species_source, collection_location,
+    year_acquired, verification_photo_url, species_has_spawned, young_available, offspring_shared,
+    asn_imported, date_requested, species_asn_id (optional, used for reliable species matching)
 
-    NOTE: The CSV's `id` column is Site1's own CaresRegistration.id. That value is stored as `external_id` so that Site2's 
-    later status-update export can be matched back to the correct Site1 record. 
+    NOTE: The CSV's `asn_id` column is Site1's own CaresRegistration.id. That value is stored as
+    `external_id` so that Site2's later status-update export can be matched back to the correct Site1 record.
     """
     csv_report_buffer = StringIO()
     csv_report_writer = csv.writer(csv_report_buffer)
@@ -1030,37 +1046,59 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 continue
 
             # Validate and resolve the Site1 -> Site2 correlation key first
-            site1_id_raw = import_row.get('id', '').strip()
-            if not site1_id_raw:
+            asn_id_raw = import_row.get('asn_id', '').strip()
+            if not asn_id_raw:
                 skip_count += 1
-                status_txt = f"SKIP - missing required 'id' column (Site1 registration id)"
+                status_txt = f"SKIP - missing required 'asn_id' column (Site1 registration id)"
                 csv_report_writer.writerow([row_count, email, species_name, status_txt])
                 logger.warning('CARES reg import row %d: %s', row_count, status_txt)
                 continue
             try:
-                site1_id = int(site1_id_raw)
+                asn_id = int(asn_id_raw)
             except ValueError:
                 error_count += 1
-                status_txt = f"ERROR - invalid 'id' value: '{site1_id_raw}'"
+                status_txt = f"ERROR - invalid 'asn_id' value: '{asn_id_raw}'"
                 csv_report_writer.writerow([row_count, email, species_name, status_txt])
                 logger.warning('CARES reg import row %d: %s', row_count, status_txt)
                 continue
 
-            try:
-                print ('_import_cares_registrations_from_asn - species name: ' + species_name)
-                matched_species = Species.objects.get(name__iexact=species_name)
-            except ObjectDoesNotExist:
-                skip_count += 1
-                status_txt = f'SKIP - species not found on Site2: {species_name}'
-                csv_report_writer.writerow([row_count, email, species_name, status_txt])
-                logger.warning('CARES reg import row %d: %s', row_count, status_txt)
-                continue
-            except MultipleObjectsReturned:
-                skip_count += 1
-                status_txt = f'SKIP - multiple species matched: {species_name}'
-                csv_report_writer.writerow([row_count, email, species_name, status_txt])
-                logger.warning('CARES reg import row %d: %s', row_count, status_txt)
-                continue
+            # Species matching: prefer id-based lookup (species_asn_id), fall back to name
+            species_asn_id_raw = import_row.get('species_asn_id', '').strip()
+            matched_species = None
+            drift_note = ''
+
+            if species_asn_id_raw:
+                try:
+                    species_asn_id = int(species_asn_id_raw)
+                    matched_species = Species.objects.get(external_id=species_asn_id)
+                    # Check for species name drift (informational only)
+                    if matched_species.name.strip().lower() != species_name.lower():
+                        drift_note = (
+                            f" NOTE: species name drift detected — "
+                            f"local='{matched_species.name}' csv='{species_name}'"
+                        )
+                except (ValueError, TypeError):
+                    logger.warning('CARES reg import row %d: invalid species_asn_id %r — falling back to name match', row_count, species_asn_id_raw)
+                except ObjectDoesNotExist:
+                    logger.warning('CARES reg import row %d: species_asn_id=%s not found — falling back to name match', row_count, species_asn_id_raw)
+                except MultipleObjectsReturned:
+                    logger.warning('CARES reg import row %d: multiple species match external_id=%s — falling back to name match', row_count, species_asn_id_raw)
+
+            if matched_species is None:
+                try:
+                    matched_species = Species.objects.get(name__iexact=species_name)
+                except ObjectDoesNotExist:
+                    skip_count += 1
+                    status_txt = f'SKIP - species not found on Site2: {species_name}'
+                    csv_report_writer.writerow([row_count, email, species_name, status_txt])
+                    logger.warning('CARES reg import row %d: %s', row_count, status_txt)
+                    continue
+                except MultipleObjectsReturned:
+                    skip_count += 1
+                    status_txt = f'SKIP - multiple species matched: {species_name}'
+                    csv_report_writer.writerow([row_count, email, species_name, status_txt])
+                    logger.warning('CARES reg import row %d: %s', row_count, status_txt)
+                    continue
 
             if CaresRegistration.objects.filter(
                 aquarist_email__iexact=email,
@@ -1072,9 +1110,9 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 logger.info('CARES reg import row %d: %s', row_count, status_txt)
                 continue
 
-            if CaresRegistration.objects.filter(external_id=site1_id).exists():
+            if CaresRegistration.objects.filter(external_id=asn_id).exists():
                 skip_count += 1
-                status_txt = f'SKIP - registration already imported for Site1 id={site1_id}'
+                status_txt = f'SKIP - registration already imported for Site1 id={asn_id}'
                 csv_report_writer.writerow([row_count, email, species_name, status_txt])
                 logger.info('CARES reg import row %d: %s', row_count, status_txt)
                 continue
@@ -1098,7 +1136,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 logger.warning('CARES reg import row %d: %s', row_count, status_txt)
                 continue
 
-            # All validation passed - now perform the DB writes for this row atomically so a mid-row failure 
+            # All validation passed - now perform the DB writes for this row atomically so a mid-row failure
             # never leaves an orphaned collection location or partially-saved registration behind.
 
             try:
@@ -1146,9 +1184,9 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                     except (ValueError, TypeError):
                         registration.offspring_shared = 0
 
-                    # ASN import: correlation key is Site1's own registration id (CSV 'id' column)
+                    # ASN import: correlation key is Site1's own registration id (CSV 'asn_id' column)
                     registration.asn_imported = True
-                    registration.external_id = site1_id
+                    registration.external_id = asn_id
 
                     club_name = import_row.get('affiliate_club', '').strip()
                     if club_name:
@@ -1174,7 +1212,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                 # is already present (e.g. both CSV and API paths ran concurrently).
                 # Log and skip gracefully rather than treating it as an error.
                 skip_count += 1
-                status_txt = f'SKIP - duplicate external_id={site1_id} (IntegrityError): {exc}'
+                status_txt = f'SKIP - duplicate external_id={asn_id} (IntegrityError): {exc}'
                 csv_report_writer.writerow([row_count, email, species_name, status_txt])
                 logger.warning('CARES reg import row %d: %s', row_count, status_txt)
                 continue
@@ -1190,7 +1228,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
             # send email notification to approvers
             send_new_registration_notification(registration)
 
-            status_txt = f'SUCCESS - created registration for {email} / {species_name} (Site1 id={site1_id})'
+            status_txt = f'SUCCESS - created registration for {email} / {species_name} (Site1 id={asn_id}){drift_note}'
             csv_report_writer.writerow([row_count, email, species_name, status_txt])
             logger.info('CARES reg import row %d: %s', row_count, status_txt)
 
@@ -1214,13 +1252,14 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
 def _import_cares_registration_status_updates(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Site1 branch: Receives CSV exported from Site2. Updates status and approver_notes
-    on existing CaresRegistration records only. Matches by external_id (which on ASN Site1
+    on existing CaresRegistration records only. Matches by asn_id (which on ASN Site1
     corresponds to CaresRegistration.id). Only APRV and DECL statuses trigger updates.
-    Required CSV columns: external_id, status, approver_notes
+    Required CSV columns: asn_id, status, approver_notes
+    cso_id is included in the per-row report line for informational/audit purposes.
     """
     csv_report_buffer = StringIO()
     csv_report_writer = csv.writer(csv_report_buffer)
-    csv_report_writer.writerow(['Row', 'External_ID', 'Species', 'Aquarist', 'Old_Status', 'New_Status', 'Import_Status'])
+    csv_report_writer.writerow(['Row', 'ASN_ID', 'CSO_ID', 'Species', 'Aquarist', 'Old_Status', 'New_Status', 'Import_Status'])
 
     accepted_statuses = {
         CaresRegistration.CaresRegistrationStatus.APPROVED,
@@ -1236,28 +1275,29 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
         for import_row in DictReader(import_file):
             row_count += 1
 
-            external_id_raw = import_row.get('external_id', '').strip()
+            asn_id_raw = import_row.get('asn_id', '').strip()
+            cso_id_raw = import_row.get('cso_id', '').strip()
 
-            # Skip rows with missing, blank, or non-integer external_id
-            if not external_id_raw:
+            # Skip rows with missing, blank, or non-integer asn_id
+            if not asn_id_raw:
                 skip_count += 1
-                logger.info('CARES status update import row %d: SKIP - no external_id', row_count)
-                csv_report_writer.writerow([row_count, '', '', '', '', '', 'SKIP - no external_id'])
+                logger.info('CARES status update import row %d: SKIP - no asn_id', row_count)
+                csv_report_writer.writerow([row_count, '', cso_id_raw, '', '', '', '', 'SKIP - no asn_id'])
                 continue
             try:
-                external_id = int(external_id_raw)
+                asn_id = int(asn_id_raw)
             except (ValueError, TypeError):
                 skip_count += 1
-                status_txt = f'SKIP - non-integer external_id: {external_id_raw}'
-                csv_report_writer.writerow([row_count, external_id_raw, '', '', '', '', status_txt])
+                status_txt = f'SKIP - non-integer asn_id: {asn_id_raw}'
+                csv_report_writer.writerow([row_count, asn_id_raw, cso_id_raw, '', '', '', '', status_txt])
                 logger.info('CARES status update import row %d: %s', row_count, status_txt)
                 continue
 
-            # Skip rows with external_id <= 0 (CSO-local registrations with no ASN origin)
-            if external_id <= 0:
+            # Skip rows with asn_id <= 0 (CSO-local registrations with no ASN origin)
+            if asn_id <= 0:
                 skip_count += 1
-                status_txt = f'SKIP - external_id <= 0: {external_id}'
-                csv_report_writer.writerow([row_count, external_id, '', '', '', '', status_txt])
+                status_txt = f'SKIP - asn_id <= 0: {asn_id}'
+                csv_report_writer.writerow([row_count, asn_id, cso_id_raw, '', '', '', '', status_txt])
                 logger.info('CARES status update import row %d: %s', row_count, status_txt)
                 continue
 
@@ -1269,13 +1309,13 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
             if new_status not in accepted_statuses:
                 skip_count += 1
                 status_txt = f'SKIP - status not APRV or DECL: {new_status!r}'
-                csv_report_writer.writerow([row_count, external_id, species_name, aquarist, '', new_status, status_txt])
+                csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, '', new_status, status_txt])
                 logger.info('CARES status update import row %d: %s', row_count, status_txt)
                 continue
 
             try:
                 with transaction.atomic():
-                    registration = CaresRegistration.objects.get(id=external_id)
+                    registration = CaresRegistration.objects.get(id=asn_id)
                     old_status = registration.status
                     registration.status = new_status
                     registration.approver_notes = import_row.get('approver_notes', '').strip()
@@ -1283,20 +1323,20 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
                     registration.save(update_fields=['status', 'approver_notes', 'last_updated_by', 'lastUpdated'])
             except CaresRegistration.DoesNotExist:
                 skip_count += 1
-                status_txt = f'SKIP - no registration found with id={external_id}'
-                csv_report_writer.writerow([row_count, external_id, species_name, aquarist, '', new_status, status_txt])
+                status_txt = f'SKIP - no registration found with id={asn_id}'
+                csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, '', new_status, status_txt])
                 logger.info('CARES status update import row %d: %s', row_count, status_txt)
                 continue
             except Exception as exc:
                 error_count += 1
-                status_txt = f'ERROR - failed to update registration id={external_id}: {exc}'
-                csv_report_writer.writerow([row_count, external_id, species_name, aquarist, '', new_status, status_txt])
+                status_txt = f'ERROR - failed to update registration id={asn_id}: {exc}'
+                csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, '', new_status, status_txt])
                 logger.error('CARES status update import row %d: %s', row_count, status_txt)
                 continue
 
             update_count += 1
             status_txt = f'SUCCESS - updated status from {old_status} to {new_status}'
-            csv_report_writer.writerow([row_count, external_id, species_name, aquarist, old_status, new_status, status_txt])
+            csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, old_status, new_status, status_txt])
             logger.info('CARES status update import row %d: %s', row_count, status_txt)
 
     csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
