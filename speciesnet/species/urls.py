@@ -41,6 +41,8 @@ urlpatterns = [
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
     path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
     path('importProxyMembers/<str:pk>/', views.importProxyMembers, name="importProxyMembers"),
+    path('club/<str:pk>/generate-bap-report-api-key/', views.generateClubBapReportApiKey, name="generateClubBapReportApiKey"),
+    path('club/<str:pk>/revoke-bap-report-api-key/', views.revokeClubBapReportApiKey, name="revokeClubBapReportApiKey"),
 
     ### BAP CSV Import Workflow ###
 

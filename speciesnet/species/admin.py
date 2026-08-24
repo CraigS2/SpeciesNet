@@ -96,8 +96,8 @@ admin.site.register (UserEmail)
 
 @admin.register(AquaristClub)
 class AquaristClubAdmin(admin.ModelAdmin):
-    # Never expose the raw encrypted key in the admin — even to superusers.
-    exclude = ('auction_fish_api_key',)
+    # Never expose the raw encrypted keys in the admin — even to superusers.
+    exclude = ('auction_fish_api_key', 'bap_report_api_key')
 
 
 admin.site.register (AquaristClubMember)
