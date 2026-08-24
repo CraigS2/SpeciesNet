@@ -680,8 +680,16 @@ def dirtyDeed(request):
         raise PermissionDenied()
     
     # Dirty deed goes here ...  then return to tools2
+    #print ('Dirty Deed: Nothing to do!')
+    cur_registrations = CaresRegistration.objects.all()
+    for reg in cur_registrations:
+        if (reg.external_id):
+            print ('Registration external id is: ' + str(reg.external_id))
+            reg.external_id = None
+            reg.save()
+
     #dirtyDeedMigrateCaresClassifications()
-    dirtyDeedCleanBogusAssessmentDates()
+    #dirtyDeedCleanBogusAssessmentDates()
 
     # ### Registration dev-only migration work in progress ###
     # modify_db = True

@@ -12,14 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from decimal import Decimal
 import re
-
-# ---------------------------------------------------------------------------
-# Fernet-based encrypted text field (uses `cryptography` which is already a
-# dependency via requests/urllib3 and other packages).  We avoid adding a new
-# pip dependency (django-cryptography) by implementing the minimal field
-# ourselves — symmetric encryption with a single root key stored in
-# settings.FIELD_ENCRYPTION_KEY.
-# ---------------------------------------------------------------------------
 import base64 as _b64
 from cryptography.fernet import Fernet as _Fernet, InvalidToken as _InvalidToken
 from django.conf import settings as _settings
@@ -556,13 +548,14 @@ class AquaristClub (models.Model):
     require_fry_rearing_notes = models.BooleanField(default=False)
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
     next_member_number        = models.PositiveIntegerField(default=1)  # persistent counter for proxy username generation
-    # auction.fish integration
     auction_fish_slug         = models.CharField(max_length=200, blank=True,
                                     help_text="Club slug on auction.fish, e.g. 'pioneer-valley-aquarium-society'")
     auction_fish_api_key      = EncryptedTextField(blank=True,
                                     help_text="API key for auction.fish (encrypted at rest; never redisplayed after save)")
     auction_fish_api_key_hint = models.CharField(max_length=30, blank=True,
                                     help_text="Redacted fingerprint of the stored API key, e.g. 'ck_539d••••1010'")
+    cares_liaison_name        = models.CharField (max_length=240, blank=False, default='')
+    cares_liason_email        = models.EmailField(max_length=50, null=True)  
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -609,7 +602,6 @@ class AquaristClubMember (models.Model):
 ### CARES Registration & Approver
 
 class CaresApprover (models.Model):
-    #TODO Rename CaresAuthority
     name              = models.CharField (max_length=240)
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=5, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)

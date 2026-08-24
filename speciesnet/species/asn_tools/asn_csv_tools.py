@@ -1100,15 +1100,29 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                     logger.warning('CARES reg import row %d: %s', row_count, status_txt)
                     continue
 
-            if CaresRegistration.objects.filter(
+            # if CaresRegistration.objects.filter(
+            #     aquarist_email__iexact=email,
+            #     species=matched_species,
+            # ).exists():
+            #     skip_count += 1
+            #     status_txt = 'SKIP - registration already exists (pending approval or duplicate)'
+            #     csv_report_writer.writerow([row_count, email, species_name, status_txt])
+            #     logger.info('CARES reg import row %d: %s', row_count, status_txt)
+            #     continue
+            existing_duplicate = CaresRegistration.objects.filter(
                 aquarist_email__iexact=email,
                 species=matched_species,
-            ).exists():
+            ).first()
+            if existing_duplicate:
                 skip_count += 1
                 status_txt = 'SKIP - registration already exists (pending approval or duplicate)'
+                if not existing_duplicate.external_id:
+                    existing_duplicate.external_id = asn_id
+                    existing_duplicate.save(update_fields=['external_id'])
+                    status_txt += f' - external_id backfilled to {asn_id}'
                 csv_report_writer.writerow([row_count, email, species_name, status_txt])
                 logger.info('CARES reg import row %d: %s', row_count, status_txt)
-                continue
+                continue            
 
             if CaresRegistration.objects.filter(external_id=asn_id).exists():
                 skip_count += 1
@@ -1313,6 +1327,14 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
                 logger.info('CARES status update import row %d: %s', row_count, status_txt)
                 continue
 
+            # try:
+            #     with transaction.atomic():
+            #         registration = CaresRegistration.objects.get(id=asn_id)
+            #         old_status = registration.status
+            #         registration.status = new_status
+            #         registration.approver_notes = import_row.get('approver_notes', '').strip()
+            #         registration.last_updated_by = current_user
+            #         registration.save(update_fields=['status', 'approver_notes', 'last_updated_by', 'lastUpdated'])
             try:
                 with transaction.atomic():
                     registration = CaresRegistration.objects.get(id=asn_id)
@@ -1320,7 +1342,14 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
                     registration.status = new_status
                     registration.approver_notes = import_row.get('approver_notes', '').strip()
                     registration.last_updated_by = current_user
-                    registration.save(update_fields=['status', 'approver_notes', 'last_updated_by', 'lastUpdated'])
+                    update_fields = ['status', 'approver_notes', 'last_updated_by', 'lastUpdated']
+                    if not registration.external_id and cso_id_raw:
+                        try:
+                            registration.external_id = int(cso_id_raw)
+                            update_fields.append('external_id')
+                        except (ValueError, TypeError):
+                            logger.warning('CARES status update import row %d: invalid cso_id %r — external_id not backfilled', row_count, cso_id_raw)
+                    registration.save(update_fields=update_fields)            
             except CaresRegistration.DoesNotExist:
                 skip_count += 1
                 status_txt = f'SKIP - no registration found with id={asn_id}'
