@@ -1,10 +1,13 @@
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import escape, strip_tags
 
-from species.models import CaresRegistration, UserEmail
+from species.asn_tools.asn_img_tools import processUploadedImageFile
+from species.models import CaresRegistration, UserEmail, SpeciesInstance
 
-from .forms import ConfirmPendingActionForm
+from .forms import BapNotesRequiredForm, CaresClarificationResponseForm, ConfirmPendingActionForm
 from .registry import ActionHandler, register
 
 
@@ -18,6 +21,32 @@ class CaresStatusChangeHandler(ActionHandler):
         missing = required.difference(payload.keys())
         if missing:
             raise ValueError(f'Missing required CARES status payload values: {sorted(missing)}')
+
+    def _get_registration(self, action):
+        return CaresRegistration.objects.filter(pk=action.payload.get('registration_id')).first()
+
+    def _is_pending_clarification(self, action):
+        registration = self._get_registration(action)
+        return registration is not None and registration.status == CaresRegistration.CaresRegistrationStatus.PENDING
+
+    def get_response_form_class(self, action=None):
+        if action is not None and self._is_pending_clarification(action):
+            return CaresClarificationResponseForm
+        return self.response_form_class
+
+    def requires_response(self, action):
+        """
+        cares_status_change is shared by every registration status transition
+        (approved, declined, pending-clarification, etc.) but only the PENDING
+        status genuinely requires the aquarist to respond/clarify. All other
+        status-change notifications are informational and should be considered
+        complete once the email is sent — leaving them PENDING forever is misleading.
+        """
+        registration = self._get_registration(action)
+        if registration is None:
+            # Registration missing/deleted — nothing meaningful to wait on.
+            return False
+        return registration.status == CaresRegistration.CaresRegistrationStatus.PENDING
 
     def build_email_context(self, action, token=None):
         registration = CaresRegistration.objects.select_related('species').get(pk=action.payload['registration_id'])
@@ -44,7 +73,51 @@ class CaresStatusChangeHandler(ActionHandler):
             'archive_text': archive_body,
         }
 
-    def on_completed(self, action, response_data):
+    def on_completed(self, action, response_data, request=None):
+        """
+        Handles both response form variants:
+        - ConfirmPendingActionForm: simple acknowledgement, nothing further to persist.
+        - CaresClarificationResponseForm: aquarist may have supplied response_text
+          and/or an updated_photo. response_text (plus a 'Species photo updated' note
+          when a photo was supplied) is appended to species_source (avoiding a schema
+          migration for a dedicated field). updated_photo replaces verification_photo
+          and is run through processUploadedImageFile for consistent resizing, exactly
+          like every other verification-photo upload path in this codebase. The
+          registration is moved from PENDING back to RESUBMIT so it re-enters the
+          approver's queue.
+        """
+        registration = self._get_registration(action)
+        if registration is None:
+            return None
+
+        response_text = (response_data.get('response_text') or '').strip()
+        updated_photo = response_data.get('updated_photo')
+
+        note_parts = []
+        if response_text:
+            note_parts.append(response_text)
+        if updated_photo:
+            note_parts.append('Species photo updated')
+
+        if note_parts:
+            today = timezone.now().strftime('%Y-%m-%d')
+            appended = f"Updated {today}:\n" + '\n'.join(note_parts)
+            registration.species_source = f'{registration.species_source}\n\n{appended}'.strip()
+
+        if updated_photo:
+            registration.verification_photo = updated_photo
+
+        if registration.status == CaresRegistration.CaresRegistrationStatus.PENDING:
+            registration.status = CaresRegistration.CaresRegistrationStatus.RESUBMIT
+
+        registration.save()
+
+        # processUploadedImageFile opens image_field.path, so it must run after the
+        # file above has already been written to disk via registration.save().
+        if updated_photo:
+            processUploadedImageFile(registration.verification_photo, registration.name, request)
+            registration.save(update_fields=['verification_photo'])
+
         return None
 
 
@@ -84,3 +157,140 @@ class CaresNewRegistrationNotificationHandler(ActionHandler):
             'archive_text': f"To: {action.payload['approver_name']}\nEmail: {action.payload['to_email']}\n{plain_body}",
             'send_to_user': action.user,
         }
+
+
+@register('proxy_user_invite')
+class ProxyUserInviteHandler(ActionHandler):
+    """
+    Handles the proxy_user_invite action type.
+
+    The invite email contains a single-use activation link.  The recipient
+    lands on ProxyActivationView (not PendingActionConfirmView) which handles
+    password-setting and account activation directly.  This handler's only
+    responsibility is building the email context; there is no response form
+    and on_completed is never called through the confirm view for this type.
+    """
+
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'club_id', 'club_name', 'user_id', 'base_url'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required proxy invite payload values: {sorted(missing)}')
+
+    def requires_response(self, action):
+        return False
+
+    def build_email_context(self, action, token=None):
+        token = token or action.payload.get('token')
+        base_url = action.payload.get('base_url', '').rstrip('/')
+        # Activation URL handled by pending_actions.views.ProxyActivationView
+        activation_path = reverse('proxy_activate', args=[token]) if token else ''
+        activation_url = f'{base_url}{activation_path}' if base_url else activation_path
+        club_name = action.payload.get('club_name', '')
+        invited_by = action.payload.get('invited_by_username', '')
+        return {
+            'action': action,
+            'to_email': action.payload['to_email'],
+            'club_name': club_name,
+            'invited_by_username': invited_by,
+            'activation_url': activation_url,
+            'subject': f'You have been invited to join {club_name} on AquaristSpecies',
+            'archive_name': f'Proxy invite to {action.payload["to_email"]} for {club_name}',
+            'archive_text': (
+                f"Invited: {action.payload['to_email']}\n"
+                f"Club: {club_name}\n"
+                f"Invited by: {invited_by}\n"
+                f"Activation URL: {activation_url}"
+            ),
+        }
+
+
+@register('bap_join_invite')
+class BapJoinInviteHandler(ActionHandler):
+    """
+    Informational email sent to active (non-proxy) users who appear on a BAP
+    auction CSV but are not yet members of the importing club.
+
+    The email lists the species from their rows and invites them to join the
+    club to submit BAP entries.  No response is required.
+    """
+
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'club_id', 'club_name', 'species_list'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required bap_join_invite payload values: {sorted(missing)}')
+
+    def requires_response(self, action):
+        return False
+
+    def build_email_context(self, action, token=None):
+        club_name = action.payload.get('club_name', '')
+        species_list = action.payload.get('species_list', [])
+        join_url = action.payload.get('join_url', '')
+        return {
+            'action': action,
+            'to_email': action.payload['to_email'],
+            'club_name': club_name,
+            'species_list': species_list,
+            'join_url': join_url,
+            'subject': f'Join {club_name} to submit BAP entries',
+            'archive_name': f'BAP join invite to {action.payload["to_email"]} for {club_name}',
+            'archive_text': (
+                f"To: {action.payload['to_email']}\n"
+                f"Club: {club_name}\n"
+                f"Species: {', '.join(species_list)}\n"
+                f"Join URL: {join_url}"
+            ),
+        }
+
+
+@register('bap_notes_required')
+class BapNotesRequiredHandler(ActionHandler):
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'speciesInstance_id', 'missing_fields', 'program', 'subject'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required bap_notes_required payload values: {sorted(missing)}')
+
+    def get_response_form_class(self, action=None):
+        return BapNotesRequiredForm
+
+    def build_email_context(self, action, token=None):
+        token = token or action.payload.get('token')
+        confirm_path = reverse('pending_action_confirm', args=[token]) if token else ''
+        site_url = action.payload.get('site_url', '').rstrip('/')
+        confirm_url = f'{site_url}{confirm_path}' if site_url else confirm_path
+        si = SpeciesInstance.objects.filter(pk=action.payload.get('speciesInstance_id')).select_related('species').first()
+        species_name = si.species.name if si and si.species else 'species'
+        missing_fields = action.payload.get('missing_fields', [])
+        return {
+            'action': action,
+            'subject': action.payload.get('subject'),
+            'to_email': action.payload.get('to_email'),
+            'confirm_url': confirm_url,
+            'program': action.payload.get('program'),
+            'species_name': species_name,
+            'missing_fields': missing_fields,
+            'archive_name': f'{action.payload.get("program")} notes request to {action.payload.get("to_email")}',
+            'archive_text': f'{action.payload.get("program")} notes requested for {species_name}. Missing: {", ".join(missing_fields)}. Link: {confirm_url}',
+            'body': f'Please provide the required notes for {species_name} to continue your {action.payload.get("program")} submission.',
+        }
+
+    def on_completed(self, action, response_data, request=None):
+        species_instance = SpeciesInstance.objects.filter(pk=action.payload.get('speciesInstance_id')).first()
+        if species_instance is None:
+            return None
+        update_fields = []
+        if 'spawning_notes' in response_data:
+            species_instance.spawning_notes = response_data.get('spawning_notes', '')
+            update_fields.append('spawning_notes')
+        if 'fry_rearing_notes' in response_data:
+            species_instance.fry_rearing_notes = response_data.get('fry_rearing_notes', '')
+            update_fields.append('fry_rearing_notes')
+        if update_fields:
+            species_instance.save(update_fields=update_fields)
+        return None

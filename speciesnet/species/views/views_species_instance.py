@@ -25,6 +25,8 @@ def speciesInstance(request, pk):
     isBapParticipant = request.user == speciesInstance.user
     bapEligibleMemberships = []
     bapSubmissions = []
+    smpEligibleMemberships = []
+    smpSubmissions = []
 
     if isBapParticipant:
         bapClubMemberships = AquaristClubMember.objects.filter(user=request.user)
@@ -47,6 +49,15 @@ def speciesInstance(request, pk):
                     error_msg = "BAP Submission:   duplicate BAP Submissions found!"
                     print('Error multiple objects found BAP Eligibility list decremented:   ' + membership.club.name)
                     messages.error(request, error_msg)
+                if membership.club.is_smp_club and species.render_cares:
+                    smpEligibleMemberships.append(membership)
+                    smpSubmissions.extend(
+                        SmpSubmission.objects.filter(
+                            club=membership.club,
+                            aquarist=speciesInstance.user,
+                            speciesInstance=speciesInstance
+                        ).order_by('-created')[:5]
+                    )
         else:
             isBapParticipant = False
 
@@ -97,6 +108,8 @@ def speciesInstance(request, pk):
         'isBapParticipant': isBapParticipant,
         'bapEligibleMemberships': bapEligibleMemberships,
         'bapSubmissions': bapSubmissions,
+        'smpEligibleMemberships': smpEligibleMemberships,
+        'smpSubmissions': smpSubmissions,
         'renderCares':  renderCares,
         'caresRegistration': caresRegistration,
         'userCanEdit': userCanEdit
@@ -540,10 +553,6 @@ def registerCaresSpeciesInstance(request, pk):
                 cares_reg.last_updated_by = request.user
                 cares_reg.cares_approver  = None   # assigned later by CARES admin
                 cares_reg.save()
-
-                # Set external_id = own PK so CSO import can correlate approval responses
-                cares_reg.external_id = cares_reg.pk
-                cares_reg.save(update_fields=['external_id'])
 
                 if cares_reg.verification_photo:
                     # .name is the relative path within MEDIA_ROOT

@@ -373,6 +373,17 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
         
         context['selected_member'] = self.request.GET.get('member', '')
         context['selected_species_kept'] = self.request.GET.get('species_kept', '')
+
+        # slick tweaking of the existing context appends objects in memory 'enriching' them for rendering related data
+        page_species_instances = context.get(self.context_object_name) or context.get('object_list') or []
+        for species_instance in page_species_instances:
+            registration = CaresRegistration.objects.filter(
+                species=species_instance.species,
+                aquarist_email__iexact=species_instance.user.email
+            ).order_by('-lastUpdated').first()
+            species_instance.cares_registration_status = (
+                registration.get_status_display() if registration else None
+            )        
         
         logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s', 
                    self.request.user.username, self.get_club().name)
@@ -402,3 +413,61 @@ def exportAquaristClubs(request):
 @login_required(login_url='login')
 def exportAquaristClubMembers(request):
     return export_csv_aquaristClubMembers()
+
+### Import Proxy Members
+
+@login_required(login_url='login')
+def importProxyMembers(request, pk):
+    """
+    Club admin view to bulk-create proxy member accounts from a list of email addresses.
+
+    GET  — render the import form.
+    POST — validate emails, run import_proxy_users, render per-row results.
+
+    Only club admins (is_club_admin or is_cares_admin) or staff may access this view.
+    """
+    from species.forms import ProxyMemberImportForm
+    from species.services.proxy_user_service import (
+        import_proxy_users,
+        OUTCOME_CREATED, OUTCOME_EXISTING_ACCOUNT, OUTCOME_ALREADY_INVITED, OUTCOME_ERROR,
+    )
+
+    club = get_object_or_404(AquaristClub, pk=pk)
+    userCanEdit = user_can_edit_club(request.user, club)
+    if not userCanEdit:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        form = ProxyMemberImportForm(request.POST)
+        if form.is_valid():
+            email_list = form.cleaned_data['email_list']
+            results = import_proxy_users(email_list, club, invited_by=request.user)
+
+            created_count = sum(1 for r in results if r['outcome'] == OUTCOME_CREATED)
+            skipped_existing = sum(1 for r in results if r['outcome'] == OUTCOME_EXISTING_ACCOUNT)
+            skipped_invited = sum(1 for r in results if r['outcome'] == OUTCOME_ALREADY_INVITED)
+            error_count = sum(1 for r in results if r['outcome'] == OUTCOME_ERROR)
+
+            logger.info(
+                'User %s ran proxy member import for club %s: created=%s existing=%s already_invited=%s errors=%s',
+                request.user.username, club.name, created_count, skipped_existing, skipped_invited, error_count,
+            )
+            context = {
+                'club': club,
+                'results': results,
+                'created_count': created_count,
+                'skipped_existing': skipped_existing,
+                'skipped_invited': skipped_invited,
+                'error_count': error_count,
+                'OUTCOME_CREATED': OUTCOME_CREATED,
+                'OUTCOME_EXISTING_ACCOUNT': OUTCOME_EXISTING_ACCOUNT,
+                'OUTCOME_ALREADY_INVITED': OUTCOME_ALREADY_INVITED,
+                'OUTCOME_ERROR': OUTCOME_ERROR,
+            }
+            return render(request, 'species/importProxyMembersResults.html', context)
+        # form invalid: fall through to re-render with errors
+    else:
+        form = ProxyMemberImportForm()
+
+    context = {'form': form, 'club': club}
+    return render(request, 'species/importProxyMembers.html', context)

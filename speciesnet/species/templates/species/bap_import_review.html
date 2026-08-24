@@ -1,0 +1,99 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-12">
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header">
+          <h4 class="my-0">BAP Import Review — {{ batch.club_or_auction_name }} &mdash; {{ club.name }}</h4>
+        </div>
+        <div class="card-body px-3 py-2">
+          <p class="text-muted small mb-2">
+            Review and correct the <strong>Species name</strong> and <strong>Breeder points</strong> columns below.
+            Any edits here are automatically applied before processing, whether or not you click
+            <strong>Save Edits</strong> first. Setting <strong>Breeder points</strong> to <em>No</em> excludes a
+            row from processing while keeping it in the working file. You may also re-upload a corrected CSV to
+            replace the working file entirely.
+          </p>
+          <p class="text-muted small mb-2">
+            The <strong>AF species match</strong> column shows Auction.fish&#8217;s own suggested scientific name
+            for each lot, for comparison only &mdash; it does not affect import matching.
+          </p>
+          <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center mb-3">
+            {% csrf_token %}
+            <div class="col-auto">
+              <input type="file" name="replace_csv" class="form-control form-control-sm" accept=".csv" required>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Replace Working File</button>
+            </div>
+          </form>
+
+          {% if rows %}
+            <form method="post" id="bap-review-edits-form" action="{% url 'reviewBapImport' batch.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="save_edits" value="1">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover small">
+                  <thead class="table-light">
+                    <tr>
+                      <th>#</th>
+                      {% for h in headers %}
+                        <th>{{ h }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in rows %}
+                      {% with import_status=row|last %}
+                      <tr class="{% if 'Error' in import_status %}table-danger{% elif 'Created' in import_status %}table-success{% elif 'Skipped' in import_status %}table-warning{% endif %}">
+                        <td>{{ forloop.counter }}</td>
+                        {% for cell in row %}
+                          {% if forloop.counter0 == species_col_index %}
+                            <td>
+                              <input type="text" class="form-control form-control-sm"
+                                     name="row_{{ forloop.parentloop.counter0 }}_species_name"
+                                     value="{{ cell }}">
+                            </td>
+                          {% elif forloop.counter0 == points_col_index %}
+                            <td>
+                              <input type="text" class="form-control form-control-sm"
+                                     name="row_{{ forloop.parentloop.counter0 }}_breeder_points"
+                                     value="{{ cell }}">
+                            </td>
+                          {% else %}
+                            <td>{{ cell }}</td>
+                          {% endif %}
+                        {% endfor %}
+                      </tr>
+                      {% endwith %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </form>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <button type="submit" form="bap-review-edits-form" class="btn btn-outline-primary btn-sm">Save Edits</button>
+
+              <button type="submit" form="bap-review-edits-form"
+                      formaction="{% url 'processBapImport' batch.pk %}"
+                      class="btn btn-success btn-sm"
+                      onclick="return confirm('Process all rows now? This cannot be undone.');">
+                &#9654; Process BAP Submissions
+              </button>
+            </div>
+          {% else %}
+            <p class="text-muted">No rows found in working file.</p>
+          {% endif %}
+
+        </div>
+      </div>
+
+      <a href="{% url 'aquaristClub' club.pk %}" class="btn btn-secondary btn-sm">&#8592; Back to Club</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

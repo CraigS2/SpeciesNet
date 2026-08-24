@@ -333,10 +333,13 @@ def registerCaresSpecies(request, pk):
                 cares_reg.cares_approver = get_matching_cares_approver(cares_species)
                 cares_reg.save()
 
+                print ('New Cares Registration Saved: ' + cares_reg.name)
+
                 if cares_reg.verification_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
                 if getattr(settings, 'SITE_ID', 1) == 2:
                     #send_new_registration_notification(cares_reg, request)
+                    print ('New Cares Registration - DB updated queuing email notification: send_new_registration_notification')
                     send_new_registration_notification(cares_reg)                    
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
                 messages.success(request, f'CARES "{cares_species.name}" registration submitted!')
@@ -775,15 +778,6 @@ def importCaresRegistrations(request):
     site_id = getattr(settings, 'SITE_ID', 1)
     context = {'form': form, 'site_id': site_id}
     return render(request, 'species/cares/importCaresRegistrations.html', context)
-
-
-@login_required(login_url='login')
-def exportCaresRegistrationsPending(request):
-    userCanEdit = user_can_edit(request.user)
-    if not userCanEdit:
-        raise PermissionDenied()
-    return export_csv_caresRegistrations_asn_pending()
-
 
 
 @login_required(login_url='login')

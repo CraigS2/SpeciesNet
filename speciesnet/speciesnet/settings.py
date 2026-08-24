@@ -10,7 +10,7 @@ ALLOWED_HOSTS = [os.environ['ALLOWED_HOST1'], os.environ['ALLOWED_HOST2'],
                  os.environ['ALLOWED_HOST3'], os.environ['ALLOWED_HOST4']]
 #CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
 CSRF_TRUSTED_ORIGINS = [os.environ['CSRF_TRUSTED_ORIGIN1'], os.environ['CSRF_TRUSTED_ORIGIN2'], 
-                        os.environ['CSRF_TRUSTED_ORIGIN3']]
+                        os.environ['CSRF_TRUSTED_ORIGIN3'], os.environ['CSRF_TRUSTED_ORIGIN4']]
 
 ###############################################
 # SITE_ID and SITE_DOMAIN must be aligned     #
@@ -100,6 +100,18 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'user@example.com')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'unsecure')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'user@example.com')
 EMAIL_SUBJECT_PREFIX = ""
+
+
+### Admin notification email (used for sync error alerts) ###
+
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+
+### BCC recipients for all pending-action emails (new reg, status change, etc.) ###
+### Comma-separated list in .env, e.g.: EMAIL_BCC_ADDRESSES=alice@example.com,bob@example.com ###
+
+EMAIL_BCC_ADDRESSES = [
+    addr.strip() for addr in os.environ.get('EMAIL_BCC_ADDRESSES', '').split(',') if addr.strip()
+]
 
 ### logging ###
 
@@ -232,6 +244,8 @@ ACCOUNT_FORMS = {
     'signup': 'species.forms.CustomSignupForm',
     'reset_password': 'species.forms.CustomResetPasswordForm',
 }
+
+ACCOUNT_ADAPTER = 'species.adapters.SpeciesNetAccountAdapter'
 
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_CONFIRM_EMAIL_ON_GET = os.environ.get('ACCOUNT_CONFIRM_EMAIL_ON_GET', 'False')
@@ -445,3 +459,15 @@ API_SERVICE_PASSWORD = os.environ.get('API_SERVICE_PASSWORD', 'changeme_in_produ
 
 TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
 
+### Admin notification email (used for sync error alerts) ###
+
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+
+
+
+### Per-club auction.fish API key encryption ###
+# Root Fernet key protecting all per-club auction.fish API keys stored in the
+# database.  MUST be a stable, backed-up secret — losing it permanently
+# undecrypts all stored keys.  Generate with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')

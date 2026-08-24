@@ -1,0 +1,49 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-7 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">Invite Members &mdash; {{ club.name }}</h4>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <p class="text-muted">
+                        Enter email addresses below to send account activation invitations.
+                        A proxy account will be created for each new address and an invitation
+                        email sent with a secure link to set their password.
+                    </p>
+                    <ul class="text-muted small mb-3">
+                        <li>Email addresses already registered on this site will be skipped and reported.</li>
+                        <li>Addresses with a pending invite already in progress will also be skipped.</li>
+                        <li>Invitation links expire after 7 days.</li>
+                    </ul>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% if form.errors %}
+                            <div class="alert alert-danger">Please correct the errors below.</div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label for="{{ form.email_list.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.email_list.label }}
+                            </label>
+                            {{ form.email_list }}
+                            {% if form.email_list.errors %}
+                                <div class="text-danger small mt-1">{{ form.email_list.errors }}</div>
+                            {% endif %}
+                            {% if form.email_list.help_text %}
+                                <div class="form-text text-muted">{{ form.email_list.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">Send Invitations</button>
+                            <a href="{% url 'aquaristClubAdmin' club.id %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
