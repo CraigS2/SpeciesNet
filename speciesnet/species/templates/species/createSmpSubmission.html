@@ -1,9 +1,0 @@
-{% extends 'main.html' %}
-{% block content %}
-<div class="container">
-  <h3>{{ club.name }}</h3>
-  <h4>Create SMP Submission</h4>
-  <p><b>Species:</b> {{ speciesInstance.name }}</p>
-  <form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Submit</button></form>
-</div>
-{% endblock content %}
