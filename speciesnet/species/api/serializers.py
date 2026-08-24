@@ -1,6 +1,6 @@
 from django.conf import settings
 from rest_framework import serializers
-from species.models import Species, CaresRegistration
+from species.models import Species, CaresRegistration, SpeciesInstance
 
 
 class SpeciesSyncSerializer(serializers.ModelSerializer):
@@ -107,3 +107,42 @@ class RegistrationStatusSyncSerializer(serializers.ModelSerializer):
             'lastUpdated',
         ]
         read_only_fields = fields
+
+
+class SpeciesInstanceSyncSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the per-club BAP species-instance report sync.
+
+    Exposes only currently-kept, CARES-registered SpeciesInstance rows for
+    the authenticated club (see ``SpeciesInstanceSyncViewSet.get_queryset``).
+    No CARES-approver or CARES-species fields are included — those concerns
+    belong to the CARES catalog/approval workflow (Site2/CSO only) and are
+    out of scope for this Site1/ASN BAP report endpoint. No BAP-year
+    annotation is included either; the BapYear "current year" resolution
+    has a known bug and is explicitly deferred to a follow-up fix.
+    """
+
+    species = serializers.CharField(source='species.name', default='')
+    owner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SpeciesInstance
+        fields = [
+            'id',
+            'species',
+            'owner',
+            'unique_traits',
+            'year_acquired',
+            'have_spawned',
+            'have_reared_fry',
+            'young_available',
+            'cares_registered',
+            'lastUpdated',
+        ]
+        read_only_fields = fields
+
+    def get_owner(self, obj):
+        return {
+            'id': obj.user_id,
+            'display_name': obj.user.get_full_name() or obj.user.username,
+        }

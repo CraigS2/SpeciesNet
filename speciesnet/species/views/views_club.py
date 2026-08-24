@@ -414,6 +414,52 @@ def exportAquaristClubs(request):
 def exportAquaristClubMembers(request):
     return export_csv_aquaristClubMembers()
 
+### BAP Report API Key (club-admin self-service)
+
+@login_required(login_url='login')
+def generateClubBapReportApiKey(request, pk):
+    """
+    Club-admin self-service: generate (or replace) this club's BAP
+    species-instance report API key. The raw key is returned exactly once,
+    via a one-time success message — it is never stored in recoverable
+    plaintext form and is never redisplayed after this request.
+    """
+    club = get_object_or_404(AquaristClub, pk=pk)
+    if not user_can_edit_club(request.user, club):
+        raise PermissionDenied()
+    if request.method != 'POST':
+        raise PermissionDenied()
+
+    raw_key = club.generate_bap_report_api_key()
+    club.save()
+    logger.info('User %s generated a new BAP report API key for club: %s (%s)', request.user.username, club.name, str(club.id))
+    messages.success(
+        request,
+        'New BAP report API key generated: ' + raw_key +
+        ' — copy this key now, it will not be shown again.'
+    )
+    return HttpResponseRedirect(reverse("editAquaristClub", args=[club.id]))
+
+
+@login_required(login_url='login')
+def revokeClubBapReportApiKey(request, pk):
+    """
+    Club-admin self-service: revoke (clear) this club's BAP species-instance
+    report API key, immediately invalidating it for any external caller.
+    """
+    club = get_object_or_404(AquaristClub, pk=pk)
+    if not user_can_edit_club(request.user, club):
+        raise PermissionDenied()
+    if request.method != 'POST':
+        raise PermissionDenied()
+
+    club.revoke_bap_report_api_key()
+    club.save()
+    logger.info('User %s revoked the BAP report API key for club: %s (%s)', request.user.username, club.name, str(club.id))
+    messages.success(request, 'BAP report API key revoked.')
+    return HttpResponseRedirect(reverse("editAquaristClub", args=[club.id]))
+
+
 ### Import Proxy Members
 
 @login_required(login_url='login')

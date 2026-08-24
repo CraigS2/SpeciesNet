@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from decimal import Decimal
 import re
+import secrets
 import base64 as _b64
 from cryptography.fernet import Fernet as _Fernet, InvalidToken as _InvalidToken
 from django.conf import settings as _settings
@@ -556,6 +557,10 @@ class AquaristClub (models.Model):
                                     help_text="Redacted fingerprint of the stored API key, e.g. 'ck_539d••••1010'")
     cares_liaison_name        = models.CharField (max_length=240, blank=False, default='')
     cares_liason_email        = models.EmailField(max_length=50, null=True)  
+    bap_report_api_key        = EncryptedTextField(blank=True,
+                                    help_text="Club-generated API key for the BAP species-instance report sync (encrypted at rest; never redisplayed after generation)")
+    bap_report_api_key_hint   = models.CharField(max_length=30, blank=True,
+                                    help_text="Redacted fingerprint of the stored BAP report API key, e.g. 'bap_539d••••1010'")
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -579,6 +584,30 @@ class AquaristClub (models.Model):
         if len(key) <= 10:
             return key[:2] + '••••' + key[-2:] if len(key) > 4 else '••••'
         return key[:6] + '••••' + key[-4:]
+
+    @property
+    def has_bap_report_api_key(self) -> bool:
+        """True when a BAP species-instance report API key is currently stored for this club."""
+        return bool(self.bap_report_api_key)
+
+    def generate_bap_report_api_key(self) -> str:
+        """
+        Generate a new high-entropy BAP report API key, store it (encrypted)
+        and its redacted hint on this instance, and return the raw key.
+
+        The raw key is only ever available at generation time — it is never
+        stored in recoverable plaintext form and is never redisplayed after
+        this call returns. Callers are responsible for saving the instance.
+        """
+        raw_key = 'bap_' + secrets.token_urlsafe(32)
+        self.bap_report_api_key = raw_key
+        self.bap_report_api_key_hint = self._compute_api_key_hint(raw_key)
+        return raw_key
+
+    def revoke_bap_report_api_key(self) -> None:
+        """Clear the stored BAP report API key and hint. Callers must save the instance."""
+        self.bap_report_api_key = ''
+        self.bap_report_api_key_hint = ''
     
 
 class AquaristClubMember (models.Model):

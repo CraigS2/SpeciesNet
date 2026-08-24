@@ -5,8 +5,13 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils import timezone
-from species.models import Species, CaresRegistration
-from .serializers import SpeciesSyncSerializer, RegistrationSyncSerializer, RegistrationStatusSyncSerializer
+from species.models import Species, CaresRegistration, SpeciesInstance
+from .serializers import (
+    SpeciesSyncSerializer, RegistrationSyncSerializer, RegistrationStatusSyncSerializer,
+    SpeciesInstanceSyncSerializer,
+)
+from .authentication import ClubApiKeyAuthentication
+from .permissions import IsBapClub
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +234,83 @@ class RegistrationStatusSyncViewSet(viewsets.ReadOnlyModelViewSet):
 
         data = {
             'total_decided_registrations': total,
+            'server_time': timezone.now().isoformat(),
+        }
+        if recent_count is not None:
+            data['since'] = since_param
+            data['since_count'] = recent_count
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class SpeciesInstanceSyncViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only API viewset for the per-club BAP species-instance report sync.
+
+    Authenticated via a club-generated API key (``X-Club-Api-Key`` header;
+    see ``ClubApiKeyAuthentication``) rather than the shared, staff-level
+    service account used by the other sync endpoints in this module — each
+    club admin manages their own key (generate/revoke) from the club edit
+    page. Only clubs with ``is_bap_club=True`` are permitted (``IsBapClub``).
+
+    Only returns SpeciesInstance rows belonging to members of the
+    authenticated club where ``currently_keep=True`` and
+    ``cares_registered=True``. No BAP-year filtering/annotation is applied
+    (the current-year resolution has a known bug that is explicitly out of
+    scope for this endpoint — see PR discussion / assumptions list).
+
+    Endpoints:
+        GET /api/species-instance-sync/                       - list (paginated)
+        GET /api/species-instance-sync/?since=<ISO_DATETIME>  - filter by lastUpdated
+        GET /api/species-instance-sync/stats/                 - sync statistics
+    """
+
+    authentication_classes = [ClubApiKeyAuthentication]
+    permission_classes = [IsBapClub]
+    serializer_class = SpeciesInstanceSyncSerializer
+
+    def _base_queryset(self):
+        club = self.request.club
+        return SpeciesInstance.objects.filter(
+            user__user_club_members__club=club,
+            currently_keep=True,
+            cares_registered=True,
+        ).distinct().order_by('lastUpdated')
+
+    def get_queryset(self):
+        queryset = self._base_queryset()
+
+        since_param = self.request.query_params.get('since')
+        if since_param:
+            since_dt = _parse_since_param(since_param)
+            if since_dt is not None:
+                queryset = queryset.filter(lastUpdated__gte=since_dt)
+                logger.info('species-instance-sync list filtered by since=%s', since_param)
+            else:
+                logger.warning('species-instance-sync: invalid since parameter "%s" ignored', since_param)
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        logger.info('species-instance-sync list requested by club=%s', request.club.name)
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def stats(self, request):
+        """Return statistics about the reportable species instances for this club."""
+        logger.info('species-instance-sync stats requested by club=%s', request.club.name)
+        total = self._base_queryset().count()
+
+        since_param = request.query_params.get('since')
+        recent_count = None
+        if since_param:
+            since_dt = _parse_since_param(since_param)
+            if since_dt is not None:
+                recent_count = self._base_queryset().filter(lastUpdated__gte=since_dt).count()
+
+        data = {
+            'club': request.club.name,
+            'total_species_instances': total,
             'server_time': timezone.now().isoformat(),
         }
         if recent_count is not None:
