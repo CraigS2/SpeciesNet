@@ -66,12 +66,15 @@ WORKING_COLS = (
     + ['Account status']
 )
 
+MAX_AF_LOOKUP_ROWS_PER_BATCH = 50
+
 # Session keys used to stash an uploaded CSV while we confirm discarding an
 # existing REVIEW batch (browsers cannot pre-populate a file input, so we
 # cache the bytes instead of asking the admin to re-select the file).
 SESSION_PENDING_CSV_B64 = 'bap_import_pending_csv_b64'
 SESSION_PENDING_CSV_NAME = 'bap_import_pending_csv_name'
 SESSION_PENDING_CSV_CLUB = 'bap_import_pending_csv_club'
+SESSION_PENDING_CSV_AF_ENABLED = 'bap_import_pending_csv_af_enabled'
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -145,27 +148,25 @@ def _fuzzy_fill_species(rows: list) -> list:
 
 def _populate_af_species_match(rows: list, club) -> list:
     """
-    For each row with non-blank 'Lot' text, call the auction.fish
-    species-lookup API and populate 'AF species match' with the returned
-    ``label`` (or ``full_scientific_name`` if ``label`` is absent).
-
-    This is a read-only comparison column — it has no effect on how rows
-    are later resolved by ``processBapImport``.
-
-    Mutates rows in-place and returns them.  A short-circuit flag stops
-    further HTTP calls once a 429 (LLM quota exhausted) response has been
-    seen, to avoid hammering a club that is out of daily quota.
+    Populate the 'AF species match' column via the Auction.fish species-lookup API. 
+    Bounded by MAX_AF_LOOKUP_ROWS_PER_BATCH so a large CSV can never make this synchronous step unbounded.
     """
     quota_exhausted = False
+    lookups_made = 0
+    rows_skipped_due_to_cap = 0
     for row in rows:
         row.setdefault(_AF_SPECIES_MATCH_COL, '')
-        if quota_exhausted:
-            continue
         lot_text = row.get('Lot', '').strip()
         if not lot_text:
             continue
+        if quota_exhausted:
+            continue
+        if lookups_made >= MAX_AF_LOOKUP_ROWS_PER_BATCH:
+            rows_skipped_due_to_cap += 1
+            continue
         try:
             result = lookup_af_species_match(club, lot_text)
+            lookups_made += 1
             if result is _QUOTA_EXHAUSTED:
                 quota_exhausted = True
             elif result is not None:
@@ -175,7 +176,12 @@ def _populate_af_species_match(rows: list, club) -> list:
             logger.warning(
                 'auction.fish species-lookup failed for lot "%s": %s', lot_text, exc
             )
-            # Leave this row blank; continue with remaining rows.
+    if rows_skipped_due_to_cap:
+        logger.info(
+            'AF species match: row cap (%d) reached, %d row(s) left without a lookup.',
+            MAX_AF_LOOKUP_ROWS_PER_BATCH,
+            rows_skipped_due_to_cap,
+        )
     return rows
 
 
@@ -222,30 +228,30 @@ def _rows_dicts_to_lists(rows_dicts: list, headers: list) -> list:
     return [[row.get(h, '') for h in headers] for row in rows_dicts]
 
 
-def _build_working_rows_from_raw(raw_content: str, club=None):
+def _build_working_rows_from_raw(raw_content: str, club=None, enable_af_suggestions=False):
     """
     Shared pipeline for turning a raw CSV string into working rows:
     filter non-truthy Breeder points -> keep required cols + Account status
-    -> fuzzy-fill Species name -> populate AF species match (if club given).
-
+    -> fuzzy-fill Species name -> optionally populate AF species match.
+    AF species match lookups only run when enable_af_suggestions is True
     Returns (filtered_rows, skipped_count).
     """
     reader = csv.DictReader(io.StringIO(raw_content))
     all_rows = list(reader)
-
     total_before = len(all_rows)
     all_rows = _filter_truthy_breeder_points(all_rows)
     skipped_count = total_before - len(all_rows)
-
     filtered_rows = []
     for row in all_rows:
         filtered = {col: row.get(col, '') for col in REQUIRED_INPUT_COLS}
         filtered['Account status'] = _classify_account_status(filtered.get('Seller email', ''))
         filtered_rows.append(filtered)
-
     filtered_rows = _fuzzy_fill_species(filtered_rows)
-    if club is not None:
+    if enable_af_suggestions and club is not None:
         filtered_rows = _populate_af_species_match(filtered_rows, club)
+    else:
+        for row in filtered_rows:
+            row.setdefault(_AF_SPECIES_MATCH_COL, '')
     return filtered_rows, skipped_count
 
 
@@ -253,6 +259,7 @@ def _clear_pending_csv_session(request):
     request.session.pop(SESSION_PENDING_CSV_B64, None)
     request.session.pop(SESSION_PENDING_CSV_NAME, None)
     request.session.pop(SESSION_PENDING_CSV_CLUB, None)
+    request.session.pop(SESSION_PENDING_CSV_AF_ENABLED, None)
 
 
 def _apply_row_edits_from_post(rows: list, post_data) -> list:
@@ -308,6 +315,7 @@ def uploadBapImport(request, pk):
             b64 = request.session.get(SESSION_PENDING_CSV_B64)
             original_name = request.session.get(SESSION_PENDING_CSV_NAME, 'upload.csv')
             cached_club_pk = request.session.get(SESSION_PENDING_CSV_CLUB)
+            enable_af_suggestions = request.session.get(SESSION_PENDING_CSV_AF_ENABLED, False)
 
             if not b64 or cached_club_pk != club.pk:
                 messages.error(request, 'Your upload expired or could not be found. Please choose the file again.')
@@ -328,6 +336,7 @@ def uploadBapImport(request, pk):
 
         else:
             csv_file = request.FILES.get('csv_file')
+            enable_af_suggestions = request.POST.get('enable_af_suggestions') == '1'
 
             if not csv_file:
                 messages.error(request, 'Please choose a CSV file to upload.')
@@ -350,6 +359,7 @@ def uploadBapImport(request, pk):
                 request.session[SESSION_PENDING_CSV_B64] = base64.b64encode(raw_bytes).decode('ascii')
                 request.session[SESSION_PENDING_CSV_NAME] = uploaded_file_name
                 request.session[SESSION_PENDING_CSV_CLUB] = club.pk
+                request.session[SESSION_PENDING_CSV_AF_ENABLED] = enable_af_suggestions
                 context = {
                     'club': club,
                     'existing_review': existing_review,
@@ -360,7 +370,9 @@ def uploadBapImport(request, pk):
 
         # --- From here on we have raw_content ready to process ---
         try:
-            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content, club=club)
+            filtered_rows, skipped_count = _build_working_rows_from_raw(
+                raw_content, club=club, enable_af_suggestions=enable_af_suggestions
+            )
         except Exception as exc:
             messages.error(request, f'Could not parse CSV file: {exc}')
             _clear_pending_csv_session(request)
@@ -411,7 +423,6 @@ def uploadBapImport(request, pk):
 
     context = {'club': club, 'existing_review': existing_review}
     return render(request, 'species/bap_import_upload.html', context)
-
 
 # ---------------------------------------------------------------------------
 # View 2 – Review
@@ -475,8 +486,9 @@ def reviewBapImport(request, pk):
             }
             return render(request, 'species/bap_import_review.html', context)
 
+        enable_af_suggestions = request.POST.get('enable_af_suggestions') == '1'
         try:
-            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content, club=club)
+            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content, club=club, enable_af_suggestions=enable_af_suggestions)
         except Exception as exc:
             messages.error(request, f'Could not parse replacement CSV: {exc}')
             rows_dicts = _read_working_csv(batch)
@@ -976,6 +988,7 @@ def pullBapImportFromAuction(request, pk):
         return render(request, 'species/bap_import_pull.html', context)
 
     # Build working rows in the same format the CSV pipeline uses
+    enable_af_suggestions = request.POST.get('enable_af_suggestions') == '1'
     batch_label = f'auction.fish pull {start_str} to {end_str}'
     filtered_rows = []
     for lot in eligible_lots:
@@ -995,6 +1008,11 @@ def pullBapImportFromAuction(request, pk):
         filtered_rows.append(row)
 
     filtered_rows = _fuzzy_fill_species(filtered_rows)
+    if enable_af_suggestions:
+        filtered_rows = _populate_af_species_match(filtered_rows, club)
+    else:
+        for row in filtered_rows:
+            row.setdefault(_AF_SPECIES_MATCH_COL, '')
     filtered_rows = _populate_af_species_match(filtered_rows, club)
 
     existing_review = BapImportBatch.objects.filter(

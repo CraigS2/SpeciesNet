@@ -54,6 +54,13 @@
                 <label class="form-label fw-semibold">Select CSV File</label>
                 <input type="file" name="csv_file" class="form-control" accept=".csv" required>
               </div>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="enable_af_suggestions"
+                      name="enable_af_suggestions" value="1">
+                <label class="form-check-label" for="enable_af_suggestions">
+                  Enable AF Species name suggestions (comparison only — may slow down upload)
+                </label>
+              </div>              
               <button type="submit" class="btn btn-secondary">Upload and Review</button>
               <a href="{% url 'aquaristClub' club.pk %}" class="btn btn-secondary ms-2">Cancel</a>
             </form>

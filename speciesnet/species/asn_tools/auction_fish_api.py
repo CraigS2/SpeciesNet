@@ -18,6 +18,10 @@ _QUOTA_EXHAUSTED = object()  # sentinel returned by lookup_af_species_match on 4
 _AUCTION_FISH_BASE_URL = 'https://auction.fish/api/v1/clubs'
 _REQUEST_TIMEOUT_SECONDS = 15
 
+# Species-lookup calls happen once per CSV row, synchronously, inside the request/response cycle. 
+# Keep this short so a slow/hanging call can never combine with the per-batch row cap to exceed the Gunicorn worker timeout
+_SPECIES_LOOKUP_TIMEOUT_SECONDS = 6
+
 
 class AuctionFishAPIError(Exception):
     """Raised when the auction.fish API returns an error or cannot be reached."""
@@ -174,7 +178,7 @@ def lookup_af_species_match(club, query: str) -> dict | None:
             url,
             params=params,
             headers=headers,
-            timeout=_REQUEST_TIMEOUT_SECONDS,
+            timeout=_SPECIES_LOOKUP_TIMEOUT_SECONDS,
         )
     except requests.Timeout:
         logger.error(
