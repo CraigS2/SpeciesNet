@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.validators import validate_email
@@ -22,6 +22,7 @@ from django.views.generic import ListView
 #from django.views import View
 from smtplib import SMTPException
 from csv import DictReader
+from django.views.decorators.http import require_POST
 import logging
 
 # Third party
