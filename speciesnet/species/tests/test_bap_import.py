@@ -434,3 +434,205 @@ class ProcessBapImportViewTests(TestCase):
         url = reverse('processBapImport', args=[batch.pk])
         response = self.client.post(url)
         self.assertEqual(response.status_code, 403)
+
+
+# ---------------------------------------------------------------------------
+# AF species match column population
+# ---------------------------------------------------------------------------
+
+TEST_ENCRYPTION_SETTINGS = {
+    'FIELD_ENCRYPTION_KEY': 'RKhpkHjRg0Hb4CIigrG-wm1kXA1DfqCFTGwlL4xLExM=',
+}
+
+_AF_RESULT = {
+    'id': 4821,
+    'scientific_name': 'Labidochromis caeruleus',
+    'full_scientific_name': 'Labidochromis caeruleus',
+    'common_name': 'Yellow lab',
+    'label': 'Labidochromis caeruleus (Yellow lab)',
+    'unambiguous': True,
+}
+
+
+@override_settings(**TEST_ENCRYPTION_SETTINGS)
+class PopulateAfSpeciesMatchTests(TestCase):
+    """Unit tests for _populate_af_species_match helper."""
+
+    def setUp(self):
+        from unittest.mock import MagicMock
+        self.club = _make_club(name='AF Club', acronym='AFC')
+        self.club.auction_fish_slug = 'af-club'
+        self.club.auction_fish_api_key = 'af_test_key'
+        self.club.save()
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_populates_label_for_matching_lot(self, mock_lookup):
+        from species.views.views_bap_import import _populate_af_species_match
+        mock_lookup.return_value = _AF_RESULT
+        rows = [{'Lot': 'yellow lab', 'AF species match': ''}]
+        result = _populate_af_species_match(rows, self.club)
+        self.assertEqual(result[0]['AF species match'], 'Labidochromis caeruleus (Yellow lab)')
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_leaves_blank_on_no_match(self, mock_lookup):
+        from species.views.views_bap_import import _populate_af_species_match
+        mock_lookup.return_value = None
+        rows = [{'Lot': 'xyzzy', 'AF species match': ''}]
+        result = _populate_af_species_match(rows, self.club)
+        self.assertEqual(result[0]['AF species match'], '')
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_skips_blank_lot_text(self, mock_lookup):
+        from species.views.views_bap_import import _populate_af_species_match
+        rows = [{'Lot': '', 'AF species match': ''}]
+        result = _populate_af_species_match(rows, self.club)
+        self.assertEqual(result[0]['AF species match'], '')
+        mock_lookup.assert_not_called()
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_per_row_error_leaves_row_blank_continues(self, mock_lookup):
+        """An AuctionFishAPIError on one row must not abort the rest."""
+        from species.views.views_bap_import import _populate_af_species_match
+        from species.asn_tools.auction_fish_api import AuctionFishAPIError
+        mock_lookup.side_effect = [
+            AuctionFishAPIError('bad row'),
+            _AF_RESULT,
+        ]
+        rows = [
+            {'Lot': 'bad lot', 'AF species match': ''},
+            {'Lot': 'yellow lab', 'AF species match': ''},
+        ]
+        result = _populate_af_species_match(rows, self.club)
+        self.assertEqual(result[0]['AF species match'], '')
+        self.assertEqual(result[1]['AF species match'], 'Labidochromis caeruleus (Yellow lab)')
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_quota_exhausted_short_circuits_remaining_rows(self, mock_lookup):
+        """After a 429 sentinel, no further HTTP calls are made."""
+        from species.views.views_bap_import import _populate_af_species_match
+        from species.asn_tools.auction_fish_api import _QUOTA_EXHAUSTED
+        mock_lookup.return_value = _QUOTA_EXHAUSTED
+        rows = [
+            {'Lot': 'first lot', 'AF species match': ''},
+            {'Lot': 'second lot', 'AF species match': ''},
+            {'Lot': 'third lot', 'AF species match': ''},
+        ]
+        result = _populate_af_species_match(rows, self.club)
+        # All rows should be blank
+        for row in result:
+            self.assertEqual(row['AF species match'], '')
+        # Only the first lookup should have been attempted
+        self.assertEqual(mock_lookup.call_count, 1)
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_falls_back_to_full_scientific_name_when_label_missing(self, mock_lookup):
+        from species.views.views_bap_import import _populate_af_species_match
+        mock_lookup.return_value = {
+            'full_scientific_name': 'Pterophyllum scalare',
+            'label': '',
+        }
+        rows = [{'Lot': 'angelfish', 'AF species match': ''}]
+        result = _populate_af_species_match(rows, self.club)
+        self.assertEqual(result[0]['AF species match'], 'Pterophyllum scalare')
+
+
+@override_settings(**TEST_ENCRYPTION_SETTINGS)
+class AfSpeciesMatchInPipelineTests(TestCase):
+    """Integration tests: AF match column appears in working rows after upload / pull."""
+
+    def setUp(self):
+        self.club = _make_club(name='Pipeline Club', acronym='PLC')
+        self.club.auction_fish_slug = 'pipeline-club'
+        self.club.auction_fish_api_key = 'pl_test_key'
+        self.club.save()
+        self.admin = _make_club_admin(self.club, email='pladmin@test.com')
+        self.client = Client()
+        self.client.force_login(self.admin)
+        self.tmp_media = tempfile.mkdtemp()
+        self.media_override = override_settings(MEDIA_ROOT=self.tmp_media)
+        self.media_override.enable()
+
+    def tearDown(self):
+        self.media_override.disable()
+
+    def _csv_bytes(self, lot_name='Yellow Lab'):
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=[
+            'Auction name', 'Auction date', 'Lot number', 'Lot',
+            'Species name', 'Seller', 'Seller email', 'Breeder points',
+        ])
+        writer.writeheader()
+        writer.writerow({
+            'Auction name': 'Test', 'Auction date': '2024-01-01', 'Lot number': '1',
+            'Lot': lot_name, 'Species name': '', 'Seller': 'Alice',
+            'Seller email': 'alice@test.com', 'Breeder points': 'Yes',
+        })
+        return buf.getvalue().encode('utf-8')
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_upload_path_includes_af_match_column(self, mock_lookup):
+        """CSV upload populates 'AF species match' in the working file."""
+        mock_lookup.return_value = _AF_RESULT
+        url = reverse('uploadBapImport', args=[self.club.pk])
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile('test.csv', self._csv_bytes(), content_type='text/csv')
+        response = self.client.post(url, {'csv_file': f})
+        self.assertEqual(response.status_code, 302)
+        batch = BapImportBatch.objects.filter(club=self.club).first()
+        self.assertIsNotNone(batch)
+        from species.views.views_bap_import import _read_working_csv
+        rows = _read_working_csv(batch)
+        self.assertIn('AF species match', rows[0])
+        self.assertEqual(rows[0]['AF species match'], 'Labidochromis caeruleus (Yellow lab)')
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    @patch('species.views.views_bap_import.fetch_bap_lots')
+    def test_auction_pull_path_includes_af_match_column(self, mock_fetch, mock_lookup):
+        """Auction API pull populates 'AF species match' in the working file."""
+        mock_fetch.return_value = [
+            {'lot_id': 1, 'lot_name': 'Yellow Lab', 'seller_name': 'Alice',
+             'seller_email': 'alice@test.com', 'bap_eligible': True, 'sold': True},
+        ]
+        mock_lookup.return_value = _AF_RESULT
+        url = reverse('pullBapImportFromAuction', args=[self.club.pk])
+        response = self.client.post(url, {'start': '2024-01-01', 'end': '2024-01-31'})
+        self.assertEqual(response.status_code, 302)
+        batch = BapImportBatch.objects.filter(club=self.club).first()
+        self.assertIsNotNone(batch)
+        from species.views.views_bap_import import _read_working_csv
+        rows = _read_working_csv(batch)
+        self.assertIn('AF species match', rows[0])
+        self.assertEqual(rows[0]['AF species match'], 'Labidochromis caeruleus (Yellow lab)')
+
+    @patch('species.views.views_bap_import.lookup_af_species_match')
+    def test_af_column_not_in_process_species_resolution(self, mock_lookup):
+        """'AF species match' column does not affect processBapImport species resolution."""
+        _make_action_type('proxy_user_invite')
+        _make_action_type('bap_join_invite', 'pending_actions/bap_join_invite_email.html')
+        mock_lookup.return_value = _AF_RESULT
+        species = _make_species('Corydoras paleatus')
+        rows = [{
+            'Auction name': 'Test', 'Auction date': '', 'Lot number': '1',
+            'Lot': 'Corydoras paleatus', 'Species name': 'Corydoras paleatus',
+            'AF species match': 'Labidochromis caeruleus (Yellow lab)',
+            'Seller': 'Bob', 'Seller email': 'bob@test.com',
+            'Breeder points': 'Yes', 'Account status': 'pending',
+        }]
+        csv_bytes = _make_csv_bytes(rows)
+        batch = BapImportBatch.objects.create(
+            club=self.club,
+            club_or_auction_name='Test',
+            status=BapImportBatch.Status.REVIEW,
+            created_by=self.admin,
+        )
+        batch.working_csv_file.save(f'working_{batch.pk}.csv', ContentFile(csv_bytes), save=True)
+
+        with patch('species.views.views_bap_import._send_bap_join_invites'):
+            with patch('pending_actions.tasks.send_action_email') as mock_task:
+                mock_task.apply_async = lambda *a, **kw: None
+                self.client.post(reverse('processBapImport', args=[batch.pk]))
+
+        # Submission should be for Corydoras paleatus (from 'Species name'), not Labidochromis
+        submission = BapSubmission.objects.filter(club=self.club).first()
+        self.assertIsNotNone(submission)
+        self.assertEqual(submission.species.name, 'Corydoras paleatus')

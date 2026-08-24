@@ -330,6 +330,7 @@ class AuctionFishApiClientTests(TestCase):
 class PullBapImportViewTests(TestCase):
 
     def setUp(self):
+        import tempfile
         self.client = Client()
         self.club = _make_club(name='Pull Club')
         self.club.auction_fish_slug = 'pull-club'
@@ -337,6 +338,12 @@ class PullBapImportViewTests(TestCase):
         self.club.save()
         self.admin = _make_club_admin(self.club, email='pulladmin@test.com')
         self.client.login(email='pulladmin@test.com', password='testpass')
+        self.tmp_media = tempfile.mkdtemp()
+        self.media_override = override_settings(MEDIA_ROOT=self.tmp_media)
+        self.media_override.enable()
+
+    def tearDown(self):
+        self.media_override.disable()
 
     def _url(self):
         return reverse('pullBapImportFromAuction', args=[self.club.pk])
@@ -392,13 +399,15 @@ class PullBapImportViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No BAP-eligible lots')
 
+    @patch('species.views.views_bap_import.lookup_af_species_match')
     @patch('species.views.views_bap_import.fetch_bap_lots')
-    def test_post_creates_batch_and_redirects(self, mock_fetch):
+    def test_post_creates_batch_and_redirects(self, mock_fetch, mock_lookup):
         mock_fetch.return_value = [
             {'lot_id': 42, 'lot_name': 'Pterophyllum scalare',
              'seller_name': 'Alice', 'seller_email': 'alice@test.com',
              'bap_eligible': True, 'sold': True, 'timestamp': '2024-01-15'},
         ]
+        mock_lookup.return_value = None
         response = self.client.post(self._url(), {
             'start': '2024-01-01',
             'end': '2024-01-31',
@@ -415,3 +424,123 @@ class PullBapImportViewTests(TestCase):
         self.client.login(email='nonadmin@test.com', password='testpass')
         response = self.client.get(self._url())
         self.assertEqual(response.status_code, 403)
+
+
+# ---------------------------------------------------------------------------
+# Part E — lookup_af_species_match client tests
+# ---------------------------------------------------------------------------
+
+@override_settings(**TEST_ENCRYPTION_SETTINGS)
+class LookupAfSpeciesMatchTests(TestCase):
+
+    def setUp(self):
+        self.club = _make_club(name='Lookup Club')
+        self.club.auction_fish_slug = 'lookup-club'
+        self.club.auction_fish_api_key = 'lookup_test_key'
+        self.club.save()
+
+    def test_raises_without_slug(self):
+        from species.asn_tools.auction_fish_api import lookup_af_species_match, AuctionFishAPIError
+        self.club.auction_fish_slug = ''
+        self.club.save()
+        with self.assertRaises(AuctionFishAPIError) as ctx:
+            lookup_af_species_match(self.club, 'angelfish')
+        self.assertNotIn('lookup_test_key', str(ctx.exception))
+
+    def test_raises_without_key(self):
+        from species.asn_tools.auction_fish_api import lookup_af_species_match, AuctionFishAPIError
+        self.club.auction_fish_api_key = ''
+        self.club.save()
+        with self.assertRaises(AuctionFishAPIError):
+            lookup_af_species_match(self.club, 'angelfish')
+
+    @patch('species.asn_tools.auction_fish_api.requests.get')
+    def test_returns_top_result_on_unambiguous_match(self, mock_get):
+        from species.asn_tools.auction_fish_api import lookup_af_species_match
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'query': 'yellow lab',
+            'source': 'exact',
+            'unambiguous': True,
+            'total_matches': 1,
+            'count': 1,
+            'results': [
+                {
+                    'id': 4821,
+                    'scientific_name': 'Labidochromis caeruleus',
+                    'full_scientific_name': 'Labidochromis caeruleus',
+                    'common_name': 'Yellow lab',
+                    'label': 'Labidochromis caeruleus (Yellow lab)',
+                    'unambiguous': True,
+                }
+            ],
+        }
+        mock_get.return_value = mock_response
+
+        result = lookup_af_species_match(self.club, 'yellow lab')
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result['label'], 'Labidochromis caeruleus (Yellow lab)')
+        self.assertEqual(result['full_scientific_name'], 'Labidochromis caeruleus')
+        self.assertTrue(result['unambiguous'])
+
+        # API key must never appear in the URL
+        call_url = mock_get.call_args[0][0]
+        self.assertNotIn('lookup_test_key', call_url)
+
+    @patch('species.asn_tools.auction_fish_api.requests.get')
+    def test_returns_none_on_empty_results(self, mock_get):
+        from species.asn_tools.auction_fish_api import lookup_af_species_match
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'query': 'zxzxzx',
+            'source': 'none',
+            'unambiguous': False,
+            'total_matches': 0,
+            'count': 0,
+            'results': [],
+        }
+        mock_get.return_value = mock_response
+
+        result = lookup_af_species_match(self.club, 'zxzxzx')
+        self.assertIsNone(result)
+
+    @patch('species.asn_tools.auction_fish_api.requests.get')
+    def test_returns_quota_exhausted_sentinel_on_429(self, mock_get):
+        from species.asn_tools.auction_fish_api import lookup_af_species_match, _QUOTA_EXHAUSTED
+        mock_response = MagicMock()
+        mock_response.status_code = 429
+        mock_response.headers = {'X-Species-LLM-Remaining': '0'}
+        mock_get.return_value = mock_response
+
+        result = lookup_af_species_match(self.club, 'some lot')
+        # Must return the sentinel (not None, not raise)
+        self.assertIs(result, _QUOTA_EXHAUSTED)
+
+    @patch('species.asn_tools.auction_fish_api.requests.get')
+    def test_raises_on_400(self, mock_get):
+        from species.asn_tools.auction_fish_api import lookup_af_species_match, AuctionFishAPIError
+        mock_response = MagicMock()
+        mock_response.ok = False
+        mock_response.status_code = 400
+        mock_get.return_value = mock_response
+
+        with self.assertRaises(AuctionFishAPIError) as ctx:
+            lookup_af_species_match(self.club, '')
+        self.assertIn('400', str(ctx.exception))
+        self.assertNotIn('lookup_test_key', str(ctx.exception))
+
+    @patch('species.asn_tools.auction_fish_api.requests.get')
+    def test_raises_on_timeout(self, mock_get):
+        import requests as req_lib
+        from species.asn_tools.auction_fish_api import lookup_af_species_match, AuctionFishAPIError
+        mock_get.side_effect = req_lib.Timeout()
+
+        with self.assertRaises(AuctionFishAPIError) as ctx:
+            lookup_af_species_match(self.club, 'angelfish')
+        self.assertIn('timed out', str(ctx.exception))
+
