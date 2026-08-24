@@ -748,6 +748,64 @@ Returns aggregate counts useful for monitoring the sync.
 }
 ```
 
+### BAP species-instance report sync (club-key authenticated)
+
+Unlike the sync endpoints above, `species-instance-sync` runs on **Site1**
+(Aquarist Species) and is authenticated per-club rather than with a shared
+staff service account. Each club admin generates their own key from the
+club edit page (`Edit Club` → `BAP Report API Key` → `Generate Key`), and
+supplies it via the `X-Club-Api-Key` header. Only clubs with `is_bap_club=True`
+may authenticate. Generating a new key immediately invalidates any
+previously issued key; revoking clears it entirely.
+
+#### `GET /api/species-instance-sync/`
+
+Returns a paginated list of the authenticated club's `SpeciesInstance`
+rows where `currently_keep=True` and `cares_registered=True`.
+
+| Query parameter | Format | Description |
+|-----------------|--------|-------------|
+| `since` | `YYYY-MM-DD` or ISO 8601 datetime | Only return instances updated on or after this date/time |
+| `page` | integer | Page number (100 results per page) |
+
+**Example:**
+```bash
+curl -H "X-Club-Api-Key: <club-key>" http://site1/api/species-instance-sync/
+curl -H "X-Club-Api-Key: <club-key>" "http://site1/api/species-instance-sync/?since=2024-06-01"
+```
+
+**Response fields per species instance:**
+
+| Field | Description |
+|-------|-------------|
+| `id` | SpeciesInstance id |
+| `species` | Species name |
+| `owner` | `{id, display_name}` of the aquarist keeping this species |
+| `unique_traits` | Free-text traits (e.g. long-finned, color) |
+| `year_acquired` | Year acquired |
+| `have_spawned` | Whether this species has spawned |
+| `have_reared_fry` | Whether fry have been successfully reared |
+| `young_available` | Whether young are currently available |
+| `cares_registered` | Whether this instance is CARES-registered |
+| `lastUpdated` | ISO 8601 last-updated timestamp (used for sync comparison) |
+
+#### `GET /api/species-instance-sync/stats/`
+
+Returns aggregate counts for the authenticated club.
+
+**Example response:**
+```json
+{
+    "club": "Pioneer Valley Aquarium Society",
+    "total_species_instances": 12,
+    "server_time": "2024-06-01T12:00:00.000000+00:00"
+}
+```
+
+> **Note:** This endpoint does not apply any BAP-year filtering — the
+> current-BAP-year resolution has a known, separately tracked bug that is
+> out of scope for this endpoint.
+
 ---
 
 ## 5. Environment Variable Reference

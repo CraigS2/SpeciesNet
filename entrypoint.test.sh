@@ -31,4 +31,4 @@ END
 #python manage.py migrate --no-input
 
 echo "Running tests..."
-python manage.py test species.tests -v 2
+python manage.py test species.tests -v 2 --noinput

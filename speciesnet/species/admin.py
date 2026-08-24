@@ -5,7 +5,7 @@ from .models import User
 # Register your models here.
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
-from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive
+from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive, BapImportBatch
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback, SpeciesAdmin
 from .models import PageViewCount, PageViewMonthlySnapshot
@@ -92,7 +92,14 @@ class SpeciesFeedbackAdmin(admin.ModelAdmin):
 
 admin.site.register (User, UserAdmin)  
 admin.site.register (UserEmail)
-admin.site.register (AquaristClub)
+
+
+@admin.register(AquaristClub)
+class AquaristClubAdmin(admin.ModelAdmin):
+    # Never expose the raw encrypted keys in the admin — even to superusers.
+    exclude = ('auction_fish_api_key', 'bap_report_api_key')
+
+
 admin.site.register (AquaristClubMember)
 admin.site.register (Species)
 admin.site.register (SpeciesComment)
@@ -136,3 +143,4 @@ class PageViewMonthlySummaryAdmin(admin.ModelAdmin):
 
 admin.site.register(PageViewCount, PageViewCountAdmin)
 admin.site.register(PageViewMonthlySnapshot, PageViewMonthlySummaryAdmin)
+admin.site.register(BapImportBatch)

@@ -31,6 +31,23 @@
 # 
 #     docker-compose -f docker-compose.test.yml run --rm test_django python manage.py test species.tests.test_views_species_instance.SpeciesInstanceCreateViewTest.test_create_species_instance_with_valid_optional_data -v 2
 # 
+#  New issues popped up with django changes running tests in August 2026. Need to rebuild and run with tighter restrictions:
+#
+#     1. Bring the full test stack up once, detached, and leave it running
+#        docker compose -f docker-compose.test.yml up -d --build
+#
+#     2. Run just the one file/class/test *inside* the already-running django container
+#        docker compose -f docker-compose.test.yml exec test_django \
+#        python manage.py test species.tests.test_cares_email_notifications
+#
+# Narrow to a class:
+#    docker compose -f docker-compose.test.yml exec test_django \
+#    python manage.py test species.tests.test_cares_email_notifications.CaresEmailNotificationTests
+#
+# Narrow to a single test method:
+#    docker compose -f docker-compose.test.yml exec test_django \
+#    python manage.py test species.tests.test_cares_email_notifications.CaresEmailNotificationTests.test_bcc_applied
+#
 #############################################################################################################################################
 
 

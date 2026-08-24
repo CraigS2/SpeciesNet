@@ -1,15 +1,66 @@
 from django.db import models
+from django.db.models import Q
 #from enum import Enum
 #from django.contrib.auth.models import User
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from decimal import Decimal
 import re
+import secrets
+import base64 as _b64
+from cryptography.fernet import Fernet as _Fernet, InvalidToken as _InvalidToken
+from django.conf import settings as _settings
+
+
+def _get_fernet():
+    key = getattr(_settings, 'FIELD_ENCRYPTION_KEY', None)
+    if not key:
+        raise ImproperlyConfigured(
+            'FIELD_ENCRYPTION_KEY is not set. '
+            'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+        )
+    if isinstance(key, str):
+        key = key.encode()
+    return _Fernet(key)
+
+
+class EncryptedTextField(models.TextField):
+    """
+    A TextField that transparently encrypts values at rest using Fernet
+    symmetric encryption.  The raw key is sourced from
+    ``settings.FIELD_ENCRYPTION_KEY``.
+
+    Storing: plaintext → encrypt → base64-encoded ciphertext stored in DB.
+    Reading: ciphertext from DB → decrypt → plaintext returned to Python.
+
+    An empty string / None is stored as-is (no encryption of empty values).
+    """
+
+    def from_db_value(self, value, expression, connection):
+        if not value:
+            return value
+        try:
+            return _get_fernet().decrypt(value.encode()).decode()
+        except (_InvalidToken, ValueError):
+            # Return the raw ciphertext rather than crashing on mis-keyed data
+            return value
+
+    def get_prep_value(self, value):
+        if not value:
+            return value
+        raw = super().get_prep_value(value)
+        return _get_fernet().encrypt(raw.encode()).decode()
+
+    def to_python(self, value):
+        # When Django calls to_python during form validation the value may
+        # already be plaintext (from a fresh form POST), so just return it.
+        return value
 
 ### Custom User
 
@@ -176,7 +227,7 @@ class Species (models.Model):
         LV_CICHLIDS     = 'LVCIC', _('Cichlidae - Lake Victoria')
         MA_CICHLIDS     = 'MACIC', _('Cichlidae - Madagascar')
         NA_CICHLIDS     = 'NACIC', _('Cichlidae - North Africa')
-        SA_CICHLIDS     = 'SACIC', _('Cichlidae - South Africa')
+        SA_CICHLIDS     = 'SACIC', _('Cichlidae - South America')
         WA_CICHLIDS     = 'WACIC', _('Cichlidae - West Africa')
         LOACHES         = 'COBI',  _('Cobitidae - True Loaches')
         CYPRINDAE       = 'CYPR',  _('Cyprinidae - Minnows and Carps')
@@ -491,7 +542,25 @@ class AquaristClub (models.Model):
     bap_end_date              = models.DateField (null=True, blank=True)
     is_bap_club               = models.BooleanField (default=False)
     is_cares_club             = models.BooleanField (default=False)
+    cares_smp_multiplier      = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.50'))
+    cares_smp_year_cap        = models.PositiveIntegerField(default=5)
+    is_smp_club               = models.BooleanField(default=False)
+    require_spawning_notes    = models.BooleanField(default=False)
+    require_fry_rearing_notes = models.BooleanField(default=False)
     external_id               = models.PositiveIntegerField(null=True, blank=True, unique=True)
+    next_member_number        = models.PositiveIntegerField(default=1)  # persistent counter for proxy username generation
+    auction_fish_slug         = models.CharField(max_length=200, blank=True,
+                                    help_text="Club slug on auction.fish, e.g. 'pioneer-valley-aquarium-society'")
+    auction_fish_api_key      = EncryptedTextField(blank=True,
+                                    help_text="API key for auction.fish (encrypted at rest; never redisplayed after save)")
+    auction_fish_api_key_hint = models.CharField(max_length=30, blank=True,
+                                    help_text="Redacted fingerprint of the stored API key, e.g. 'ck_539d••••1010'")
+    cares_liaison_name        = models.CharField (max_length=240, blank=False, default='')
+    cares_liason_email        = models.EmailField(max_length=50, null=True)  
+    bap_report_api_key        = EncryptedTextField(blank=True,
+                                    help_text="Club-generated API key for the BAP species-instance report sync (encrypted at rest; never redisplayed after generation)")
+    bap_report_api_key_hint   = models.CharField(max_length=30, blank=True,
+                                    help_text="Redacted fingerprint of the stored BAP report API key, e.g. 'bap_539d••••1010'")
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -500,6 +569,45 @@ class AquaristClub (models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def has_auction_fish_api_key(self) -> bool:
+        """True when an auction.fish API key is currently stored for this club."""
+        return bool(self.auction_fish_api_key)
+
+    @staticmethod
+    def _compute_api_key_hint(raw_key: str) -> str:
+        """Return a redacted fingerprint like 'ck_539d••••1010' (first 6 + last 4 chars)."""
+        if not raw_key:
+            return ''
+        key = raw_key.strip()
+        if len(key) <= 10:
+            return key[:2] + '••••' + key[-2:] if len(key) > 4 else '••••'
+        return key[:6] + '••••' + key[-4:]
+
+    @property
+    def has_bap_report_api_key(self) -> bool:
+        """True when a BAP species-instance report API key is currently stored for this club."""
+        return bool(self.bap_report_api_key)
+
+    def generate_bap_report_api_key(self) -> str:
+        """
+        Generate a new high-entropy BAP report API key, store it (encrypted)
+        and its redacted hint on this instance, and return the raw key.
+
+        The raw key is only ever available at generation time — it is never
+        stored in recoverable plaintext form and is never redisplayed after
+        this call returns. Callers are responsible for saving the instance.
+        """
+        raw_key = 'bap_' + secrets.token_urlsafe(32)
+        self.bap_report_api_key = raw_key
+        self.bap_report_api_key_hint = self._compute_api_key_hint(raw_key)
+        return raw_key
+
+    def revoke_bap_report_api_key(self) -> None:
+        """Clear the stored BAP report API key and hint. Callers must save the instance."""
+        self.bap_report_api_key = ''
+        self.bap_report_api_key_hint = ''
     
 
 class AquaristClubMember (models.Model):
@@ -523,7 +631,6 @@ class AquaristClubMember (models.Model):
 ### CARES Registration & Approver
 
 class CaresApprover (models.Model):
-    #TODO Rename CaresAuthority
     name              = models.CharField (max_length=240)
     approver          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='cares_approvers') # deletes species instances if user deleted
     specialty         = models.CharField (max_length=5, choices=Species.CaresFamily.choices, default=Species.CaresFamily.UNDEFINED)
@@ -546,6 +653,7 @@ class CaresRegistration (models.Model):
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='cares_registrations')
     species_source            = models.TextField (blank=False, default='')
+    submitter_notes           = models.TextField (blank=False, default='')
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
     species_has_spawned       = models.BooleanField (default=False)
@@ -578,6 +686,87 @@ class CaresRegistration (models.Model):
 
 ### BAP Program
 
+class BapYearManager(models.Manager):
+    def get_open(self, club):
+        return self.filter(club=club, status=BapYear.Status.OPEN).order_by('start_date').first()
+
+
+class BapYear(models.Model):
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', _('Open')
+        CLOSED = 'CLSD', _('Closed')
+
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_years')
+    name = models.CharField(max_length=240, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    year_label = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], null=True, blank=True)
+    status = models.CharField(max_length=4, choices=Status.choices, default=Status.OPEN)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='closed_bap_years')
+    bap_breeder_of_year = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_breeder_of_year_awards')
+
+    objects = BapYearManager()
+
+    class Meta:
+        ordering = ['-year_label', '-start_date']
+        constraints = [
+            models.UniqueConstraint(fields=['club', 'year_label'], name='uniq_bapyear_club_year_label'),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.year_label is None and self.end_date:
+            self.year_label = self.end_date.year
+        if not self.name and self.year_label:
+            self.name = f'{self.year_label} BAP Year'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name or f'{self.club} {self.year_label}'
+
+
+class BapTier(models.Model):
+    class Program(models.TextChoices):
+        BAP = 'BAP', _('BAP')
+        SMP = 'SMP', _('SMP')
+
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_tiers')
+    program = models.CharField(max_length=3, choices=Program.choices)
+    name = models.CharField(max_length=120)
+    threshold_points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    icon = models.CharField(max_length=20, blank=True)
+    sort_order = models.IntegerField(default=1)
+    created = models.DateTimeField(auto_now_add=True)
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['threshold_points']
+        unique_together = ['club', 'program', 'sort_order']
+
+    def __str__(self):
+        return f'{self.club.acronym or self.club.name} {self.program} {self.name}'
+
+
+class BapLifetimeTotal(models.Model):
+    aquarist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bap_lifetime_totals')
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_lifetime_totals')
+    species_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    cares_species_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    current_tier = models.ForeignKey(BapTier, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_lifetime_members')
+    first_award_year = models.ForeignKey('BapYear', on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_lifetime_first_awards')
+    last_award_year = models.ForeignKey('BapYear', on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_lifetime_last_awards')
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['aquarist', 'club'], name='uniq_bap_lifetime_aquarist_club'),
+        ]
+        ordering = ['-points', '-species_count']
+
+    def __str__(self):
+        return f'{self.club} {self.aquarist} BAP lifetime'
+
 class BapSubmission (models.Model):
 
     name                      = models.CharField (max_length=240)
@@ -585,7 +774,9 @@ class BapSubmission (models.Model):
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_submissions') 
     #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    bap_year                  = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_submissions')
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True) 
+    species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_submissions')
     
     class BapSubmissionStatus (models.TextChoices):
         OPEN     = 'OPEN', _('Open')
@@ -593,6 +784,7 @@ class BapSubmission (models.Model):
         DECLINED = 'DECL', _('Declined')
         RESUBMIT = 'RESU', _('Resubmitted')
         CLOSED   = 'CLSD', _('Closed')
+        DUPLICATE = 'DUPL', _('Duplicate')
 
     status                    = models.CharField (max_length=4, choices=BapSubmissionStatus.choices, default=BapSubmissionStatus.OPEN)
     points                    = models.IntegerField (validators=[MinValueValidator(1), MaxValueValidator(100)], default=10)
@@ -606,7 +798,16 @@ class BapSubmission (models.Model):
 
     def __str__(self):
         return self.name
-    
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['aquarist', 'club', 'species'],
+                condition=Q(status='APRV'),
+                name='uniq_approved_bap_species_per_aquarist'
+            ),
+        ]
+     
 
 class BapLeaderboard (models.Model):
 
@@ -615,15 +816,85 @@ class BapLeaderboard (models.Model):
     club                      = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_bap_leaderboards') 
     #TODO manage school year  = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=lambda: timezone.now().year)
     year                      = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    bap_year                  = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_leaderboard_entries')
     species_count             = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     cares_species_count       = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
     points                    = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    is_final                  = models.BooleanField(default=False)
     created                   = models.DateTimeField(auto_now_add=True)
     lastUpdated               = models.DateTimeField(auto_now=True)  # compare dates of aquarist BAP submissions and only update when needed
 
 
     def __str__(self):
         return self.name    
+
+
+class SmpSubmission(models.Model):
+    name = models.CharField(max_length=240)
+    aquarist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_smp_submissions')
+    club = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_smp_submissions')
+    species = models.ForeignKey(Species, on_delete=models.SET_NULL, null=True, related_name='smp_submissions')
+    speciesInstance = models.ForeignKey(SpeciesInstance, on_delete=models.SET_NULL, null=True, related_name='smp_submissions')
+    bap_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_submissions')
+    maintenance_year_number = models.PositiveIntegerField(default=1)
+    base_points = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
+    smp_points = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    year = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    status = models.CharField(max_length=4, choices=BapSubmission.BapSubmissionStatus.choices, default=BapSubmission.BapSubmissionStatus.OPEN)
+    notes = models.TextField(blank=True)
+    breeder_comments = models.TextField(blank=True)
+    admin_comments = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+    created = models.DateTimeField(auto_now_add=True)
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['aquarist', 'club', 'species', 'bap_year'],
+                condition=Q(status='APRV'),
+                name='uniq_approved_smp_species_per_year'
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class SmpLeaderboard(models.Model):
+    name = models.CharField(max_length=240)
+    aquarist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aquarist_smp_leaderboards')
+    club = models.ForeignKey(AquaristClub, on_delete=models.SET_NULL, null=True, related_name='club_smp_leaderboards')
+    year = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=2025)
+    bap_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_leaderboard_entries')
+    species_count = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(1000)], default=0)
+    points = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10000)], default=0)
+    is_final = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class SmpLifetimeTotal(models.Model):
+    aquarist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='smp_lifetime_totals')
+    club = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='smp_lifetime_totals')
+    species_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    current_tier = models.ForeignKey(BapTier, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_lifetime_members')
+    first_award_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_lifetime_first_awards')
+    last_award_year = models.ForeignKey(BapYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='smp_lifetime_last_awards')
+    lastUpdated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['aquarist', 'club'], name='uniq_smp_lifetime_aquarist_club'),
+        ]
+        ordering = ['-points', '-species_count']
+
+    def __str__(self):
+        return f'{self.club} {self.aquarist} SMP lifetime'
     
 
 class BapGenus (models.Model):
@@ -807,3 +1078,105 @@ class PageViewMonthlySnapshot(models.Model):
 
     def __str__(self):
         return f'{self.get_page_type_display()} ({self.object_id}) - {self.get_visitor_type_display()}: {self.year}/{self.month:02d} = {self.count}'
+
+
+### Registration Sync State
+
+class RegistrationSyncState(models.Model):
+    """
+    Tracks the timestamp of the last successful nightly registration sync run
+    for each sync direction so incremental runs only process new/changed records.
+
+    direction choices:
+      'site1_to_site2' – Site2 pulling new OPEN registrations from Site1
+      'site2_to_site1' – Site1 pulling APRV/DECL status updates from Site2
+    """
+
+    DIRECTION_SITE1_TO_SITE2 = 'site1_to_site2'
+    DIRECTION_SITE2_TO_SITE1 = 'site2_to_site1'
+    DIRECTION_CHOICES = [
+        (DIRECTION_SITE1_TO_SITE2, 'Site1 → Site2 (new registrations)'),
+        (DIRECTION_SITE2_TO_SITE1, 'Site2 → Site1 (status updates)'),
+    ]
+
+    direction      = models.CharField(max_length=20, choices=DIRECTION_CHOICES, unique=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True,
+                                          help_text='Timestamp of the last successful sync run for this direction.')
+    updated_at     = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Registration Sync State'
+        verbose_name_plural = 'Registration Sync States'
+
+    def __str__(self):
+        return f'{self.get_direction_display()} – last synced: {self.last_synced_at}'
+
+    @classmethod
+    def get_last_synced(cls, direction):
+        """Return the last_synced_at datetime for the given direction, or None."""
+        try:
+            return cls.objects.get(direction=direction).last_synced_at
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def set_last_synced(cls, direction, dt):
+        """Upsert the last_synced_at timestamp for the given direction."""
+        cls.objects.update_or_create(direction=direction, defaults={'last_synced_at': dt})
+
+
+### BapImportBatch - working CSV for BAP auction import workflow
+
+import re as _re
+import os as _os
+
+
+def _sanitize_filename(text: str) -> str:
+    """Replace characters unsafe for filenames with underscores."""
+    return _re.sub(r'[^\w\-.]', '_', text or 'untitled')
+
+
+class BapImportBatch(models.Model):
+
+    class Status(models.TextChoices):
+        REVIEW    = 'REVIEW',    _('In Review')
+        PROCESSED = 'PROCESSED', _('Processed')
+
+    club             = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='bap_import_batches')
+    club_or_auction_name = models.CharField(max_length=240)
+    auction_pull_date    = models.DateField(null=True, blank=True)
+    working_csv_file = models.FileField(upload_to='bap_imports/working/', null=True, blank=True)
+    status           = models.CharField(max_length=12, choices=Status.choices, default=Status.REVIEW)
+    created_by       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bap_import_batches_created')
+    created_at       = models.DateTimeField(auto_now_add=True)
+    processed_by     = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='bap_import_batches_processed')
+    processed_at     = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'BAP Import Batch'
+        verbose_name_plural = 'BAP Import Batches'
+
+    def __str__(self):
+        return f'{self.club.name} – {self.club_or_auction_name} ({self.status})'
+
+    def clean(self):
+        # Enforce at most one REVIEW batch per club
+        if self.status == self.Status.REVIEW:
+            qs = BapImportBatch.objects.filter(club=self.club, status=self.Status.REVIEW)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError(
+                    f'Club "{self.club.name}" already has a batch in REVIEW status. '
+                    'Process or discard it before starting a new import.'
+                )
+
+    def archive_filename(self):
+        """Return the sanitized archive filename based on Club + Admin + Auction Name."""
+        admin_name = self.created_by.username if self.created_by else 'unknown'
+        return (
+            f'{_sanitize_filename(self.club.name)}'
+            f'_{_sanitize_filename(admin_name)}'
+            f'_{_sanitize_filename(self.club_or_auction_name)}.csv'
+        )

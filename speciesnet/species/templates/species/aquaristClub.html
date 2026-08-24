@@ -61,6 +61,10 @@
                                     <h5>BAP Administration</h5>
                                     <p><a class="btn btn-secondary" href="{% url 'bapSpecies' aquaristClub.id  %}" role="button">&nbsp;&nbsp;BAP Species Exceptions&nbsp;&nbsp;</a></p>
                                     <p><a class="btn btn-secondary" href="{% url 'exportClubBapGenus' aquaristClub.id  %}" role="button">&nbsp;Export BAP Genus Points&nbsp;</a></p>
+                                    <p><a class="btn btn-secondary" href="{% url 'uploadBapImport' aquaristClub.id  %}" role="button">&nbsp;Import BAP Submissions from Auction CSV&nbsp;</a></p>
+                                    {% if aquaristClub.has_auction_fish_api_key %}
+                                        <p><a class="btn btn-secondary" href="{% url 'pullBapImportFromAuction' aquaristClub.id  %}" role="button">&nbsp;Pull BAP Submissions from auction.fish&nbsp;</a></p>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         {% endif %}

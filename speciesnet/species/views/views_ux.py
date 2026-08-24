@@ -114,6 +114,7 @@ def importArchiveResults(request, pk):
             # Support both 3-column (Row, Species, Import_Status) and legacy formats
             status_value = (
                 row.get('Import_Status', '')
+                or row.get('Import status', '')
                 or row.get('Result', '')
                 or ''
             )
@@ -122,8 +123,8 @@ def importArchiveResults(request, pk):
             #   'Species' - species reference link and species imports (Row, Species, Import_Status)
             #   'Species Instance Name' - species instance imports
             #   'Genus' - aquarist club / BAP genus imports
-            species_val = row.get('Species', '') or row.get('Species Instance Name', '') or row.get('Genus', '')
-            is_error = status_value.startswith('ERROR')
+            species_val = row.get('Species', '') or row.get('Species Instance Name', '') or row.get('Genus', '') or row.get('Species name', '')
+            is_error = status_value.startswith('ERROR') or status_value.startswith('Error')
             if is_error:
                 error_count += 1
             elif status_value.startswith('SUCCESS'):

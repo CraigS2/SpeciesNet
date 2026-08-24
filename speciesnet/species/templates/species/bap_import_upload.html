@@ -1,0 +1,74 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-lg-9 mx-auto">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h4 class="my-0">BAP Import — Upload Auction CSV &mdash; {{ club.name }}</h4>
+        </div>
+        <div class="card-body px-4 py-3">
+
+          {% if warn_discard %}
+            <div class="alert alert-warning">
+              <strong>Warning:</strong> Club <strong>{{ club.name }}</strong> already has a
+              pending import in review for auction <em>{{ existing_review.club_or_auction_name }}</em>.
+              Uploading a new file will discard that working import permanently.
+              Click <strong>Confirm and Upload</strong> to continue, or
+              <a href="{% url 'reviewBapImport' existing_review.pk %}">go back to review</a>.
+            </div>
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="confirm_discard" value="1">
+              <input type="hidden" name="csv_file" value="{{ uploaded_file_name }}">
+              <p>Please re-select your file and click confirm:</p>
+              <div class="mb-3">
+                <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+              </div>
+              <button type="submit" class="btn btn-danger">Confirm and Upload</button>
+              <a href="{% url 'reviewBapImport' existing_review.pk %}" class="btn btn-secondary ms-2">Cancel</a>
+            </form>
+          {% else %}
+            {% if existing_review %}
+              <div class="alert alert-info">
+                There is already a
+                <a href="{% url 'reviewBapImport' existing_review.pk %}">pending import</a>
+                for <strong>{{ existing_review.club_or_auction_name }}</strong> in review.
+                Uploading a new file will replace it.
+              </div>
+            {% endif %}
+
+            <p class="text-muted">
+              Upload a BAP auction CSV with these headers (other columns are ignored):<br>
+              <code>Auction name, Auction date, Lot number, Lot, Species name, Seller, Seller email, Breeder points</code>
+            </p>
+            <ul class="text-muted small mb-3">
+              <li>An <strong>Account status</strong> column will be added automatically.</li>
+              <li>Blank <em>Species name</em> cells will be pre-filled using fuzzy matching against the species database where possible — please review and correct.</li>
+              <li>You can edit the working file and re-upload before processing.</li>
+            </ul>
+
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Select CSV File</label>
+                <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+              </div>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="enable_af_suggestions"
+                      name="enable_af_suggestions" value="1">
+                <label class="form-check-label" for="enable_af_suggestions">
+                  Enable AF Species name suggestions (comparison only — may slow down upload)
+                </label>
+              </div>              
+              <button type="submit" class="btn btn-secondary">Upload and Review</button>
+              <a href="{% url 'aquaristClub' club.pk %}" class="btn btn-secondary ms-2">Cancel</a>
+            </form>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

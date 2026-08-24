@@ -60,6 +60,7 @@
                                 <th style='text-align:center'>Username</th> 
                                 <th style='text-align:center'>Submitted</th>
                                 <th style='text-align:center'>Status</th>
+                                <th style='text-align:center'>Tier</th>
                                 <th style='text-align:center'>CARES</th>
                                 <th style='text-align:center'>Points</th> 
                             </tr>
@@ -72,6 +73,7 @@
                                     <td style='text-align:center'><a href="{% url 'aquarist' bap_submission.aquarist.id %}">{{bap_submission.aquarist.get_display_name}} </td>  
                                     <td style='text-align:center'>{{ bap_submission.created | date:'Y-m-d' }} </td>  
                                     <td style='text-align:center'>{{ bap_submission.get_status_display }}</td>
+                                    <td style='text-align:center'>{{ bap_submission.current_tier_display }}</td>
                                     {% if bap_submission.speciesInstance.species.render_cares %}
                                         <td style='text-align:center'>Yes</td>
                                     {% else %} 
@@ -146,4 +148,3 @@
 </div>
 
 {% endblock content %}
-

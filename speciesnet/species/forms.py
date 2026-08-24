@@ -3,14 +3,15 @@ from django import forms
 from django.forms import formset_factory
 from django.forms.formsets import formset_factory
 from django.utils import timezone
+from django.core.validators import MinValueValidator, validate_email
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
-from django.core.validators import MinValueValidator
+import re
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation, SpeciesInstance, SpeciesInstanceLogEntry, SpeciesInstanceLabel
 from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArchive, SpeciesImportStaging
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
-from .models import BapSubmission, BapGenus, BapSpecies, CaresRegistration, CaresApprover
+from .models import BapSubmission, BapGenus, BapSpecies, BapTier, SmpSubmission, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
@@ -1184,43 +1185,212 @@ class BapSubmissionFilterForm (forms.Form):
         ('DECL', 'Declined'),
         ('RESU', 'Resubmitted'),
         ('CLSD', 'Closed'),
+        ('DUPL', 'Duplicate'),
         ('',    'All Status Options'),
     ]
     status = forms.ChoiceField (choices = STATUS_CHOICES, required = False)
 
-
 class BapSubmissionForm (ModelForm):
+    spawning_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Spawning Notes',
+    )
+    fry_rearing_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Fry Rearing Notes',
+    )
+
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'speciesInstance', 'status', 'active']
-        widgets = {'notes': forms.Textarea(attrs={'rows':8,'cols':50}),} 
+        exclude = ['name', 'aquarist', 'club', 'points', 'year', 'bap_year', 'speciesInstance', 'species', 'status', 'active', 'notes']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, species_instance=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if species_instance is not None:
+            self.fields['spawning_notes'].initial = species_instance.spawning_notes
+            self.fields['fry_rearing_notes'].initial = species_instance.fry_rearing_notes
         self.helper = FormHelper()
+        self.helper.form_tag = False
         self.helper.form_method = 'post'
         self.helper.layout = Layout(
-            Field('notes', css_class='mb-3'),
+            Field('spawning_notes', css_class='mb-3'),
+            Field('fry_rearing_notes', css_class='mb-3'),
             Submit('submit', 'Submit', css_class='btn btn-primary')
         )
 
+
 class BapSubmissionFormEdit (ModelForm):
+    spawning_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Spawning Notes',
+    )
+    fry_rearing_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Fry Rearing Notes',
+    )
+
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'points', 'admin_comments', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
-                    'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),}   
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'status', 'year', 'points', 'admin_comments', 'active', 'notes']
+        widgets = {'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50, 'class': 'form-control', 'style': 'max-width: 700px;'}),}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.speciesInstance_id:
+            si = self.instance.speciesInstance
+            self.fields['spawning_notes'].initial = si.spawning_notes
+            self.fields['fry_rearing_notes'].initial = si.fry_rearing_notes
+
+        self.fields['request_points_review'].label = 'Request Points Review'
+
+        self.fields['spawning_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['fry_rearing_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['breeder_comments'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = False
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+        self.helper.layout = Layout(
+            Field('spawning_notes', css_class='mb-3'),
+            Field('fry_rearing_notes', css_class='mb-3'),
+            Field('breeder_comments', css_class='mb-3'),
+            Field('request_points_review', wrapper_class='form-check mb-3'),
+        )
 
 class BapSubmissionFormAdminEdit (ModelForm):
+    spawning_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Spawning Notes',
+    )
+    fry_rearing_notes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 6, 'cols': 50}),
+        required=False,
+        label='Fry Rearing Notes',
+    )
+
     class Meta:
         model = BapSubmission
         fields = '__all__'
-        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'active' ]
-        widgets = { 'notes': forms.Textarea(attrs={'rows':8,'cols':50}),
-                    'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'admin_comments': forms.Textarea(attrs={'rows':2,'cols':50}),}                   
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'active', 'notes']
+        widgets = {'breeder_comments': forms.Textarea(attrs={'rows':1,'cols':50, 'class': 'form-control', 'style': 'max-width: 700px;'}),
+                    'admin_comments': forms.Textarea(attrs={'rows':2,'cols':50, 'class': 'form-control', 'style': 'max-width: 700px;'}),}        
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.speciesInstance_id:
+            si = self.instance.speciesInstance
+            self.fields['spawning_notes'].initial = si.spawning_notes
+            self.fields['fry_rearing_notes'].initial = si.fry_rearing_notes
+
+        self.fields['status'].widget.attrs.update({
+            'style': 'max-width: 200px;',
+            'class': 'form-select',
+        })
+        self.fields['year'].widget.attrs.update({
+            'style': 'max-width: 150px;',
+            'class': 'form-control',
+        })
+        self.fields['points'].widget.attrs.update({
+            'style': 'max-width: 150px;',
+            'class': 'form-control',
+        })
+        self.fields['request_points_review'].label = 'Request Points Review'
+        self.fields['spawning_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['fry_rearing_notes'].widget.attrs.update({
+            'style': 'max-width: 700px;',
+            'class': 'form-control',
+        })
+        self.fields['breeder_comments'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control',
+        })
+        self.fields['admin_comments'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control',
+        })
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = False
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-md-2 col-form-label fw-bold'
+        self.helper.field_class = 'col-md-10'
+        self.helper.layout = Layout(
+            Field('status', css_class='mb-3'),
+            Field('year', css_class='mb-3'),
+            Div(
+                Div(HTML('<label class="col-form-label fw-bold">Points</label>'), css_class='col-md-2'),
+                Div(
+                    HTML('''
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div style="max-width: 150px;">{{ form.points }}</div>
+                            <div class="form-check ms-4 mb-0 d-flex align-items-center">
+                                {{ form.request_points_review }}
+                                <label class="form-check-label ms-1 mb-0" for="{{ form.request_points_review.id_for_label }}">Request Points Review</label>
+                            </div>
+                        </div>
+                    '''),
+                    css_class='col-md-10'
+                ),
+                css_class='row mb-3'
+            ),
+            Field('breeder_comments', css_class='mb-3'),
+            Field('spawning_notes', css_class='mb-3'),
+            Field('fry_rearing_notes', css_class='mb-3'),
+            Field('admin_comments', css_class='mb-3'),
+        )
+
+class SmpSubmissionForm(ModelForm):
+    class Meta:
+        model = SmpSubmission
+        fields = '__all__'
+        exclude = ['name', 'aquarist', 'club', 'year', 'bap_year', 'speciesInstance', 'species', 'maintenance_year_number', 'base_points', 'smp_points', 'status', 'active']
+        widgets = {'notes': forms.Textarea(attrs={'rows': 8, 'cols': 50})}
+
+
+class SmpSubmissionFormEdit(ModelForm):
+    class Meta:
+        model = SmpSubmission
+        fields = '__all__'
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'maintenance_year_number', 'base_points', 'smp_points', 'admin_comments', 'active']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 8, 'cols': 50}),
+            'breeder_comments': forms.Textarea(attrs={'rows': 1, 'cols': 50}),
+        }
+
+
+class SmpSubmissionFormAdminEdit(ModelForm):
+    class Meta:
+        model = SmpSubmission
+        fields = '__all__'
+        exclude = ['name', 'club', 'aquarist', 'speciesInstance', 'species', 'bap_year', 'maintenance_year_number', 'base_points', 'smp_points', 'active']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 8, 'cols': 50}),
+            'breeder_comments': forms.Textarea(attrs={'rows': 1, 'cols': 50}),
+            'admin_comments': forms.Textarea(attrs={'rows': 2, 'cols': 50}),
+        }
 
 class BapGenusForm (ModelForm):
     class Meta:
@@ -1234,10 +1404,17 @@ class BapSpeciesForm (ModelForm):
         fields = '__all__'
         exclude = ['name', 'species', 'club']        
 
+
+class BapTierForm(ModelForm):
+    class Meta:
+        model = BapTier
+        fields = '__all__'
+        exclude = ['club']
+
 class AquaristClubForm (ModelForm):
     class Meta:
         model = AquaristClub
-        fields = '__all__'
+        exclude = ['next_member_number']
         widgets = {'name':               forms.Textarea(attrs={'rows':1,'cols':50}),
                    'website':            forms.Textarea(attrs={'rows':1,'cols':50}),
                    'city':               forms.Textarea(attrs={'rows':1,'cols':50}),
@@ -1248,9 +1425,30 @@ class AquaristClubForm (ModelForm):
                    'bap_notes_template': forms.Textarea(attrs={'rows':8,'cols':50}),}
         
 class AquaristClubForm2 (ModelForm):
+    # Write-only API key input — always rendered blank; never pre-populated.
+    # Kept outside Meta.fields so it cannot accidentally be written via the
+    # normal ModelForm save() path.
+    auction_fish_api_key_input = forms.CharField(
+        required=False,
+        label='Auction.fish API Key',
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={'class': 'form-control', 'style': 'max-width: 500px;',
+                   'autocomplete': 'new-password',
+                   'placeholder': 'Paste new API key to update (leave blank to keep existing)'}
+        ),
+    )
+    clear_auction_fish_api_key = forms.BooleanField(
+        required=False,
+        label='Clear API Key',
+        help_text='Check to remove the stored API key and hint.',
+    )
+
     class Meta:
         model = AquaristClub
-        fields = '__all__'
+        # Explicitly list fields — never use __all__ to avoid accidentally
+        # including auction_fish_api_key (the encrypted raw field).
+        exclude = ['next_member_number', 'auction_fish_api_key']
         widgets = {
             'about':              forms.Textarea(attrs={'rows': 3}),  
             'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),  
@@ -1315,6 +1513,11 @@ class AquaristClubForm2 (ModelForm):
             'style': 'max-width: 500px;',
             'class': 'form-control'
         }) 
+        self.fields['is_smp_club'].help_text = 'Enables CARES SMP submissions and leaderboard features.'
+        self.fields['is_smp_club'].widget.attrs.update({
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
         self.fields['bap_guidelines'].widget.attrs.update({
             'placeholder': "Short summary of your Club's BAP rules",
             'style': 'max-width: 750px;',
@@ -1344,7 +1547,16 @@ class AquaristClubForm2 (ModelForm):
         self.fields['bap_end_date'].widget.attrs.update({
             'style': 'max-width: 250px;',
             'class': 'form-control'
-        })        
+        })
+        self.fields['cares_smp_multiplier'].help_text = 'SMP points multiplier applied to base BAP points.'
+        self.fields['cares_smp_year_cap'].help_text = 'Maximum maintenance year multiplier applied in SMP.'
+        self.fields['require_spawning_notes'].help_text = 'Require spawning notes before BAP/SMP approval.'
+        self.fields['require_fry_rearing_notes'].help_text = 'Require fry-rearing notes before BAP/SMP approval.'
+        self.fields['auction_fish_slug'].widget.attrs.update({
+            'placeholder': 'e.g. pioneer-valley-aquarium-society',
+            'style': 'max-width: 500px;',
+            'class': 'form-control',
+        })
 
         self.helper.layout = Layout(
             # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
@@ -1372,6 +1584,10 @@ class AquaristClubForm2 (ModelForm):
                         css_class='form-group col-md-4 mb-3'
                     ),
                     Column(
+                        Field('is_smp_club', css_class='form-check'),
+                        css_class='form-group col-md-4 mb-3'
+                    ),
+                    Column(
                         Field('require_member_approval', css_class='form-check'),
                         css_class='form-group col-md-4 mb-3'
                     ),                
@@ -1383,7 +1599,8 @@ class AquaristClubForm2 (ModelForm):
                             <small>💡 <strong>Checking options turns on or off Club features. </strong><br>
                                     Checking <i>BAP Club</i> enables the BAP program for your club. &nbsp;Unchecking hides all BAP features.<br>
                                     Checking <i>CARES Club</i> enables the CARES Liaison role. &nbsp;Unchecking disables CARES features.<br>
-                        </div>
+                                    Checking <i>SMP Club</i> enables CARES SMP submissions/leaderboards for eligible club members.<br>
+                            </div>
                     """),      
                 ),                  
                 css_class='mb-3 section-bordered'
@@ -1397,8 +1614,25 @@ class AquaristClubForm2 (ModelForm):
                 Field('cares_muliplier', css_class='mb-1'),
                 Field('bap_start_date', css_class='mb-1'),
                 Field('bap_end_date', css_class='mb-1'),
+                Field('cares_smp_multiplier', css_class='mb-1'),
+                Field('cares_smp_year_cap', css_class='mb-1'),
+                Field('require_spawning_notes', css_class='mb-1'),
+                Field('require_fry_rearing_notes', css_class='mb-1'),
                 css_class='mb-3 section-bordered'
             ),  
+
+            Fieldset(
+                'Auction.fish Integration',
+                Field('auction_fish_slug', css_class='mb-1'),
+                Field('auction_fish_api_key_input', css_class='mb-1'),
+                HTML('{% if aquaristClub.has_auction_fish_api_key %}'
+                     '<p class="text-success mb-1"><small>🔑 Key configured: <code>{{ aquaristClub.auction_fish_api_key_hint }}</code></small></p>'
+                     '{% else %}'
+                     '<p class="text-muted mb-1"><small>No key configured.</small></p>'
+                     '{% endif %}'),
+                Field('clear_auction_fish_api_key', css_class='mb-1'),
+                css_class='mb-3 section-bordered',
+            ),
 
             # Submit Buttons
             FormActions(
@@ -1407,6 +1641,33 @@ class AquaristClubForm2 (ModelForm):
                 css_class='mt-2'
             )
         )
+
+    def save(self, commit=True):
+        """
+        Handle write-only auction.fish API key logic:
+        - If 'Clear API Key' is checked, clear key and hint regardless of
+          whether a new key value was also submitted (clear takes precedence).
+        - Otherwise, if a non-blank key was submitted, encrypt-and-store it
+          and recompute the hint.
+        - If submitted key is blank and clear is unchecked, the existing key
+          and hint are left completely untouched (strict no-op).
+        """
+        club = super().save(commit=False)
+        new_key = self.cleaned_data.get('auction_fish_api_key_input', '').strip()
+        do_clear = self.cleaned_data.get('clear_auction_fish_api_key', False)
+
+        if do_clear:
+            # Clearing takes precedence over any new value that may also be present.
+            club.auction_fish_api_key = ''
+            club.auction_fish_api_key_hint = ''
+        elif new_key:
+            club.auction_fish_api_key = new_key
+            club.auction_fish_api_key_hint = AquaristClub._compute_api_key_hint(new_key)
+        # else: blank submission + checkbox unchecked → no-op; existing key/hint unchanged.
+
+        if commit:
+            club.save()
+        return club
 # Bare Bones Club Creation/Edit form for CARES Site 2 usage only
 class AquaristClubForm2BB (ModelForm):
     class Meta:
@@ -1783,3 +2044,45 @@ class SpeciesFeedbackForm(ModelForm):
             del self.fields['email']
         else:
             self.fields['email'].required = True            
+
+
+class ProxyMemberImportForm(forms.Form):
+    """
+    Form for club admins to bulk-import proxy members.
+
+    Accepts a newline- or comma-separated list of email addresses.
+    Each address is validated individually; invalid addresses are
+    reported to the admin rather than silently skipped.
+    """
+    email_list = forms.CharField(
+        label='Email addresses',
+        widget=forms.Textarea(attrs={
+            'rows': 10,
+            'placeholder': 'Enter one email address per line, or comma-separated',
+            'class': 'form-control',
+        }),
+        help_text='One email per line (or comma-separated). Existing accounts are skipped and reported.',
+    )
+
+    def clean_email_list(self):
+        raw = self.cleaned_data.get('email_list', '')
+        # Support both newline and comma as separators
+        raw_emails = re.split(r'[\n,]+', raw)
+        valid = []
+        invalid = []
+        for addr in raw_emails:
+            addr = addr.strip().lower()
+            if not addr:
+                continue
+            try:
+                validate_email(addr)
+                valid.append(addr)
+            except Exception:
+                invalid.append(addr)
+        if invalid:
+            raise forms.ValidationError(
+                f'The following are not valid email addresses: {", ".join(invalid)}'
+            )
+        if not valid:
+            raise forms.ValidationError('Please enter at least one valid email address.')
+        return valid

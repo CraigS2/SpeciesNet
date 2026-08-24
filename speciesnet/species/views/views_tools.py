@@ -8,6 +8,8 @@ Restricted to staff/admin users only
 from .base import *
 import csv
 from io import TextIOWrapper
+from pending_actions.models import PendingAction
+from pending_actions.tasks import send_action_email
 
 ### Species Reports
 
@@ -583,6 +585,37 @@ def speciesWithManageCollectionLocations(request):
     return render(request, 'species/tools/speciesWithManageCollectionLocations.html', context)
 
 
+### Flush Queued Pending-Action Emails (staff-only) ###
+
+
+@login_required(login_url='login')
+def flushPendingActionEmails(request):
+    """
+    Manually trigger send_action_email for every currently-PENDING PendingAction.
+    Useful when verifying the Celery pipeline without waiting for a worker to
+    pick messages off the queue, or for re-triggering rows that were queued
+    before a worker was running.
+    """
+    if not request.user.is_staff:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        pending_qs = PendingAction.objects.filter(status=PendingAction.Status.PENDING)
+        queued = 0
+        for action in pending_qs:
+            send_action_email.apply_async(args=[action.id], queue='emails')
+            queued += 1
+        logger.info('Staff user %s manually re-queued %d pending action email(s)', request.user.username, queued)
+        messages.success(request, f'Re-queued {queued} pending action email(s) for sending.')
+        return redirect('tools')
+
+    pending_count = PendingAction.objects.filter(status=PendingAction.Status.PENDING).count()
+    context = {'pending_count': pending_count}
+    return render(request, 'species/tools/flushPendingActionEmails.html', context)
+
+
+################ Danger Will Robinson ###########################################
+
 def dirtyDeedMigrateWorkingRegistrations(modify_db=False):
     cur_registrations = CaresRegistration.objects.all()
     for reg in cur_registrations:
@@ -647,8 +680,16 @@ def dirtyDeed(request):
         raise PermissionDenied()
     
     # Dirty deed goes here ...  then return to tools2
+    #print ('Dirty Deed: Nothing to do!')
+    cur_registrations = CaresRegistration.objects.all()
+    for reg in cur_registrations:
+        if (reg.external_id):
+            print ('Registration external id is: ' + str(reg.external_id))
+            reg.external_id = None
+            reg.save()
+
     #dirtyDeedMigrateCaresClassifications()
-    dirtyDeedCleanBogusAssessmentDates()
+    #dirtyDeedCleanBogusAssessmentDates()
 
     # ### Registration dev-only migration work in progress ###
     # modify_db = True

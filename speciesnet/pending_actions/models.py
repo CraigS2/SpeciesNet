@@ -45,8 +45,8 @@ class PendingAction(models.Model):
     response_data = models.JSONField(null=True, blank=True)
 
     class Meta:
-        indexes = [models.Index(fields=['status', 'expires_at'])]
-        ordering = ['-created_at']
+        indexes = [models.Index(fields=['status', 'expires_at'], name='pending_action_status_idx'),]
+        ordering = ['-created_at']     
 
     def __str__(self):
         return f'{self.action_type.slug}#{self.pk} ({self.status})'

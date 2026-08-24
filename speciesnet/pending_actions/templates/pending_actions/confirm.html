@@ -1,13 +1,19 @@
+{% extends 'main.html' %}
+{% load static %}
+{% block content %}
+
 <!DOCTYPE html>
 <html>
 <body>
   <h1>Confirm Request</h1>
   <p>{{ email_context.subject }}</p>
   {% if email_context.body %}<p>{{ email_context.body|linebreaksbr }}</p>{% endif %}
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Confirm</button>
   </form>
 </body>
 </html>
+
+{% endblock content %}

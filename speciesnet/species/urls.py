@@ -29,6 +29,8 @@ urlpatterns = [
     path('aquaristClub/<str:pk>/', views.aquaristClub, name="aquaristClub"), 
     path('createAquaristClub/', views.createAquaristClub, name="createAquaristClub"),
     path('editAquaristClub/<str:pk>/', views.editAquaristClub, name="editAquaristClub"),
+    path('aquaristClub/<str:pk>/bap-report-key/generate/', views.generateClubBapReportApiKey, name="generateClubBapReportApiKey"),
+    path('aquaristClub/<str:pk>/bap-report-key/revoke/', views.revokeClubBapReportApiKey, name="revokeClubBapReportApiKey"),
     path('deleteAquaristClub/<str:pk>/', views.deleteAquaristClub, name="deleteAquaristClub"), 
     path('exportAquaristClubs/', views.exportAquaristClubs, name="exportAquaristClubs"),
     #path('importAquaristClubs/', views.importAquaristClubs, name="importAquaristClubs"),
@@ -40,6 +42,14 @@ urlpatterns = [
     path('editAquaristClubMember/<str:pk>/', views.editAquaristClubMember, name="editAquaristClubMember"),
     path('deleteAquaristClubMember/<str:pk>/', views.deleteAquaristClubMember, name="deleteAquaristClubMember"), 
     path('exportAquaristClubMembers/', views.exportAquaristClubMembers, name="exportAquaristClubMembers"),
+    path('importProxyMembers/<str:pk>/', views.importProxyMembers, name="importProxyMembers"),
+
+    ### BAP CSV Import Workflow ###
+
+    path('bap/import/upload/<int:pk>/', views.uploadBapImport, name="uploadBapImport"),
+    path('bap/import/review/<int:pk>/', views.reviewBapImport, name="reviewBapImport"),
+    path('bap/import/process/<int:pk>/', views.processBapImport, name="processBapImport"),
+    path('bap/import/pull/<int:pk>/', views.pullBapImportFromAuction, name="pullBapImportFromAuction"),
 
     ### Aquarist Club BAP Programs ###
 
@@ -62,6 +72,16 @@ urlpatterns = [
     path('bapGenusSpecies/<str:pk>/', views.BapGenusSpeciesView.as_view(), name="bapGenusSpecies"),    
     
     path('bapLeaderboard/<str:pk>/', views.BapLeaderboardView.as_view(), name="bapLeaderboard"),
+    path('smpLeaderboard/<str:pk>/', views.SmpLeaderboardView.as_view(), name="smpLeaderboard"),
+    path('smpSubmission/<str:pk>/', views.smpSubmission, name="smpSubmission"),
+    path('smpSubmissions/<str:pk>/', views.SmpSubmissionsView.as_view(), name="smpSubmissions"),
+    path('createSmpSubmission/<str:pk>/', views.createSmpSubmission, name="createSmpSubmission"),
+    path('editSmpSubmission/<str:pk>/', views.editSmpSubmission, name="editSmpSubmission"),
+    path('deleteSmpSubmission/<str:pk>/', views.deleteSmpSubmission, name="deleteSmpSubmission"),
+    path('bapTiers/<str:pk>/', views.BapTierView.as_view(), name='bapTiers'),
+    path('createBapTier/<str:pk>/', views.createBapTier, name='createBapTier'),
+    path('editBapTier/<str:pk>/', views.editBapTier, name='editBapTier'),
+    path('deleteBapTier/<str:pk>/', views.deleteBapTier, name='deleteBapTier'),
     path('bap_overview/', views.bap_overview, name="bap_overview"),
     path('bap_submissions_overview/', views.bap_submissions_overview, name="bap_submissions_overview"),
 
@@ -210,6 +230,7 @@ urlpatterns = [
     path('species-manage-collection-locations/', views.speciesWithManageCollectionLocations, name='speciesWithManageCollectionLocations'),
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
+    path('tools/flush-pending-emails/', views.flushPendingActionEmails, name="flushPendingActionEmails"),
     path('pageviews/top_ranking/', views.pageviewsTopRanking, name='pageviewsTopRanking'),
 
     ### Species Import Workflow ###
