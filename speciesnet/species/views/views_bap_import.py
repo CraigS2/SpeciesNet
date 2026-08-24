@@ -34,7 +34,7 @@ from species.models import (
 
 from species.services.bap_service import create_bap_submission, resolve_bap_points
 from species.services.proxy_user_service import create_proxy_user, OUTCOME_CREATED
-from species.asn_tools.auction_fish_api import fetch_bap_lots, AuctionFishAPIError
+from species.asn_tools.auction_fish_api import fetch_bap_lots, lookup_af_species_match, _QUOTA_EXHAUSTED, AuctionFishAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,18 @@ REQUIRED_INPUT_COLS = [
     'Breeder points',
 ]
 
-WORKING_COLS = REQUIRED_INPUT_COLS + ['Account status']
+_SPECIES_NAME_COL = 'Species name'
+_AF_SPECIES_MATCH_COL = 'AF species match'
+
+# WORKING_COLS preserves REQUIRED_INPUT_COLS order with 'AF species match'
+# inserted immediately after 'Species name', then adds 'Account status'.
+_species_idx = REQUIRED_INPUT_COLS.index(_SPECIES_NAME_COL)
+WORKING_COLS = (
+    REQUIRED_INPUT_COLS[: _species_idx + 1]
+    + [_AF_SPECIES_MATCH_COL]
+    + REQUIRED_INPUT_COLS[_species_idx + 1 :]
+    + ['Account status']
+)
 
 # Session keys used to stash an uploaded CSV while we confirm discarding an
 # existing REVIEW batch (browsers cannot pre-populate a file input, so we
@@ -132,6 +143,42 @@ def _fuzzy_fill_species(rows: list) -> list:
     return rows
 
 
+def _populate_af_species_match(rows: list, club) -> list:
+    """
+    For each row with non-blank 'Lot' text, call the auction.fish
+    species-lookup API and populate 'AF species match' with the returned
+    ``label`` (or ``full_scientific_name`` if ``label`` is absent).
+
+    This is a read-only comparison column — it has no effect on how rows
+    are later resolved by ``processBapImport``.
+
+    Mutates rows in-place and returns them.  A short-circuit flag stops
+    further HTTP calls once a 429 (LLM quota exhausted) response has been
+    seen, to avoid hammering a club that is out of daily quota.
+    """
+    quota_exhausted = False
+    for row in rows:
+        row.setdefault(_AF_SPECIES_MATCH_COL, '')
+        if quota_exhausted:
+            continue
+        lot_text = row.get('Lot', '').strip()
+        if not lot_text:
+            continue
+        try:
+            result = lookup_af_species_match(club, lot_text)
+            if result is _QUOTA_EXHAUSTED:
+                quota_exhausted = True
+            elif result is not None:
+                label = result.get('label') or result.get('full_scientific_name', '')
+                row[_AF_SPECIES_MATCH_COL] = label
+        except AuctionFishAPIError as exc:
+            logger.warning(
+                'auction.fish species-lookup failed for lot "%s": %s', lot_text, exc
+            )
+            # Leave this row blank; continue with remaining rows.
+    return rows
+
+
 def _parse_breeder_points(value: str) -> bool:
     """Return True if value is a truthy BAP indicator ('yes', 'true', '1', etc.)."""
     return str(value).strip().lower() in ('yes', 'true', '1', 'y')
@@ -175,11 +222,11 @@ def _rows_dicts_to_lists(rows_dicts: list, headers: list) -> list:
     return [[row.get(h, '') for h in headers] for row in rows_dicts]
 
 
-def _build_working_rows_from_raw(raw_content: str):
+def _build_working_rows_from_raw(raw_content: str, club=None):
     """
     Shared pipeline for turning a raw CSV string into working rows:
     filter non-truthy Breeder points -> keep required cols + Account status
-    -> fuzzy-fill Species name.
+    -> fuzzy-fill Species name -> populate AF species match (if club given).
 
     Returns (filtered_rows, skipped_count).
     """
@@ -197,6 +244,8 @@ def _build_working_rows_from_raw(raw_content: str):
         filtered_rows.append(filtered)
 
     filtered_rows = _fuzzy_fill_species(filtered_rows)
+    if club is not None:
+        filtered_rows = _populate_af_species_match(filtered_rows, club)
     return filtered_rows, skipped_count
 
 
@@ -311,7 +360,7 @@ def uploadBapImport(request, pk):
 
         # --- From here on we have raw_content ready to process ---
         try:
-            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content)
+            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content, club=club)
         except Exception as exc:
             messages.error(request, f'Could not parse CSV file: {exc}')
             _clear_pending_csv_session(request)
@@ -427,7 +476,7 @@ def reviewBapImport(request, pk):
             return render(request, 'species/bap_import_review.html', context)
 
         try:
-            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content)
+            filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content, club=club)
         except Exception as exc:
             messages.error(request, f'Could not parse replacement CSV: {exc}')
             rows_dicts = _read_working_csv(batch)
@@ -946,6 +995,7 @@ def pullBapImportFromAuction(request, pk):
         filtered_rows.append(row)
 
     filtered_rows = _fuzzy_fill_species(filtered_rows)
+    filtered_rows = _populate_af_species_match(filtered_rows, club)
 
     existing_review = BapImportBatch.objects.filter(
         club=club, status=BapImportBatch.Status.REVIEW

@@ -16,6 +16,10 @@
             row from processing while keeping it in the working file. You may also re-upload a corrected CSV to
             replace the working file entirely.
           </p>
+          <p class="text-muted small mb-2">
+            The <strong>AF species match</strong> column shows Auction.fish&#8217;s own suggested scientific name
+            for each lot, for comparison only &mdash; it does not affect import matching.
+          </p>
           <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center mb-3">
             {% csrf_token %}
             <div class="col-auto">
