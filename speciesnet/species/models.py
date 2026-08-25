@@ -554,10 +554,10 @@ class AquaristClub (models.Model):
                                     help_text="API key for auction.fish (encrypted at rest; never redisplayed after save)")
     auction_fish_api_key_hint = models.CharField(max_length=30, blank=True,
                                     help_text="Redacted fingerprint of the stored API key, e.g. 'ck_539d••••1010'")
-    bap_report_api_key        = EncryptedTextField(blank=True,
-                                    help_text="BAP report API key for club-scoped species-instance sync (encrypted at rest; never redisplayed after save)")
-    bap_report_api_key_hint   = models.CharField(max_length=30, blank=True,
-                                    help_text="Redacted fingerprint of the BAP report API key, e.g. 'bap_539d••••1010'")
+    club_api_key              = EncryptedTextField(blank=True,
+                                    help_text="Club admin API key for club-scoped API access (encrypted at rest; never redisplayed after save)")
+    club_api_key_hint         = models.CharField(max_length=30, blank=True,
+                                    help_text="Redacted fingerprint of the club admin API key, e.g. 'club_539d••••1010'")
     cares_liaison_name        = models.CharField (max_length=240, blank=False, default='')
     cares_liason_email        = models.EmailField(max_length=50, null=True)  
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
@@ -575,9 +575,9 @@ class AquaristClub (models.Model):
         return bool(self.auction_fish_api_key)
 
     @property
-    def has_bap_report_api_key(self) -> bool:
-        """True when a BAP report API key is currently stored for this club."""
-        return bool(self.bap_report_api_key)
+    def has_club_api_key(self) -> bool:
+        """True when a club admin API key is currently stored for this club."""
+        return bool(self.club_api_key)
 
     @staticmethod
     def _compute_api_key_hint(raw_key: str) -> str:
@@ -589,23 +589,23 @@ class AquaristClub (models.Model):
             return key[:2] + '••••' + key[-2:] if len(key) > 4 else '••••'
         return key[:6] + '••••' + key[-4:]
 
-    def generate_bap_report_api_key(self) -> str:
+    def generate_club_api_key(self) -> str:
         """
-        Generate a new BAP report API key, store it encrypted, update the hint,
+        Generate a new club admin API key, store it encrypted, update the hint,
         save the club, and return the raw key (shown once at generation time).
         """
         import secrets
-        raw_key = 'bap_' + secrets.token_urlsafe(32)
-        self.bap_report_api_key = raw_key
-        self.bap_report_api_key_hint = self._compute_api_key_hint(raw_key)
-        self.save(update_fields=['bap_report_api_key', 'bap_report_api_key_hint'])
+        raw_key = 'club_' + secrets.token_urlsafe(32)
+        self.club_api_key = raw_key
+        self.club_api_key_hint = self._compute_api_key_hint(raw_key)
+        self.save(update_fields=['club_api_key', 'club_api_key_hint'])
         return raw_key
 
-    def revoke_bap_report_api_key(self) -> None:
-        """Clear the BAP report API key and its hint."""
-        self.bap_report_api_key = ''
-        self.bap_report_api_key_hint = ''
-        self.save(update_fields=['bap_report_api_key', 'bap_report_api_key_hint'])
+    def revoke_club_api_key(self) -> None:
+        """Clear the club admin API key and its hint."""
+        self.club_api_key = ''
+        self.club_api_key_hint = ''
+        self.save(update_fields=['club_api_key', 'club_api_key_hint'])
     
 
 class AquaristClubMember (models.Model):

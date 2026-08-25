@@ -473,13 +473,13 @@ def importProxyMembers(request, pk):
     return render(request, 'species/importProxyMembers.html', context)
 
 
-### BAP Report API Key management
+### Club API Key management
 
 
 @login_required(login_url='login')
 @require_POST
-def generateClubBapReportApiKey(request, pk):
-    """Generate (or regenerate) the BAP report API key for a club.
+def generateClubApiKey(request, pk):
+    """Generate (or regenerate) the club API key for a club.
 
     The raw key is shown exactly once in the response; it is never re-displayed.
     Gated by the same ``user_can_edit_club`` permission used for all club-admin
@@ -488,19 +488,19 @@ def generateClubBapReportApiKey(request, pk):
     club = get_object_or_404(AquaristClub, pk=pk)
     if not user_can_edit_club(request.user, club):
         return HttpResponseForbidden('You do not have permission to manage this club.')
-    raw_key = club.generate_bap_report_api_key()
+    raw_key = club.generate_club_api_key()
     context = {
         'club': club,
         'raw_key': raw_key,
         'userCanEdit': True,
     }
-    return render(request, 'species/clubBapReportApiKeyGenerated.html', context)
+    return render(request, 'species/clubApiKeyGenerated.html', context)
 
 
 @login_required(login_url='login')
 @require_POST
-def revokeClubBapReportApiKey(request, pk):
-    """Revoke (clear) the BAP report API key for a club.
+def revokeClubApiKey(request, pk):
+    """Revoke (clear) the club API key for a club.
 
     Gated by the same ``user_can_edit_club`` permission used for all club-admin
     actions.
@@ -508,5 +508,5 @@ def revokeClubBapReportApiKey(request, pk):
     club = get_object_or_404(AquaristClub, pk=pk)
     if not user_can_edit_club(request.user, club):
         return HttpResponseForbidden('You do not have permission to manage this club.')
-    club.revoke_bap_report_api_key()
+    club.revoke_club_api_key()
     return redirect('editAquaristClub', pk=club.pk)

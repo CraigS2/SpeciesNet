@@ -5,17 +5,17 @@
         <div class="col-lg-8 mx-auto">
             <div class="card shadow-sm border-success">
                 <div class="card-header bg-success text-white">
-                    <h4 class="mb-0">🔑 BAP Report API Key Generated</h4>
+                    <h4 class="mb-0">🔑 Club Admin API Key Generated</h4>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-warning">
                         <strong>Save this key now.</strong> It will <em>not</em> be displayed again.
                     </div>
-                    <p>New BAP report API key for <strong>{{ club.name }}</strong>:</p>
+                    <p>New club admin API key for <strong>{{ club.name }}</strong>:</p>
                     <pre class="bg-light p-3 rounded"><code id="raw-key">{{ raw_key }}</code></pre>
                     <p class="text-muted small">
                         Use this key in the <code>X-Club-Api-Key</code> header when calling
-                        <code>/api/species-instance-sync/</code>.
+                        <code>/api/club-admin/...</code>.
                     </p>
                     <a href="{% url 'editAquaristClub' club.pk %}" class="btn btn-primary">
                         Back to Club Settings
