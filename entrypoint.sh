@@ -27,9 +27,9 @@ END
 ### only use migrations when you know they are needed ###
 #python manage.py showmigrations
 #python manage.py makemigrations --no-input
+#python manage.py squashmigrations species 0015 0021 --no-input
+#python manage.py squashmigrations pending_actions 0002 0006 --no-input
 python manage.py migrate --no-input
-python manage.py init_sites
-python manage.py collectstatic --no-input
 #python manage.py collectstatic --noinput --clear
 
 if [ ! -z "$SUPER_USER_NAME" ] && [ ! -z "$SUPER_USER_EMAIL" ] && [ ! -z "$SUPER_USER_PASSWORD" ]; then

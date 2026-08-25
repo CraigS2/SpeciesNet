@@ -1013,7 +1013,6 @@ def pullBapImportFromAuction(request, pk):
     else:
         for row in filtered_rows:
             row.setdefault(_AF_SPECIES_MATCH_COL, '')
-    filtered_rows = _populate_af_species_match(filtered_rows, club)
 
     existing_review = BapImportBatch.objects.filter(
         club=club, status=BapImportBatch.Status.REVIEW
