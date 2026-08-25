@@ -1,6 +1,6 @@
 from django.conf import settings
 from rest_framework import serializers
-from species.models import Species, CaresRegistration, SpeciesInstance
+from species.models import Species, CaresRegistration
 
 
 class SpeciesSyncSerializer(serializers.ModelSerializer):
@@ -104,37 +104,6 @@ class RegistrationStatusSyncSerializer(serializers.ModelSerializer):
             'approver_notes',
             'species',
             'aquarist_name',
-            'lastUpdated',
-        ]
-        read_only_fields = fields
-
-
-class SpeciesInstanceSyncSerializer(serializers.ModelSerializer):
-    """
-    Serializer for club-scoped BAP report species-instance sync.
-
-    Exposes CARES-registered, currently-kept SpeciesInstance records for
-    club members so that an external BAP reporting tool can pull them via
-    the /api/species-instance-sync/ endpoint.
-    """
-
-    species_name = serializers.CharField(source='species.name', read_only=True)
-    username = serializers.CharField(source='user.username', read_only=True)
-
-    class Meta:
-        model = SpeciesInstance
-        fields = [
-            'id',
-            'username',
-            'name',
-            'species_name',
-            'unique_traits',
-            'genetic_traits',
-            'year_acquired',
-            'currently_keep',
-            'cares_registered',
-            'have_spawned',
-            'young_available',
             'lastUpdated',
         ]
         read_only_fields = fields
