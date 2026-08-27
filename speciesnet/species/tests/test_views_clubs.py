@@ -1,7 +1,7 @@
 """
 Tests for AquaristClub and AquaristClubMember views
 """
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from species.models import AquaristClub, AquaristClubMember
@@ -68,15 +68,17 @@ class AquaristClubCreateViewTests(TestCase):
             'city': 'South Nimrod',
             'state': 'MN',
             'country': 'USA',
-            'website': 'https://snark-aquarium-club.com',  
+            'website': 'https://snark-aquarium-club.com',
             'bap_default_points': 15,
             'cares_muliplier': 3,
+            'cares_smp_multiplier': '0.50',
+            'cares_smp_year_cap': 5,
             'require_member_approval': True,
         }
-        
+
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        
+
         # Verify club was created
         self.assertTrue(AquaristClub.objects.filter(name='South Nimrod Aquarium Reef Keepers').exists())
         club = AquaristClub.objects.get(name='South Nimrod Aquarium Reef Keepers')
@@ -185,12 +187,14 @@ class AquaristClubEditViewTests(TestCase):
             'city': 'South Nimrod',
             'state': 'MN',
             'country': 'USA',
-            'website': 'https://snark-aquarium-club.com',  
+            'website': 'https://snark-aquarium-club.com',
             'bap_default_points': 15,
             'cares_muliplier': 3,
+            'cares_smp_multiplier': '0.50',
+            'cares_smp_year_cap': 5,
             'require_member_approval': True,
         }
-        
+
         response = self.client.post(url, data)
         if response.status_code != 302:
             if hasattr(response, 'context') and response.context and 'form' in response.context:
@@ -218,16 +222,165 @@ class AquaristClubEditViewTests(TestCase):
             'city': 'South Nimrod',
             'state': 'MN',
             'country': 'USA',
-            'website': 'https://snark-aquarium-club.com',  
+            'website': 'https://snark-aquarium-club.com',
             'bap_default_points': 15,
             'cares_muliplier': 3,
+            'cares_smp_multiplier': '0.50',
+            'cares_smp_year_cap': 5,
             'require_member_approval': True,
         }
-        
+
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
         self.club.refresh_from_db()
         self.assertEqual(self.club.name, 'South Nimrod Aquarium Reef Keepers')
+
+    def test_edit_club_site1_does_not_expose_cares_liaison_fields(self):
+        """cares_liaison_name/cares_liason_email are Site 2 (CARES CSO)-only
+        fields. On the default Site 1 club-admin edit form they must be
+        completely excluded — not rendered, and not required — since Site 1
+        clubs have no use for them."""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        response = self.client.get(url)
+        form = response.context['form']
+        self.assertNotIn('cares_liaison_name', form.fields)
+        self.assertNotIn('cares_liason_email', form.fields)
+        self.assertNotContains(response, 'id_cares_liaison_name')
+        self.assertNotContains(response, 'id_cares_liason_email')
+
+    def test_edit_club_site1_post_valid_data_without_cares_liaison_fields(self):
+        """Site 1 edits must succeed without cares_liaison_name/cares_liason_email
+        since those fields are excluded from the Site 1 form entirely."""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        data = {
+            'name': 'South Nimrod Aquarium Reef Keepers',
+            'acronym': 'SNARK',
+            'city': 'South Nimrod',
+            'state': 'MN',
+            'country': 'USA',
+            'website': 'https://snark-aquarium-club.com',
+            'bap_default_points': 15,
+            'cares_muliplier': 3,
+            'cares_smp_multiplier': '0.50',
+            'cares_smp_year_cap': 5,
+            'require_member_approval': True,
+        }
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.club.refresh_from_db()
+        self.assertEqual(self.club.name, 'South Nimrod Aquarium Reef Keepers')
+
+    @override_settings(SITE_ID=2)
+    def test_edit_club_site2_exposes_cares_liaison_fields(self):
+        """The Site 2 (CARES CSO) bare-bones edit form must expose the CARES
+        Liaison fields, since that's their intended workflow."""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        response = self.client.get(url)
+        form = response.context['form']
+        self.assertIn('cares_liaison_name', form.fields)
+        self.assertIn('cares_liason_email', form.fields)
+        self.assertContains(response, 'id_cares_liaison_name')
+        self.assertContains(response, 'id_cares_liason_email')
+
+    @override_settings(SITE_ID=2)
+    def test_edit_club_site2_post_valid_data_saves_cares_liaison_fields(self):
+        """Site 2 edits must accept and persist the CARES Liaison fields."""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        data = {
+            'name': 'South Nimrod CARES Society',
+            'acronym': 'SNCS',
+            'about': 'A CARES CSO club.',
+            'website': 'https://snark-aquarium-club.com',
+            'city': 'South Nimrod',
+            'state': 'MN',
+            'country': 'USA',
+            'cares_liaison_name': 'Jane Liaison',
+            'cares_liason_email': 'liaison@test.com',
+        }
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.club.refresh_from_db()
+        self.assertEqual(self.club.name, 'South Nimrod CARES Society')
+        self.assertEqual(self.club.cares_liaison_name, 'Jane Liaison')
+        self.assertEqual(self.club.cares_liason_email, 'liaison@test.com')
+
+    @override_settings(SITE_ID=2)
+    def test_edit_club_site2_post_missing_cares_liaison_fields_shows_visible_error(self):
+        """Regression test for a silent save failure: on Site 2, omitting the
+        required CARES liaison fields must not redirect as if the save
+        succeeded, must leave the club's data unchanged, and must show the
+        user a visible error rather than silently re-rendering the form."""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        data = {
+            'name': 'South Nimrod CARES Society',
+            'acronym': 'SNCS',
+            'about': 'A CARES CSO club.',
+            'website': 'https://snark-aquarium-club.com',
+            'city': 'South Nimrod',
+            'state': 'MN',
+            'country': 'USA',
+            # Intentionally omit cares_liaison_name / cares_liason_email.
+        }
+
+        response = self.client.post(url, data)
+
+        # Must re-render the edit form, not redirect as if the save succeeded.
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'species/editAquaristClub.html')
+
+        form = response.context['form']
+        self.assertFalse(form.is_valid())
+        self.assertIn('cares_liaison_name', form.errors)
+        self.assertIn('cares_liason_email', form.errors)
+
+        # The failure must be visible on the page, not silent.
+        self.assertContains(response, 'This field is required', status_code=200)
+        self.assertContains(response, 'Please correct the errors highlighted below')
+
+        # Nothing should have been saved.
+        self.club.refresh_from_db()
+        self.assertEqual(self.club.name, 'Test Club')
+
+    def test_edit_club_template_shows_blank_api_key_hints(self):
+        """When no API keys have been generated, the hint lines render blank"""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        response = self.client.get(url)
+        self.assertContains(response, 'Auction.fish API hint:')
+        self.assertContains(response, 'Aquarist Club API hint:')
+
+    def test_edit_club_template_shows_configured_api_key_hints(self):
+        """The hint lines display the club's stored API key hints"""
+        self.club.auction_fish_api_key_hint = 'af-hint-123'
+        self.club.club_api_key_hint = 'club-hint-456'
+        self.club.save(update_fields=['auction_fish_api_key_hint', 'club_api_key_hint'])
+
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        response = self.client.get(url)
+        self.assertContains(response, 'af-hint-123')
+        self.assertContains(response, 'club-hint-456')
+
+    def test_edit_club_form_does_not_expose_api_key_fields(self):
+        """The edit form must never render the raw/encrypted API key fields
+        or their hints as editable inputs (they are shown read-only in the
+        template and managed via dedicated key-generation actions instead)"""
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('editAquaristClub', args=[self.club.id])
+        response = self.client.get(url)
+        form = response.context['form']
+        for field_name in (
+            'auction_fish_api_key', 'auction_fish_api_key_hint',
+            'club_api_key', 'club_api_key_hint',
+        ):
+            self.assertNotIn(field_name, form.fields)
 
 
 class AquaristClubDeleteViewTests(TestCase):

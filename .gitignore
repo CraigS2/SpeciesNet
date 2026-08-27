@@ -20,4 +20,5 @@ data/
 devnotes/
 bak/
 speciesnet/media/
+.claude/settings.local.json
 

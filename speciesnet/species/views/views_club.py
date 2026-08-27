@@ -106,25 +106,26 @@ def editAquaristClub(request, pk):
         raise PermissionDenied()
     
     if request.method == 'POST':
-        form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
         if site_id == 2:
             form = AquaristClubForm2BB(request.POST, request.FILES, instance=aquaristClub)
         else:
             form = AquaristClubForm2(request.POST, request.FILES, instance=aquaristClub)
-        
-        if form.is_valid(): 
+
+        if form.is_valid():
+            print ('AquaristClub edit form is_valid')
             aquaristClub = form.save()
             if aquaristClub.logo_image:
                 processUploadedImageFile(aquaristClub.logo_image, aquaristClub.name, request)
-            form.save()
             logger.info('User %s edited club: %s (%s)', request.user.username, aquaristClub.name, str(aquaristClub.id))
-        return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
-
-    #form = AquaristClubForm2()
-    if site_id == 2:
-        form = AquaristClubForm2BB(instance=aquaristClub)   # Bare Bones Club no BAP etc.
+            return HttpResponseRedirect(reverse("aquaristClub", args=[aquaristClub.id]))
+        else:
+            print ('AquaristClub edit form NOT is_valid')
+            messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        form = AquaristClubForm2(instance=aquaristClub) 
+        if site_id == 2:
+            form = AquaristClubForm2BB(instance=aquaristClub)   # Bare Bones Club no BAP etc.
+        else:
+            form = AquaristClubForm2(instance=aquaristClub)
 
     context = {'form':  form, 'aquaristClub': aquaristClub}
     return render(request, 'species/editAquaristClub.html', context)

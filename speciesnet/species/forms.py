@@ -1448,7 +1448,13 @@ class AquaristClubForm2 (ModelForm):
         model = AquaristClub
         # Explicitly list fields — never use __all__ to avoid accidentally
         # including auction_fish_api_key (the encrypted raw field).
-        exclude = ['next_member_number', 'auction_fish_api_key']
+        # cares_liaison_name/cares_liason_email are Site 2 (CARES CSO)-only
+        # fields, exposed on AquaristClubForm2BB instead.
+        exclude = [
+            'next_member_number', 'auction_fish_api_key', 'auction_fish_api_key_hint',
+            'club_api_key', 'club_api_key_hint',
+            'cares_liaison_name', 'cares_liason_email',
+        ]
         widgets = {
             'about':              forms.Textarea(attrs={'rows': 3}),  
             'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),  
@@ -1557,7 +1563,6 @@ class AquaristClubForm2 (ModelForm):
             'style': 'max-width: 500px;',
             'class': 'form-control',
         })
-
         self.helper.layout = Layout(
             # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
             # Fieldset(
@@ -1604,10 +1609,10 @@ class AquaristClubForm2 (ModelForm):
                     """),      
                 ),                  
                 css_class='mb-3 section-bordered'
-            ),     
-    
+            ),
+
             Fieldset(
-                'BAP Features', 
+                'BAP Features',
                 Field('bap_guidelines', css_class='mb-1'),
                 Field('bap_notes_template', css_class='mb-1'),
                 Field('bap_default_points', css_class='mb-1'),
@@ -1672,10 +1677,11 @@ class AquaristClubForm2 (ModelForm):
 class AquaristClubForm2BB (ModelForm):
     class Meta:
         model = AquaristClub
-        fields = ['name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country']        
+        fields = ['name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country',
+                  'cares_liaison_name', 'cares_liason_email']
         widgets = {
-            'about': forms.Textarea(attrs={'rows': 3}),  
-        }     
+            'about': forms.Textarea(attrs={'rows': 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1719,7 +1725,19 @@ class AquaristClubForm2BB (ModelForm):
             'placeholder': 'e.g. USA, Canada, Norway ... (may be left blank)',
             'style': 'max-width: 500px;',
             'class': 'form-control'
-        }) 
+        })
+        self.fields['cares_liaison_name'].help_text = 'Name of the person acting as CARES Liaison for your club.'
+        self.fields['cares_liaison_name'].widget.attrs.update({
+            'placeholder': 'e.g. Jane Doe',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
+        self.fields['cares_liason_email'].help_text = 'Contact email for your club\'s CARES Liaison.'
+        self.fields['cares_liason_email'].widget.attrs.update({
+            'placeholder': 'e.g. cares@yourclub.org',
+            'style': 'max-width: 500px;',
+            'class': 'form-control'
+        })
 
         self.helper.layout = Layout(
             # Don't want a legend/title at top just not very useful - so swap Div for FieldSet
@@ -1734,8 +1752,15 @@ class AquaristClubForm2BB (ModelForm):
                 Field('state', css_class='mb-1'),
                 Field('country', css_class='mb-1'),
                 css_class='mb-3'
-            ),    
- 
+            ),
+
+            Fieldset(
+                'CARES Liaison',
+                Field('cares_liaison_name', css_class='mb-1'),
+                Field('cares_liason_email', css_class='mb-1'),
+                css_class='mb-3 section-bordered'
+            ),
+
             # Submit Buttons
             FormActions(
                 Submit('submit', 'Save Club Configuration', css_class='btn btn-success btn-lg'),
