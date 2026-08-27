@@ -23,7 +23,7 @@ from rest_framework.test import APIClient
 
 from species.models import (
     User, Species, CaresRegistration, SpeciesCollectionLocation,
-    RegistrationSyncState,
+    RegistrationSyncState, AquaristClub,
 )
 from species.services.registration_sync import (
     RegistrationSyncService,
@@ -380,6 +380,14 @@ class RegistrationSyncServiceTest(BaseTestCase):
     def setUp(self):
         super().setUp()
         # cares_species ('Ptychochromis insolitus') exists from BaseTestCase
+        # RegistrationSyncService._sync_one() hard-codes affiliate_club_id=1
+        # for the default "Cares For Individuals" club (mirroring the CSV
+        # importer's same assumption). Auto-increment PKs are not reset
+        # between test classes, so pk=1 is not otherwise guaranteed to exist
+        # when this class runs after others in a full suite run.
+        AquaristClub.objects.get_or_create(
+            pk=1, defaults={'name': 'Cares For Individuals', 'acronym': 'INDIV'}
+        )
         self._tmp_media = tempfile.mkdtemp()
         self._settings_override = override_settings(MEDIA_ROOT=self._tmp_media)
         self._settings_override.enable()

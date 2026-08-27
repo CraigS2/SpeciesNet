@@ -576,7 +576,7 @@ class AfSpeciesMatchInPipelineTests(TestCase):
         url = reverse('uploadBapImport', args=[self.club.pk])
         from django.core.files.uploadedfile import SimpleUploadedFile
         f = SimpleUploadedFile('test.csv', self._csv_bytes(), content_type='text/csv')
-        response = self.client.post(url, {'csv_file': f})
+        response = self.client.post(url, {'csv_file': f, 'enable_af_suggestions': '1'})
         self.assertEqual(response.status_code, 302)
         batch = BapImportBatch.objects.filter(club=self.club).first()
         self.assertIsNotNone(batch)
@@ -595,7 +595,7 @@ class AfSpeciesMatchInPipelineTests(TestCase):
         ]
         mock_lookup.return_value = _AF_RESULT
         url = reverse('pullBapImportFromAuction', args=[self.club.pk])
-        response = self.client.post(url, {'start': '2024-01-01', 'end': '2024-01-31'})
+        response = self.client.post(url, {'start': '2024-01-01', 'end': '2024-01-31', 'enable_af_suggestions': '1'})
         self.assertEqual(response.status_code, 302)
         batch = BapImportBatch.objects.filter(club=self.club).first()
         self.assertIsNotNone(batch)

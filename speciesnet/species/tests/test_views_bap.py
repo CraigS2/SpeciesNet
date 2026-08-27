@@ -305,19 +305,18 @@ class BapSubmissionEditViewTests(TestCase):
         """Test that aquarist can update their submission notes"""
         self.client.login(email='aquarist@test.com', password='testpass123')
         url = reverse('editBapSubmission', args=[self.bap_submission.id])
-        
+
         data = {
             'status': 'OPEN',
             'year': 2025,
-            'notes': 'Updated notes by aquarist',
             'breeder_comments':  'Updated breeder comments'
         }
-        
+
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        
+
         self.bap_submission.refresh_from_db()
-        self.assertEqual(self.bap_submission.notes, 'Updated notes by aquarist')
+        self.assertEqual(self.bap_submission.breeder_comments, 'Updated breeder comments')
 
     def test_edit_bap_submission_club_admin_approve(self):
         """Test that club admin can approve submission"""

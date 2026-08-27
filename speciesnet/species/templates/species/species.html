@@ -3,7 +3,7 @@
 <!-- context = {species, speciesComments, speciesReferenceLinks, speciesInstances, renderCares, userCanEdit, cform, rlform, userCanEdit} -->
 {% block content %}
 
-<div class="container mt-4"></div>
+<div class="container mt-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card shadow-sm">
@@ -38,7 +38,7 @@
                     <small>&nbsp;</small>
 
                     {% if speciesReferenceLinks.all.count > 0  %}
-                    <div class="css_class='mb-3 section-bordered">
+                    <div class="mb-3 section-bordered">
                         <h4>Reference Links</h4>
                             {% for speciesReferenceLink in speciesReferenceLinks %}
                                 <p style = "display: flex; justify-content: space-between;">
@@ -52,25 +52,79 @@
                     </div>
                     {% endif %}
 
-                    <div class="css_class='mb-3 section-bordered">
-                        <h4>Aquarists keeping this Species</h4>
-                        {% if species.species_instances.all.count > 0  %}
+                    <div class="mb-3 section-bordered p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="mb-0"><i class="bi bi-fish me-2"></i>Aquarists keeping this Species</h4>
+                            {% if speciesInstances %}
+                                <span class="text-muted"><small>{{ speciesInstances|length }} Aquarist Species</small></span>
+                            {% endif %}
+                        </div>
+                        {% if speciesInstances %}
                             {% for speciesInstance in speciesInstances %}
-                                {% if speciesInstance.currently_keep %}
-                                    <p><b>{{speciesInstance.user.get_display_name}}</b>:       
-                                    <a href="{% url 'speciesInstance' speciesInstance.id %}">{{speciesInstance.name}}</a></p>
-                                {% endif %}
-                            {% endfor %}    
+                                <a href="{% url 'speciesInstance' speciesInstance.id %}" class="text-decoration-none">
+                                    <div class="card mb-2 species-list-item">
+                                        <div class="row g-0 align-items-stretch">
+                                            <!-- Thumbnail -->
+                                            <div class="col-auto">
+                                                <div style="width: 120px; height: 90px; overflow: hidden;">
+                                                    {% if speciesInstance.aquarist_species_image %}
+                                                        <img src="{{ speciesInstance.aquarist_species_image.url }}"
+                                                             class="h-100 w-100"
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.user.get_display_name }}">
+                                                    {% else %}
+                                                        <img src="{% static 'images/asn_placeholder_not_found2.png' %}"
+                                                             class="h-100 w-100"
+                                                             style="object-fit: cover;"
+                                                             alt="{{ speciesInstance.user.get_display_name }}">
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+
+                                            <!-- Instance Name -->
+                                            <div class="col-12 col-md-4">
+                                                <div class="card-body py-2 px-3 h-100 d-flex align-items-center">
+                                                    <h6 class="mb-0 text-muted">{{ speciesInstance.name }}</h6>
+                                                </div>
+                                            </div>
+
+                                            <!-- Aquarist Username (top) + Accent Badges (below, wrapping) -->
+                                            <div class="col-12 col-md">
+                                                <div class="card-body py-2 px-3 h-100 d-flex flex-column justify-content-center gap-1" style="max-height: 90px; overflow: hidden;">
+                                                    <h6 class="mb-0">{{ speciesInstance.user.get_display_name }}</h6>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        {% if speciesInstance.have_spawned %}
+                                                            <span class="badge badge-breeding">Breeding</span>
+                                                        {% endif %}
+                                                        {% if speciesInstance.young_available %}
+                                                            <span class="badge badge-young-available">Young Available</span>
+                                                        {% endif %}
+                                                        {% if speciesInstance.enable_species_log %}
+                                                            <span class="badge badge-species-log">Species Log</span>
+                                                        {% endif %}
+                                                        {% if speciesInstance.spawning_notes %}
+                                                            <span class="badge badge-spawning-notes">Spawning Notes</span>
+                                                        {% endif %}
+                                                        {% if speciesInstance.fry_rearing_notes %}
+                                                            <span class="badge badge-fry-rearing-notes">Fry Rearing Notes</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
                         {% else %}
-                            <p><b>None</b></p>
+                            <p><b>&nbsp;&nbsp;None</b></p>
                         {% endif %}
                         {% if request.user.is_authenticated %}
-                            <p><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this species!</i></a></p>
-                        {% endif %}  
+                            <p class="mt-2"><a class="btn btn-secondary" href="{% url 'createSpeciesInstance' species.id  %}" role="button"><i>I keep this species!</i></a></p>
+                        {% endif %}
                     </div>
-                        
+
                     {% if userCanEdit %}
-                        <div class="css_class='mb-3 section-bordered">
+                        <div class="mb-3 section-bordered">
                             <h4>Edit Species</h4>
                             <p><a class="btn btn-secondary" href="{% url 'editSpecies' species.id  %}" role="button">&nbsp;Edit Species Profile&nbsp;</a>&nbsp;&nbsp;&nbsp;&nbsp;
                             <a class="btn btn-secondary" href="{% url 'createSpeciesReferenceLink' species.id  %}" role="button">&nbsp;&nbsp;Add Reference Link&nbsp;&nbsp;</a></p>
@@ -78,7 +132,7 @@
                     {% endif %}
 
                     {% if request.user.is_authenticated %}
-                        <div class="css_class='mb-3 section-bordered">
+                        <div class="mb-3 section-bordered">
                             <h4>Species Feedback</h4>
                             <p>Please use the Species Feedback button to provide helpful comments or corrections. <i>Only admins will see your submission.</i></p>
                             <p><b>Note: </b>If you have a good photo you would like to submit for consideration as the Species Profile photo you can upload it.</p>
@@ -92,4 +146,45 @@
     </div>
 </div>
 
+<style>
+    /* List item hover effect (matches the aquarist fishroom list view) */
+    .species-list-item {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .species-list-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Breeding badge - soft green */
+    .badge-breeding {
+        background-color: #88c9a1;              /* Muted sage green */
+        color: #1e4d2b;                          /* Dark green text */
+    }
+
+    /* Young Available badge - soft amber */
+    .badge-young-available {
+        background-color: #f0c674;              /* Soft amber/gold */
+        color: #5c4a1e;                          /* Dark brown text */
+    }
+
+    /* Species Log badge - soft blue */
+    .badge-species-log {
+        background-color: rgb(160, 200, 230);    /* Light bluish gray */
+        color: darkslategray;                    /* Dark gray */
+    }
+
+    /* Spawning Notes badge - soft plum, distinct from Breeding's green */
+    .badge-spawning-notes {
+        background-color: #c9a8d9;               /* Soft plum/lavender */
+        color: #3d1e4d;                           /* Dark plum text */
+    }
+
+    /* Fry Rearing Notes badge - soft teal, complements Spawning Notes */
+    .badge-fry-rearing-notes {
+        background-color: #7ec8d9;               /* Soft teal */
+        color: #1e4d5c;                           /* Dark teal text */
+    }
+</style>
 {% endblock content %}

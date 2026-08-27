@@ -12,7 +12,7 @@ from django.conf import settings
 def species(request, pk):
     species = get_object_or_404(Species, pk=pk)
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
-    speciesInstances = SpeciesInstance.objects.filter(species=species)
+    speciesInstances = SpeciesInstance.objects.filter(species=species, currently_keep=True).select_related('user')
     speciesComments = SpeciesComment.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     cur_user = request.user

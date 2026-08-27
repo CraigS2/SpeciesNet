@@ -505,6 +505,103 @@ class SpeciesReadViewTest(TestCase):
         response = self.client.get(reverse('species', args=[9999]))
         self.assertEqual(response.status_code, 404)
 
+    def test_species_with_no_keepers_shows_none(self):
+        """Test the aquarist list shows 'None' when nobody keeps the species"""
+        response = self.client.get(reverse('species', args=[self.species.id]))
+        self.assertContains(response, '<p><b>None</b></p>')
+
+    def test_species_aquarist_list_shows_keeper_username_and_photo(self):
+        """Test a current keeper appears in the aquarist list with their
+        display name and photo (or the placeholder when no photo is set)"""
+        keeper = User.objects.create_user(
+            username='fishkeeper', email='fishkeeper@test.com', password='testpass123'
+        )
+        SpeciesInstance.objects.create(
+            name='Auratus - fishkeeper', user=keeper, species=self.species, currently_keep=True
+        )
+
+        response = self.client.get(reverse('species', args=[self.species.id]))
+        self.assertContains(response, 'fishkeeper')
+        self.assertContains(response, 'asn_placeholder_not_found2.png')
+
+    def test_species_aquarist_list_shows_instance_name_between_photo_and_username(self):
+        """Test each row shows the speciesInstance's own name, positioned
+        after the photo thumbnail and before the aquarist's username"""
+        keeper = User.objects.create_user(
+            username='namedkeeper', email='namedkeeper@test.com', password='testpass123'
+        )
+        SpeciesInstance.objects.create(
+            name='My 55 Gallon Tank', user=keeper, species=self.species, currently_keep=True
+        )
+
+        response = self.client.get(reverse('species', args=[self.species.id]))
+        content = response.content.decode()
+        self.assertContains(response, 'My 55 Gallon Tank')
+        photo_pos = content.index('asn_placeholder_not_found2.png')
+        name_pos = content.index('My 55 Gallon Tank')
+        # The aquarist's username also appears earlier, in the thumbnail's
+        # alt text — search for the visible <h6> username specifically.
+        username_pos = content.index('>namedkeeper<')
+        self.assertLess(photo_pos, name_pos)
+        self.assertLess(name_pos, username_pos)
+
+    def test_species_aquarist_list_excludes_previously_kept_instances(self):
+        """Test aquarists who no longer keep the species are not listed"""
+        former_keeper = User.objects.create_user(
+            username='formerkeeper', email='formerkeeper@test.com', password='testpass123'
+        )
+        SpeciesInstance.objects.create(
+            name='Auratus - formerkeeper', user=former_keeper, species=self.species, currently_keep=False
+        )
+
+        response = self.client.get(reverse('species', args=[self.species.id]))
+        self.assertNotContains(response, 'formerkeeper')
+        self.assertContains(response, '<p><b>None</b></p>')
+
+    def test_species_aquarist_list_shows_accent_badges(self):
+        """Test the Breeding/Young Available/Species Log/Spawning Notes/Fry
+        Rearing Notes badges each render only when their underlying field is set"""
+        keeper = User.objects.create_user(
+            username='breeder', email='breeder@test.com', password='testpass123'
+        )
+        SpeciesInstance.objects.create(
+            name='Auratus - breeder',
+            user=keeper,
+            species=self.species,
+            currently_keep=True,
+            have_spawned=True,
+            young_available=True,
+            enable_species_log=True,
+            spawning_notes='Spawned in a bare tank after a water change.',
+            fry_rearing_notes='Fed baby brine shrimp starting day 3.',
+        )
+
+        response = self.client.get(reverse('species', args=[self.species.id]))
+        self.assertContains(response, '>Breeding<')
+        self.assertContains(response, '>Young Available<')
+        self.assertContains(response, '>Species Log<')
+        self.assertContains(response, '>Spawning Notes<')
+        self.assertContains(response, '>Fry Rearing Notes<')
+
+    def test_species_aquarist_list_hides_accent_badges_when_unset(self):
+        """Test the accent badges are absent for a keeper with none of the
+        underlying breeding/notes fields set"""
+        keeper = User.objects.create_user(
+            username='plainkeeper', email='plainkeeper@test.com', password='testpass123'
+        )
+        SpeciesInstance.objects.create(
+            name='Auratus - plainkeeper', user=keeper, species=self.species, currently_keep=True
+        )
+
+        response = self.client.get(reverse('species', args=[self.species.id]))
+        self.assertContains(response, 'plainkeeper')
+        self.assertNotContains(response, '>Breeding<')
+        self.assertNotContains(response, '>Young Available<')
+        self.assertNotContains(response, '>Species Log<')
+        self.assertNotContains(response, '>Spawning Notes<')
+        self.assertNotContains(response, '>Fry Rearing Notes<')
+
+
 class SpeciesCommentEditViewTest(TestCase):
     """Tests for editSpeciesComment view"""
     
