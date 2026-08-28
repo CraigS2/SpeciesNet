@@ -19,6 +19,20 @@ services:
       image: redis:7-alpine
       restart: unless-stopped
 
+    # Captures outgoing mail instead of delivering it, with a web UI to view it.
+    # Opt-in only (never starts on a plain `docker compose up`) — activate with
+    # `COMPOSE_PROFILES=mailpit` in .env, or `docker compose --profile mailpit up -d`.
+    # See sample.env for the matching EMAIL_* settings.
+    mailpit:
+      container_name: MAILPIT
+      image: axllent/mailpit
+      restart: unless-stopped
+      profiles: ["mailpit"]
+      ports:
+        - ${MAILPIT_WEB_PORT-8025}:8025    # web UI — browse here to view captured emails
+      expose:
+        - "1025"                           # SMTP — reachable from other containers as 'mailpit:1025'; not published to the host
+
     django_gunicorn:
       container_name: ASN_DJANGO
       image: gunicorn:23.0.0

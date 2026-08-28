@@ -81,10 +81,14 @@ if DEBUG and DEBUG_TOOLBAR:
     }
     print ('DEBUG_TOOLBAR is enabled!')
 
-if DEBUG:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-else:
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+_default_email_backend = (
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend"
+)
+# EMAIL_BACKEND in .env overrides the DEBUG-based default — needed for staging
+# (DEBUG=1, like dev) to still send real SMTP traffic to Mailpit instead of
+# printing to the console. Leave unset anywhere the default is correct.
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', _default_email_backend)
 
 if os.environ.get('EMAIL_USE_TLS', 'True') == "True":
     EMAIL_USE_TLS = True
