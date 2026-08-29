@@ -9,6 +9,7 @@ from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
 from species.services.email_services import send_new_registration_notification, send_status_change_email
+from species.services.bap_service import reassign_bap_genus_example_species
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
 
@@ -167,8 +168,20 @@ def deleteCaresSpecies(request, pk):
         messages.info(request, msg)
         logger.warning('User %s attempted to delete species:  %s with speciesInstance dependencies. Deletion blocked.', request.user.username, species.name)
         return HttpResponseRedirect(reverse("species", args=[species.id]))
-    
-    if request.method == 'POST': 
+
+    unresolved_bap_genus = reassign_bap_genus_example_species(species, dry_run=True)
+    if unresolved_bap_genus:
+        genus_names = ', '.join(bg.name for bg in unresolved_bap_genus)
+        msg = (
+            f'{species.name} is the only species for BAP Genus entries ({genus_names}) '
+            'and cannot be deleted. Delete or reassign those BAP Genus entries first.'
+        )
+        messages.info(request, msg)
+        logger.warning('User %s attempted to delete species: %s with no other species available for BapGenus entries: %s. Deletion blocked.', request.user.username, species.name, genus_names)
+        return HttpResponseRedirect(reverse("species", args=[species.id]))
+
+    if request.method == 'POST':
+        reassign_bap_genus_example_species(species)
         logger.info('User %s deleted species: %s (%s)', request.user.username, species.name, str(species.id))
         species.delete()
         return redirect('caresSpeciesSearch')

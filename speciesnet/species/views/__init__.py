@@ -103,7 +103,8 @@ from .views_tools import (
     speciesInstancesWithLogs, speciesInstancesWithEmptyLogs, speciesInstancesWithVideos,
     enforceSpeciesNameSingleQuotes, collectSpeciesData, collectionLocations,
     exportSpeciesCollectionLocations, importSpeciesCollectionLocations, importSpeciesInstanceCollectionLocations,
-    speciesWithManageCollectionLocations, flushPendingActionEmails, tools, tools2, dirtyDeed
+    speciesWithManageCollectionLocations, flushPendingActionEmails, fixBapGenusMissingExampleSpecies,
+    tools, tools2, dirtyDeed
 )
 
 # Species Import with Review-Approve Workflow
@@ -187,7 +188,7 @@ __all__ = [
 
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',
-    'tools', 'tools2',  'dirtyDeed',
+    'tools', 'tools2',  'dirtyDeed', 'fixBapGenusMissingExampleSpecies',
     'exportSpeciesCollectionLocations', 'importSpeciesCollectionLocations', 'importSpeciesInstanceCollectionLocations',
 
     # CARES Import Workflow

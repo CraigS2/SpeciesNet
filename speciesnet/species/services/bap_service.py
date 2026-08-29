@@ -36,6 +36,75 @@ def _get_models():
     )
 
 
+def reassign_bap_genus_example_species(species, dry_run=False) -> list:
+    """
+    Call before deleting *species*. BapGenus.example_species is
+    on_delete=SET_NULL, which would otherwise silently leave a BapGenus row
+    with no sample species. Reassigns each affected BapGenus to another
+    Species sharing its genus name; returns the BapGenus rows left
+    unresolved because no other species of that genus exists (the caller
+    should block the deletion in that case).
+
+    Pass dry_run=True to check for unresolved rows without writing anything
+    — use this for a GET-safe pre-check, and call again with dry_run=False
+    (the default) only once the deletion is actually confirmed.
+    """
+    from species.models import Species
+    _, BapGenus, _, _, _, _, _, _, _ = _get_models()
+
+    affected = BapGenus.objects.filter(example_species=species)
+    unresolved = []
+    for bap_genus in affected:
+        replacement = Species.objects.filter(
+            name__regex=r'^' + bap_genus.name + r'\s'
+        ).exclude(pk=species.pk).first()
+        if replacement:
+            if not dry_run:
+                bap_genus.example_species = replacement
+                bap_genus.save()
+                logger.info(
+                    'Reassigned BapGenus %s (club %s) example_species from %s to %s ahead of species deletion.',
+                    bap_genus.name, bap_genus.club_id, species.name, replacement.name,
+                )
+        else:
+            unresolved.append(bap_genus)
+    return unresolved
+
+
+def find_bap_genus_missing_example_species(dry_run=True) -> list[dict]:
+    """
+    Admin-tool scan: every BapGenus should always have a valid example_species
+    (set at creation time — see BapGenusView.post), but example_species is
+    on_delete=SET_NULL, so deleting a Species can silently leave one behind.
+
+    Finds every BapGenus with a null example_species and backfills it from
+    any other Species sharing its genus name. Pass dry_run=False to actually
+    save the fix; dry_run=True (default) only reports what would change.
+
+    Returns a list of dicts: {'bap_genus', 'club', 'assigned_species'} where
+    assigned_species is None when no matching species could be found.
+    """
+    from species.models import Species
+    _, BapGenus, _, _, _, _, _, _, _ = _get_models()
+
+    results = []
+    for bap_genus in BapGenus.objects.filter(example_species__isnull=True).select_related('club'):
+        replacement = Species.objects.filter(name__regex=r'^' + bap_genus.name + r'\s').first()
+        if replacement and not dry_run:
+            bap_genus.example_species = replacement
+            bap_genus.save()
+            logger.info(
+                'Backfilled BapGenus %s (club %s) example_species with %s.',
+                bap_genus.name, bap_genus.club_id, replacement.name,
+            )
+        results.append({
+            'bap_genus': bap_genus,
+            'club': bap_genus.club,
+            'assigned_species': replacement,
+        })
+    return results
+
+
 def has_approved_bap_species(aquarist, club, species, exclude_submission_id=None) -> bool:
     _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
     qs = BapSubmission.objects.filter(
@@ -174,7 +243,6 @@ def create_bap_submission(species_instance, club, committed_by=None):
         bap_year=current_year,
         year=year_value,
         points=pts['points'],
-        notes=club.bap_notes_template,
         request_points_review=bool(pts['new_genus_needed']),
         admin_comments='Genus points not configured. Default club points applied.  Please review.' if pts['new_genus_needed'] else '',
     )

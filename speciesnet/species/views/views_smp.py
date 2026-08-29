@@ -31,7 +31,7 @@ def createSmpSubmission(request, pk):
         raise PermissionDenied
 
     speciesInstance = SpeciesInstance.objects.get(id=request.session['species_instance_id'])
-    form = SmpSubmissionForm(initial={'notes': club.bap_notes_template})
+    form = SmpSubmissionForm()
 
     note_check = notes_requirements_met(speciesInstance, club)
     if note_check['nudge_fields']:

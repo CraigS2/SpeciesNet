@@ -10,6 +10,7 @@ import csv
 from io import TextIOWrapper
 from pending_actions.models import PendingAction
 from pending_actions.tasks import send_action_email
+from species.services.bap_service import find_bap_genus_missing_example_species
 
 ### Species Reports
 
@@ -377,6 +378,30 @@ def enforceSpeciesNameSingleQuotes(request):
 
     context = {'changes': changes}
     return render(request, 'species/tools/enforceSpeciesNameSingleQuotes.html', context)
+
+
+@login_required(login_url='login')
+def fixBapGenusMissingExampleSpecies(request):
+    """
+    Every BapGenus should always have a valid example_species (set at
+    creation time), but example_species is on_delete=SET_NULL, so deleting a
+    Species can silently leave a BapGenus behind with none. Scans for any
+    BapGenus with a null example_species and, on POST, backfills each from
+    another Species sharing its genus name.
+    """
+    if not request.user.is_staff:
+        raise PermissionDenied()
+
+    if request.method == 'POST':
+        results = find_bap_genus_missing_example_species(dry_run=False)
+        fixed_count = sum(1 for r in results if r['assigned_species'])
+        logger.info('Admin user %s ran fixBapGenusMissingExampleSpecies: %d fixed, %d unresolved',
+                    request.user.username, fixed_count, len(results) - fixed_count)
+    else:
+        results = find_bap_genus_missing_example_species(dry_run=True)
+
+    context = {'results': results, 'ran': request.method == 'POST'}
+    return render(request, 'species/tools/fixBapGenusMissingExampleSpecies.html', context)
 
 
 @login_required(login_url='login')

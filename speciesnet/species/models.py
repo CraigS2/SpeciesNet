@@ -534,7 +534,6 @@ class AquaristClub (models.Model):
     country                   = models.CharField (max_length=100, blank=True)
     require_member_approval   = models.BooleanField (default=True)
     bap_guidelines            = models.TextField (blank=True)
-    bap_notes_template        = models.TextField (blank=True)
     bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
     cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)  
     bap_start_date            = models.DateField (null=True, blank=True)

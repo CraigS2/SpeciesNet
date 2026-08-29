@@ -1421,8 +1421,7 @@ class AquaristClubForm (ModelForm):
                    'state':              forms.Textarea(attrs={'rows':1,'cols':50}),
                    'country':            forms.Textarea(attrs={'rows':1,'cols':50}),
                    'about':              forms.Textarea(attrs={'rows':2,'cols':50}),
-                   'bap_guidelines':     forms.Textarea(attrs={'rows':8,'cols':50}),
-                   'bap_notes_template': forms.Textarea(attrs={'rows':8,'cols':50}),}
+                   'bap_guidelines':     forms.Textarea(attrs={'rows':8,'cols':50}),}
         
 class AquaristClubForm2 (ModelForm):
     # Write-only API key input — always rendered blank; never pre-populated.
@@ -1456,10 +1455,9 @@ class AquaristClubForm2 (ModelForm):
             'cares_liaison_name', 'cares_liason_email',
         ]
         widgets = {
-            'about':              forms.Textarea(attrs={'rows': 3}),  
-            'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),  
-            'bap_notes_template': forms.Textarea(attrs={'rows': 8}),  
-        }      
+            'about':              forms.Textarea(attrs={'rows': 3}),
+            'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),
+        }
           
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1529,11 +1527,6 @@ class AquaristClubForm2 (ModelForm):
             'style': 'max-width: 750px;',
             'class': 'form-control'
         })
-        self.fields['bap_notes_template'].widget.attrs.update({
-            'placeholder': "Text displayed for input on each BAP Submission, e.g. Water and Tank Conditions:, Feeding Routine:, Spawning and Fry-Rearing Notes:",
-            'style': 'max-width: 750px;',
-            'class': 'form-control'
-        })  
         self.fields['bap_default_points'].help_text = 'Default and most common value applied to BAP Genus entries'
         self.fields['bap_default_points'].widget.attrs.update({
             'style': 'max-width: 250px;',
@@ -1614,7 +1607,6 @@ class AquaristClubForm2 (ModelForm):
             Fieldset(
                 'BAP Features',
                 Field('bap_guidelines', css_class='mb-1'),
-                Field('bap_notes_template', css_class='mb-1'),
                 Field('bap_default_points', css_class='mb-1'),
                 Field('cares_muliplier', css_class='mb-1'),
                 Field('bap_start_date', css_class='mb-1'),

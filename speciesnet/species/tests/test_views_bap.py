@@ -682,6 +682,165 @@ class BapGenusDeleteViewTests(TestCase):
         self.assertFalse(BapGenus.objects.filter(id=genus_id).exists())
 
 
+class ExportClubBapGenusViewTests(TestCase):
+    """Test suite for exportClubBapGenus view / export_csv_bap_genus"""
+
+    def setUp(self):
+        """Set up test data"""
+        self.client = Client()
+
+        self.regular_member = User.objects.create_user(
+            email='member@test.com',
+            username='member',
+            password='testpass123'
+        )
+        self.club_admin = User.objects.create_user(
+            email='clubadmin@test.com',
+            username='clubadmin',
+            password='testpass123'
+        )
+
+        self.club = AquaristClub.objects.create(
+            name='Test Club',
+            acronym='TC',
+            city='Test City',
+            website='https://test.com'
+        )
+
+        self.admin_membership = AquaristClubMember.objects.create(
+            name='TC: clubadmin',
+            user=self.club_admin,
+            club=self.club,
+            membership_approved=True,
+            is_club_admin=True
+        )
+
+        self.species = Species.objects.create(
+            name='Aulonocara sp.',
+            category='CIC',
+            global_region='AFR'
+        )
+
+        self.bap_genus_with_species = BapGenus.objects.create(
+            name='Aulonocara',
+            club=self.club,
+            example_species=self.species,
+            points=10
+        )
+        # A BapGenus with no example_species — hits the export's error-logging
+        # branch rather than raising, so this must not 500 the whole export.
+        self.bap_genus_without_species = BapGenus.objects.create(
+            name='Neolamprologus',
+            club=self.club,
+            points=10
+        )
+
+    def test_export_requires_login(self):
+        url = reverse('exportClubBapGenus', args=[self.club.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response.url)
+
+    def test_export_regular_member_denied(self):
+        self.client.login(email='member@test.com', password='testpass123')
+        url = reverse('exportClubBapGenus', args=[self.club.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_export_club_admin_can_export(self):
+        self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('exportClubBapGenus', args=[self.club.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        content = response.content.decode()
+        self.assertIn('Aulonocara', content)
+        self.assertNotIn('Neolamprologus', content)
+
+
+class FixBapGenusMissingExampleSpeciesViewTests(TestCase):
+    """Test suite for the fixBapGenusMissingExampleSpecies admin tool"""
+
+    def setUp(self):
+        self.client = Client()
+
+        self.regular_user = User.objects.create_user(
+            email='regular@test.com',
+            username='regular',
+            password='testpass123'
+        )
+        self.staff_user = User.objects.create_user(
+            email='staff@test.com',
+            username='staffuser',
+            password='testpass123',
+            is_staff=True
+        )
+
+        self.club = AquaristClub.objects.create(
+            name='Test Club',
+            acronym='TC',
+            city='Test City',
+            website='https://test.com'
+        )
+
+        self.matching_species = Species.objects.create(
+            name='Neolamprologus brichardi',
+            category='CIC',
+            global_region='AFR'
+        )
+
+        # Missing example_species, but a matching genus species exists.
+        self.resolvable_genus = BapGenus.objects.create(
+            name='Neolamprologus',
+            club=self.club,
+            points=10
+        )
+        # Missing example_species, with no species of that genus at all.
+        self.unresolvable_genus = BapGenus.objects.create(
+            name='Xenotilapia',
+            club=self.club,
+            points=10
+        )
+
+    def test_requires_login(self):
+        url = reverse('fixBapGenusMissingExampleSpecies')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response.url)
+
+    def test_regular_user_denied(self):
+        self.client.login(email='regular@test.com', password='testpass123')
+        url = reverse('fixBapGenusMissingExampleSpecies')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_reports_without_modifying(self):
+        self.client.login(email='staff@test.com', password='testpass123')
+        url = reverse('fixBapGenusMissingExampleSpecies')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Neolamprologus')
+        self.assertContains(response, 'Xenotilapia')
+
+        self.resolvable_genus.refresh_from_db()
+        self.unresolvable_genus.refresh_from_db()
+        self.assertIsNone(self.resolvable_genus.example_species)
+        self.assertIsNone(self.unresolvable_genus.example_species)
+
+    def test_post_backfills_resolvable_entries(self):
+        self.client.login(email='staff@test.com', password='testpass123')
+        url = reverse('fixBapGenusMissingExampleSpecies')
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+
+        self.resolvable_genus.refresh_from_db()
+        self.assertEqual(self.resolvable_genus.example_species, self.matching_species)
+
+        self.unresolvable_genus.refresh_from_db()
+        self.assertIsNone(self.unresolvable_genus.example_species)
+        self.assertContains(response, 'needs manual review')
+
+
 class BapSpeciesCreateViewTests(TestCase):
     """Test suite for createBapSpecies view"""
 

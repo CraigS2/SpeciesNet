@@ -216,6 +216,7 @@ urlpatterns = [
     path('tools/', views.tools, name="tools"),      # Level 1 Species Admins
     path('tools2/', views.tools2, name="tools2"),   # Level 2 Staff and Level 3 Admin-only
     path('tools/enforceSpeciesNameSingleQuotes/', views.enforceSpeciesNameSingleQuotes, name="enforceSpeciesNameSingleQuotes"),
+    path('tools/fixBapGenusMissingExampleSpecies/', views.fixBapGenusMissingExampleSpecies, name="fixBapGenusMissingExampleSpecies"),
 
     path('speciesInstancesWithLabels', views.speciesInstancesWithLabels, name="speciesInstancesWithLabels"),  
     path('speciesInstancesWithVideos/', views.speciesInstancesWithVideos, name="speciesInstancesWithVideos"),

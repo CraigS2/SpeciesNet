@@ -706,7 +706,7 @@ def exportClubBapGenus(request, pk):
     userCanEdit = user_can_edit_club(request.user, club)
     if not userCanEdit:
         raise PermissionDenied()    
-    return export_csv_bap_genus(club.id)
+    return export_csv_bap_genus(club)
 
 
 

@@ -258,7 +258,6 @@ def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User
                 club.country = import_row['country']
                 club.require_member_approval = import_row['require_member_approval']
                 club.bap_guidelines = import_row['bap_guidelines']
-                club.bap_notes_template = import_row['bap_notes_template']
                 club.bap_default_points = import_row['bap_default_points']
                 club.cares_muliplier = import_row['cares_muliplier']
                 club.bap_start_date = import_row['bap_start_date']
@@ -763,8 +762,8 @@ def export_csv_aquaristClubs():
     writer.writerow([
        # id     name    acronym    about    logo_image    website    city    state    country   
         'id' , 'name', 'acronym', 'about', 'logo_image', 'website', 'city', 'state', 'country',
-       # bap_guidelines    bap_notes_template    cares_muliplier    bap_start_date    bap_end_date
-        'bap_guidelines', 'bap_notes_template', 'cares_muliplier', 'bap_start_date', 'bap_end_date',
+       # bap_guidelines    cares_muliplier    bap_start_date    bap_end_date
+        'bap_guidelines', 'cares_muliplier', 'bap_start_date', 'bap_end_date',
        # is_bap_club is_cares_club require_member_approval created lastUpdated            
         'is_bap_club', 'is_cares_club', 'require_member_approval', 'created', 'lastUpdated'
         ])
@@ -772,8 +771,8 @@ def export_csv_aquaristClubs():
         writer.writerow([
             #    id       name        acronym      about       logo_image       website       city       state       country   
             club.id, club.name, club.acronym, club.about, club.logo_image, club.website, club.city, club.state, club.country,
-            #    bap_guidelines       bap_notes_template       cares_muliplier       bap_start_date       bap_end_date
-            club.bap_guidelines, club.bap_notes_template, club.cares_muliplier, club.bap_start_date, club.bap_end_date,
+            #    bap_guidelines       cares_muliplier       bap_start_date       bap_end_date
+            club.bap_guidelines, club.cares_muliplier, club.bap_start_date, club.bap_end_date,
             #    is_bap_club       is_cares_club       require_member_approval       created       lastUpdated            
             club.is_bap_club, club.is_cares_club, club.require_member_approval, club.created, club.lastUpdated
         ])

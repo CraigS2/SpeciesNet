@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from species.models import Species, SpeciesInstance, SpeciesComment, SpeciesReferenceLink
+from species.models import Species, SpeciesInstance, SpeciesComment, SpeciesReferenceLink, AquaristClub, BapGenus
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 User = get_user_model()
@@ -384,6 +384,57 @@ class SpeciesDeleteViewTests(TestCase):
         # Should redirect with message, not delete
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Species.objects.filter(id=species_id).exists())
+
+
+class SpeciesDeleteBapGenusReassignmentTests(TestCase):
+    """
+    deleteSpecies must not silently orphan a BapGenus.example_species
+    (on_delete=SET_NULL) — it should reassign to another species of the
+    same genus, or block the delete entirely if none exists.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.staff_user = User.objects.create_user(
+            email='staff@test.com',
+            username='staffuser',
+            password='testpass123',
+            is_staff=True
+        )
+        self.club = AquaristClub.objects.create(
+            name='Test Club',
+            acronym='TC',
+            city='Test City',
+            website='https://test.com'
+        )
+
+    def test_delete_reassigns_to_another_species_of_same_genus(self):
+        primary = Species.objects.create(name='Aulonocara jacobfreibergi', category='CIC', global_region='AFR')
+        other = Species.objects.create(name='Aulonocara stuartgranti', category='CIC', global_region='AFR')
+        bap_genus = BapGenus.objects.create(name='Aulonocara', club=self.club, example_species=primary, points=10)
+
+        self.client.login(email='staff@test.com', password='testpass123')
+        url = reverse('deleteSpecies', args=[primary.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Species.objects.filter(id=primary.id).exists())
+        bap_genus.refresh_from_db()
+        self.assertEqual(bap_genus.example_species, other)
+
+    def test_delete_blocked_when_last_species_of_genus(self):
+        only_species = Species.objects.create(name='Uniquus onlyone', category='CIC', global_region='AFR')
+        bap_genus = BapGenus.objects.create(name='Uniquus', club=self.club, example_species=only_species, points=10)
+
+        self.client.login(email='staff@test.com', password='testpass123')
+        url = reverse('deleteSpecies', args=[only_species.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Species.objects.filter(id=only_species.id).exists())
+        bap_genus.refresh_from_db()
+        self.assertEqual(bap_genus.example_species, only_species)
+
 
 class AdminStaffPermissionComparisonTests(TestCase):
     """Test suite to explicitly compare is_admin vs is_staff permissions for Species"""
