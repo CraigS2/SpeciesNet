@@ -1,0 +1,80 @@
+{% extends 'main.html' %}
+{% block content %}
+
+<!-- context: club, aliases, prefill_alias_email -->
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header">
+          <h4 class="my-0">Email Aliases &mdash; {{ club.name }}</h4>
+        </div>
+        <div class="card-body px-4 py-3">
+          <p class="text-muted small">
+            Some members register for auctions with a different email address than the one on their
+            ASN account. Map that alias here so future BAP imports resolve it to the real account
+            instead of importing it as a new pending member. No lookup by name is attempted &mdash;
+            type the member's known ASN <strong>username</strong>.
+          </p>
+
+          <form method="post" class="row g-2 align-items-end mb-4">
+            {% csrf_token %}
+            <div class="col-auto">
+              <label class="form-label small mb-0">Alias email (seen in import data)</label>
+              <input type="email" name="alias_email" class="form-control form-control-sm"
+                     value="{{ prefill_alias_email }}" required>
+            </div>
+            <div class="col-auto">
+              <label class="form-label small mb-0">ASN username</label>
+              <input type="text" name="username" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-secondary btn-sm">Add Alias</button>
+            </div>
+          </form>
+
+          {% if aliases %}
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Alias email</th>
+                    <th>Resolves to</th>
+                    <th>Added by</th>
+                    <th>Added</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for alias in aliases %}
+                    <tr>
+                      <td>{{ alias.alias_email }}</td>
+                      <td>{{ alias.user.username }} ({{ alias.user.email }})</td>
+                      <td>{{ alias.created_by.username|default:"—" }}</td>
+                      <td>{{ alias.created_at|date:"M j, Y" }}</td>
+                      <td>
+                        <form method="post" onsubmit="return confirm('Remove this alias?');">
+                          {% csrf_token %}
+                          <input type="hidden" name="delete_id" value="{{ alias.pk }}">
+                          <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No email aliases configured for this club yet.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <a href="{% url 'aquaristClub' club.pk %}" class="btn btn-secondary btn-sm">&#8592; Back to Club</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

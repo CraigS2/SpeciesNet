@@ -626,6 +626,31 @@ class AquaristClubMember (models.Model):
         return self.name
 
 
+class AquaristClubEmailAlias (models.Model):
+    """
+    Maps an email address seen in import data (e.g. a different address used
+    to register for an auction) to the ASN account it actually belongs to,
+    so BAP imports resolve it instead of misclassifying a known member as
+    'pending' and creating a duplicate proxy account.
+    """
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='email_aliases')
+    alias_email               = models.EmailField(max_length=254)
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, related_name='club_email_aliases')
+    created_by                = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='+')
+    created_at                = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['club', 'alias_email']
+        verbose_name = 'Club Email Alias'
+        verbose_name_plural = 'Club Email Aliases'
+        constraints = [
+            models.UniqueConstraint(fields=['club', 'alias_email'], name='uniq_club_alias_email'),
+        ]
+
+    def __str__(self):
+        return f'{self.club.acronym}: {self.alias_email} → {self.user.username}'
+
+
 ### CARES Registration & Approver
 
 class CaresApprover (models.Model):
@@ -1159,15 +1184,18 @@ class BapImportBatch(models.Model):
         return f'{self.club.name} – {self.club_or_auction_name} ({self.status})'
 
     def clean(self):
-        # Enforce at most one REVIEW batch per club
+        # Enforce at most one REVIEW batch per (club, auction name) — different
+        # auctions may be in review for the same club at the same time.
         if self.status == self.Status.REVIEW:
-            qs = BapImportBatch.objects.filter(club=self.club, status=self.Status.REVIEW)
+            qs = BapImportBatch.objects.filter(
+                club=self.club, status=self.Status.REVIEW, club_or_auction_name=self.club_or_auction_name,
+            )
             if self.pk:
                 qs = qs.exclude(pk=self.pk)
             if qs.exists():
                 raise ValidationError(
-                    f'Club "{self.club.name}" already has a batch in REVIEW status. '
-                    'Process or discard it before starting a new import.'
+                    f'Club "{self.club.name}" already has a batch for "{self.club_or_auction_name}" '
+                    'in REVIEW status. Process or discard it before starting a new import.'
                 )
 
     def archive_filename(self):

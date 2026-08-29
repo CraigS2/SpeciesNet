@@ -130,9 +130,11 @@ class AquaristListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = User.objects.all()
+        # Proxy accounts are club-internal bookkeeping — never shown in the
+        # public aquarists directory.
+        queryset = User.objects.filter(is_proxy=False)
         query_text = self.request.GET.get('q', '')
-        if query_text: 
+        if query_text:
             queryset = queryset.filter(
                 Q(username__icontains=query_text) |
                 Q(first_name__icontains=query_text) |
@@ -148,7 +150,9 @@ class AquaristListView(ListView):
             logger.info('Anonymous user visited aquarists page.')
         context = super().get_context_data(**kwargs)
         context['query_text'] = self.request.GET.get('q', '')
-        context['recent_speciesInstances'] = SpeciesInstance.objects.all()[:36]
+        context['recent_speciesInstances'] = SpeciesInstance.objects.filter(
+            currently_keep=True, user__is_proxy=False,
+        )[:36]
         return context
 
 
@@ -263,4 +267,7 @@ def logoutUser(request):
 
 @login_required(login_url='login')
 def exportAquarists(request):
+    # Full export includes proxy accounts and private fields — staff only.
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
     return export_csv_aquarists()

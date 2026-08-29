@@ -1,9 +1,9 @@
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
-from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember, CaresRegistration
+from species.models import SpeciesMaintenanceLog, AquaristClub, AquaristClubMember, CaresRegistration, CaresApprover
 from species.models import BapSubmission
-from django.db.models import URLField
+from django.db.models import URLField, Q
 from datetime import datetime
 from django.utils import timezone
 from urllib.parse import urlparse
@@ -110,13 +110,29 @@ def user_can_edit_club (cur_user: User, club: AquaristClub):
 
 
 def user_can_edit_cares_reg (cur_user: User, caresReg: CaresRegistration):
-    userCanEdit = False
-    if cur_user.is_authenticated:
-        if cur_user.is_staff or cur_user.is_admin:
-            userCanEdit = True
-        elif cur_user.is_species_admin and caresReg.cares_approver : 
-            userCanEdit = (caresReg.cares_approver.approver  == cur_user)
-    return userCanEdit
+    """
+    Staff/admin/species-admin can always edit. Otherwise, a CaresApprover can
+    edit only registrations that are actually theirs to approve: either they
+    are the approver already assigned to this registration (cares_approver),
+    or they hold a CaresApprover record whose specialty matches this
+    registration's species' CaresFamily (or is the 'UDF'/Undefined catch-all
+    specialty) — mirrors get_notification_approvers' matching so anyone who
+    gets notified about a registration can also act on it. is_species_admin
+    is a separate, broader "edit all Species" flag and is NOT required to be
+    a CaresApprover — a CaresApprover need not also have it set.
+    """
+    if not cur_user.is_authenticated:
+        return False
+    if cur_user.is_staff or cur_user.is_admin or cur_user.is_species_admin:
+        return True
+    if caresReg.cares_approver and caresReg.cares_approver.approver == cur_user:
+        return True
+    species = caresReg.species
+    if species is not None:
+        return CaresApprover.objects.filter(approver=cur_user).filter(
+            Q(specialty=species.cares_family) | Q(specialty='UDF')
+        ).exists()
+    return False
 
 def user_is_club_member (cur_user: User, club: AquaristClub):
     user_is_member = False

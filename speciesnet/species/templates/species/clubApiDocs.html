@@ -1,0 +1,245 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container mt-4 mb-5">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h3 class="my-0">Club Admin API Documentation</h3>
+        </div>
+        <div class="card-body px-4 py-3">
+          <p>
+            The club-admin API lets a club's own tools (a spreadsheet macro, a bot, a private
+            dashboard, etc.) pull read-only data about the club and its members without a human
+            logging in. Every request is authenticated with a single per-club <strong>API key</strong>
+            rather than a user account.
+          </p>
+
+          <h5 class="mt-4">Authentication</h5>
+          <p>
+            Generate a key from your club's <strong>Edit Club</strong> page, in the
+            <em>Club Admin API Key</em> section &mdash; the same section this page is linked from.
+            The raw key is shown <strong>exactly once</strong> at generation time; only a redacted
+            hint is stored and displayed afterward. Regenerating a key immediately invalidates the
+            previous one.
+          </p>
+          <p>Send it on every request as a header:</p>
+          <pre class="bg-light p-3 rounded small"><code>X-Club-Api-Key: &lt;your-club-api-key&gt;</code></pre>
+
+          <h5 class="mt-4">Errors</h5>
+          <table class="table table-sm table-bordered w-auto">
+            <thead class="table-light"><tr><th>Status</th><th>Meaning</th><th>Body</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>403</code></td>
+                <td>Header missing entirely</td>
+                <td><code>{"detail": "Club API key required."}</code></td>
+              </tr>
+              <tr>
+                <td><code>401</code></td>
+                <td>Header present but the key doesn't match any club</td>
+                <td><code>{"detail": "Invalid club API key."}</code></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h5 class="mt-4">The <code>member</code> parameter</h5>
+          <p>
+            Several endpoints scope results to one club member via a <code>?member=</code> query
+            parameter, matched against that member's <strong>username</strong> first, then their
+            <strong>email</strong> (case-insensitive) if no username matches. If <code>member</code>
+            is omitted, or doesn't resolve to a current member of your club, the endpoint returns an
+            empty <code>results</code> list &mdash; not an error &mdash; so a typo or an ex-member
+            username fails quietly rather than breaking a script.
+          </p>
+
+          <h5 class="mt-4">Endpoints</h5>
+          <ul>
+            <li><a href="#members">Members</a></li>
+            <li><a href="#species-kept">Species Kept</a></li>
+            <li><a href="#species-instances">Species Instances</a></li>
+            <li><a href="#cares-species">CARES Species</a></li>
+            <li><a href="#cares-species-instances">CARES Species Instances</a></li>
+            <li><a href="#bap-submissions">BAP Submissions</a></li>
+            <li><a href="#bap-leaderboard">BAP Leaderboard</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Members -->
+      <div class="card shadow-sm mb-4" id="members">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/members/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>Every current member of your club.</p>
+          <p class="text-muted small mb-1"><strong>Query parameters:</strong> none.</p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl https://yourdomain.example.com/api/club-admin/members/ \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {"username": "fishkeeper42", "full_name": "Jane Doe", "email": "jane@example.com"},
+    {"username": "cichlidguy", "full_name": "Bob Smith", "email": "bob@example.com"}
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Species Kept -->
+      <div class="card shadow-sm mb-4" id="species-kept">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/species-kept/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>Distinct species a member is <strong>currently</strong> keeping (one row per species, even if they keep several instances of it).</p>
+          <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required — see above).</p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl "https://yourdomain.example.com/api/club-admin/species-kept/?member=fishkeeper42" \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {"name": "Pterophyllum scalare", "url": "https://yourdomain.example.com/species/42/"},
+    {"name": "Symphysodon discus", "url": "https://yourdomain.example.com/species/17/"}
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Species Instances -->
+      <div class="card shadow-sm mb-4" id="species-instances">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/species-instances/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>
+            Every individual SpeciesInstance entry (a member's specific tank/log entry for a
+            species) belonging to that member within your club &mdash; including species they no
+            longer currently keep, unlike <a href="#species-kept">Species Kept</a> above.
+          </p>
+          <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required).</p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl "https://yourdomain.example.com/api/club-admin/species-instances/?member=fishkeeper42" \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {"name": "fishkeeper42's 55g Angelfish", "url": "https://yourdomain.example.com/speciesInstance/103/"}
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- CARES Species -->
+      <div class="card shadow-sm mb-4" id="cares-species">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/cares-species/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>
+            Like <a href="#species-kept">Species Kept</a>, but limited to species flagged as CARES
+            (conservation priority) species, with a <code>cares_registered</code> flag showing
+            whether that member already has a CARES registration on file for it.
+          </p>
+          <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required).</p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl "https://yourdomain.example.com/api/club-admin/cares-species/?member=fishkeeper42" \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {
+      "name": "Ptychochromis insolitus",
+      "url": "https://yourdomain.example.com/species/88/",
+      "cares_registered": true
+    }
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- CARES Species Instances -->
+      <div class="card shadow-sm mb-4" id="cares-species-instances">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/cares-species-instances/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>
+            Like <a href="#species-instances">Species Instances</a>, limited to CARES species, with
+            a photo URL when the member has uploaded one for that entry.
+          </p>
+          <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required).</p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl "https://yourdomain.example.com/api/club-admin/cares-species-instances/?member=fishkeeper42" \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {
+      "name": "fishkeeper42's Ptychochromis insolitus",
+      "url": "https://yourdomain.example.com/speciesInstance/210/",
+      "image_url": "https://yourdomain.example.com/media/images/2026/08/tank.jpg"
+    },
+    {
+      "name": "fishkeeper42's second CARES tank",
+      "url": "https://yourdomain.example.com/speciesInstance/211/",
+      "image_url": null
+    }
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- BAP Submissions -->
+      <div class="card shadow-sm mb-4" id="bap-submissions">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/bap-submissions/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>
+            Every BAP submission recorded against your club's <strong>currently open</strong> BAP
+            year. Club-wide &mdash; there is no <code>member</code> filter.
+          </p>
+          <p class="text-muted small mb-1">
+            <strong>Query parameters:</strong> none. Returns <code>{"results": []}</code> if your
+            club doesn't have BAP enabled, or has no open BAP year.
+          </p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl https://yourdomain.example.com/api/club-admin/bap-submissions/ \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {
+      "species_name": "Symphysodon discus",
+      "username": "cichlidguy",
+      "full_name": "Bob Smith",
+      "email": "bob@example.com"
+    }
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- BAP Leaderboard -->
+      <div class="card shadow-sm mb-4" id="bap-leaderboard">
+        <div class="card-header"><h5 class="my-0">GET /api/club-admin/bap-leaderboard/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>
+            The BAP leaderboard for your club's currently open BAP year, ordered by points
+            (highest first). Club-wide &mdash; there is no <code>member</code> filter.
+          </p>
+          <p class="text-muted small mb-1">
+            <strong>Query parameters:</strong> none. Same empty-results conditions as
+            <a href="#bap-submissions">BAP Submissions</a> above.
+          </p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl https://yourdomain.example.com/api/club-admin/bap-leaderboard/ \
+  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "results": [
+    {"points": 145, "username": "cichlidguy", "full_name": "Bob Smith", "email": "bob@example.com"},
+    {"points": 90, "username": "fishkeeper42", "full_name": "Jane Doe", "email": "jane@example.com"}
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <a href="javascript:history.back()" class="btn btn-secondary btn-sm">&#8592; Back</a>
+
+    </div>
+  </div>
+</div>
+{% endblock content %}

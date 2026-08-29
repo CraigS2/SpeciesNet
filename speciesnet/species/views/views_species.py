@@ -12,7 +12,11 @@ from django.conf import settings
 def species(request, pk):
     species = get_object_or_404(Species, pk=pk)
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
-    speciesInstances = SpeciesInstance.objects.filter(species=species, currently_keep=True).select_related('user')
+    # Proxy users and non-current instances are club-internal bookkeeping —
+    # never shown on this public species page.
+    speciesInstances = SpeciesInstance.objects.filter(
+        species=species, currently_keep=True, user__is_proxy=False,
+    ).select_related('user')
     speciesComments = SpeciesComment.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     cur_user = request.user
@@ -58,8 +62,14 @@ class SpeciesListView(ListView):
     paginate_by = 200
 
     def get_queryset(self):
+        # Only count currently-kept instances from real (non-proxy) aquarists —
+        # proxy accounts and no-longer-kept instances are club-internal
+        # bookkeeping and shouldn't inflate the public "kept by N" count.
         queryset = Species.objects.annotate(
-            instance_count=Count('species_instances')
+            instance_count=Count(
+                'species_instances',
+                filter=Q(species_instances__currently_keep=True, species_instances__user__is_proxy=False),
+            )
         )
         category     = self.request.GET.get('category', '')
         global_region = self.request.GET.get('global_region', '')

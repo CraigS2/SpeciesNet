@@ -61,7 +61,7 @@ from .views_club import (
     aquaristClubMember, createAquaristClubMember, editAquaristClubMember,
     deleteAquaristClubMember, AquaristClubCaresLiaisonListView,
     exportAquaristClubs, exportAquaristClubMembers, importProxyMembers,
-    generateClubApiKey, revokeClubApiKey
+    generateClubApiKey, revokeClubApiKey, clubApiDocs
 )
 
 # CLub BAP
@@ -116,6 +116,7 @@ from .views_species_import import (
 # BAP Import Workflow
 from .views_bap_import import (
     uploadBapImport, reviewBapImport, processBapImport, pullBapImportFromAuction,
+    manageBapEmailAliases,
 )
 
 # Species Feedback
@@ -158,7 +159,7 @@ __all__ = [
     'deleteAquaristClub', 'aquaristClubAdmin', 'AquaristClubMemberListView',
     'aquaristClubMember', 'createAquaristClubMember', 'editAquaristClubMember',
     'deleteAquaristClubMember', AquaristClubCaresLiaisonListView,
-    'importProxyMembers', 'generateClubApiKey', 'revokeClubApiKey',
+    'importProxyMembers', 'generateClubApiKey', 'revokeClubApiKey', 'clubApiDocs',
 
     # Cares
     'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 

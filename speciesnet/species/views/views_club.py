@@ -511,3 +511,12 @@ def revokeClubApiKey(request, pk):
         return HttpResponseForbidden('You do not have permission to manage this club.')
     club.revoke_club_api_key()
     return redirect('editAquaristClub', pk=club.pk)
+
+
+def clubApiDocs(request):
+    """
+    Reference documentation for the club-admin API (the endpoints
+    authenticated via a club's X-Club-Api-Key). No club-specific data is
+    shown — it's a static reference, safe to view without being signed in.
+    """
+    return render(request, 'species/clubApiDocs.html')

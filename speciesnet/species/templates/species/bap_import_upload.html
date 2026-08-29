@@ -29,22 +29,31 @@
               <a href="{% url 'reviewBapImport' existing_review.pk %}" class="btn btn-secondary ms-2">Cancel</a>
             </form>
           {% else %}
-            {% if existing_review %}
+            {% if existing_reviews %}
               <div class="alert alert-info">
-                There is already a
-                <a href="{% url 'reviewBapImport' existing_review.pk %}">pending import</a>
-                for <strong>{{ existing_review.club_or_auction_name }}</strong> in review.
-                Uploading a new file will replace it.
+                {{ club.name }} has {{ existing_reviews|length }} import{{ existing_reviews|length|pluralize }}
+                already in review:
+                <ul class="mb-0">
+                  {% for rb in existing_reviews %}
+                    <li>
+                      <a href="{% url 'reviewBapImport' rb.pk %}">{{ rb.club_or_auction_name }}</a>
+                    </li>
+                  {% endfor %}
+                </ul>
+                Uploading a file for a <em>different</em> auction is fine — it starts its own review.
+                Uploading a file for the <em>same</em> auction name will ask to replace that one.
               </div>
             {% endif %}
 
             <p class="text-muted">
-              Upload a BAP auction CSV with these headers (other columns are ignored):<br>
-              <code>Auction name, Auction date, Lot number, Lot, Species name, Seller, Seller email, Breeder points</code>
+              Upload a BAP auction CSV named <code>AUCTION_NAME-all-lot-list.csv</code> (the auction
+              name is taken from the filename) with these headers (other columns are ignored):<br>
+              <code>Lot number, Lot, Species name, Seller, Seller email, Breeder points</code>
             </p>
             <ul class="text-muted small mb-3">
               <li>An <strong>Account status</strong> column will be added automatically.</li>
-              <li>Blank <em>Species name</em> cells will be pre-filled using fuzzy matching against the species database where possible — please review and correct.</li>
+              <li><em>Species name</em> always starts blank — you'll review two suggestion columns
+                  (<em>ASN species match</em> / <em>AF species match</em>) and click one to populate it.</li>
               <li>You can edit the working file and re-upload before processing.</li>
             </ul>
 

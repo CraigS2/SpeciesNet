@@ -628,6 +628,9 @@ def registerCaresSpeciesInstance(request, pk):
 
 @login_required(login_url='login')
 def exportSpeciesInstances(request):
+    # Full export includes proxy accounts and instances not currently kept — staff only.
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
     return export_csv_speciesInstances()
 
 

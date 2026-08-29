@@ -6,31 +6,47 @@
 
       <div class="card shadow-sm mb-3">
         <div class="card-header">
-          <h4 class="my-0">BAP Import Review — {{ batch.club_or_auction_name }} &mdash; {{ club.name }}</h4>
+          <form method="post" class="d-flex align-items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="save_auction_name" value="1">
+            <h4 class="my-0 me-2">BAP Import Review &mdash; {{ club.name }}</h4>
+            <input type="text" name="auction_name" class="form-control form-control-sm w-auto"
+                   value="{{ batch.club_or_auction_name }}" style="min-width: 320px;">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Save Auction Name</button>
+          </form>
         </div>
         <div class="card-body px-3 py-2">
           <p class="text-muted small mb-2">
-            Review and correct the <strong>Species name</strong> and <strong>Breeder points</strong> columns below.
-            Any edits here are automatically applied before processing, whether or not you click
-            <strong>Save Edits</strong> first. Setting <strong>Breeder points</strong> to <em>No</em> excludes a
-            row from processing while keeping it in the working file. You may also re-upload a corrected CSV to
-            replace the working file entirely.
+            Review <strong>Species name</strong> — click a suggestion in <strong>ASN species match</strong>
+            or <strong>AF species match</strong> to populate it, or type it directly. Any edits here are
+            automatically applied before processing, whether or not you click <strong>Save Edits</strong>
+            first. Uncheck <strong>Breeder points</strong> to exclude a row from processing while keeping
+            it in the working file. You may also re-upload a corrected CSV to replace the working file
+            entirely.
           </p>
           <p class="text-muted small mb-2">
-            The <strong>AF species match</strong> column shows Auction.fish&#8217;s own suggested scientific name
-            for each lot, for comparison only &mdash; it does not affect import matching.
+            Rows marked <span class="badge bg-warning text-dark">pending</span> weren't recognized as an
+            existing account &mdash; if you know it's actually a current member using a different email,
+            <a href="{% url 'manageBapEmailAliases' club.pk %}">manage this club's email aliases</a> (or use
+            the <strong>+ alias</strong> link on that row) so future imports resolve it automatically.
           </p>
-          <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center mb-3">
-            {% csrf_token %}
-            <div class="col-auto">
-              <input type="file" name="replace_csv" class="form-control form-control-sm" accept=".csv" required>
-            </div>
-            <div class="col-auto">
-              <button type="submit" class="btn btn-outline-secondary btn-sm">Replace Working File</button>
-            </div>
-          </form>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <form method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
+              {% csrf_token %}
+              <div class="col-auto">
+                <input type="file" name="replace_csv" class="form-control form-control-sm" accept=".csv" required>
+              </div>
+              <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Replace Working File</button>
+              </div>
+            </form>
+            <a href="{% url 'manageBapEmailAliases' club.pk %}" class="btn btn-outline-secondary btn-sm">
+              Manage Email Aliases
+            </a>
+          </div>
 
           {% if rows %}
+            {{ valid_species_names|json_script:"valid-species-names" }}
             <form method="post" id="bap-review-edits-form" action="{% url 'reviewBapImport' batch.pk %}">
               {% csrf_token %}
               <input type="hidden" name="save_edits" value="1">
@@ -46,21 +62,38 @@
                   </thead>
                   <tbody>
                     {% for row in rows %}
-                      {% with import_status=row|last %}
+                      {% with import_status=row.cells|last %}
                       <tr class="{% if 'Error' in import_status %}table-danger{% elif 'Created' in import_status %}table-success{% elif 'Skipped' in import_status %}table-warning{% endif %}">
                         <td>{{ forloop.counter }}</td>
-                        {% for cell in row %}
+                        {% for cell in row.cells %}
                           {% if forloop.counter0 == species_col_index %}
                             <td>
-                              <input type="text" class="form-control form-control-sm"
+                              <input type="text" class="form-control form-control-sm species-name-input"
+                                     data-row="{{ forloop.parentloop.counter0 }}"
                                      name="row_{{ forloop.parentloop.counter0 }}_species_name"
                                      value="{{ cell }}">
+                              <div class="invalid-feedback-inline text-danger" style="display:none;"></div>
+                            </td>
+                          {% elif forloop.counter0 == asn_match_col_index or forloop.counter0 == af_match_col_index %}
+                            <td>
+                              {% if cell %}
+                                <span class="suggestion-cell text-decoration-underline"
+                                      role="button" title="Click to use as Species name">{{ cell }}</span>
+                              {% endif %}
                             </td>
                           {% elif forloop.counter0 == points_col_index %}
-                            <td>
-                              <input type="text" class="form-control form-control-sm"
+                            <td class="text-center">
+                              <input type="hidden" name="row_{{ forloop.parentloop.counter0 }}_breeder_points_present" value="1">
+                              <input type="checkbox" class="form-check-input"
                                      name="row_{{ forloop.parentloop.counter0 }}_breeder_points"
-                                     value="{{ cell }}">
+                                     {% if cell|lower == 'yes' or cell|lower == 'true' or cell|lower == '1' or cell|lower == 'y' %}checked{% endif %}>
+                            </td>
+                          {% elif forloop.counter0 == seller_email_col_index %}
+                            <td>
+                              {{ cell }}
+                              {% if row.is_pending %}
+                                <a class="small ms-1" href="{% url 'manageBapEmailAliases' club.pk %}?alias_email={{ cell|urlencode }}">+ alias</a>
+                              {% endif %}
                             </td>
                           {% else %}
                             <td>{{ cell }}</td>
@@ -96,4 +129,32 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var validNamesEl = document.getElementById('valid-species-names');
+  if (!validNamesEl) return;
+  var validNames = JSON.parse(validNamesEl.textContent);
+  var validLookup = {};
+  validNames.forEach(function (n) { validLookup[n.trim().toLowerCase()] = n; });
+
+  document.querySelectorAll('.suggestion-cell').forEach(function (cellEl) {
+    cellEl.addEventListener('click', function () {
+      var text = cellEl.textContent.trim();
+      var input = cellEl.closest('tr').querySelector('.species-name-input');
+      var feedback = input ? input.parentElement.querySelector('.invalid-feedback-inline') : null;
+      var match = validLookup[text.toLowerCase()];
+      if (match) {
+        input.value = match;
+        input.classList.remove('is-invalid');
+        if (feedback) { feedback.style.display = 'none'; }
+      } else if (feedback) {
+        feedback.textContent = 'Species name not found. Species names must match valid ASN Species declared in the database.';
+        feedback.style.display = 'block';
+        input.classList.add('is-invalid');
+      }
+    });
+  });
+});
+</script>
 {% endblock %}

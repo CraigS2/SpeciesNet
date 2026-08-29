@@ -23,6 +23,9 @@ def speciesProfilesWithPhotos(request):
 
 @login_required(login_url='login')
 def speciesInstancesWithPhotos(request):
+    # Admin tool — sees everything, including proxy accounts.
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
     si_with_photos = SpeciesInstance.objects.exclude(aquarist_species_image__in=['', None])
     context = {'si_with_photos': si_with_photos}
     return render(request, 'species/speciesInstancesWithPhotos.html', context)
@@ -45,12 +48,16 @@ def speciesInstancesWithVideos(request):
     """
     View all species instances that have YouTube videos
     """
+    # Admin tool — sees everything, including proxy accounts.
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
+
     # Need to filter on both null and empty string cases - so use an exclude set
     speciesInstances = SpeciesInstance.objects.exclude(
-        Q(aquarist_species_video_url__isnull=True) | 
+        Q(aquarist_species_video_url__isnull=True) |
         Q(aquarist_species_video_url='')
     )
-    
+
     if request.user.is_authenticated:
         logger.info('User %s visited speciesInstancesWithVideos page.', request.user.username)
     else:
@@ -65,6 +72,10 @@ def speciesInstancesWithLogs(request):
     """
     View all species instances that have log entries
     """
+    # Admin tool — sees everything, including proxy accounts.
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
+
     log_entries = SpeciesInstanceLogEntry.objects.all()
     speciesInstances = []
     

@@ -43,6 +43,7 @@ urlpatterns = [
     path('importProxyMembers/<str:pk>/', views.importProxyMembers, name="importProxyMembers"),
     path('club/<str:pk>/generate-club-api-key/', views.generateClubApiKey, name="generateClubApiKey"),
     path('club/<str:pk>/revoke-club-api-key/', views.revokeClubApiKey, name="revokeClubApiKey"),
+    path('club-api-docs/', views.clubApiDocs, name="clubApiDocs"),
 
     ### BAP CSV Import Workflow ###
 
@@ -50,6 +51,7 @@ urlpatterns = [
     path('bap/import/review/<int:pk>/', views.reviewBapImport, name="reviewBapImport"),
     path('bap/import/process/<int:pk>/', views.processBapImport, name="processBapImport"),
     path('bap/import/pull/<int:pk>/', views.pullBapImportFromAuction, name="pullBapImportFromAuction"),
+    path('bap/import/email-aliases/<int:pk>/', views.manageBapEmailAliases, name="manageBapEmailAliases"),
 
     ### Aquarist Club BAP Programs ###
 

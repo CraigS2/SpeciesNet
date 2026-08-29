@@ -383,6 +383,48 @@ class AquaristClubEditViewTests(TestCase):
             self.assertNotIn(field_name, form.fields)
 
 
+class ClubApiDocsViewTests(TestCase):
+    """Test suite for the clubApiDocs reference page"""
+
+    def test_accessible_without_login(self):
+        """It's a static reference page with no club-specific data — no auth required."""
+        response = self.client.get(reverse('clubApiDocs'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'species/clubApiDocs.html')
+
+    def test_documents_all_club_admin_endpoints(self):
+        response = self.client.get(reverse('clubApiDocs'))
+        for path in (
+            '/api/club-admin/members/',
+            '/api/club-admin/species-kept/',
+            '/api/club-admin/species-instances/',
+            '/api/club-admin/cares-species/',
+            '/api/club-admin/cares-species-instances/',
+            '/api/club-admin/bap-submissions/',
+            '/api/club-admin/bap-leaderboard/',
+        ):
+            self.assertContains(response, path)
+
+    def test_documents_auth_header_and_errors(self):
+        response = self.client.get(reverse('clubApiDocs'))
+        self.assertContains(response, 'X-Club-Api-Key')
+        self.assertContains(response, 'Club API key required.')
+        self.assertContains(response, 'Invalid club API key.')
+
+    def test_linked_from_edit_club_page(self):
+        club = AquaristClub.objects.create(name='Docs Link Club', acronym='DLC', bap_default_points=10)
+        admin = User.objects.create_user(
+            email='docslinkadmin@test.com', username='docslinkadmin', password='testpass123',
+        )
+        AquaristClubMember.objects.create(
+            name='DLC: docslinkadmin', club=club, user=admin,
+            is_club_admin=True, membership_approved=True,
+        )
+        self.client.login(email='docslinkadmin@test.com', password='testpass123')
+        response = self.client.get(reverse('editAquaristClub', args=[club.id]))
+        self.assertContains(response, reverse('clubApiDocs'))
+
+
 class AquaristClubDeleteViewTests(TestCase):
     """Test suite for deleteAquaristClub view"""
 

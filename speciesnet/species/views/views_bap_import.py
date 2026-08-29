@@ -28,7 +28,7 @@ from django.utils import timezone
 
 
 from species.models import (
-    AquaristClub, AquaristClubMember, BapImportBatch, BapSubmission, BapYear,
+    AquaristClub, AquaristClubEmailAlias, AquaristClubMember, BapImportBatch, BapSubmission, BapYear,
     ImportArchive, Species, SpeciesInstance, User,
 )
 
@@ -40,11 +40,14 @@ logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Required CSV columns (input from auction export)
+#
+# 'Auction name' / 'Auction date' are NOT input columns — the auction name is
+# derived from the uploaded filename (see _extract_auction_name_from_filename)
+# and stored once on BapImportBatch.club_or_auction_name rather than repeated
+# on every row.
 # ---------------------------------------------------------------------------
 
 REQUIRED_INPUT_COLS = [
-    'Auction name',
-    'Auction date',
     'Lot number',
     'Lot',
     'Species name',
@@ -54,14 +57,15 @@ REQUIRED_INPUT_COLS = [
 ]
 
 _SPECIES_NAME_COL = 'Species name'
+_ASN_SPECIES_MATCH_COL = 'ASN species match'
 _AF_SPECIES_MATCH_COL = 'AF species match'
 
-# WORKING_COLS preserves REQUIRED_INPUT_COLS order with 'AF species match'
-# inserted immediately after 'Species name', then adds 'Account status'.
+# WORKING_COLS preserves REQUIRED_INPUT_COLS order with the two suggestion
+# columns inserted immediately after 'Species name', then adds 'Account status'.
 _species_idx = REQUIRED_INPUT_COLS.index(_SPECIES_NAME_COL)
 WORKING_COLS = (
     REQUIRED_INPUT_COLS[: _species_idx + 1]
-    + [_AF_SPECIES_MATCH_COL]
+    + [_ASN_SPECIES_MATCH_COL, _AF_SPECIES_MATCH_COL]
     + REQUIRED_INPUT_COLS[_species_idx + 1 :]
     + ['Account status']
 )
@@ -106,6 +110,27 @@ def _classify_account_status(email: str) -> str:
     return 'active'
 
 
+def _resolve_seller_email(club, raw_email: str) -> str:
+    """
+    Resolve *raw_email* through the club's email-alias table.
+
+    Import data sometimes carries an email address a real member used to
+    register for the auction, distinct from the address on their ASN
+    account. If a club admin has recorded that alias (AquaristClubEmailAlias),
+    return the real account's current email so the row classifies as
+    'active'/'proxy' instead of silently going to 'pending' and later
+    spawning a duplicate proxy account. Returns the normalized *raw_email*
+    unchanged when no alias is on file.
+    """
+    norm = (raw_email or '').strip().lower()
+    if not norm:
+        return norm
+    alias = AquaristClubEmailAlias.objects.filter(
+        club=club, alias_email__iexact=norm
+    ).select_related('user').first()
+    return alias.user.email if alias else norm
+
+
 def _build_species_name_pool():
     """
     Return a dict mapping lower-cased display string → canonical Species.name.
@@ -119,30 +144,32 @@ def _build_species_name_pool():
     return pool
 
 
-def _fuzzy_fill_species(rows: list) -> list:
+def _fuzzy_fill_asn_species_match(rows: list) -> list:
     """
-    For rows where 'Species name' is blank, attempt a fuzzy match against
-    the Species pool using the 'Lot' text.
+    Populate the 'ASN species match' column with a best-effort fuzzy match
+    against the local Species pool, using the 'Lot' text. This is a
+    suggestion only — 'Species name' itself is never auto-filled; the admin
+    reviews and clicks a suggestion (this column or 'AF species match') to
+    populate it.
 
-    Mutates rows in-place and returns them.  Called on every full-CSV
-    (re)load — initial upload AND 'Replace Working File' — so blank
-    Species name cells always get the same best-effort pre-fill treatment.
+    Mutates rows in-place and returns them. Called on every full-CSV
+    (re)load — initial upload AND 'Replace Working File'.
     """
     pool = _build_species_name_pool()
+    for row in rows:
+        row.setdefault(_ASN_SPECIES_MATCH_COL, '')
     if not pool:
         return rows
 
     all_keys = list(pool.keys())
     for row in rows:
-        if row.get('Species name', '').strip():
-            continue  # already filled
         lot_text = row.get('Lot', '').strip()
         if not lot_text:
             continue
         matches = difflib.get_close_matches(lot_text.lower(), all_keys, n=1, cutoff=0.6)
         if matches:
-            row['Species name'] = pool[matches[0]]
-            logger.debug('Fuzzy-matched "%s" → "%s"', lot_text, row['Species name'])
+            row[_ASN_SPECIES_MATCH_COL] = pool[matches[0]]
+            logger.debug('Fuzzy-matched "%s" → "%s"', lot_text, row[_ASN_SPECIES_MATCH_COL])
     return rows
 
 
@@ -203,6 +230,21 @@ def _sanitize_for_filename(text: str) -> str:
     return re.sub(r'[^\w\-.]', '_', text or 'untitled')
 
 
+def _extract_auction_name_from_filename(filename: str) -> str:
+    """
+    Derive the auction name from an uploaded CSV filename.
+
+    Expected convention: 'AUCTION_NAME-all-lot-list.csv'. Strips the
+    extension and a trailing '-all-lot-list' suffix (case-insensitive) if
+    present; otherwise falls back to the full basename so an unexpected
+    filename still yields a usable (if less clean) name rather than erroring.
+    """
+    base = os.path.basename(filename or '').strip()
+    base, _ext = os.path.splitext(base)
+    base = re.sub(r'-all-lot-list$', '', base, flags=re.IGNORECASE)
+    return base or 'untitled-auction'
+
+
 def _read_working_csv(batch: BapImportBatch) -> list:
     """Read BapImportBatch.working_csv_file and return list of dicts."""
     batch.working_csv_file.open('r')
@@ -232,8 +274,9 @@ def _build_working_rows_from_raw(raw_content: str, club=None, enable_af_suggesti
     """
     Shared pipeline for turning a raw CSV string into working rows:
     filter non-truthy Breeder points -> keep required cols + Account status
-    -> fuzzy-fill Species name -> optionally populate AF species match.
-    AF species match lookups only run when enable_af_suggestions is True
+    -> force Species name blank -> fuzzy-fill ASN species match suggestion
+    -> optionally populate AF species match suggestion.
+    AF species match lookups only run when enable_af_suggestions is True.
     Returns (filtered_rows, skipped_count).
     """
     reader = csv.DictReader(io.StringIO(raw_content))
@@ -244,9 +287,12 @@ def _build_working_rows_from_raw(raw_content: str, club=None, enable_af_suggesti
     filtered_rows = []
     for row in all_rows:
         filtered = {col: row.get(col, '') for col in REQUIRED_INPUT_COLS}
-        filtered['Account status'] = _classify_account_status(filtered.get('Seller email', ''))
+        filtered['Species name'] = ''  # never carry over — admin picks a suggestion or types it
+        seller_email = _resolve_seller_email(club, filtered.get('Seller email', '')) if club is not None else filtered.get('Seller email', '').strip().lower()
+        filtered['Seller email'] = seller_email
+        filtered['Account status'] = _classify_account_status(seller_email)
         filtered_rows.append(filtered)
-    filtered_rows = _fuzzy_fill_species(filtered_rows)
+    filtered_rows = _fuzzy_fill_asn_species_match(filtered_rows)
     if enable_af_suggestions and club is not None:
         filtered_rows = _populate_af_species_match(filtered_rows, club)
     else:
@@ -272,14 +318,21 @@ def _apply_row_edits_from_post(rows: list, post_data) -> list:
     (via the HTML `form=` / `formaction` attributes), so any unsaved edits
     in the table are always applied before processing, whether or not the
     admin clicked Save Edits first.
+
+    'Breeder points' is a checkbox in the review table. Unchecked checkboxes
+    are simply absent from POST data, so a paired hidden sentinel input
+    'row_{idx}_breeder_points_present' is used to distinguish "checkbox was
+    on the submitted form but unchecked" (-> 'No') from "this row wasn't
+    part of the submission at all" (-> leave untouched).
     """
     for idx, row in enumerate(rows):
         species_key = f'row_{idx}_species_name'
         points_key = f'row_{idx}_breeder_points'
+        points_present_key = f'row_{idx}_breeder_points_present'
         if species_key in post_data:
             row['Species name'] = post_data[species_key].strip()
-        if points_key in post_data:
-            row['Breeder points'] = post_data[points_key].strip()
+        if points_present_key in post_data:
+            row['Breeder points'] = 'Yes' if points_key in post_data else 'No'
     return rows
 
 
@@ -292,19 +345,23 @@ def uploadBapImport(request, pk):
     """
     Upload a BAP auction CSV.  Drops rows where 'Breeder points' is not
     truthy (they have no value for BAP processing), runs account-status
-    classification and a one-time fuzzy species-name pre-fill on the
+    classification and a one-time fuzzy ASN-species-match suggestion on the
     remaining rows, then saves a BapImportBatch in REVIEW status.
 
-    If the club already has a REVIEW batch, the uploaded file's bytes are
-    cached in the session so the admin does not have to re-select the file
-    a second time just to confirm discarding the old batch.
+    The auction name is derived from the uploaded filename (see
+    _extract_auction_name_from_filename), not read from a CSV column.  A
+    club may have multiple REVIEW batches at once as long as they're for
+    different auctions — the discard-confirmation flow below only triggers
+    when a REVIEW batch already exists for the SAME auction name, caching
+    the uploaded bytes in the session so the admin does not have to
+    re-select the file a second time just to confirm discarding it.
     """
     club = get_object_or_404(AquaristClub, pk=pk)
 
     if not _user_is_bap_admin(request.user, club):
         raise PermissionDenied
 
-    existing_review = BapImportBatch.objects.filter(club=club, status=BapImportBatch.Status.REVIEW).first()
+    existing_reviews = list(BapImportBatch.objects.filter(club=club, status=BapImportBatch.Status.REVIEW))
 
     if request.method == 'POST':
         confirm_discard = request.POST.get('confirm_discard') == '1'
@@ -320,7 +377,7 @@ def uploadBapImport(request, pk):
             if not b64 or cached_club_pk != club.pk:
                 messages.error(request, 'Your upload expired or could not be found. Please choose the file again.')
                 _clear_pending_csv_session(request)
-                context = {'club': club, 'existing_review': existing_review}
+                context = {'club': club, 'existing_reviews': existing_reviews}
                 return render(request, 'species/bap_import_upload.html', context)
 
             try:
@@ -329,7 +386,7 @@ def uploadBapImport(request, pk):
             except Exception as exc:
                 messages.error(request, f'Could not read cached CSV file: {exc}')
                 _clear_pending_csv_session(request)
-                context = {'club': club, 'existing_review': existing_review}
+                context = {'club': club, 'existing_reviews': existing_reviews}
                 return render(request, 'species/bap_import_upload.html', context)
 
             uploaded_file_name = original_name
@@ -340,7 +397,7 @@ def uploadBapImport(request, pk):
 
             if not csv_file:
                 messages.error(request, 'Please choose a CSV file to upload.')
-                context = {'club': club, 'existing_review': existing_review}
+                context = {'club': club, 'existing_reviews': existing_reviews}
                 return render(request, 'species/bap_import_upload.html', context)
 
             try:
@@ -348,20 +405,24 @@ def uploadBapImport(request, pk):
                 raw_content = raw_bytes.decode('utf-8-sig')
             except Exception as exc:
                 messages.error(request, f'Could not read CSV file: {exc}')
-                context = {'club': club, 'existing_review': existing_review}
+                context = {'club': club, 'existing_reviews': existing_reviews}
                 return render(request, 'species/bap_import_upload.html', context)
 
             uploaded_file_name = csv_file.name
 
+            auction_name = _extract_auction_name_from_filename(uploaded_file_name)
+            existing_review = next((b for b in existing_reviews if b.club_or_auction_name == auction_name), None)
             if existing_review:
                 # Cache the bytes and ask for confirmation before discarding
-                # the old batch — no need to make the admin re-select the file.
+                # the old batch for this SAME auction — no need to make the
+                # admin re-select the file.
                 request.session[SESSION_PENDING_CSV_B64] = base64.b64encode(raw_bytes).decode('ascii')
                 request.session[SESSION_PENDING_CSV_NAME] = uploaded_file_name
                 request.session[SESSION_PENDING_CSV_CLUB] = club.pk
                 request.session[SESSION_PENDING_CSV_AF_ENABLED] = enable_af_suggestions
                 context = {
                     'club': club,
+                    'existing_reviews': existing_reviews,
                     'existing_review': existing_review,
                     'warn_discard': True,
                     'uploaded_file_name': uploaded_file_name,
@@ -376,22 +437,15 @@ def uploadBapImport(request, pk):
         except Exception as exc:
             messages.error(request, f'Could not parse CSV file: {exc}')
             _clear_pending_csv_session(request)
-            context = {'club': club, 'existing_review': existing_review}
+            context = {'club': club, 'existing_reviews': existing_reviews}
             return render(request, 'species/bap_import_upload.html', context)
 
-        # Extract auction metadata from first row
-        auction_name = filtered_rows[0].get('Auction name', '').strip() if filtered_rows else ''
-        auction_date_str = filtered_rows[0].get('Auction date', '').strip() if filtered_rows else ''
-        auction_date = None
-        if auction_date_str:
-            import dateutil.parser
-            try:
-                auction_date = dateutil.parser.parse(auction_date_str).date()
-            except Exception:
-                auction_date = None
+        auction_name = _extract_auction_name_from_filename(uploaded_file_name)
+        existing_review = next((b for b in existing_reviews if b.club_or_auction_name == auction_name), None)
 
         with transaction.atomic():
-            # Discard old REVIEW batch (only reached here if confirmed)
+            # Discard old REVIEW batch for this same auction (only reached
+            # here if confirmed via the warn_discard flow above).
             if existing_review:
                 if existing_review.working_csv_file:
                     try:
@@ -404,13 +458,12 @@ def uploadBapImport(request, pk):
 
             batch = BapImportBatch(
                 club=club,
-                club_or_auction_name=auction_name or uploaded_file_name,
-                auction_pull_date=auction_date,
+                club_or_auction_name=auction_name,
                 status=BapImportBatch.Status.REVIEW,
                 created_by=request.user,
             )
             batch.save()  # need PK before saving file
-            filename = f'working_{batch.pk}_{_sanitize_for_filename(auction_name or "batch")}.csv'
+            filename = f'{_sanitize_for_filename(auction_name)}_{timezone.localdate().isoformat()}.csv'
             batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
 
         _clear_pending_csv_session(request)
@@ -421,25 +474,77 @@ def uploadBapImport(request, pk):
         messages.success(request, summary_msg)
         return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
 
-    context = {'club': club, 'existing_review': existing_review}
+    context = {'club': club, 'existing_reviews': existing_reviews}
     return render(request, 'species/bap_import_upload.html', context)
 
 # ---------------------------------------------------------------------------
 # View 2 – Review
 # ---------------------------------------------------------------------------
 
+def _review_context(batch, club, rows_dicts=None):
+    """Build the standard reviewBapImport template context from the current
+    (or given) working rows."""
+    if rows_dicts is None:
+        rows_dicts = _read_working_csv(batch)
+    # Determine headers dynamically (may include Import status after a partial run)
+    headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS
+    rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
+
+    def _col(name):
+        return headers.index(name) if name in headers else -1
+
+    seller_email_idx = _col('Seller email')
+    account_status_idx = _col('Account status')
+
+    rows_ctx = []
+    for cells in rows_as_lists:
+        is_pending = 0 <= account_status_idx < len(cells) and cells[account_status_idx] == 'pending'
+        seller_email = cells[seller_email_idx] if 0 <= seller_email_idx < len(cells) else ''
+        rows_ctx.append({'cells': cells, 'is_pending': is_pending, 'seller_email': seller_email})
+
+    return {
+        'batch': batch,
+        'club': club,
+        'rows': rows_ctx,
+        'headers': headers,
+        'species_col_index': _col('Species name'),
+        'asn_match_col_index': _col(_ASN_SPECIES_MATCH_COL),
+        'af_match_col_index': _col(_AF_SPECIES_MATCH_COL),
+        'points_col_index': _col('Breeder points'),
+        'valid_species_names': list(Species.objects.values_list('name', flat=True)),
+    }
+
+
+def _reresolve_aliases_and_status(rows: list, club) -> list:
+    """
+    Re-run email-alias resolution and Account status classification for
+    every row, in place. Cheap (no external API calls) — used on every
+    Save Edits so a club admin can add an alias to an already-in-review
+    batch and immediately fix a mis-classified row with a plain save,
+    without re-uploading or re-pulling.
+    """
+    for row in rows:
+        resolved = _resolve_seller_email(club, row.get('Seller email', ''))
+        row['Seller email'] = resolved
+        row['Account status'] = _classify_account_status(resolved)
+    return rows
+
+
 @login_required(login_url='login')
 def reviewBapImport(request, pk):
     """
     Display the working CSV for review.  Supports:
+      - editing the Auction Name (POST save_auction_name=1).
       - inline edits to 'Species name' and 'Breeder points' saved back to the
-        working CSV (POST save_edits=1). Setting 'Breeder points' to a
-        non-truthy value (e.g. 'No') excludes that row from processing
-        without removing it from the working file.
+        working CSV (POST save_edits=1). Unchecking 'Breeder points' excludes
+        that row from processing without removing it from the working file.
+        Email-alias resolution and Account status are also re-applied to
+        every row on save, so adding a new alias takes effect immediately.
       - full-file re-upload to replace the working file (POST replace_csv),
         which runs the SAME pipeline as initial upload: drops rows without a
-        truthy 'Breeder points' value AND fuzzy-fills blank Species name
-        cells, so re-uploads behave identically to the first upload.
+        truthy 'Breeder points' value, forces Species name blank, and
+        refreshes both suggestion columns, so re-uploads behave identically
+        to the first upload.
     """
     batch = get_object_or_404(BapImportBatch, pk=pk)
     club = batch.club
@@ -451,12 +556,24 @@ def reviewBapImport(request, pk):
         messages.info(request, 'This import batch has already been processed.')
         return HttpResponseRedirect(reverse('aquaristClub', args=[club.pk]))
 
+    # --- Handle Auction Name edit ---
+    if request.method == 'POST' and request.POST.get('save_auction_name') == '1':
+        new_name = request.POST.get('auction_name', '').strip()
+        if new_name:
+            batch.club_or_auction_name = new_name
+            batch.save(update_fields=['club_or_auction_name'])
+            messages.success(request, 'Auction name updated.')
+        else:
+            messages.error(request, 'Auction name cannot be blank.')
+        return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
+
     # --- Handle inline row edits (Species name / Breeder points) ---
     if request.method == 'POST' and request.POST.get('save_edits') == '1':
         rows = _read_working_csv(batch)
         fieldnames = list(rows[0].keys()) if rows else WORKING_COLS
 
         rows = _apply_row_edits_from_post(rows, request.POST)
+        rows = _reresolve_aliases_and_status(rows, club)
 
         csv_bytes = _write_working_csv(rows, fieldnames)
         if batch.working_csv_file:
@@ -473,36 +590,14 @@ def reviewBapImport(request, pk):
             raw_content = csv_file.read().decode('utf-8-sig')
         except Exception as exc:
             messages.error(request, f'Could not read replacement CSV: {exc}')
-            rows_dicts = _read_working_csv(batch)
-            headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS + ['Import status']
-            rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
-            context = {
-                'batch': batch,
-                'club': club,
-                'rows': rows_as_lists,
-                'headers': headers,
-                'species_col_index': headers.index('Species name') if 'Species name' in headers else -1,
-                'points_col_index': headers.index('Breeder points') if 'Breeder points' in headers else -1,
-            }
-            return render(request, 'species/bap_import_review.html', context)
+            return render(request, 'species/bap_import_review.html', _review_context(batch, club))
 
         enable_af_suggestions = request.POST.get('enable_af_suggestions') == '1'
         try:
             filtered_rows, skipped_count = _build_working_rows_from_raw(raw_content, club=club, enable_af_suggestions=enable_af_suggestions)
         except Exception as exc:
             messages.error(request, f'Could not parse replacement CSV: {exc}')
-            rows_dicts = _read_working_csv(batch)
-            headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS + ['Import status']
-            rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
-            context = {
-                'batch': batch,
-                'club': club,
-                'rows': rows_as_lists,
-                'headers': headers,
-                'species_col_index': headers.index('Species name') if 'Species name' in headers else -1,
-                'points_col_index': headers.index('Breeder points') if 'Breeder points' in headers else -1,
-            }
-            return render(request, 'species/bap_import_review.html', context)
+            return render(request, 'species/bap_import_review.html', _review_context(batch, club))
 
         csv_bytes = _write_working_csv(filtered_rows, WORKING_COLS)
 
@@ -517,19 +612,7 @@ def reviewBapImport(request, pk):
         messages.success(request, replace_msg)
         return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
 
-    rows_dicts = _read_working_csv(batch)
-    # Determine headers dynamically (may include Import status after partial run)
-    headers = list(rows_dicts[0].keys()) if rows_dicts else WORKING_COLS
-    rows_as_lists = _rows_dicts_to_lists(rows_dicts, headers)
-    context = {
-        'batch': batch,
-        'club': club,
-        'rows': rows_as_lists,
-        'headers': headers,
-        'species_col_index': headers.index('Species name') if 'Species name' in headers else -1,
-        'points_col_index': headers.index('Breeder points') if 'Breeder points' in headers else -1,
-    }
-    return render(request, 'species/bap_import_review.html', context)
+    return render(request, 'species/bap_import_review.html', _review_context(batch, club))
 
 
 # ---------------------------------------------------------------------------
@@ -573,6 +656,7 @@ def processBapImport(request, pk):
     # Apply any inline edits submitted with this request before processing,
     # so unsaved table edits are never lost even if 'Save Edits' wasn't clicked.
     rows = _apply_row_edits_from_post(rows, request.POST)
+    rows = _reresolve_aliases_and_status(rows, club)
 
     # ---------- First pass: identify active non-members ----------
     active_non_member_species: dict[str, list[str]] = {}  # email → [species_names]
@@ -679,9 +763,8 @@ def processBapImport(request, pk):
                 )
 
             # 4. Create BapSubmission — block duplicates for ANY OPEN or APPROVED submission to prevent duplicates on re-import
-            auction_name = row.get('Auction name', '').strip()
             lot_text = row.get('Lot', '').strip()
-            import_trace_note = f'Imported from auction "{auction_name}" — Lot: {lot_text}' if (auction_name or lot_text) else ''
+            import_trace_note = f'Imported from auction "{batch.club_or_auction_name}" — Lot: {lot_text}' if (batch.club_or_auction_name or lot_text) else ''
 
             existing_active_submission = BapSubmission.objects.filter(
                 aquarist=species_instance.user,
@@ -993,10 +1076,8 @@ def pullBapImportFromAuction(request, pk):
     filtered_rows = []
     for lot in eligible_lots:
         seller_name = lot.get('seller_name', '')
-        seller_email = lot.get('seller_email', '')
+        seller_email = _resolve_seller_email(club, lot.get('seller_email', ''))
         row = {
-            'Auction name': batch_label,
-            'Auction date': end_str,
             'Lot number': str(lot.get('lot_id', '')),
             'Lot': lot.get('lot_name', ''),
             'Species name': '',
@@ -1007,15 +1088,18 @@ def pullBapImportFromAuction(request, pk):
         }
         filtered_rows.append(row)
 
-    filtered_rows = _fuzzy_fill_species(filtered_rows)
+    filtered_rows = _fuzzy_fill_asn_species_match(filtered_rows)
     if enable_af_suggestions:
         filtered_rows = _populate_af_species_match(filtered_rows, club)
     else:
         for row in filtered_rows:
             row.setdefault(_AF_SPECIES_MATCH_COL, '')
 
+    # Only replace a REVIEW batch for this SAME pull (same date range) — a
+    # different date range, or a CSV-sourced batch for an unrelated auction,
+    # is left alone (multiple concurrent REVIEW batches per club are normal).
     existing_review = BapImportBatch.objects.filter(
-        club=club, status=BapImportBatch.Status.REVIEW
+        club=club, status=BapImportBatch.Status.REVIEW, club_or_auction_name=batch_label,
     ).first()
 
     # Capture the old file reference before entering the transaction so we
@@ -1038,7 +1122,7 @@ def pullBapImportFromAuction(request, pk):
             created_by=request.user,
         )
         batch.save()
-        filename = f'working_{batch.pk}_{_sanitize_for_filename(batch_label)}.csv'
+        filename = f'{_sanitize_for_filename(batch_label)}_{timezone.localdate().isoformat()}.csv'
         batch.working_csv_file.save(filename, ContentFile(csv_bytes), save=True)
 
     # Delete old working file after the transaction has committed successfully.
@@ -1054,3 +1138,54 @@ def pullBapImportFromAuction(request, pk):
         f'({start_str} to {end_str}). Review and correct before processing.'
     )
     return HttpResponseRedirect(reverse('reviewBapImport', args=[batch.pk]))
+
+
+# ---------------------------------------------------------------------------
+# View 5 – Manage per-club email aliases
+# ---------------------------------------------------------------------------
+
+@login_required(login_url='login')
+def manageBapEmailAliases(request, pk):
+    """
+    List and add/delete AquaristClubEmailAlias rows for *club*.
+
+    Admins type a known username (no fuzzy/name matching) and an alias
+    email; the alias then makes BAP imports resolve that alias email to the
+    real account instead of misclassifying it as 'pending'.
+    """
+    club = get_object_or_404(AquaristClub, pk=pk)
+
+    if not _user_is_bap_admin(request.user, club):
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        if 'delete_id' in request.POST:
+            AquaristClubEmailAlias.objects.filter(club=club, pk=request.POST['delete_id']).delete()
+            messages.success(request, 'Email alias removed.')
+            return HttpResponseRedirect(reverse('manageBapEmailAliases', args=[club.pk]))
+
+        alias_email = request.POST.get('alias_email', '').strip().lower()
+        username = request.POST.get('username', '').strip()
+
+        if not alias_email or not username:
+            messages.error(request, 'Both an alias email and a username are required.')
+        else:
+            user = User.objects.filter(username=username).first()
+            if user is None:
+                messages.error(request, f'No ASN account found with username "{username}".')
+            elif AquaristClubEmailAlias.objects.filter(club=club, alias_email__iexact=alias_email).exists():
+                messages.error(request, f'"{alias_email}" is already mapped for this club.')
+            else:
+                AquaristClubEmailAlias.objects.create(
+                    club=club, alias_email=alias_email, user=user, created_by=request.user,
+                )
+                messages.success(request, f'"{alias_email}" now resolves to {user.username}.')
+        return HttpResponseRedirect(reverse('manageBapEmailAliases', args=[club.pk]))
+
+    aliases = AquaristClubEmailAlias.objects.filter(club=club).select_related('user')
+    context = {
+        'club': club,
+        'aliases': aliases,
+        'prefill_alias_email': request.GET.get('alias_email', ''),
+    }
+    return render(request, 'species/bap_email_aliases.html', context)
