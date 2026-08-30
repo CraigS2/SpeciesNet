@@ -1,13 +1,17 @@
 Hello {{ registration.aquarist_name }},
 
-Your CARES registration for {{ species_name }} has been marked {{ status_label }}. Additional information is required. 
+Thank you for your CARES submission of {{ species_name }}.
+
+The CARES Team asks that you please send additional information or a new photo for verification as described in the notes below. 
+
+If a new photo is requested, please upload the new photo. If no new photo is needed, please provide more information about the species you keep.
 
 {% if registration.approver_notes %}
-Approver notes with clarification request:
-{{ registration.approver_notes }}
-
+    Request for more information:
+    {{ registration.approver_notes }}
 {% endif %}
-To update your CARES registration submission, please reply to this email. If you need to provide a new photo you can attach it to your email. 
+
+To update your CARES registration submission, please use the secure link below and provide the requested information.  
 
 Thank you,
 CARES Species Team

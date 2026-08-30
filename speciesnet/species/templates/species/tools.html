@@ -23,5 +23,13 @@
         <p><a href="{% url 'importCaresRegistrations'%}">Import ASN CARES Registrations from CSV</a></p>
         <p><a href="{% url 'importCaresLegacyRegistrations'%}">Import CARES Legacy Registrations from CSV</a></p>        
     </div>
+    <div>
+        <h3>Raffle Tools</h3>
+        <p><a href="{% url 'raffle_enter' %}">Species Raffle Entry Form</a></p>
+        <p><a href="{% url 'raffle_dashboard' %}">Species Raffle Dashboard</a></p>
+        <p><a href="{% url 'raffle_upload_species' %}">Upload Raffle Species List</a></p>
+        <p><a href="{% url 'raffle_export_entries' %}">Export Raffle Results</a></p>
+        <p><a href="https://wheelofnames.com/" target="_blank" rel="noopener noreferrer">Wheel of Names (external site)</a></p>
+    </div>        
 </div>
 {% endblock content %}
