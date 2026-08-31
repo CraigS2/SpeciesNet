@@ -18,7 +18,7 @@ class CaresClarificationResponseForm(BasePendingActionResponseForm):
     response_text = forms.CharField(
         label='Additional information',
         required=False,
-        widget=forms.Textarea(attrs={'rows': 4}),
+        widget=forms.Textarea(attrs={'rows': 4, 'cols': 80}),
     )
     updated_photo = forms.ImageField(
         label='Updated verification photo',
