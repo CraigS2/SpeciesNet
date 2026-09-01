@@ -249,6 +249,20 @@ class RegistrationStatusSyncViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(data, status=status.HTTP_200_OK)
 
 
+def _serialize_species_instance(request, instance, name=None, url_name='speciesInstance', url_pk=None):
+    photo_url = None
+    if instance.aquarist_species_image:
+        photo_url = request.build_absolute_uri(instance.aquarist_species_image.url)
+    return {
+        'name': name if name is not None else instance.name,
+        'url': request.build_absolute_uri(reverse(url_name, args=[url_pk if url_pk is not None else instance.pk])),
+        'photo_url': photo_url,
+        'have_spawned': instance.have_spawned,
+        'have_reared_fry': instance.have_reared_fry,
+        'young_available': instance.young_available,
+    }
+
+
 class ClubAdminBaseApiView(APIView):
     authentication_classes = [ClubApiKeyAuthentication]
     permission_classes = [HasAuthenticatedClub]
@@ -257,6 +271,7 @@ class ClubAdminBaseApiView(APIView):
         club = self.request.club
         return User.objects.filter(
             user_club_members__club=club,
+            is_proxy=False,
         ).distinct().order_by('username')
 
     def _resolve_member(self):
@@ -289,27 +304,6 @@ class ClubAdminMembersView(ClubAdminBaseApiView):
         return Response({'results': results}, status=status.HTTP_200_OK)
 
 
-class ClubAdminSpeciesKeptView(ClubAdminBaseApiView):
-    def get(self, request):
-        member = self._resolve_member()
-        if not member:
-            return Response({'results': []}, status=status.HTTP_200_OK)
-
-        species_qs = Species.objects.filter(
-            species_instances__user=member,
-            species_instances__currently_keep=True,
-        ).distinct().order_by('name')
-
-        results = [
-            {
-                'name': species.name,
-                'url': request.build_absolute_uri(reverse('species', args=[species.pk])),
-            }
-            for species in species_qs
-        ]
-        return Response({'results': results}, status=status.HTTP_200_OK)
-
-
 class ClubAdminSpeciesInstancesView(ClubAdminBaseApiView):
     def get(self, request):
         member = self._resolve_member()
@@ -319,14 +313,9 @@ class ClubAdminSpeciesInstancesView(ClubAdminBaseApiView):
         instances = SpeciesInstance.objects.filter(
             user=member,
             user__user_club_members__club=request.club,
+            currently_keep=True,
         ).select_related('species')
-        results = [
-            {
-                'name': instance.name,
-                'url': request.build_absolute_uri(reverse('speciesInstance', args=[instance.pk])),
-            }
-            for instance in instances
-        ]
+        results = [_serialize_species_instance(request, instance) for instance in instances]
         return Response({'results': results}, status=status.HTTP_200_OK)
 
 
@@ -336,28 +325,29 @@ class ClubAdminCaresSpeciesView(ClubAdminBaseApiView):
         if not member:
             return Response({'results': []}, status=status.HTTP_200_OK)
 
-        cares_species = Species.objects.filter(
-            species_instances__user=member,
-            species_instances__currently_keep=True,
-            render_cares=True,
-        ).distinct().order_by('name')
+        instances = SpeciesInstance.objects.filter(
+            user=member,
+            user__user_club_members__club=request.club,
+            species__render_cares=True,
+            currently_keep=True,
+        ).select_related('species').order_by('species__name', 'id')
 
         registered_species_ids = set(
             CaresRegistration.objects.filter(
-                species__in=cares_species,
+                species_id__in={instance.species_id for instance in instances},
                 aquarist_email__iexact=member.email,
             ).values_list('species_id', flat=True)
         )
 
         results = []
-        for species in cares_species:
-            results.append(
-                {
-                    'name': species.name,
-                    'url': request.build_absolute_uri(reverse('species', args=[species.pk])),
-                    'cares_registered': species.pk in registered_species_ids,
-                }
-            )
+        seen_species_ids = set()
+        for instance in instances:
+            if instance.species_id in seen_species_ids:
+                continue
+            seen_species_ids.add(instance.species_id)
+            row = _serialize_species_instance(request, instance, name=instance.species.name, url_name='species', url_pk=instance.species_id)
+            row['cares_registered'] = instance.species_id in registered_species_ids
+            results.append(row)
 
         return Response({'results': results}, status=status.HTTP_200_OK)
 
@@ -372,21 +362,10 @@ class ClubAdminCaresSpeciesInstancesView(ClubAdminBaseApiView):
             user=member,
             user__user_club_members__club=request.club,
             species__render_cares=True,
+            currently_keep=True,
         ).select_related('species')
 
-        results = []
-        for instance in instances:
-            image_url = None
-            if instance.aquarist_species_image:
-                image_url = request.build_absolute_uri(instance.aquarist_species_image.url)
-            results.append(
-                {
-                    'name': instance.name,
-                    'url': request.build_absolute_uri(reverse('speciesInstance', args=[instance.pk])),
-                    'image_url': image_url,
-                }
-            )
-
+        results = [_serialize_species_instance(request, instance) for instance in instances]
         return Response({'results': results}, status=status.HTTP_200_OK)
 
 
@@ -403,7 +382,7 @@ class ClubAdminBapSubmissionsView(ClubAdminBaseApiView):
         submissions = BapSubmission.objects.filter(
             club=club,
             bap_year=open_bap_year,
-        ).select_related('aquarist', 'species', 'speciesInstance__species')
+        ).exclude(aquarist__is_proxy=True).select_related('aquarist', 'species', 'speciesInstance__species')
 
         results = []
         for submission in submissions:
@@ -439,7 +418,7 @@ class ClubAdminBapLeaderboardView(ClubAdminBaseApiView):
         entries = BapLeaderboard.objects.filter(
             club=club,
             bap_year=open_bap_year,
-        ).select_related('aquarist').order_by('-points', 'id')
+        ).exclude(aquarist__is_proxy=True).select_related('aquarist').order_by('-points', 'id')
 
         results = [
             {

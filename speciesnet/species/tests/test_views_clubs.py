@@ -396,7 +396,6 @@ class ClubApiDocsViewTests(TestCase):
         response = self.client.get(reverse('clubApiDocs'))
         for path in (
             '/api/club-admin/members/',
-            '/api/club-admin/species-kept/',
             '/api/club-admin/species-instances/',
             '/api/club-admin/cares-species/',
             '/api/club-admin/cares-species-instances/',

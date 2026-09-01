@@ -53,11 +53,16 @@
             empty <code>results</code> list &mdash; not an error &mdash; so a typo or an ex-member
             username fails quietly rather than breaking a script.
           </p>
+          <p>
+            <strong>Proxy accounts are always excluded.</strong> A member managed as a proxy
+            (<code>is_proxy</code>) never resolves via <code>member</code> and never appears in any
+            endpoint's <code>results</code>, including <a href="#members">Members</a> and the BAP
+            endpoints.
+          </p>
 
           <h5 class="mt-4">Endpoints</h5>
           <ul>
             <li><a href="#members">Members</a></li>
-            <li><a href="#species-kept">Species Kept</a></li>
             <li><a href="#species-instances">Species Instances</a></li>
             <li><a href="#cares-species">CARES Species</a></li>
             <li><a href="#cares-species-instances">CARES Species Instances</a></li>
@@ -86,33 +91,14 @@
         </div>
       </div>
 
-      <!-- Species Kept -->
-      <div class="card shadow-sm mb-4" id="species-kept">
-        <div class="card-header"><h5 class="my-0">GET /api/club-admin/species-kept/</h5></div>
-        <div class="card-body px-4 py-3">
-          <p>Distinct species a member is <strong>currently</strong> keeping (one row per species, even if they keep several instances of it).</p>
-          <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required — see above).</p>
-          <p class="fw-semibold mb-1">Example request</p>
-<pre class="bg-light p-3 rounded small"><code>curl "https://yourdomain.example.com/api/club-admin/species-kept/?member=fishkeeper42" \
-  -H "X-Club-Api-Key: YOUR_KEY"</code></pre>
-          <p class="fw-semibold mb-1">Example response</p>
-<pre class="bg-light p-3 rounded small"><code>{
-  "results": [
-    {"name": "Pterophyllum scalare", "url": "https://yourdomain.example.com/species/42/"},
-    {"name": "Symphysodon discus", "url": "https://yourdomain.example.com/species/17/"}
-  ]
-}</code></pre>
-        </div>
-      </div>
-
       <!-- Species Instances -->
       <div class="card shadow-sm mb-4" id="species-instances">
         <div class="card-header"><h5 class="my-0">GET /api/club-admin/species-instances/</h5></div>
         <div class="card-body px-4 py-3">
           <p>
             Every individual SpeciesInstance entry (a member's specific tank/log entry for a
-            species) belonging to that member within your club &mdash; including species they no
-            longer currently keep, unlike <a href="#species-kept">Species Kept</a> above.
+            species) belonging to that member within your club that they are <strong>currently
+            keeping</strong> &mdash; entries with <code>currently_keep</code> false are skipped.
           </p>
           <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required).</p>
           <p class="fw-semibold mb-1">Example request</p>
@@ -121,7 +107,14 @@
           <p class="fw-semibold mb-1">Example response</p>
 <pre class="bg-light p-3 rounded small"><code>{
   "results": [
-    {"name": "fishkeeper42's 55g Angelfish", "url": "https://yourdomain.example.com/speciesInstance/103/"}
+    {
+      "name": "fishkeeper42's 55g Angelfish",
+      "url": "https://yourdomain.example.com/speciesInstance/103/",
+      "photo_url": "https://yourdomain.example.com/media/images/2026/08/tank.jpg",
+      "have_spawned": true,
+      "have_reared_fry": false,
+      "young_available": false
+    }
   ]
 }</code></pre>
         </div>
@@ -132,9 +125,11 @@
         <div class="card-header"><h5 class="my-0">GET /api/club-admin/cares-species/</h5></div>
         <div class="card-body px-4 py-3">
           <p>
-            Like <a href="#species-kept">Species Kept</a>, but limited to species flagged as CARES
-            (conservation priority) species, with a <code>cares_registered</code> flag showing
-            whether that member already has a CARES registration on file for it.
+            Distinct species, currently kept, flagged as CARES (conservation priority) species,
+            with a <code>cares_registered</code> flag showing whether that member already has a
+            CARES registration on file for it. One row per species &mdash; when a member keeps
+            several instances of the same CARES species, the photo and status fields come from one
+            representative instance.
           </p>
           <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required).</p>
           <p class="fw-semibold mb-1">Example request</p>
@@ -146,6 +141,10 @@
     {
       "name": "Ptychochromis insolitus",
       "url": "https://yourdomain.example.com/species/88/",
+      "photo_url": "https://yourdomain.example.com/media/images/2026/08/tank.jpg",
+      "have_spawned": true,
+      "have_reared_fry": true,
+      "young_available": false,
       "cares_registered": true
     }
   ]
@@ -159,7 +158,7 @@
         <div class="card-body px-4 py-3">
           <p>
             Like <a href="#species-instances">Species Instances</a>, limited to CARES species, with
-            a photo URL when the member has uploaded one for that entry.
+            a <code>photo_url</code> when the member has uploaded one for that entry.
           </p>
           <p class="text-muted small mb-1"><strong>Query parameters:</strong> <code>member</code> (required).</p>
           <p class="fw-semibold mb-1">Example request</p>
@@ -171,12 +170,18 @@
     {
       "name": "fishkeeper42's Ptychochromis insolitus",
       "url": "https://yourdomain.example.com/speciesInstance/210/",
-      "image_url": "https://yourdomain.example.com/media/images/2026/08/tank.jpg"
+      "photo_url": "https://yourdomain.example.com/media/images/2026/08/tank.jpg",
+      "have_spawned": true,
+      "have_reared_fry": false,
+      "young_available": false
     },
     {
       "name": "fishkeeper42's second CARES tank",
       "url": "https://yourdomain.example.com/speciesInstance/211/",
-      "image_url": null
+      "photo_url": null,
+      "have_spawned": false,
+      "have_reared_fry": false,
+      "young_available": false
     }
   ]
 }</code></pre>

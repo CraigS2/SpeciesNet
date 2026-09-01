@@ -5,7 +5,6 @@ from .views import (
     RegistrationSyncViewSet,
     RegistrationStatusSyncViewSet,
     ClubAdminMembersView,
-    ClubAdminSpeciesKeptView,
     ClubAdminSpeciesInstancesView,
     ClubAdminCaresSpeciesView,
     ClubAdminCaresSpeciesInstancesView,
@@ -20,7 +19,6 @@ router.register(r'registrations-status-sync', RegistrationStatusSyncViewSet, bas
 
 urlpatterns = router.urls + [
     path('club-admin/members/', ClubAdminMembersView.as_view(), name='clubAdminMembers'),
-    path('club-admin/species-kept/', ClubAdminSpeciesKeptView.as_view(), name='clubAdminSpeciesKept'),
     path('club-admin/species-instances/', ClubAdminSpeciesInstancesView.as_view(), name='clubAdminSpeciesInstances'),
     path('club-admin/cares-species/', ClubAdminCaresSpeciesView.as_view(), name='clubAdminCaresSpecies'),
     path('club-admin/cares-species-instances/', ClubAdminCaresSpeciesInstancesView.as_view(), name='clubAdminCaresSpeciesInstances'),

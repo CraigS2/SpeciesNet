@@ -20,7 +20,7 @@ from species.models import (
 from . import MinimalTestCase
 
 
-def _make_member(club, username, email, first_name='First', last_name='Last', is_club_admin=False):
+def _make_member(club, username, email, first_name='First', last_name='Last', is_club_admin=False, is_proxy=False):
     user = User.objects.create_user(
         email=email,
         username=username,
@@ -28,6 +28,9 @@ def _make_member(club, username, email, first_name='First', last_name='Last', is
         first_name=first_name,
         last_name=last_name,
     )
+    if is_proxy:
+        user.is_proxy = True
+        user.save()
     AquaristClubMember.objects.create(
         user=user,
         club=club,
@@ -97,6 +100,14 @@ class ClubAdminApiTest(MinimalTestCase):
             first_name='Other',
             last_name='Member',
         )
+        self.proxy_member = _make_member(
+            self.club,
+            username='proxy1',
+            email='proxy1@example.com',
+            first_name='Proxy',
+            last_name='Member',
+            is_proxy=True,
+        )
 
         self.cares_species = _make_species(self.member, 'Cares Species', render_cares=True)
         self.non_cares_species = _make_species(self.member, 'Non Cares Species', render_cares=False)
@@ -108,6 +119,9 @@ class ClubAdminApiTest(MinimalTestCase):
             species=self.cares_species,
             currently_keep=True,
             aquarist_species_image='images/test/cares.jpg',
+            have_spawned=True,
+            have_reared_fry=False,
+            young_available=False,
         )
         self.si_cares_not_keep = SpeciesInstance.objects.create(
             name='CARES Not Keep',
@@ -125,6 +139,12 @@ class ClubAdminApiTest(MinimalTestCase):
             name='Other Club Instance',
             user=self.other_member,
             species=self.other_species,
+            currently_keep=True,
+        )
+        SpeciesInstance.objects.create(
+            name='Proxy Instance',
+            user=self.proxy_member,
+            species=self.cares_species,
             currently_keep=True,
         )
 
@@ -211,22 +231,18 @@ class ClubAdminApiTest(MinimalTestCase):
         self.assertIn(self.member.username, usernames)
         self.assertNotIn(self.other_member.username, usernames)
 
-    def test_species_kept_resolves_member_by_username(self):
-        response = self.client.get('/api/club-admin/species-kept/?member=member1')
+    def test_members_endpoint_excludes_proxy_users(self):
+        response = self.client.get('/api/club-admin/members/')
         self.assertEqual(response.status_code, 200)
-        names = [row['name'] for row in response.data['results']]
-        self.assertIn('Cares Species', names)
-        self.assertIn('Non Cares Species', names)
-        self.assertNotIn('Other Club Species', names)
-        self.assertTrue(response.data['results'][0]['url'].startswith('http://testserver/'))
+        usernames = [row['username'] for row in response.data['results']]
+        self.assertNotIn(self.proxy_member.username, usernames)
 
-    def test_species_kept_resolves_member_by_email(self):
-        response = self.client.get('/api/club-admin/species-kept/?member=member1@example.com')
+    def test_proxy_member_never_resolves_via_member_param(self):
+        response = self.client.get('/api/club-admin/species-instances/?member=proxy1')
         self.assertEqual(response.status_code, 200)
-        self.assertGreaterEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'], [])
 
-    def test_species_kept_member_not_in_club_returns_empty_results(self):
-        response = self.client.get('/api/club-admin/species-kept/?member=member2')
+        response = self.client.get('/api/club-admin/species-instances/?member=proxy1@example.com')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'], [])
 
@@ -235,9 +251,15 @@ class ClubAdminApiTest(MinimalTestCase):
         self.assertEqual(response.status_code, 200)
         names = [row['name'] for row in response.data['results']]
         self.assertIn('CARES Keep', names)
-        self.assertIn('CARES Not Keep', names)
         self.assertIn('Non CARES Keep', names)
+        self.assertNotIn('CARES Not Keep', names)
         self.assertNotIn('Other Club Instance', names)
+
+        keep_row = next(row for row in response.data['results'] if row['name'] == 'CARES Keep')
+        self.assertIn('/media/images/test/cares.jpg', keep_row['photo_url'])
+        self.assertTrue(keep_row['have_spawned'])
+        self.assertFalse(keep_row['have_reared_fry'])
+        self.assertFalse(keep_row['young_available'])
 
     def test_cares_species_endpoint_includes_registration_flag(self):
         response = self.client.get('/api/club-admin/cares-species/?member=member1')
@@ -245,19 +267,22 @@ class ClubAdminApiTest(MinimalTestCase):
         self.assertEqual(len(response.data['results']), 1)
         row = response.data['results'][0]
         self.assertEqual(row['name'], 'Cares Species')
+        self.assertIn('/media/images/test/cares.jpg', row['photo_url'])
+        self.assertTrue(row['have_spawned'])
+        self.assertFalse(row['have_reared_fry'])
+        self.assertFalse(row['young_available'])
         self.assertTrue(row['cares_registered'])
 
-    def test_cares_species_instances_endpoint_includes_image_url_or_null(self):
+    def test_cares_species_instances_endpoint_includes_photo_url_or_null(self):
         response = self.client.get('/api/club-admin/cares-species-instances/?member=member1')
         self.assertEqual(response.status_code, 200)
         names = [row['name'] for row in response.data['results']]
         self.assertIn('CARES Keep', names)
-        self.assertIn('CARES Not Keep', names)
+        self.assertNotIn('CARES Not Keep', names)
         self.assertNotIn('Non CARES Keep', names)
         keep_row = next(row for row in response.data['results'] if row['name'] == 'CARES Keep')
-        not_keep_row = next(row for row in response.data['results'] if row['name'] == 'CARES Not Keep')
-        self.assertIn('/media/images/test/cares.jpg', keep_row['image_url'])
-        self.assertIsNone(not_keep_row['image_url'])
+        self.assertIn('/media/images/test/cares.jpg', keep_row['photo_url'])
+        self.assertTrue(keep_row['have_spawned'])
 
     def test_bap_submissions_returns_current_open_year_for_authenticated_club_only(self):
         response = self.client.get('/api/club-admin/bap-submissions/')
@@ -267,12 +292,38 @@ class ClubAdminApiTest(MinimalTestCase):
         self.assertEqual(row['species_name'], 'Cares Species')
         self.assertEqual(row['username'], 'member1')
 
+    def test_bap_submissions_excludes_proxy_aquarists(self):
+        BapSubmission.objects.create(
+            name='Proxy Submission',
+            aquarist=self.proxy_member,
+            club=self.club,
+            bap_year=self.open_year,
+            species=self.cares_species,
+        )
+        response = self.client.get('/api/club-admin/bap-submissions/')
+        self.assertEqual(response.status_code, 200)
+        usernames = [row['username'] for row in response.data['results']]
+        self.assertNotIn(self.proxy_member.username, usernames)
+
     def test_bap_leaderboard_sorted_desc_and_scoped(self):
         response = self.client.get('/api/club-admin/bap-leaderboard/')
         self.assertEqual(response.status_code, 200)
         points = [row['points'] for row in response.data['results']]
         self.assertEqual(points, sorted(points, reverse=True))
         self.assertNotIn(999, points)
+
+    def test_bap_leaderboard_excludes_proxy_aquarists(self):
+        BapLeaderboard.objects.create(
+            name='Proxy Leaderboard',
+            aquarist=self.proxy_member,
+            club=self.club,
+            bap_year=self.open_year,
+            points=1000,
+        )
+        response = self.client.get('/api/club-admin/bap-leaderboard/')
+        self.assertEqual(response.status_code, 200)
+        usernames = [row['username'] for row in response.data['results']]
+        self.assertNotIn(self.proxy_member.username, usernames)
 
     def test_bap_endpoints_return_empty_for_non_bap_club(self):
         non_bap = AquaristClub.objects.create(name='No BAP Club', acronym='NB', is_bap_club=False)
