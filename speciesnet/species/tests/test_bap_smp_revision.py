@@ -18,7 +18,7 @@ from species.models import (
     SpeciesInstance,
     User,
 )
-from species.services.bap_service import approve_bap_submission, create_bap_submission
+from species.services.bap_service import approve_bap_submission, create_bap_submission, ensure_current_bap_year
 from species.services.notes_service import notes_requirements_met
 from species.services.smp_service import approve_smp_submission, create_smp_submission
 
@@ -163,6 +163,87 @@ class BapSmpRevisionTests(TestCase):
         self.assertEqual(year.bap_breeder_of_year_id, self.user2.id)
         self.assertTrue(BapLeaderboard.objects.filter(bap_year=year, is_final=True).exists())
         self.assertTrue(BapYear.objects.filter(club=self.club, year_label=2026).exists())
+
+    def test_ensure_current_bap_year_bootstraps_when_none_exists(self):
+        # A club with no BapYear rows at all yet, but a configured BAP cycle.
+        club = AquaristClub.objects.create(
+            name='New Club', acronym='NC', is_bap_club=True,
+            bap_start_date=timezone.localdate() - timedelta(days=400),
+            bap_end_date=timezone.localdate() - timedelta(days=35),
+        )
+        self.assertIsNone(BapYear.objects.get_open(club))
+
+        year = ensure_current_bap_year(club)
+
+        self.assertIsNotNone(year)
+        self.assertEqual(year.status, BapYear.Status.OPEN)
+        self.assertGreaterEqual(year.end_date, timezone.localdate())
+        self.assertEqual(BapYear.objects.get_open(club), year)
+
+    def test_ensure_current_bap_year_rolls_forward_closed_year_with_no_successor(self):
+        # Reproduces the Pioneer Valley bug: a year was closed (e.g. by
+        # close_bap_years) but its successor row is missing, so the club
+        # has no open BapYear even though one legitimately lapsed.
+        club = AquaristClub.objects.create(name='Lapsed Club', acronym='LC', is_bap_club=True)
+        stale = BapYear.objects.create(
+            club=club, name='2025 BAP Year',
+            start_date=timezone.localdate() - timedelta(days=760),
+            end_date=timezone.localdate() - timedelta(days=395),
+            year_label=2025, status=BapYear.Status.CLOSED,
+        )
+        self.assertIsNone(BapYear.objects.get_open(club))
+
+        year = ensure_current_bap_year(club)
+
+        self.assertIsNotNone(year)
+        self.assertNotEqual(year.id, stale.id)
+        self.assertEqual(year.status, BapYear.Status.OPEN)
+        self.assertGreaterEqual(year.end_date, timezone.localdate())
+        # window advances in whole-year steps from the stale dates
+        self.assertEqual(year.start_date.month, stale.start_date.month)
+        self.assertEqual(year.start_date.day, stale.start_date.day)
+
+    def test_ensure_current_bap_year_returns_none_for_malformed_window(self):
+        # start_date after end_date (the exact data bug found on Pioneer
+        # Valley) can't be safely rolled forward automatically.
+        club = AquaristClub.objects.create(name='Bad Dates Club', acronym='BDC', is_bap_club=True)
+        BapYear.objects.create(
+            club=club, name='2025 BAP Year',
+            start_date=timezone.localdate() - timedelta(days=30),
+            end_date=timezone.localdate() - timedelta(days=395),
+            year_label=2025, status=BapYear.Status.CLOSED,
+        )
+        self.assertIsNone(ensure_current_bap_year(club))
+
+    @patch('pending_actions.tasks.send_action_email.apply_async', lambda *a, **k: None)
+    def test_approve_bap_submission_raises_when_no_bap_year_configured(self):
+        club = AquaristClub.objects.create(name='Unconfigured Club', acronym='UCC', is_bap_club=True)
+        BapGenus.objects.create(name='Genus', club=club, points=10, example_species=self.species)
+        AquaristClubMember.objects.create(name='u1', user=self.user1, club=club, membership_approved=True)
+        si = SpeciesInstance.objects.create(name='si-unconfigured', user=self.user1, species=self.species)
+
+        sub = create_bap_submission(si, club)
+        self.assertIsNone(sub.bap_year)
+
+        with self.assertRaises(ValueError):
+            approve_bap_submission(sub, self.user1)
+
+    def test_heal_bap_years_command_fixes_lapsed_club_without_touching_healthy_one(self):
+        lapsed_club = AquaristClub.objects.create(name='Lapsed Heal Club', acronym='LHC', is_bap_club=True)
+        BapYear.objects.create(
+            club=lapsed_club, name='2025 BAP Year',
+            start_date=timezone.localdate() - timedelta(days=760),
+            end_date=timezone.localdate() - timedelta(days=395),
+            year_label=2025, status=BapYear.Status.CLOSED,
+        )
+        unconfigured_club = AquaristClub.objects.create(name='Unconfigured Heal Club', acronym='UHC', is_bap_club=True)
+
+        call_command('heal_bap_years')
+
+        self.assertIsNotNone(BapYear.objects.get_open(lapsed_club))
+        self.assertIsNone(BapYear.objects.get_open(unconfigured_club))
+        # the already-current club's open year is untouched
+        self.assertEqual(BapYear.objects.get_open(self.club), self.open_year)
 
     @patch('pending_actions.tasks.send_action_email.apply_async', lambda *a, **k: None)
     def test_tier_assignment_on_lifetime_update(self):

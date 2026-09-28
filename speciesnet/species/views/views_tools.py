@@ -8,6 +8,7 @@ Restricted to staff/admin users only
 from .base import *
 import csv
 from io import TextIOWrapper
+from django.core.management import call_command
 from pending_actions.models import PendingAction
 from pending_actions.tasks import send_action_email
 from species.services.bap_service import find_bap_genus_missing_example_species
@@ -717,12 +718,15 @@ def dirtyDeed(request):
     
     # Dirty deed goes here ...  then return to tools2
     #print ('Dirty Deed: Nothing to do!')
-    cur_registrations = CaresRegistration.objects.all()
-    for reg in cur_registrations:
-        if (reg.external_id):
-            print ('Registration external id is: ' + str(reg.external_id))
-            reg.external_id = None
-            reg.save()
+    # cur_registrations = CaresRegistration.objects.all()
+    # for reg in cur_registrations:
+    #     if (reg.external_id):
+    #         print ('Registration external id is: ' + str(reg.external_id))
+    #         reg.external_id = None
+    #         reg.save()
+
+    ### TEMP: heal_bap_years - remove after one-time run ###
+    call_command('heal_bap_years')
 
     #dirtyDeedMigrateCaresClassifications()
     #dirtyDeedCleanBogusAssessmentDates()

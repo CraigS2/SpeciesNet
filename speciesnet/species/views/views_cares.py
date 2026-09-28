@@ -18,20 +18,25 @@ from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrati
 def caresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+    show_iucn_assessment = species.iucn_red_list not in (
+        Species.IucnRedList.UNDEFINED,
+        Species.IucnRedList.NOT_EVALUATED,
+    )
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     userCanEdit = user_can_edit_s(request.user, species)
-   
+
     if request.user.is_authenticated:
         logger.info('User %s visited species page: %s.', request.user.username, species.name)
     else:
         logger.info('Anonymous user visited species page: %s.', species.name)
-    
+
     context = {
         'species': species,
         'speciesInstances':  speciesInstances,
         'speciesReferenceLinks': speciesReferenceLinks,
         'renderCares': renderCares,
+        'show_iucn_assessment': show_iucn_assessment,
         'userCanEdit': userCanEdit    }
     return render(request, 'species/cares/caresSpecies.html', context)
 

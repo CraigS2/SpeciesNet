@@ -39,7 +39,7 @@
                                 <span><b>CARES Classification:</b>&nbsp;&nbsp;{{species.get_cares_classification_display}}</span>
                                 <span><b>CARES Assessment Date:</b>&nbsp;&nbsp;{{species.cares_assessment_date}}&nbsp;&nbsp;&nbsp;&nbsp;</span>
                             </div>              
-                            {% if species.iucn_red_list != Species.IucnRedList.UNDEFINED and species.iucn_red_list != Species.IucnRedList.NOT_EVALUATED %}   
+                            {% if show_iucn_assessment %}
                                 <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">                             
                                     <span><b>IUCN Red List:</b>&nbsp;&nbsp;{{species.get_iucn_red_list_display}}&nbsp;&nbsp;</span>
                                     <span><b>IUCN Assessment Date:</b>&nbsp;&nbsp;{{species.iucn_assessment_date}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
