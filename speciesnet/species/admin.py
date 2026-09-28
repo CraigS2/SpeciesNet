@@ -6,7 +6,7 @@ from .models import User
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive, BapImportBatch
-from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
+from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, BapYear, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback, SpeciesAdmin
 from .models import PageViewCount, PageViewMonthlySnapshot
 from allauth.account.models import EmailAddress
@@ -115,6 +115,15 @@ admin.site.register (BapSubmission)
 admin.site.register (BapGenus)
 admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
+
+
+class BapYearAdmin(admin.ModelAdmin):
+    list_display = ('club', 'year_label', 'status', 'start_date', 'end_date', 'closed_at')
+    list_filter = ('status', 'club')
+    ordering = ('club', '-year_label')
+
+
+admin.site.register(BapYear, BapYearAdmin)
 admin.site.register (CaresRegistration)
 admin.site.register (CaresApprover)
 admin.site.register(SpeciesFeedback, SpeciesFeedbackAdmin)
