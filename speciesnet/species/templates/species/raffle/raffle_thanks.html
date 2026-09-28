@@ -1,0 +1,20 @@
+{% extends 'main.html' %}
+{% block title %} - Raffle Entry Confirmed{% endblock %}
+{% block content %}
+<div class="container mt-5 text-center" style="max-width: 600px;">
+  <div class="card shadow-sm">
+    <div class="card-body py-5">
+      <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+      <h2 class="mt-3">You're entered!</h2>
+      <p class="text-muted mt-2">
+        Thanks for entering the fish raffle. Good luck! 🐠<br>
+        If you win, we'll reach out using the contact info you provided.
+      </p>
+      <hr>
+      <a href="{% url 'raffle_enter' %}" class="btn btn-outline-primary mt-2">
+        <i class="bi bi-person-plus"></i>Return to Entry Form
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

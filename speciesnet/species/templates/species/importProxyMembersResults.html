@@ -1,0 +1,83 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="my-0">Invite Results &mdash; {{ club.name }}</h4>
+                </div>
+                <div class="card-body px-4 py-3">
+
+                    <!-- Summary -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-3 text-center">
+                            <div class="fw-bold fs-4 text-success">{{ created_count }}</div>
+                            <div class="text-muted small">Invited</div>
+                        </div>
+                        <div class="col-sm-3 text-center">
+                            <div class="fw-bold fs-4 text-secondary">{{ skipped_existing }}</div>
+                            <div class="text-muted small">Existing account</div>
+                        </div>
+                        <div class="col-sm-3 text-center">
+                            <div class="fw-bold fs-4 text-warning">{{ skipped_invited }}</div>
+                            <div class="text-muted small">Already invited</div>
+                        </div>
+                        {% if error_count %}
+                        <div class="col-sm-3 text-center">
+                            <div class="fw-bold fs-4 text-danger">{{ error_count }}</div>
+                            <div class="text-muted small">Errors</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Per-row results -->
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Outcome</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                            <tr>
+                                <td class="text-break">{{ row.email }}</td>
+                                <td>
+                                    {% if row.outcome == OUTCOME_CREATED %}
+                                        <span class="badge bg-success">Invited</span>
+                                    {% elif row.outcome == OUTCOME_EXISTING_ACCOUNT %}
+                                        <span class="badge bg-secondary">Existing account</span>
+                                    {% elif row.outcome == OUTCOME_ALREADY_INVITED %}
+                                        <span class="badge bg-warning text-dark">Already invited</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Error</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ row.note }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-muted">No emails processed.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if skipped_existing > 0 %}
+                    <div class="alert alert-info mt-3 small">
+                        <strong>{{ skipped_existing }} address(es) matched existing accounts.</strong>
+                        These users were not added automatically. You can invite them to join
+                        <strong>{{ club.name }}</strong> through the normal club membership process.
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'importProxyMembers' club.id %}" class="btn btn-outline-primary btn-sm">Import more</a>
+                        <a href="{% url 'aquaristClubAdmin' club.id %}" class="btn btn-outline-secondary btn-sm">Back to Club Admin</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

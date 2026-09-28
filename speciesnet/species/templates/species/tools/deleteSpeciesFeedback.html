@@ -1,0 +1,26 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Delete Species Feedback</h3>
+    <div class="card shadow-sm" style="max-width: 600px;">
+        <div class="card-body">
+            <p>Are you sure you want to delete this feedback submission?</p>
+            <p><b>Species:</b> <i>{{ feedback.species.name }}</i></p>
+            <p><b>Submitted by:</b>
+                {% if feedback.user %}{{ feedback.user.username }}{% else %}{{ feedback.email }}{% endif %}
+            </p>
+            <p><b>Comment:</b> {{ feedback.comment|truncatechars:200 }}</p>
+
+            <form method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="filter" value="{{ filter_status }}">
+                <div class="d-flex gap-2 mt-3">
+                    <input type="submit" class="btn btn-danger" value="Yes, Delete" />
+                    <a class="btn btn-outline-secondary" href="{% url 'speciesFeedbackTools' %}?filter={{ filter_status }}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

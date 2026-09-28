@@ -1,0 +1,143 @@
+{% extends 'main.html' %}
+{% block title %} - CARES Species Raffle{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <div class="text-center mb-4">
+        <h2><i class="bi bi-trophy-fill text-warning"></i> CARES Species Raffle</h2>
+        <p class="text-muted">Enter your name and email below for a chance to win a bag of CARES fish!</p>
+        <p><large><b>'The Rules'</b></large></p>
+    </div>
+    <div class="text-left mb-4">
+        <p>
+            1. Winners agree to make their best effort to care for and breed the fish to help support the <b>CARES Preservation Program</b> 
+            by distributing offspring throughout the hobby. All available species have been CARES verified so you can register them immediately. 
+        </p>
+        <p>
+            2. Winners agree to create an <i><b>AquaristSpecies.net</b></i> account with the species listed and to register the species with the 
+            <b>CARES Preservation Program</b>. By providing your name and email address below you consent to have these steps done automatically for you. 
+        </p>
+        <p>            
+            3. If for any reason in the future you are unable to continue caring for these fish, you agree to give them back to a CARES representative 
+            so they may be re-homed to continue supporting the CARES program. 
+        </p>
+        <p>
+            4. You may choose up to 3 of the available CARES species. To win <b>*you must be present*</b> at the set time of the raffle.
+            Failure to show forfeits your entry.
+        </p>
+        <p>
+            5. Only 1 winning species per entry. If you are a species raffle winner you are no longer eligible for species raffled later on the same day.
+        </p>        
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="text-left mb-4">
+            <div class="card mb-4">
+                <div class="card-header fw-bold">
+                    <i class="bi bi-fish"></i> Choose Your Species <span class="text-muted fw-normal">(pick 1 to 3)</span>
+                </div>
+                <div class="card-body">
+                    {% if species_list %}
+                        <div class="row row-cols-1 row-cols-sm-2 g-3">
+                            {% for species in species_list %}
+                            <div class="col">
+                            <div class="card h-100 border-2 species-card" id="card-{{ forloop.counter }}">
+                                <div class="card-body d-flex align-items-center gap-3">
+                                <input class="form-check-input species-checkbox mt-0 flex-shrink-0"
+                                        type="checkbox"
+                                        name="species_choices"
+                                        value="{{ species }}"
+                                        id="sp_{{ forloop.counter }}"
+                                        {% if form_data %}
+                                        {% if species in form_data.getlist.species_choices %}checked{% endif %}
+                                        {% endif %}>
+                                <label class="form-check-label fw-semibold mb-0 stretched-link"
+                                        for="sp_{{ forloop.counter }}"
+                                        style="cursor:pointer;">
+                                    <em>{{ species }}</em>
+                                </label>
+                                </div>
+                            </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mt-2" id="species-count-msg">0 of 3 selected</div>
+                    {% else %}
+                    <p class="text-muted">No species have been configured for this raffle yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Info -->
+        <div class="card mb-4">
+            <div class="card-header fw-bold">
+                <i class="bi bi-person-fill"></i> Your Information
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                <div class="col-sm-6">
+                    <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="first_name" name="first_name"
+                        value="{{ form_data.first_name|default:'' }}" maxlength="100" required>
+                </div>
+                <div class="col-sm-6">
+                    <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="last_name" name="last_name"
+                        value="{{ form_data.last_name|default:'' }}" maxlength="100" required>
+                </div>
+                <div class="col-12">
+                    <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="email" name="email"
+                        value="{{ form_data.email|default:'' }}" maxlength="150" required>
+                    <div class="form-text">Used for site registrations and to contact you if you win. One entry per email.</div>
+                </div>
+                <div class="col-12">
+                    <label for="proposed_username" class="form-label">Preferred Username <span class="text-muted">(optional)</span></label>
+                    <input type="text" class="form-control" id="proposed_username" name="proposed_username"
+                        value="{{ form_data.proposed_username|default:'' }}" maxlength="100">
+                    <div class="form-text">If you win, we'll create a site account with this username. Leave blank to use your email.</div>
+                </div>
+                </div>
+            </div>
+            </div>
+
+            <!--div class="d-grid"-->
+            <div class="text-center mb-4">
+                <p><b>Note:</b> <i>By submitting this form you agree to the terms of the raffle. </i></p>
+                <p><button type="submit" class="btn btn-success btn-lg"><i class="bi bi-ticket-perforated-fill"></i> Enter the Raffle</button></p>
+            </div>
+
+        </div>
+    </form>    
+</div>
+
+<script>
+  const checkboxes = document.querySelectorAll('.species-checkbox');
+  const countMsg   = document.getElementById('species-count-msg');
+  const MAX = 3;
+
+  function updateState() {
+    const checked = document.querySelectorAll('.species-checkbox:checked');
+    const count   = checked.length;
+    countMsg.textContent = count + ' of ' + MAX + ' selected';
+    countMsg.className   = 'form-text mt-2 ' + (count > 0 ? 'text-success fw-semibold' : '');
+
+    checkboxes.forEach(cb => {
+      const card = cb.closest('.species-card');
+      if (cb.checked) {
+        card.classList.add('border-success');
+      } else {
+        card.classList.remove('border-success');
+        if (count >= MAX) cb.disabled = true;
+      }
+      if (count < MAX) cb.disabled = false;
+    });
+  }
+
+  checkboxes.forEach(cb => cb.addEventListener('change', updateState));
+  updateState();
+</script>
+{% endblock %}

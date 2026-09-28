@@ -1,0 +1,82 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    {% if site_id == 1 %}
+                        <h4 class="my-0">Species External ID Import Results &mdash; Site 1 (ASN)</h4>
+                    {% else %}
+                        <h4 class="my-0">Species External ID Import Results &mdash; Site 2 (CSO)</h4>
+                    {% endif %}
+                </div>
+                <div class="card-body px-4 py-3">
+
+                    {% if import_archive.import_status == 'FULL' %}
+                        <div class="alert alert-success">
+                            <strong>&#10003; Import Successful</strong> &mdash; all eligible rows processed without errors.
+                        </div>
+                    {% elif import_archive.import_status == 'PART' %}
+                        <div class="alert alert-warning">
+                            <strong>&#9888; Partial Import</strong> &mdash; some rows had errors. See the results log below.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <strong>&#10007; Import Failed</strong> &mdash; no rows were successfully processed.
+                        </div>
+                    {% endif %}
+
+                    <h5>Summary</h5>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Updated</th>
+                                <th>Skipped</th>
+                                <th>Errors</th>
+                                <th>Total Rows</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{ summary.updated }}</td>
+                                <td>{{ summary.skipped }}</td>
+                                <td>{{ summary.errors }}</td>
+                                <td>{{ summary.total }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="text-muted small">
+                        <em>Skipped</em> rows had a non-truthy <code>render_cares</code> value and were intentionally not processed.
+                        <em>Error</em> rows had a data problem (missing id, name mismatch, missing external_id, etc.) and were not updated.
+                        Check the results log for details.
+                    </p>
+
+                    <h5>Import Archive</h5>
+                    <table class="table table-bordered table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Name</th>
+                                <td>{{ import_archive.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>{{ import_archive.get_import_status_display }}</td>
+                            </tr>
+                            {% if import_archive.import_results_file %}
+                            <tr>
+                                <th>Results Log</th>
+                                <td><a href="{{ import_archive.import_results_file.url }}">Download results CSV</a></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+
+                    <a href="{% url 'tools2' %}" class="btn btn-secondary mt-2">Back to Tools</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,124 @@
+{% extends 'main.html' %}
+{% block title %} | Legacy CARES Import Results{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+  <div class="row mb-2">
+    <div class="col">
+      <h4>
+        <i class="bi bi-clipboard-check"></i>
+        Legacy CARES Import — Results
+      </h4>
+      <p class="text-muted small">Archive: {{ import_archive.name }} &nbsp;|&nbsp; {{ import_archive.dateImported|date:"Y-m-d H:i" }}</p>
+    </div>
+    <div class="col-auto">
+      <a href="{% url 'importCaresLegacyRegistrations' %}" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-upload me-1"></i> Import Another File
+      </a>
+      <a href="{% url 'caresRegistrations' %}" class="btn btn-outline-secondary btn-sm ms-1">
+        View Registrations
+      </a>
+    </div>
+  </div>
+
+  <!-- Summary bar -->
+  <div class="row g-2 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-secondary">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold">{{ summary.total }}</div>
+          <div class="small text-muted">Rows Processed</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-success">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-success">{{ summary.imported }}</div>
+          <div class="small text-muted">Imported</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-warning">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-warning">{{ summary.skipped }}</div>
+          <div class="small text-muted">Skipped</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-danger">
+        <div class="card-body py-2">
+          <div class="fs-3 fw-bold text-danger">{{ summary.errors }}</div>
+          <div class="small text-muted">Errors</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import status badge -->
+  <div class="mb-3">
+    Import status:
+    {% if import_archive.import_status == 'FULL' %}
+      <span class="badge bg-success">Full Import</span>
+    {% elif import_archive.import_status == 'PART' %}
+      <span class="badge bg-warning text-dark">Partial Import</span>
+    {% else %}
+      <span class="badge bg-danger">Import Failed</span>
+    {% endif %}
+  </div>
+
+  <!-- Per-row detail table -->
+  {% if summary.rows %}
+  <div class="card">
+    <div class="card-header fw-semibold">
+      Row-by-Row Detail
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:60px">Row</th>
+              <th style="width:110px">Status</th>
+              <th>Member</th>
+              <th>Species</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in summary.rows %}
+            <tr class="
+              {% if row.status == 'IMPORTED' %}table-success
+              {% elif row.status == 'ERROR' %}table-danger
+              {% elif row.status == 'SKIPPED' %}table-warning
+              {% endif %}
+            ">
+              <td class="text-muted small">{{ row.row }}</td>
+              <td>
+                {% if row.status == 'IMPORTED' %}
+                  <span class="badge bg-success">Imported</span>
+                {% elif row.status == 'ERROR' %}
+                  <span class="badge bg-danger">Error</span>
+                {% elif row.status == 'SKIPPED' %}
+                  <span class="badge bg-warning text-dark">Skipped</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ row.status }}</span>
+                {% endif %}
+              </td>
+              <td class="small">{{ row.cares_member }}</td>
+              <td class="small fst-italic">{{ row.cares_species }}</td>
+              <td class="small text-muted">{{ row.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

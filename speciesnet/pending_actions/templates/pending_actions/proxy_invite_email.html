@@ -1,0 +1,34 @@
+<!-- Proxy account invitation email — not a page, do not extend main.html -->
+<html>
+<body style="font-family: Arial, sans-serif; color: #212529; max-width: 600px; margin: 0 auto;">
+    <h3 style="margin-bottom: 1rem;">You have been invited to join {{ club_name }}</h3>
+    <p>
+        {% if invited_by_username %}
+            <strong>{{ invited_by_username }}</strong> has created a member account for you on
+        {% else %}
+            You have been invited to join {{ club_name }} on
+        {% endif %}
+        AquaristSpecies — a platform for tracking and sharing the fish species you keep.
+    </p>
+    <p>
+        To activate your account and set your password, click the link below. This link
+        is valid for <strong>7 days</strong> and can only be used once.
+    </p>
+    <p style="margin: 2rem 0;">
+        <a href="{{ activation_url }}" style="background-color: #0d6efd; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+            Activate my account
+        </a>
+    </p>
+    <p style="color: #6c757d; font-size: 0.9em;">
+        If the button above doesn't work, copy and paste this link into your browser:
+        <br>{{ activation_url }}
+    </p>
+    <p style="color: #6c757d; font-size: 0.9em; margin-top: 2rem;">
+        If you did not expect this invitation, you can safely ignore this email.
+        No account will be activated unless you click the link above.
+    </p>
+    <p style="color: #6c757d; font-size: 0.9em;">
+        This message was sent from AquaristSpecies.
+    </p>
+</body>
+</html>

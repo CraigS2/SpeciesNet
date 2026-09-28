@@ -1,0 +1,34 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container">
+<h4><b>Reassign Aquarist Species:</b> {{speciesInstance.name}} ({{speciesInstance.id}})</h4>
+<h5><b>Currently Species Assigned:</b> {{speciesInstance.species.name}}  ({{speciesInstance.species.id}})</h5>
+<p>
+    Aquarist Species are created by users choosing 'I keep this species' from a <b>Species Profile.</b> 
+    Sometimes mistakes are made, such as adding a <i>new species</i> when it is not needed, creating a duplicate or elevating
+    a subspecies from a collection point to its own Species (which may be appropriate in some cases, but generally not a best practice).
+</p>
+<p>
+    Enter a new Species ID to reassign the Aquarist Species to correct errors. 
+    Typically this also means once an incorrect Species is 'freed up' so that no Aquarist Species use it, the incorrect Species can then be deleted. 
+</p>
+    <div>
+        <form method="POST" action="">
+            {% csrf_token %}
+            <p>Enter the Species ID you wish to assign as a replacement for Species <b>{{speciesInstance.species.id}}</b></p>
+            <p>
+                <label for="new_species_id">New Species ID:</label>
+                <input type="number" 
+                       id="new_species_id" 
+                       name="new_species_id" 
+                       required 
+                       min="1" 
+                       style="padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+            </p>
+            <p><input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" value="Reassign Species"></p>  
+            <p><a href="{{request.META.HTTP_REFERER}}">Cancel</a></p>
+        </form> 
+    </div>
+</div>
+{% endblock content %}

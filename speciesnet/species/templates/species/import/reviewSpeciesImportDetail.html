@@ -1,0 +1,80 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h4>
+        Review Staging Record – Row {{ staging.import_row_number }}
+        <small class="text-muted">
+            <span class="badge bg-secondary ms-2">{{ staging.get_action_display }}</span>
+            {% if staging.review_status == 'APPROVED' %}
+                <span class="badge bg-success ms-1">{{ staging.get_review_status_display }}</span>
+            {% elif staging.review_status == 'OVERRIDE' %}
+                <span class="badge bg-warning text-dark ms-1">{{ staging.get_review_status_display }}</span>
+            {% elif staging.review_status == 'REJECTED' %}
+                <span class="badge bg-danger ms-1">{{ staging.get_review_status_display }}</span>
+            {% else %}
+                <span class="badge bg-secondary ms-1">{{ staging.get_review_status_display }}</span>
+            {% endif %}
+        </small>
+    </h4>
+    <p class="text-muted">
+        Archive: <a href="{% url 'reviewSpeciesImport' import_archive.pk %}">#{{ import_archive.pk }}</a>
+    </p>
+
+    <!-- Side-by-side comparison table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Field Comparison</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:20%">Field</th>
+                        <th style="width:35%">Current Value</th>
+                        <th style="width:35%">Proposed Value</th>
+                        <th style="width:10%">Changed?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in comparison %}
+                    <tr {% if row.changed %}class="table-warning"{% endif %}>
+                        <td><strong>{{ row.label }}</strong></td>
+                        <td>
+                            {% if row.current %}
+                                {{ row.current }}
+                            {% else %}
+                                <span class="text-muted">(empty)</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.proposed %}
+                                {{ row.proposed }}
+                            {% else %}
+                                <span class="text-muted">(empty)</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.changed %}
+                                <span class="text-warning">&#9654;</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Review form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Review Decision</div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Save Decision</button>
+                <a href="{% url 'reviewSpeciesImport' import_archive.pk %}" class="btn btn-secondary ms-2">Back to List</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

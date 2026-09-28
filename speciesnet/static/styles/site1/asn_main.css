@@ -1,0 +1,459 @@
+/***********************************************
+Shades of ASN Blue TODO update css background and border colors
+
+Lighter shades (towards white):
+
+    rgb(242, 249, 252) - Very light, almost white
+    rgb(228, 241, 248) - Very light blue
+    rgb(214, 233, 245) - Light blue
+    rgb(190, 220, 241) - Soft light blue
+    rgb(171, 210, 236) - Medium-light blue
+    
+Base color:
+
+    rgb(152, 199, 231) - ASN background color (middle)
+
+Darker shades (towards black):
+
+    rgb(137, 179, 208) - Medium-dark blue
+    rgb(114, 149, 173) - Muted blue
+    rgb(91, 119, 138) - Dark muted blue
+    rgb(61, 79, 92) - Very dark blue
+    rgb(30, 40, 46) - Almost black blue
+
+ ***********************************************/
+
+body {
+    background-color: rgb(152, 199, 231) !important;   /* ASN Background Color  */
+    padding: 0.5em !important; 
+}
+
+/*
+a:link {color:rgb(20, 20, 230) !important;}
+a:visited {color:rgb(60, 60, 230) !important;}
+a:hover {color:rgb(80, 80, 230) !important;}
+a:active {color:rgb(90, 90, 230) !important;}
+*/
+
+a:link          {color:rgb(30, 80, 210) !important;}
+a:visited       {color:rgb(60, 60, 200) !important;}
+a:visited:hover {color:rgb(10, 40, 160) !important;}
+a:hover         {color:rgb(80, 80, 240) !important;}
+a:active        {color:rgb(10, 30, 130) !important;}
+
+.navbar .dropdown-toggle,
+.navbar .nav-link.dropdown-toggle {
+    color: rgb(60, 60, 200) !important;
+}
+.navbar .dropdown-toggle:hover,
+.navbar .nav-link.dropdown-toggle:hover {
+    color: rgb(40, 40, 160) !important;
+}
+.dropdown-item {
+    color: rgb(60, 60, 200) !important; 
+    text-decoration: none;}
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(24, 144, 215, 0.1);
+    color: rgb(40, 40, 160) !important; 
+}
+.dropdown-item:active {
+    background-color: rgba(24, 144, 215, 0.2);
+    color: rgb(20, 20, 120) !important; 
+}
+
+/*
+a:link {color:rgb(24, 144, 215) !important;}
+a:hover {color:rgb(19, 115, 172) !important;}
+a:visited {color:rgb(15, 92, 138) !important;}
+a:visited:hover {color: rgb(19, 115, 172); !important}
+a:active {color:rgb(12, 74, 110) !important;}
+
+/* Bootstrap 5 button colors using CSS custom property variables which have higher priority than !important overrides */
+
+/* Primary Buttons */
+/* ============================================
+   PRIMARY BUTTONS - Maximum Brightness Blue
+   ============================================ */
+
+.btn-primary {
+    --bs-btn-bg: rgb(24, 144, 215);
+    --bs-btn-border-color: rgb(24, 144, 215);
+    --bs-btn-color: rgb(255, 255, 255) !important;
+    --bs-btn-hover-bg: rgb(19, 115, 172);
+    --bs-btn-hover-border-color: rgb(19, 115, 172);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+    --bs-btn-active-bg: rgb(15, 92, 138);
+    --bs-btn-active-border-color: rgb(15, 92, 138);
+    --bs-btn-active-color: rgb(255, 255, 255);
+    --bs-btn-disabled-bg: rgb(140, 191, 225);
+    --bs-btn-disabled-border-color: rgb(140, 191, 225);
+    --bs-btn-disabled-color: rgba(255, 255, 255, 0.6);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: rgb(91, 119, 138);
+    --bs-btn-border-color: rgb(24, 144, 215);
+    --bs-btn-hover-bg: rgb(24, 144, 215);
+    --bs-btn-hover-border-color: rgb(24, 144, 215);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+    --bs-btn-active-bg: rgb(19, 115, 172);
+    --bs-btn-active-border-color: rgb(19, 115, 172);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.bg-primary { background-color: rgb(24, 144, 215) !important; }
+.text-primary { color: rgb(24, 144, 215) !important; }
+.border-primary { border-color: rgb(24, 144, 215) !important; }
+
+/* Match checkboxes to primary color */
+.form-check-input:checked {
+    background-color: rgb(24, 144, 215) !important;
+    border-color: rgb(24, 144, 215) !important;
+}
+
+.form-check-input:focus {
+    border-color: rgb(24, 144, 215) !important;
+    box-shadow: 0 0 0 0.25rem rgba(24, 144, 215, 0.25) !important;
+}
+
+
+/* Secondary Buttons */
+
+.btn-secondary {
+    --bs-btn-bg: rgb(228, 241, 248);                   /* ASN: Very light blue */
+    --bs-btn-border-color: rgb(228, 241, 248);         /* Match bg = no visible border */
+    --bs-btn-color: rgb(60, 60, 230);                  /*  */
+    --bs-btn-hover-bg: rgb(208, 221, 238);             /* Darken by ~20 */
+    --bs-btn-hover-border-color: rgb(208, 221, 238);   /* Match hover bg */
+    --bs-btn-hover-color: rgb(33, 37, 41);             /* Slightly darker text */
+    --bs-btn-active-bg: rgb(188, 201, 218);            /* Darken by ~40 from original */
+    --bs-btn-active-border-color: rgb(188, 201, 218);  /* Match active bg */
+    --bs-btn-active-color: rgb(33, 37, 41);            /* Keep dark text */
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: rgb(108, 117, 125);
+    --bs-btn-border-color: rgb(200, 210, 220);
+    --bs-btn-hover-bg: rgb(228, 241, 248);
+    --bs-btn-hover-border-color: rgb(200, 210, 220);
+    --bs-btn-hover-color: rgb(52, 58, 64);
+}
+
+.bg-secondary { background-color: rgb(228, 241, 248) !important; }
+.text-secondary { color: rgb(52, 58, 64) !important; }
+.border-secondary { border-color: rgb(200, 210, 220) !important; }
+
+
+/* INFO */
+
+.btn-info {
+    --bs-btn-bg: rgb(160, 200, 230);
+    --bs-btn-border-color: rgb(160, 200, 230);
+    --bs-btn-color: rgb(47, 79, 79);
+    --bs-btn-hover-bg: rgb(140, 180, 210);
+    --bs-btn-hover-border-color: rgb(140, 180, 210);
+    --bs-btn-hover-color: rgb(47, 79, 79);
+    --bs-btn-active-bg: rgb(120, 160, 190);
+    --bs-btn-active-border-color: rgb(120, 160, 190);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.btn-outline-info {
+    --bs-btn-color: rgb(80, 120, 150);
+    --bs-btn-border-color: rgb(160, 200, 230);
+    --bs-btn-hover-bg: rgb(160, 200, 230);
+    --bs-btn-hover-border-color: rgb(160, 200, 230);
+    --bs-btn-hover-color: rgb(47, 79, 79);
+}
+
+
+.btn-info {
+    background-color: rgb(160, 200, 230);     /* Your species log blue */
+    border-color: rgb(160, 200, 230);
+    color: rgb(47, 79, 79);                   /* Dark slate gray text */
+}
+
+.btn-info:hover {
+    background-color: rgb(140, 180, 210);     /* Darker on hover */
+    border-color: rgb(140, 180, 210);
+    color: rgb(47, 79, 79);
+}
+
+.btn-info:active,
+.btn-info:focus {
+    background-color: rgb(120, 160, 190);     /* Even darker */
+    border-color: rgb(120, 160, 190);
+    color: rgb(255, 255, 255);
+}
+
+
+
+/* SUCCESS */
+
+.btn-success {
+    --bs-btn-bg: rgb(136, 201, 161);
+    --bs-btn-border-color: rgb(136, 201, 161);
+    --bs-btn-color: rgb(30, 77, 43);
+    --bs-btn-hover-bg: rgb(116, 181, 141);
+    --bs-btn-hover-border-color: rgb(116, 181, 141);
+    --bs-btn-hover-color: rgb(30, 77, 43);
+    --bs-btn-active-bg: rgb(96, 161, 121);
+    --bs-btn-active-border-color: rgb(96, 161, 121);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.btn-outline-success {
+    --bs-btn-color: rgb(80, 140, 100);
+    --bs-btn-border-color: rgb(136, 201, 161);
+    --bs-btn-hover-bg: rgb(136, 201, 161);
+    --bs-btn-hover-border-color: rgb(136, 201, 161);
+    --bs-btn-hover-color: rgb(30, 77, 43);
+}
+
+
+.btn-success {
+    background-color: rgb(136, 201, 161);     /* Your sage green */
+    border-color: rgb(136, 201, 161);
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: rgb(116, 181, 141);     /* Darker on hover */
+    border-color: rgb(116, 181, 141);
+    color: white;
+}
+
+.btn-success:active,
+.btn-success:focus {
+    background-color: rgb(96, 161, 121);      /* Even darker */
+    border-color: rgb(96, 161, 121);
+    color: white;
+}
+
+.bg-success { background-color: rgb(136, 201, 161) !important; }
+.text-success { color: rgb(30, 77, 43) !important; }
+
+
+
+
+/* WARNING - Soft Amber */
+
+.btn-warning {
+    --bs-btn-bg: rgb(240, 198, 116);
+    --bs-btn-border-color: rgb(240, 198, 116);
+    --bs-btn-color: rgb(92, 74, 30);
+    --bs-btn-hover-bg: rgb(220, 178, 96);
+    --bs-btn-hover-border-color: rgb(220, 178, 96);
+    --bs-btn-hover-color: rgb(92, 74, 30);
+    --bs-btn-active-bg: rgb(200, 158, 76);
+    --bs-btn-active-border-color: rgb(200, 158, 76);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+.btn-outline-warning {
+    --bs-btn-color: rgb(180, 140, 70);
+    --bs-btn-border-color: rgb(240, 198, 116);
+    --bs-btn-hover-bg: rgb(240, 198, 116);
+    --bs-btn-hover-border-color: rgb(240, 198, 116);
+    --bs-btn-hover-color: rgb(92, 74, 30);
+}
+
+
+.btn-warning {
+    background-color: rgb(240, 198, 116);     /* Your amber/gold */
+    border-color: rgb(240, 198, 116);
+    color: rgb(92, 74, 30);                   /* Dark brown text */
+}
+
+.btn-warning:hover {
+    background-color: rgb(220, 178, 96);      /* Darker on hover */
+    border-color: rgb(220, 178, 96);
+    color: rgb(92, 74, 30);
+}
+
+.btn-warning:active,
+.btn-warning:focus {
+    background-color: rgb(200, 158, 76);      /* Even darker */
+    border-color: rgb(200, 158, 76);
+    color: rgb(255, 255, 255);
+}
+
+.bg-warning { background-color: rgb(240, 198, 116) !important; }
+.text-warning { color: rgb(92, 74, 30) !important; }
+
+
+/* DANGER - Muted Red */
+
+.btn-danger {
+    --bs-btn-bg: rgb(220, 85, 85);
+    --bs-btn-border-color: rgb(220, 85, 85);
+    --bs-btn-color: rgb(255, 255, 255);
+    --bs-btn-hover-bg: rgb(200, 65, 65);
+    --bs-btn-hover-border-color: rgb(200, 65, 65);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+    --bs-btn-active-bg: rgb(180, 50, 50);
+    --bs-btn-active-border-color: rgb(180, 50, 50);
+    --bs-btn-active-color: rgb(255, 255, 255);
+}
+
+/* Outline danger button */
+.btn-outline-danger {
+    --bs-btn-color: rgb(220, 85, 85);
+    --bs-btn-border-color: rgb(220, 85, 85);
+    --bs-btn-hover-bg: rgb(220, 85, 85);
+    --bs-btn-hover-border-color: rgb(220, 85, 85);
+    --bs-btn-hover-color: rgb(255, 255, 255);
+}
+
+/* Utility classes for backgrounds/text */
+.bg-danger { 
+    background-color: rgb(220, 85, 85) !important; 
+}
+
+.text-danger { 
+    color: rgb(220, 85, 85) !important; 
+}
+
+
+.home-container 
+{
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+}
+
+.div-line-below:after {
+    content: " ";
+    display: block;
+    border-bottom: 1px solid slategray;
+}
+
+.div-line-above:before {
+    content: " ";
+    display: block;
+    border-top: 1px solid slategray;
+}
+
+.card {
+    background-color: rgb(171, 210, 236) !important;      /* medium light blue */
+}
+
+.card-header {
+    background-color: rgb(228, 241, 248) !important;      /* very light blue */
+    border-bottom: 1px solid slategray !important;
+}
+
+
+.card-body {
+    background-color: rgb(171, 210, 236) !important;      /* medium light blue */
+}
+
+/* Bordered sections (e.g. Media) */
+.section-bordered {
+    background-color: rgb(214, 233, 245) !important;      /* light blue */
+    border: 2px solid rgb(162, 189, 221) !important;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.species-tile .card-body {
+    background-color: rgb(190, 220, 241) !important;      /* Soft Light blue */
+}
+
+.section-bordered legend {
+    background-color: rgb(214, 233, 245) !important;      /* light blue */
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: none !important;
+    font-weight: 600;
+    width: auto;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+fieldset.section-bordered legend {
+    background-color: rgb(214, 233, 245) !important;
+    /* padding: 0.5rem 1rem !important; */
+    /* border-radius: 0.25rem ! important; */
+}
+
+/* All fieldset legends */
+fieldset legend,
+.section-bordered legend {
+    color: #495057 !important;  /* Match General Info gray */
+    font-weight: 400;
+}
+
+hr 
+{
+    color:slategrey !important;
+    border-color: rgb(120, 199, 230) !important;
+    border-width: 2px !important;
+}
+
+h1
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+    line-height: 1.5 !important;
+}
+
+h2
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+    line-height: 1.5 !important;
+}
+
+h3
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+    line-height: 1.5 !important;
+}
+
+h4
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+    line-height: 1.5 !important;
+}
+
+h5
+{
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    color: black !important; 
+    line-height: 1.5 !important;
+}
+
+p { color: black !important; }
+
+li { color: darkslategray !important; }
+
+
+.alert-info {
+    background-color: rgb(236, 239, 241) !important;  /* Very light slate gray */
+    border-color: rgb(206, 212, 218) !important;      /* Slightly darker border */
+    color: rgb(52, 58, 64) !important;                /* Dark gray text */
+}
+
+.alert-info strong {
+    color: rgb(33, 37, 41) !important;                /* Darker text for emphasis */
+}
+
+.alert-info a {
+    color: rgb(24, 144, 215) !important;              /* primary blue for links */
+    text-decoration: underline;
+}
+
+.alert-info a:hover {
+    color: rgb(19, 115, 172) !important;
+}
+
+
+::placeholder {                                          /* Placeholder styling for all forms */
+    color: #adb5bd !important;                         /* Medium-light gray */
+    font-style: italic !important;                       /* Italic to distinguish from real data */
+    opacity: 1 !important;
+}

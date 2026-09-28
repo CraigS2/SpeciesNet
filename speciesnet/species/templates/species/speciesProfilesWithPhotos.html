@@ -1,0 +1,29 @@
+{% extends 'main.html' %}
+<!-- context = si_with_photos -->
+
+{% block content %}
+<div class="container">
+    <h2>Species Profiles with Photos ({{species_with_photos|length}})</h2>
+
+    {% if species_with_photos %}
+        {% for species in species_with_photos %}
+            <div class="div-line-below">
+                <p><a href="{% url 'species' species.id %}">{{species.name}}</a></p>
+
+                {% if species.species_image %}
+                    <p><img src={{species.species_image.url}}></p>
+                {% endif %}
+                {% if species.photo_credit %}
+                    <p>Photo by:<i> &nbsp;{{species.photo_credit}}</i> </p>
+                {% else %}
+                    <p>** Missing Photo Credit**</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+    {% else %} 
+        <p>None</p>
+    {% endif %}  
+</div>
+
+{% endblock content %}

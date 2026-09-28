@@ -1,0 +1,14 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container">
+    <h3>Import BAP Genus Points List</h3>
+    <div>
+        <form method="POST" enctype="multipart/form-data" action="">
+            {% csrf_token %}
+            {{form.as_p}}
+            <input type="Submit" value="Submit">
+        </form>
+    <div>
+</div>
+{% endblock content %}

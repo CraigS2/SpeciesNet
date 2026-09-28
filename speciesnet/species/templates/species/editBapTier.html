@@ -1,0 +1,8 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+  <h3>{{ club.name }} Tier</h3>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Save</button></form>
+  {% if tier %}<p class="mt-2"><a class="btn btn-secondary" href="{% url 'deleteBapTier' tier.id %}">Delete</a></p>{% endif %}
+</div>
+{% endblock content %}

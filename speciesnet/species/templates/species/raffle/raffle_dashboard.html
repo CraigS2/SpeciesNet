@@ -1,0 +1,205 @@
+{% extends 'main.html' %}
+{% block title %} - Raffle Dashboard{% endblock %}
+{% block content %}
+
+<div class="container mt-4"></div>
+    <div class="row">
+        <!--div class="col-lg-12 mx-auto"-->
+        <div class="col-lg-11 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3><i class="bi bi-trophy-fill text-warning"></i> Fish Raffle Dashboard</h3>
+                </div>
+
+                <div class="card-body px-4 py-3">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <a href="{% url 'raffle_entries' %}" class="btn btn-outline-primary btn-sm ms-2">
+                            <i class="bi bi-list-ul"></i> View All Entries
+                        </a>&nbsp;&nbsp;
+                        <a href="{% url 'raffle_export_entries' %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-download"></i> Export Entries CSV
+                        </a>&nbsp;&nbsp;
+                        <a href="{% url 'raffle_export_species_results' %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-trophy"></i> Export Species Results CSV
+                        </a>&nbsp;&nbsp;
+                        <form method="POST" action="{% url 'raffle_reset' %}" style="display:inline;"
+                            onsubmit="return confirm('Archive and clear all entries and species? This cannot be undone from the UI.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm ms-2">
+                                <i class="bi bi-archive"></i> Reset Raffle
+                            </button>
+                        </form>                      
+                    </div>
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <h5 class="my-0">Manage Raffle Species</h5>
+                        <p class="text-muted small mb-2">
+                          Upload a CSV with columns <code>species_name</code> and (optionally) <code>quantity_available</code>.
+                          New species are added; existing species quantities are updated. 
+                        </p>
+                        <p class="text-muted small mb-2">
+                          Existing entries are never affected. You can upload again at any time to add a donated species mid-event.
+                        </p>
+
+                        <form method="POST" action="{% url 'raffle_upload_species' %}" enctype="multipart/form-data" class="row g-2 align-items-end">
+                          {% csrf_token %}
+                          <div class="col-auto">
+                            <input type="file" name="species_csv" accept=".csv" class="form-control form-control-sm" required>
+                          </div>
+                          <div class="col-auto">
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload"></i> Upload Species CSV</button>
+                          </div>
+                        </form>
+
+                        {% if species_rows %}
+                          <div class="mt-3">
+                            <strong class="small">Current species list ({{ species_rows|length }}):</strong>
+                            <div class="d-flex flex-wrap gap-2 mt-1">
+                              {% for row in species_rows %}
+                                <span class="badge bg-light text-secondary fs-6 ms-1">
+                                  <em>{{ row.species_name }}</em>
+                                  {% if row.quantity_available and row.quantity_available != '1' %}
+                                    <span class="badge bg-light text-dark ms-1">×{{ row.quantity_available }}</span>
+                                  {% endif %}
+                                </span>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% else %}
+                          <p class="text-warning small mt-2 mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> No species loaded yet. Upload a CSV to get started.
+                          </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="css_class='mb-3 section-bordered">
+                        <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
+                            <h5 class="mb-0">Species Raffle Pools</h5>
+                            <span class="text-muted small">Total entries: <strong>{{ entry_count }}</strong></span>
+                        </div>
+
+                        {% if species_pools %}
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-5">
+                            {% for species, data in species_pools.items %}
+                                <div class="col">
+                                    <div class="card h-100 {% if data.winners %}border-success{% endif %}">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold"><em>{{ species }}</em></span>
+                                            <div class="d-flex gap-1 align-items-center">
+                                            {% if data.quantity_available and data.quantity_available != '1' %}
+                                                <span class="badge bg-info text-dark" title="Quantity available">×{{ data.quantity_available }}</span>
+                                            {% endif %}
+                                            <span class="badge bg-secondary">{{ data.count }} entr{{ data.count|pluralize:"y,ies" }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+
+                                            <!-- Winners so far -->
+                                            {% if data.winners %}
+                                            {% for w in data.winners %}
+                                            <div class="alert alert-success py-2 mb-2">
+                                                <i class="bi bi-trophy-fill"></i>
+                                                <strong>Winner:</strong> {{ w.first_name }} {{ w.last_name }}<br>
+                                                <small>{{ w.email }}</small><br>
+                                                <small class="text-muted">Username: {{ w.proposed_username }}</small>
+                                            </div>
+                                            {% endfor %}
+                                            {% endif %}
+
+                                            <!-- Random pick OR manual mark buttons -->
+                                            {% if data.count > data.winners|length %}
+                                            <div class="d-flex gap-2 mb-2 flex-wrap">
+                                                <!-- Random pick (existing behaviour) -->
+                                                <form method="POST" action="{% url 'raffle_pick_winner' species %}"
+                                                    onsubmit="return confirm('Pick a RANDOM winner for {{ species }}?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-warning btn-sm">
+                                                    <i class="bi bi-shuffle"></i>
+                                                    {% if data.winners %}Pick Another{% else %}Pick Random Winner{% endif %}
+                                                </button>
+                                                </form>
+
+                                                <!-- Copy names to clipboard -->
+                                                {% if data.entrants %}
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary btn-sm"
+                                                        onclick="copyNames(this, {{ data.entrants|length }})"
+                                                        data-names="{% for e in data.entrants %}{{ e.first_name }} {{ e.last_name }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                                                        title="Copy entrant names to clipboard for use in a wheel spinner">
+                                                <i class="bi bi-clipboard"></i> Copy Names
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                            {% else %}
+                                            {% if data.count == 0 %}
+                                                <p class="text-muted small">No entries yet.</p>
+                                            {% else %}
+                                                <p class="text-muted small">All eligible entrants have won.</p>
+                                            {% endif %}
+                                            {% endif %}
+
+                                            <!-- Entrant list with Mark as Winner buttons -->
+                                            {% if data.entrants %}
+                                            <details id="details-{{ forloop.counter }}">
+                                                <summary class="text-muted small" style="cursor:pointer;">
+                                                Show entrants ({{ data.count }})
+                                                </summary>
+                                                <ul class="list-unstyled mt-2 mb-0">
+                                                {% for e in data.entrants %}
+                                                <li class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                                    <span class="small {% if e in data.winners %}fw-bold text-success{% endif %}">
+                                                    {{ e.first_name }} {{ e.last_name }}
+                                                    {% if e in data.winners %}
+                                                        <i class="bi bi-trophy-fill text-warning"></i>
+                                                    {% endif %}
+                                                    </span>
+                                                    {% if e not in data.winners and data.winners|length < data.quantity_available|add:"0" or e not in data.winners and not data.winners %}
+                                                    <form method="POST"
+                                                            action="{% url 'raffle_mark_manual_winner' species e.email %}"
+                                                            onsubmit="return confirm('Mark {{ e.first_name }} {{ e.last_name }} as winner for {{ species }}?');"
+                                                            style="display:inline;">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-outline-success btn-sm py-0 px-1">
+                                                        <i class="bi bi-trophy"></i> Mark Winner
+                                                        </button>
+                                                    </form>
+                                                    {% endif %}
+                                                </li>
+                                                {% endfor %}
+                                                </ul>
+                                            </details>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                          <p class="text-muted">Upload a species CSV above to see pools here.</p>
+                        {% endif %}                
+                    </div> 
+                </div>                       
+
+            </div>
+        </div>     
+    </div>
+</div>
+
+  <script>
+  function copyNames(btn, count) {
+    const names = btn.getAttribute('data-names').split(',').map(n => n.trim()).join('\n');
+    navigator.clipboard.writeText(names).then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+      btn.classList.replace('btn-outline-secondary', 'btn-success');
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.replace('btn-success', 'btn-outline-secondary');
+      }, 2000);
+    }).catch(() => {
+      alert('Copy failed — please select and copy the names manually from the entrant list.');
+    });
+  }
+  </script>
+
+{% endblock %}

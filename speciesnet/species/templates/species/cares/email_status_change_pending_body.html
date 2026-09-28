@@ -1,0 +1,13 @@
+Hello {{ registration.aquarist_name }},
+
+Thank you for your CARES submission of {{ species_name }}.
+
+The CARES Team asks that you please send additional information or a new photo for verification as described in the notes below. 
+{% if registration.approver_notes %}
+    Request for more information:
+    {{ registration.approver_notes }}
+{% endif %}
+To update your CARES registration submission, please use the secure link below and provide the requested information.  
+
+Thank you,
+CARES Species Team

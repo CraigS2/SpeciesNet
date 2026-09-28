@@ -1,0 +1,13 @@
+Hello {{ registration.aquarist_name }},
+
+Your CARES registration for {{ species_name }} has been {{ status_label }}.
+
+{% if registration.approver_notes %}
+Approver notes:
+{{ registration.approver_notes }}
+
+{% endif %}
+If you have questions or need to provide updates, please reply to this email.
+
+Thank you,
+CARES Species Team

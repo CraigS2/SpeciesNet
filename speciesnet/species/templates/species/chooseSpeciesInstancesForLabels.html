@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+<!---- context = {form, } ---->
+{% block content %}
+
+<h2>Choose Species for Labels:</h2>
+<div>
+    <table style="text-align: left; vertical-align: top; padding-top: 1em;">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{form.as_table}}
+            <td></td><td style="text-align: left; vertical-align: top; padding-top: 1em;"><input type="Submit" value="Submit"></td>                              
+        </form>
+    </table>
+</div>
+
+
+{% endblock content %}

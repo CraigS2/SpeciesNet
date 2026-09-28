@@ -1,0 +1,10 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+  <h3>{{ smp_submission.club.name }}</h3>
+  <h4>Edit SMP Submission</h4>
+  {% if missing_required_notes %}<div class="alert alert-warning">⚠ Approval is blocked until required notes are provided: {{ missing_required_notes|join:", " }}</div>{% endif %}
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Save Changes</button></form>
+  <p class="mt-2"><a class="btn btn-secondary" href="{% url 'deleteSmpSubmission' smp_submission.id %}">Delete Submission</a></p>
+</div>
+{% endblock content %}

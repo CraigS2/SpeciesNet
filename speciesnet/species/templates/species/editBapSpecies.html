@@ -1,0 +1,34 @@
+{% extends 'main.html' %}
+
+<!-- context = {'form': form, 'club': club, 'species': species, 'bapSP': bapSP (None for create)} -->
+
+{% block content %}
+<div class="container">
+    <h3>{{ club.name }}</h3>
+    <h4>Edit BAP Species Exception</h3>
+    <h5><b>Species:</b> <a href="{% url 'species' species.id %}">{{species.name}}</a></h5>
+    <div>
+        <table>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{form.as_table}}
+                <tr>
+                    <td></td>
+                    <td style="text-align: left; padding-top: 1em;">
+                        <input type="Submit" style="border-style: solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            value="Save Changes"></td>  
+                </tr>
+                {% if bapSP %}
+                <tr>
+                    <td></td>
+                    <td style="text-align:left; padding-top:1em;">
+                        <button style="border-style:solid; box-sizing: border-box; border-radius: 6px; padding: 4px 24px;" 
+                            onclick="window.location.href='{% url 'deleteBapSpecies' bapSP.id %}';" type="button">&nbsp;&nbsp;Delete&nbsp;&nbsp;</button>
+                    </td>    
+                </tr> 
+                {% endif %}            
+            </form>
+        </table>
+    </div>
+</div>
+{% endblock content %}
