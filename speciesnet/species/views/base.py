@@ -85,7 +85,7 @@ from species.asn_tools.asn_utils import (
     validate_normalize_youtube_url
 )
 from species.asn_tools.asn_pdf_tools import generatePdfLabels
-from species.asn_tools.asn_cares_tools import get_matching_cares_approver
+from species.asn_tools.asn_cares_tools import get_matching_cares_approver, maybe_reassign_cares_approver
 from species.asn_tools.asn_species_aggregation import collect_species_data_as_csv
 
 # Logger

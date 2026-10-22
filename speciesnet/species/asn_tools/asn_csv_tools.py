@@ -1337,6 +1337,12 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
             try:
                 with transaction.atomic():
                     registration = CaresRegistration.objects.get(id=asn_id)
+                    if registration.status == CaresRegistration.CaresRegistrationStatus.APPROVED:
+                        skip_count += 1
+                        status_txt = f'SKIP - registration id={asn_id} already Approved; approval is final'
+                        csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, registration.status, new_status, status_txt])
+                        logger.info('CARES status update import row %d: %s', row_count, status_txt)
+                        continue
                     old_status = registration.status
                     registration.status = new_status
                     registration.approver_notes = import_row.get('approver_notes', '').strip()
