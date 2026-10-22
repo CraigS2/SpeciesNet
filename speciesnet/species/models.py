@@ -675,9 +675,9 @@ class CaresRegistration (models.Model):
     species                   = models.ForeignKey(Species, on_delete=models.SET_NULL, blank=True, null=True, related_name='species_registrations')
     collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='cares_registrations')
     species_source            = models.TextField (blank=False, default='')
-    submitter_notes           = models.TextField (blank=False, default='')
+    submitter_notes           = models.TextField (blank=True, default='')
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
-    verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d')
+    verification_photo        = models.ImageField (upload_to='images/%Y/%m/%d', blank=True)  # blank at model level for legacy imports with no original photo; new-submission forms re-require it explicitly
     species_has_spawned       = models.BooleanField (default=False)
     young_available           = models.BooleanField (default=False)
     offspring_shared          = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(500)], default=0)  

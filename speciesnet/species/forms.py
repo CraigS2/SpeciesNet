@@ -464,6 +464,10 @@ class CaresRegistrationAnonymousForm (ModelForm):
 
 
 class CaresRegistrationAnonymousForm2(ModelForm):
+    # verification_photo is blank=True on the model (to allow legacy imports with no
+    # original photo) — new submissions must still require it, so re-assert it here.
+    verification_photo = forms.ImageField(required=True)
+
     class Meta:
         model = CaresRegistration
         fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location',
@@ -579,6 +583,10 @@ class CaresRegistrationFromInstanceForm(ModelForm):
     the aquarist only needs to supply affiliate_club, species_source,
     and a verification_photo.
     """
+    # verification_photo is blank=True on the model (to allow legacy imports with no
+    # original photo) — new submissions must still require it, so re-assert it here.
+    verification_photo = forms.ImageField(required=True)
+
     class Meta:
         model = CaresRegistration
         fields = ['affiliate_club', 'species_source', 'verification_photo']
@@ -652,6 +660,10 @@ class CaresRegistrationAdminForm (ModelForm):
 
 # registration submition by Cares Admin
 class CaresRegistrationSubmitionAdminForm (ModelForm):
+    # verification_photo is blank=True on the model (to allow legacy imports with no
+    # original photo) — new submissions must still require it, so re-assert it here.
+    verification_photo = forms.ImageField(required=True)
+
     class Meta:
         model = CaresRegistration
         fields = '__all__'

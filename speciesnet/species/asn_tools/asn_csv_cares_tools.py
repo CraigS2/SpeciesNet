@@ -8,6 +8,7 @@ from io import StringIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from ..models import CaresApprover, ImportArchive, Species, User
 from ..models import AquaristClub, CaresRegistration, Species
@@ -237,7 +238,7 @@ def import_legacy_cares_registrations(import_archive, imported_by):
                 affiliate_club      = affiliate_club,
                 species_has_spawned = is_breeding_group,
                 year_acquired       = year_acquired,
-                last_report_date    = registration_date,   # closest available date field
+                last_report_date    = timezone.localdate(),   # date of this import, not the legacy registration_date
                 status              = status,
                 last_updated_by     = imported_by,
                 verification_photo  = '',   # no photo available for legacy records
