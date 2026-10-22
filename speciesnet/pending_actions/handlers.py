@@ -159,6 +159,48 @@ class CaresNewRegistrationNotificationHandler(ActionHandler):
         }
 
 
+@register('cares_registration_summary')
+class CaresRegistrationSummaryHandler(ActionHandler):
+    """
+    FYI-only summary of all CaresRegistrations matching an email address,
+    sent to that address itself rather than rendered to whoever typed it in
+    — the anonymous "check your CARES registration status" lookup must not
+    reveal registration details to someone who doesn't own that email.
+    """
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'registration_ids'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required CARES registration summary payload values: {sorted(missing)}')
+
+    def build_email_context(self, action, token=None):
+        to_email = action.payload['to_email']
+        registrations = list(
+            CaresRegistration.objects.filter(pk__in=action.payload['registration_ids'])
+            .select_related('species', 'affiliate_club')
+            .order_by('-date_requested')
+        )
+        html_body = render_to_string(
+            'species/cares/email_registration_summary.html',
+            {
+                'registrations': registrations,
+                'email': to_email,
+                'registration_count': len(registrations),
+            },
+        )
+        plain_body = strip_tags(html_body)
+        return {
+            'registrations': registrations,
+            'email': to_email,
+            'registration_count': len(registrations),
+            'subject': 'Your CARES Registrations Summary',
+            'to_email': to_email,
+            'archive_name': f'CARES registration summary to {to_email}',
+            'archive_text': plain_body,
+        }
+
+
 @register('proxy_user_invite')
 class ProxyUserInviteHandler(ActionHandler):
     """

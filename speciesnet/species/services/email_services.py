@@ -95,6 +95,26 @@ def send_status_change_email(registration, subject, body):
     return True
 
 
+def send_registration_summary_email(email, registrations):
+    """
+    Queue a CARES registration summary email to *email*, listing *registrations*.
+    Used by the anonymous "check your CARES registration status" lookup so the
+    summary goes to the email's actual owner, rather than being rendered on the
+    page to whoever happened to type that address in.
+    """
+    action_type = _get_action_type('cares_registration_summary')
+    create_pending_action(
+        action_type,
+        user=None,
+        payload={
+            'to_email': email,
+            'registration_ids': [r.id for r in registrations],
+        },
+        enqueue_email=True,
+    )
+    logger.info('Queued CARES registration summary email to=%s registration_count=%s', email, len(registrations))
+
+
 def send_notes_required_email(*, submission, program):
     species_instance = submission.speciesInstance
     if species_instance is None or submission.aquarist is None or not submission.aquarist.email:

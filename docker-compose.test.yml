@@ -1,4 +1,6 @@
-services:  
+name: speciesnet-test
+
+services:
 
     test_db:
       container_name: ASN_TEST_DB
@@ -106,5 +108,4 @@ services:
 
 networks:
   asn_test_network:
-    name: asn_test_network
     driver: bridge

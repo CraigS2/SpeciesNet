@@ -8,7 +8,7 @@ Species-related views: CRUD operations, search, comments, reference links
 from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
-from species.services.email_services import send_new_registration_notification, send_status_change_email
+from species.services.email_services import send_new_registration_notification, send_status_change_email, send_registration_summary_email
 from species.services.bap_service import reassign_bap_genus_example_species
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
@@ -22,6 +22,11 @@ def caresSpecies(request, pk):
         Species.IucnRedList.UNDEFINED,
         Species.IucnRedList.NOT_EVALUATED,
     )
+    # Lake Victoria cichlids don't carry a meaningful IUCN assessment for this
+    # program, so hide it regardless of the field's actual value. Display-only
+    # - the underlying data is untouched. (caresSpecies only renders on Site2.)
+    if species.cares_family == Species.CaresFamily.LV_CICHLIDS:
+        show_iucn_assessment = False
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     userCanEdit = user_can_edit_s(request.user, species)
@@ -280,18 +285,20 @@ def registrationLookup(request):
         #                                - select_related (performance optimization using SQL JOIN avoids N+X queries)
         registrations = CaresRegistration.objects.filter(aquarist_email__iexact=email).select_related(
             'species', 'affiliate_club', 'cares_approver').order_by('-date_requested')
-        
-        if not registrations.exists():
-            messages.warning(
-                request, 
-                f'No registrations found for {email}'
-            )
-            return render(request, 'species/cares/registrationLookup.html')
-        
-        context = {'registrations': registrations, 'email': email, 'registration_count': registrations.count()}
-        logger.info('registrationLookup inquiry for ' + email + ' found ' + str(registrations.count()) + ' registrations')
-        return render(request, 'species/cares/registrationLookupResults.html', context)
-    
+
+        # Never render registration details to whoever typed the email in — send
+        # the summary to that address instead, and show the same confirmation
+        # message either way so the page can't be used to probe which emails
+        # have registrations on file.
+        if registrations.exists():
+            send_registration_summary_email(email, registrations)
+            logger.info('registrationLookup inquiry for %s matched %d registration(s); summary emailed.', email, registrations.count())
+        else:
+            logger.info('registrationLookup inquiry for %s found no registrations; no email sent.', email)
+
+        messages.success(request, f'A summary of your CARES Registrations has been sent to {email}.')
+        return render(request, 'species/cares/registrationLookup.html')
+
     logger.info('User visited registrationLookup page.')
     return render(request, 'species/cares/registrationLookup.html')
 

@@ -11,7 +11,7 @@ from django.test import override_settings
 from pending_actions.tasks import send_action_email
 from species.asn_tools.asn_cares_tools import get_notification_approvers
 from species.models import CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
-from species.services.email_services import send_new_registration_notification, send_status_change_email
+from species.services.email_services import send_new_registration_notification, send_status_change_email, send_registration_summary_email
 from species.views.views_cares import _is_status_change_notification_transition
 
 
@@ -114,21 +114,21 @@ class CaresEmailNotificationTests(TestCase):
         self.assertIn('Review this update', mail.outbox[0].body)
         self.assertTrue(UserEmail.objects.filter(send_to=None, email_subject='Status Update').exists())
 
-@override_settings(
-    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
-    EMAIL_BCC_ADDRESSES=['bcc@example.com'],
-    CELERY_TASK_ALWAYS_EAGER=True,
-)
-def test_bcc_applied(self):
-    mail.outbox = []
-    sent = send_status_change_email(
-        self.registration,
-        'Status Update',
-        'Your registration status has changed.',
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        EMAIL_BCC_ADDRESSES=['bcc@example.com'],
+        CELERY_TASK_ALWAYS_EAGER=True,
     )
-    self.assertTrue(sent)
-    self.assertEqual(len(mail.outbox), 1)
-    self.assertIn('bcc@example.com', mail.outbox[-1].bcc)
+    def test_bcc_applied(self):
+        mail.outbox = []
+        sent = send_status_change_email(
+            self.registration,
+            'Status Update',
+            'Your registration status has changed.',
+        )
+        self.assertTrue(sent)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('bcc@example.com', mail.outbox[-1].bcc)
 
     def test_transition_helper_matches_required_statuses(self):
         self.assertTrue(
@@ -173,3 +173,63 @@ def test_bcc_applied(self):
         self.assertIn(reverse('caresRegistration', args=[self.registration.id]), response.url)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].subject, 'Subject from approver')
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True)
+class RegistrationLookupSummaryEmailTests(TestCase):
+    """
+    The anonymous "check your CARES registration status" lookup must not
+    render registration details to whoever typed the email in - it should
+    email the summary to that address instead, and show the same
+    confirmation message regardless of whether a match was found.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._media_root = tempfile.mkdtemp(prefix='speciesnet-test-media-')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._media_root, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        self.override_media = override_settings(MEDIA_ROOT=self._media_root, DEFAULT_FROM_EMAIL='caresspecies@gmail.com')
+        self.override_media.enable()
+
+        self.user = User.objects.create_user(email='creator@example.com', username='creator', password='x')
+        self.species = Species.objects.create(
+            name='Julidochromis marksmithi', category='CIC', cares_family='CIC', created_by=self.user,
+        )
+        self.registration = CaresRegistration.objects.create(
+            name='reg', aquarist_name='Alice', aquarist_email='alice@example.com',
+            species=self.species, species_source='src',
+            verification_photo=SimpleUploadedFile('v.jpg', b'fake', content_type='image/jpeg'),
+        )
+        mail.outbox = []
+
+    def tearDown(self):
+        self.override_media.disable()
+
+    def test_send_registration_summary_email_sends_to_matched_address(self):
+        send_registration_summary_email('alice@example.com', [self.registration])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['alice@example.com'])
+        self.assertEqual(mail.outbox[0].subject, 'Your CARES Registrations Summary')
+        self.assertIn('Julidochromis marksmithi', mail.outbox[0].body)
+
+    def test_lookup_with_matching_email_sends_email_and_hides_details(self):
+        response = self.client.post(reverse('registrationLookup'), {'email': 'alice@example.com'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'species/cares/registrationLookup.html')
+        self.assertContains(response, 'has been sent to alice@example.com')
+        self.assertNotContains(response, 'Julidochromis marksmithi')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['alice@example.com'])
+
+    def test_lookup_with_unmatched_email_sends_no_email_but_same_message(self):
+        response = self.client.post(reverse('registrationLookup'), {'email': 'nobody@example.com'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'has been sent to nobody@example.com')
+        self.assertEqual(len(mail.outbox), 0)

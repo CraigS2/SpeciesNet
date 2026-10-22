@@ -1,0 +1,39 @@
+<html>
+  <body style="font-family: Arial, sans-serif; color: #212529; line-height: 1.5;">
+    <div style="max-width: 680px; margin: 0 auto; border: 1px solid #d9dee3; border-radius: 6px; padding: 16px;">
+      <h2 style="margin-top: 0;">Your CARES Registrations</h2>
+      <p style="margin-top: 0; color: #6c757d;">
+        {{ registration_count }} registration{{ registration_count|pluralize }} found for {{ email }}.
+      </p>
+
+      {% if registrations %}
+        <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+          <thead>
+            <tr style="background: #f1f3f5; text-align: left;">
+              <th style="padding: 6px 8px; border: 1px solid #d9dee3;">Species</th>
+              <th style="padding: 6px 8px; border: 1px solid #d9dee3;">Club</th>
+              <th style="padding: 6px 8px; border: 1px solid #d9dee3;">Family</th>
+              <th style="padding: 6px 8px; border: 1px solid #d9dee3;">Status</th>
+              <th style="padding: 6px 8px; border: 1px solid #d9dee3;">Submitted</th>
+              <th style="padding: 6px 8px; border: 1px solid #d9dee3;">Last Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for registration in registrations %}
+              <tr>
+                <td style="padding: 6px 8px; border: 1px solid #d9dee3;">{{ registration.species.name }}</td>
+                <td style="padding: 6px 8px; border: 1px solid #d9dee3;">{{ registration.affiliate_club.acronym }}</td>
+                <td style="padding: 6px 8px; border: 1px solid #d9dee3;">{{ registration.species.get_cares_family_display }}</td>
+                <td style="padding: 6px 8px; border: 1px solid #d9dee3;">{{ registration.get_status_display }}</td>
+                <td style="padding: 6px 8px; border: 1px solid #d9dee3;">{{ registration.date_requested|date:"Y-m-d" }}</td>
+                <td style="padding: 6px 8px; border: 1px solid #d9dee3;">
+                  {% if registration.last_report_date %}{{ registration.last_report_date|date:"Y-m-d" }}{% else %}{{ registration.lastUpdated|date:"Y-m-d" }}{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  </body>
+</html>
