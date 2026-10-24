@@ -10,7 +10,7 @@ from django.test import override_settings
 
 from pending_actions.tasks import send_action_email
 from species.asn_tools.asn_cares_tools import get_notification_approvers
-from species.models import CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
+from species.models import AquaristClub, CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
 from species.services.email_services import send_new_registration_notification, send_status_change_email, send_registration_summary_email
 from species.views.views_cares import _is_status_change_notification_transition
 
@@ -113,6 +113,32 @@ class CaresEmailNotificationTests(TestCase):
         self.assertEqual(mail.outbox[0].reply_to, [settings.DEFAULT_FROM_EMAIL])
         self.assertIn('Review this update', mail.outbox[0].body)
         self.assertTrue(UserEmail.objects.filter(send_to=None, email_subject='Status Update').exists())
+
+    def test_status_change_email_ccs_club_liaison_when_club_has_one(self):
+        club = AquaristClub.objects.create(
+            name='Liaison Club', acronym='LC',
+            cares_liaison_name='Liam Liaison', cares_liason_email='liaison@example.com',
+        )
+        self.registration.affiliate_club = club
+        self.registration.save(update_fields=['affiliate_club'])
+
+        sent = send_status_change_email(self.registration, 'Status Update', 'Your registration was approved.')
+        self.assertTrue(sent)
+        self.assertEqual(mail.outbox[0].cc, ['liaison@example.com'])
+
+    def test_status_change_email_no_cc_when_club_has_no_liaison_email(self):
+        club = AquaristClub.objects.create(name='No Liaison Club', acronym='NLC')
+        self.registration.affiliate_club = club
+        self.registration.save(update_fields=['affiliate_club'])
+
+        sent = send_status_change_email(self.registration, 'Status Update', 'Your registration was approved.')
+        self.assertTrue(sent)
+        self.assertEqual(mail.outbox[0].cc, [])
+
+    def test_status_change_email_no_cc_when_no_club_selected(self):
+        sent = send_status_change_email(self.registration, 'Status Update', 'Your registration was approved.')
+        self.assertTrue(sent)
+        self.assertEqual(mail.outbox[0].cc, [])
 
     @override_settings(
         EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',

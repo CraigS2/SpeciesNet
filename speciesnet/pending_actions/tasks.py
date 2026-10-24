@@ -49,8 +49,8 @@ def send_action_email(self, pending_action_id):
         body=html_body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[to_email],
+        cc=email_context.get('cc') or None,
         reply_to=[reply_to] if reply_to else None,
-        #cc=settings.EMAIL_BCC_ADDRESSES or None,
         bcc=settings.EMAIL_BCC_ADDRESSES or None,
     )
     email_message.content_subtype = 'html'

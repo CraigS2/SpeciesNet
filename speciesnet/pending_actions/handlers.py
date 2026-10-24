@@ -49,7 +49,7 @@ class CaresStatusChangeHandler(ActionHandler):
         return registration.status == CaresRegistration.CaresRegistrationStatus.PENDING
 
     def build_email_context(self, action, token=None):
-        registration = CaresRegistration.objects.select_related('species').get(pk=action.payload['registration_id'])
+        registration = CaresRegistration.objects.select_related('species', 'affiliate_club').get(pk=action.payload['registration_id'])
         token = token or action.payload.get('token')
         confirm_path = reverse('pending_action_confirm', args=[token]) if token else ''
         site_url = action.payload.get('site_url', '').rstrip('/')
@@ -58,6 +58,15 @@ class CaresStatusChangeHandler(ActionHandler):
         escaped_body = escape(body).replace('\n', '<br>')
         species_name = registration.species.name if registration.species else registration.name
         archive_body = f"To: {action.payload['aquarist_name']}\n Email: {action.payload['to_email']}\n\n{body}"
+
+        # If the aquarist selected a club, cc that club's CARES liaison (when
+        # one is configured) so the club stays in the loop on its members'
+        # registration decisions.
+        cc = []
+        club = registration.affiliate_club
+        if club and club.cares_liason_email:
+            cc.append(club.cares_liason_email)
+
         return {
             'action': action,
             'registration': registration,
@@ -69,6 +78,7 @@ class CaresStatusChangeHandler(ActionHandler):
             'aquarist_name': action.payload['aquarist_name'],
             'reply_to': action.payload.get('reply_to'),
             'confirm_url': confirm_url,
+            'cc': cc,
             'archive_name': f"CARES status update to {action.payload['aquarist_name']}",
             'archive_text': archive_body,
         }
