@@ -658,13 +658,13 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
             if open_families:
                 by_specialty = {
                     ca.specialty: ca
-                    for ca in CaresApprover.objects.filter(approver=user).filter(
-                        Q(specialty__in=open_families) | Q(specialty='UDF')
+                    for ca in CaresApprover.objects.filter(
+                        approver=user, specialty__in=open_families,
                     )
                 }
                 for reg in registrations:
                     if reg.status == CaresRegistration.CaresRegistrationStatus.OPEN and reg.species:
-                        match = by_specialty.get(reg.species.cares_family) or by_specialty.get('UDF')
+                        match = by_specialty.get(reg.species.cares_family)
                         if match:
                             reg.display_approver_name = match.name
 

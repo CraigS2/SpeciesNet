@@ -38,10 +38,14 @@
                         <p><b>Collection Location:</b>
                         {% if registration.collection_location %}
                             &nbsp;&nbsp;{{registration.collection_location}}
-                        {% else %}   
+                        {% else %}
                             None
-                        {% endif %}          
-                        </p> 
+                        {% endif %}
+                        </p>
+
+                        {% if registration.submitter_notes %}
+                        <p><b>Aquarist Notes:</b>&nbsp;&nbsp;{{registration.submitter_notes|linebreaksbr}}</p>
+                        {% endif %}
 
                         <p><b>Verification Photo:</b></p>
                         {% if registration.verification_photo %}
@@ -75,7 +79,7 @@
                         {% if registration.cares_approver %}
                             <p><b>Approver:</b>&nbsp;&nbsp; {{ registration.cares_approver.name }}</p>
                         {% endif %}                                                                        
-                        <p><b>Notes:</b>&nbsp;&nbsp;
+                        <p><b>Approver Notes:</b>&nbsp;&nbsp;
                         {% if registration.approver_notes %}
                             {{registration.approver_notes}}</p>
                         {% else %}

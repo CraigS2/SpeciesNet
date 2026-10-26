@@ -4,6 +4,7 @@ from django.forms import formset_factory
 from django.forms.formsets import formset_factory
 from django.utils import timezone
 from django.core.validators import MinValueValidator, validate_email
+from django.db.models import Q
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
@@ -656,7 +657,19 @@ class CaresRegistrationAdminForm (ModelForm):
         exclude = ['name', 'species', 'collection_location']
         widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
+                    'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        species = self.instance.species if self.instance else None
+        if species:
+            # Manual edit, unlike the automatic approver swap: a CaresApprover
+            # with specialty 'UDF' (Undefined) is kept as an option here on
+            # purpose, since an admin occasionally needs to assign a
+            # catch-all approver by hand.
+            self.fields['cares_approver'].queryset = CaresApprover.objects.filter(
+                Q(specialty=species.cares_family) | Q(specialty='UDF')
+            )
 
 # registration submition by Cares Admin
 class CaresRegistrationSubmitionAdminForm (ModelForm):
@@ -690,6 +703,15 @@ class CaresRegistrationApprovalForm(ModelForm):
     def __init__(self, *args, species=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['cares_approver'].required = False
+
+        if species:
+            # Manual edit, unlike the automatic approver swap: a CaresApprover
+            # with specialty 'UDF' (Undefined) is kept as an option here on
+            # purpose, since an admin occasionally needs to assign a
+            # catch-all approver by hand.
+            self.fields['cares_approver'].queryset = CaresApprover.objects.filter(
+                Q(specialty=species.cares_family) | Q(specialty='UDF')
+            )
 
         if species and species.manage_collection_locations:
             location_choices = [('', '-- Not specified --')]

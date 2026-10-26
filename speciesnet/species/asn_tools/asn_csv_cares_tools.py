@@ -179,6 +179,7 @@ def import_legacy_cares_registrations(import_archive, imported_by):
             email_address         = row.get('email_address', '').strip()
             club_acronym          = row.get('club', '').strip()
             last_update_raw       = row.get('last_update', '').strip()
+            notes                 = row.get('notes', '').strip()
 
             missing = [f for f in REQUIRED_FIELDS if not row.get(f, '').strip()]
             if missing:
@@ -242,6 +243,8 @@ def import_legacy_cares_registrations(import_archive, imported_by):
                 status              = status,
                 last_updated_by     = imported_by,
                 verification_photo  = '',   # no photo available for legacy records
+                submitter_notes     = notes,
+                approver_notes      = 'Legacy registration imported from CSV - no verification photo or approver.',
             )
             reg.save()
 

@@ -45,17 +45,22 @@ def get_notification_approvers(species):
 
 def get_matching_cares_approver_for_user(user, species):
     """
-    Return *user*'s own CaresApprover record if its specialty matches
-    *species*' cares_family (or is the 'UDF' catch-all), else None.
+    Return *user*'s own CaresApprover record if its specialty exactly matches
+    *species*' cares_family, else None.
 
     Used to let any approver sharing a CARES family informally "claim"
     an OPEN registration just by viewing it — see maybe_reassign_cares_approver.
+
+    Deliberately an exact match only — a CaresApprover whose own specialty is
+    'UDF' (Undefined, i.e. not configured for any family) must not be treated
+    as a wildcard that matches every species. The 'UDF' catch-all is only
+    appropriate for notification fan-out (see get_notification_approvers),
+    not for claiming/reassigning ownership of a specific registration.
     """
-    from django.db.models import Q
     if species is None or not getattr(user, 'is_authenticated', False):
         return None
-    return CaresApprover.objects.filter(approver=user).filter(
-        Q(specialty=species.cares_family) | Q(specialty='UDF')
+    return CaresApprover.objects.filter(
+        approver=user, specialty=species.cares_family,
     ).first()
 
 
