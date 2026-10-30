@@ -31,6 +31,7 @@ END
 #python manage.py squashmigrations pending_actions 0002 0006 --no-input
 python manage.py migrate --no-input
 #python manage.py collectstatic --noinput --clear
+python manage.py collectstatic --noinput
 
 if [ ! -z "$SUPER_USER_NAME" ] && [ ! -z "$SUPER_USER_EMAIL" ] && [ ! -z "$SUPER_USER_PASSWORD" ]; then
     DJANGO_SUPERUSER_PASSWORD=$SUPER_USER_PASSWORD python manage.py createsuperuser --username $SUPER_USER_NAME --email $SUPER_USER_EMAIL --noinput 2>/dev/null \

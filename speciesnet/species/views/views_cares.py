@@ -61,7 +61,8 @@ def createCaresSpecies(request):
                 # Must declare the CARES Classification
                 if species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES:
                     # Assure unique species names - prevent duplicates
-                    if not Species.objects.filter(name=species_name).exists():
+                    existing = find_species_by_name(species_name)
+                    if existing is None:
                         species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                         species.created_by = request.user
                         species.save()
@@ -72,9 +73,8 @@ def createCaresSpecies(request):
                     else:
                         dupe_msg = f"{species_name} already exists.  Please use this Species entry."
                         messages.info(request, dupe_msg)
-                        species = Species.objects.get(name=species_name)
-                        logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
-                        return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
+                        logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, existing.name)
+                        return HttpResponseRedirect(reverse("caresSpecies", args=[existing.id]))
                 else:
                     messages.error (request, "Cares Species must declare Risk Classification. Cannot use 'Undefined'" )
             except IntegrityError as e: 

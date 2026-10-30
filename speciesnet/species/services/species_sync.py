@@ -5,6 +5,8 @@ from django.utils import timezone
 import requests
 from requests.auth import HTTPBasicAuth
 from species.models import Species
+from species.asn_tools.asn_utils import find_species_by_name
+from species.asn_tools.text_normalize import normalize_species_text
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,15 @@ SYNC_FIELDS = [
     'iucn_red_list',
     'cares_classification',
 ]
+
+# Text fields among SYNC_FIELDS that get a normalized (quote/whitespace,
+# case-insensitive) comparison in _fields_match instead of an exact one.
+# True means the free-text rule (line breaks kept); False means the name rule.
+_NORMALIZED_COMPARE_FIELDS = {
+    'alt_name': False,
+    'description': True,
+    'local_distribution': True,
+}
 
 
 class SpeciesSyncService:
@@ -164,7 +175,15 @@ class SpeciesSyncService:
         """
         for field in SYNC_FIELDS:
             remote_val = remote.get(field)
-            if remote_val is not None and getattr(local, field) != remote_val:
+            if remote_val is None:
+                continue
+            local_val = getattr(local, field)
+            if field in _NORMALIZED_COMPARE_FIELDS:
+                keep_linebreaks = _NORMALIZED_COMPARE_FIELDS[field]
+                if (normalize_species_text(local_val, keep_linebreaks=keep_linebreaks).lower()
+                        != normalize_species_text(remote_val, keep_linebreaks=keep_linebreaks).lower()):
+                    return False
+            elif local_val != remote_val:
                 return False
         if not local.render_cares:
             return False
@@ -173,10 +192,7 @@ class SpeciesSyncService:
     @transaction.atomic
     def _sync_one(self, remote, name, stats, dry_run):
         """Process a single species record from Site2."""
-        try:
-            local = Species.objects.get(name=name)
-        except Species.DoesNotExist:
-            local = None
+        local = find_species_by_name(name)
 
         if local is None:
             # Species does not exist on Site1 at all – create it unconditionally.
@@ -233,4 +249,10 @@ class SpeciesSyncService:
         if remote_last_updated is not None:
             update_kwargs['lastUpdated'] = remote_last_updated
         if update_kwargs:
+            # NOTE: QuerySet.update() bypasses Species.save(), so a dirty
+            # remote value (unnormalized quotes in alt_name/description/
+            # local_distribution) gets written through as-is. Only the
+            # *comparison* in _fields_match is normalized for pass 1 - see
+            # PASS1_SCOPE.md section 3.4/3.6. Pass 2's review workflow is
+            # where remote text actually gets cleaned before it lands here.
             Species.objects.filter(pk=local.pk).update(**update_kwargs)

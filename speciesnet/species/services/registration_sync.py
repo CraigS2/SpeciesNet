@@ -24,7 +24,6 @@ from django.core.mail import EmailMessage
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.core.files.base import ContentFile
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -36,6 +35,7 @@ from species.models import (
 )
 from species.asn_tools.asn_csv_tools import _normalize_email, _normalize_species_name
 from species.asn_tools.asn_cares_tools import get_matching_cares_approver
+from species.asn_tools.asn_utils import find_species_by_name
 from species.services.email_services import send_status_change_email, send_new_registration_notification
 
 logger = logging.getLogger(__name__)
@@ -202,12 +202,9 @@ class RegistrationSyncService:
             return 'skipped'
 
         # Resolve species
-        try:
-            matched_species = Species.objects.get(name__iexact=species_name)
-        except ObjectDoesNotExist:
+        matched_species = find_species_by_name(species_name)
+        if matched_species is None:
             raise ValueError(f'Species not found on Site2: {species_name!r}')
-        except MultipleObjectsReturned:
-            raise ValueError(f'Multiple species matched: {species_name!r}')
 
         # Idempotency guard 2: email+species already exists
         if CaresRegistration.objects.filter(

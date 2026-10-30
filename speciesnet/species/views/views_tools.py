@@ -700,7 +700,142 @@ def dirtyDeedCleanBogusAssessmentDates():
     for species in clear_iucn_date_species_set:
         species.iucn_assessment_date = None
         species.save()
-        print ('Dirty Deed Cleanup - set iucn_assessment_date to None for ' + species.name) 
+        print ('Dirty Deed Cleanup - set iucn_assessment_date to None for ' + species.name)
+
+
+def _dirtyDeedScrubEmail(raw_email, prefix, max_len):
+    """Prefix an email's local part, trimming the LOCAL part (never the domain) so it still fits max_len."""
+    if not raw_email or '@' not in raw_email:
+        return raw_email
+    local, _, domain = raw_email.partition('@')
+    new_local = prefix + local
+    overflow = len(new_local) + 1 + len(domain) - max_len
+    if overflow > 0:
+        new_local = new_local[:-overflow] if len(new_local) > overflow else new_local[:1]
+    return f'{new_local}@{domain}'
+
+
+def dirtyDeedScrubNonAdminUsersForTesting(modify_db=False):
+    """
+    One-time prep for a prod-backup DB being readied for test/staging use: prepend
+    'stg_' to every NON-admin user's username/first_name/last_name/email — and the
+    matching allauth EmailAddress row — so nobody gets emailed or logged in as by
+    accident. Admin-type accounts (is_admin, is_staff, is_species_admin, is_superuser)
+    are left untouched on purpose, leaving a short, known list to hand-edit for test
+    setup. Also scrubs the CARES/feedback/club email fields that live outside the
+    User table entirely.
+
+    Idempotent — skips anything already prefixed 'stg_', so running this twice by
+    accident is a no-op the second time. modify_db=False (default) only prints what
+    WOULD change; set modify_db=True once the printed preview looks right.
+    """
+    from allauth.account.models import EmailAddress
+    from species.models import SpeciesFeedback, AquaristClubEmailAlias
+
+    PREFIX = 'stg_'
+    USER_EMAIL_MAX_LEN = 50   # User.email / CaresRegistration.aquarist_email / AquaristClub.cares_liason_email
+
+    def scrub_email(raw_email, max_len=USER_EMAIL_MAX_LEN):
+        return _dirtyDeedScrubEmail(raw_email, PREFIX, max_len)
+
+    admin_users = User.objects.filter(
+        Q(is_admin=True) | Q(is_staff=True) | Q(is_species_admin=True) | Q(is_superuser=True)
+    )
+    non_admin_users = User.objects.exclude(
+        Q(is_admin=True) | Q(is_staff=True) | Q(is_species_admin=True) | Q(is_superuser=True)
+    ).exclude(username__startswith=PREFIX)
+
+    print(f'dirtyDeed scrub: {admin_users.count()} admin-type user(s) left untouched.')
+    print(f'dirtyDeed scrub: {non_admin_users.count()} non-admin user(s) to scrub.')
+
+    touched_user_ids = []
+    for user in non_admin_users:
+        old_email = user.email
+        user.username = PREFIX + user.username
+        if user.first_name:
+            user.first_name = PREFIX + user.first_name
+        if user.last_name:
+            user.last_name = PREFIX + user.last_name
+        user.email = scrub_email(user.email)
+        print(f'dirtyDeed scrub user: {user.username} | {old_email} -> {user.email}')
+        if modify_db:
+            try:
+                user.save()
+                touched_user_ids.append(user.id)
+            except IntegrityError as exc:
+                print(f'dirtyDeed scrub user SKIPPED (integrity error, needs manual fix): {old_email} - {exc}')
+
+    if modify_db and touched_user_ids:
+        # Keep the cached CaresApprover display name in sync with the scrubbed User.
+        for approver in CaresApprover.objects.filter(approver_id__in=touched_user_ids).select_related('approver'):
+            approver.name = f'{approver.approver.first_name} {approver.approver.last_name}'.strip()
+            approver.save()
+            print(f'dirtyDeed scrub: refreshed CaresApprover.name -> {approver.name}')
+
+        for email_row in EmailAddress.objects.filter(user_id__in=touched_user_ids):
+            old_email = email_row.email
+            email_row.email = scrub_email(old_email)
+            email_row.save()
+            print(f'dirtyDeed scrub allauth EmailAddress: {old_email} -> {email_row.email}')
+
+    # CaresRegistration has no FK back to a User at all (anonymous aquarists are
+    # allowed) - no admin exception applies here, always scrub when non-blank.
+    cares_regs = CaresRegistration.objects.exclude(
+        Q(aquarist_email__isnull=True) | Q(aquarist_email='')
+    ).exclude(aquarist_email__startswith=PREFIX)
+    print(f'dirtyDeed scrub: {cares_regs.count()} CaresRegistration aquarist record(s) to scrub.')
+    for reg in cares_regs:
+        old_email = reg.aquarist_email
+        if reg.aquarist_name:
+            reg.aquarist_name = PREFIX + reg.aquarist_name
+        reg.aquarist_email = scrub_email(reg.aquarist_email)
+        print(f'dirtyDeed scrub CaresRegistration: {old_email} -> {reg.aquarist_email}')
+        if modify_db:
+            reg.save()
+
+    # SpeciesFeedback.email - skip rows tied to an admin user; always scrub the rest.
+    feedback_qs = SpeciesFeedback.objects.exclude(email='').exclude(
+        email__startswith=PREFIX
+    ).exclude(user__in=admin_users)
+    print(f'dirtyDeed scrub: {feedback_qs.count()} SpeciesFeedback record(s) to scrub.')
+    for fb in feedback_qs:
+        old_email = fb.email
+        fb.email = scrub_email(fb.email, max_len=254)
+        print(f'dirtyDeed scrub SpeciesFeedback: {old_email} -> {fb.email}')
+        if modify_db:
+            fb.save()
+
+    # AquaristClub liaison contact is club-level, no User link - always scrub when set.
+    clubs = AquaristClub.objects.exclude(
+        Q(cares_liason_email__isnull=True) | Q(cares_liason_email='')
+    ).exclude(cares_liason_email__startswith=PREFIX)
+    print(f'dirtyDeed scrub: {clubs.count()} AquaristClub liaison contact(s) to scrub.')
+    for club in clubs:
+        old_email = club.cares_liason_email
+        if club.cares_liaison_name:
+            club.cares_liaison_name = PREFIX + club.cares_liaison_name
+        club.cares_liason_email = scrub_email(club.cares_liason_email)
+        print(f'dirtyDeed scrub AquaristClub liaison: {old_email} -> {club.cares_liason_email}')
+        if modify_db:
+            club.save()
+
+    # AquaristClubEmailAlias.alias_email is tied to a User - skip if that user is an admin.
+    alias_qs = AquaristClubEmailAlias.objects.exclude(
+        alias_email__startswith=PREFIX
+    ).exclude(user__in=admin_users)
+    print(f'dirtyDeed scrub: {alias_qs.count()} AquaristClubEmailAlias record(s) to scrub.')
+    for alias in alias_qs:
+        old_email = alias.alias_email
+        alias.alias_email = scrub_email(alias.alias_email, max_len=254)
+        print(f'dirtyDeed scrub AquaristClubEmailAlias: {old_email} -> {alias.alias_email}')
+        if modify_db:
+            alias.save()
+
+    if modify_db:
+        print('dirtyDeed scrub: DB changes committed.')
+    else:
+        print('dirtyDeed scrub: DRY RUN ONLY - nothing written. Set modify_db=True to commit.')
+
 
 def dirtyDeed(request):
     """
@@ -726,13 +861,13 @@ def dirtyDeed(request):
     #         reg.save()
 
     ### TEMP: heal_bap_years - remove after one-time run ###
-    call_command('heal_bap_years')
+    #call_command('heal_bap_years')
 
     #dirtyDeedMigrateCaresClassifications()
     #dirtyDeedCleanBogusAssessmentDates()
 
     # ### Registration dev-only migration work in progress ###
-    # modify_db = True
+    # modify_db = False
     # dirtyDeedMigrateWorkingRegistrations (modify_db)
 
     ### DB NULL - Empty String Cleanup ###
@@ -742,6 +877,10 @@ def dirtyDeed(request):
 
     ### Initialize CARES Properties ###
     #initialize_cares_species_fields()
+
+    ### Scrub non-admin users/emails for test-env DB prep ###
+    modify_db = True
+    dirtyDeedScrubNonAdminUsersForTesting(modify_db)
 
     logger.info('Admin user %s executed dirtyDeed', request.user.username)
     return render(request, 'species/tools2.html')

@@ -9,6 +9,8 @@ from django.utils import timezone
 from urllib.parse import urlparse
 import logging, bleach, re
 
+from species.asn_tools.text_normalize import normalize_species_text
+
 logger = logging.getLogger(__name__)
 
 # user_can_edit | user_is_admin
@@ -345,3 +347,27 @@ def validate_normalize_youtube_url(url):
     return url
  
     
+
+def find_species_by_name(name):
+    """
+    Look up a Species by name, normalizing quotes/whitespace first and then
+    matching case-insensitively. Returns the matching Species, or None.
+
+    The single shared replacement for the scattered name__iexact / name=
+    lookups that used to be spread across sync, CSV import, and views - see
+    PASS1_SCOPE.md section 3.3 for the full list of call sites this replaces.
+    """
+    normalized = normalize_species_text(name)
+    if not normalized:
+        return None
+    try:
+        return Species.objects.get(name__iexact=normalized)
+    except Species.DoesNotExist:
+        return None
+    except MultipleObjectsReturned:
+        match = Species.objects.filter(name__iexact=normalized).order_by('pk').first()
+        logger.warning(
+            'find_species_by_name: multiple species match "%s" case-insensitively; using id=%s.',
+            normalized, match.id if match else None,
+        )
+        return match

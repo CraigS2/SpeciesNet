@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from ..models import CaresApprover, ImportArchive, Species, User
 from ..models import AquaristClub, CaresRegistration, Species
+from .asn_utils import find_species_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -68,15 +69,11 @@ def _parse_date(raw: str):
 
 
 def _resolve_species(name: str):
-    """Lookup Species by exact name (case-insensitive). Raises ValueError on miss."""
-    try:
-        return Species.objects.get(name__iexact=name)
-    except Species.DoesNotExist:
+    """Lookup Species by normalized, case-insensitive name. Raises ValueError on miss."""
+    species = find_species_by_name(name)
+    if species is None:
         raise ValueError(f'Species not found: "{name}"')
-    except Species.MultipleObjectsReturned:
-        match = Species.objects.filter(name__iexact=name).first()
-        logger.warning('Legacy import: multiple species match "%s"; using id=%d.', name, match.id)
-        return match
+    return species
 
 
 def _resolve_club(acronym: str):

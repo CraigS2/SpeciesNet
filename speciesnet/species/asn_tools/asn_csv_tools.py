@@ -15,7 +15,6 @@ from io import BytesIO
 import csv
 import datetime
 import logging
-import re
 import requests
 from csv import DictReader
 from io import StringIO, TextIOWrapper
@@ -24,6 +23,8 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 from django.core.validators import URLValidator
 from django.conf import settings
 from species.asn_tools.asn_cares_tools import get_matching_cares_approver
+from species.asn_tools.asn_utils import find_species_by_name
+from species.asn_tools.text_normalize import normalize_species_text
 from species.services.email_services import send_new_registration_notification
 
 
@@ -31,11 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 def _normalize_species_name(name: str) -> str:
-    if not name:
-        return ''
-    name = name.strip()
-    name = re.sub(r'\s+', ' ', name)
-    return name
+    """Kept for backward compatibility (registration_sync.py imports this directly)."""
+    return normalize_species_text(name)
 
 
 def _normalize_email(email: str) -> str:
@@ -113,7 +111,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
                 species = species_form.save(commit=False)
                 
                 # validate input species name and verify non-duplicate
-                if not Species.objects.filter(name=species_name).exists():
+                if find_species_by_name(species_name) is None:
                     report_row = [species_name, "Validated: Species is unique and new, import successful"]
                     import_count = import_count + 1
                     newly_added_species = species_form.save()
@@ -137,7 +135,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-        csv_report_filename = current_user.get_display_name + "_species_import_log.csv"
+        csv_report_filename = current_user.get_display_name() + "_species_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
         # persist import archive
@@ -178,8 +176,8 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
 
                 # validate Species exists - required to instantiate SpeciesInstance
                 species_name = import_row['species']
-                if Species.objects.filter(name=species_name).exists():
-                    species = Species.objects.get(name=species_name)
+                species = find_species_by_name(species_name)
+                if species is not None:
 
                     # validate pending SpeciesInstance object 
                     # will foreign key species resolve by name? TBD
@@ -208,7 +206,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
 
         # persist import report
         csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
-        csv_report_filename = current_user.get_display_name + "_species_instance_import_log.csv"
+        csv_report_filename = current_user.get_display_name() + "_species_instance_import_log.csv"
         import_archive.import_results_file.save(csv_report_filename, csv_report_file)
 
         # persist import archive
@@ -454,11 +452,8 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
             species_name = raw_species_name.strip()
             print ('CSV Reference Link Import Species: ' + species_name)
 
-            try:
-                matched_species = Species.objects.get(name__iexact=species_name)
-                print ('CSV Reference Link Import Species Match: ' + matched_species.name)
-
-            except ObjectDoesNotExist:
+            matched_species = find_species_by_name(species_name)
+            if matched_species is None:
                 error_message = f'Species not found: "{species_name}"'
                 errors.append((row_count, species_name, error_message))
                 csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
@@ -467,15 +462,7 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
                     current_user.username, row_count, error_message,
                 )
                 continue
-            except MultipleObjectsReturned:
-                error_message = f'Multiple species found for name: "{species_name}"'
-                errors.append((row_count, species_name, error_message))
-                csv_report_writer.writerow([row_count, species_name, f'ERROR: {error_message}'])
-                logger.warning(
-                    'User %s importing species reference links row %d: %s',
-                    current_user.username, row_count, error_message,
-                )
-                continue
+            print ('CSV Reference Link Import Species Match: ' + matched_species.name)
 
             raw_reference_url = import_row.get('reference_url', '')
             reference_url = raw_reference_url.strip()
@@ -1084,17 +1071,10 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                     logger.warning('CARES reg import row %d: multiple species match external_id=%s — falling back to name match', row_count, species_asn_id_raw)
 
             if matched_species is None:
-                try:
-                    matched_species = Species.objects.get(name__iexact=species_name)
-                except ObjectDoesNotExist:
+                matched_species = find_species_by_name(species_name)
+                if matched_species is None:
                     skip_count += 1
                     status_txt = f'SKIP - species not found on Site2: {species_name}'
-                    csv_report_writer.writerow([row_count, email, species_name, status_txt])
-                    logger.warning('CARES reg import row %d: %s', row_count, status_txt)
-                    continue
-                except MultipleObjectsReturned:
-                    skip_count += 1
-                    status_txt = f'SKIP - multiple species matched: {species_name}'
                     csv_report_writer.writerow([row_count, email, species_name, status_txt])
                     logger.warning('CARES reg import row %d: %s', row_count, status_txt)
                     continue
@@ -1414,15 +1394,15 @@ def _parse_date(value: str) -> 'datetime.date | None':
 
 
 def _find_existing_species(name: str):
-    """Return an existing Species record matching *name* (case-insensitive) or None."""
+    """Return an existing Species record matching *name* (case-insensitive, quote/whitespace-normalized) or None."""
     print ('Species Import - Lookup of existing species: ' + name)
+    species = find_species_by_name(name)
+    if species is not None:
+        return species
+    # Alternate name match - normalize the same way before comparing
+    normalized = normalize_species_text(name)
     try:
-        return Species.objects.get(name__iexact=name)
-    except Species.DoesNotExist:
-        pass
-    # Alternate name match
-    try:
-        return Species.objects.get(alt_name__iexact=name)
+        return Species.objects.get(alt_name__iexact=normalized)
     except (Species.DoesNotExist, Species.MultipleObjectsReturned):
         pass
     return None

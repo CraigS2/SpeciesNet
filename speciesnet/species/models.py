@@ -13,6 +13,8 @@ from django.utils import timezone
 from decimal import Decimal
 import re
 import base64 as _b64
+
+from species.asn_tools.text_normalize import normalize_species_text
 from cryptography.fernet import Fernet as _Fernet, InvalidToken as _InvalidToken
 from django.conf import settings as _settings
 
@@ -291,10 +293,22 @@ class Species (models.Model):
     def genus_name (self):
         genus_name = self.name.lstrip()   # strips any leading space characters
         if ' ' in genus_name:
-            genus_name = genus_name.split(' ')[0] 
+            genus_name = genus_name.split(' ')[0]
         else:
             print ('Species name failed to resolve to genus name for species: ' + self.name)
         return genus_name
+
+    def save(self, *args, **kwargs):
+        # Normalizes quotes/whitespace on every save (admin, forms, CSV
+        # importers, sync's Species.objects.create()). Case is never touched.
+        # NOTE: QuerySet.update() and bulk_create() bypass save() entirely -
+        # see the warning next to SpeciesSyncService._update_species.
+        self.name = normalize_species_text(self.name)
+        self.alt_name = normalize_species_text(self.alt_name)
+        self.common_name = normalize_species_text(self.common_name)
+        self.description = normalize_species_text(self.description, keep_linebreaks=True)
+        self.local_distribution = normalize_species_text(self.local_distribution, keep_linebreaks=True)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -441,10 +455,15 @@ class SpeciesInstance (models.Model):
         verbose_name = 'Aquarist Species'
         verbose_name_plural = "Aquarist Species"
 
+    def save(self, *args, **kwargs):
+        # Aquarists type this name freely - normalize quotes/whitespace on
+        # every save. Case is never touched.
+        self.name = normalize_species_text(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
-    
+
 class SpeciesInstanceLogEntry (models.Model):
     name                      = models.CharField (max_length=240)
     speciesInstance           = models.ForeignKey(SpeciesInstance, on_delete=models.PROTECT, null=False, related_name='species_instance_log_entries') 

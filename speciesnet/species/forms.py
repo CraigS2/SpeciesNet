@@ -14,6 +14,8 @@ from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArc
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies, BapTier, SmpSubmission, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback
+from .asn_tools.text_normalize import normalize_species_text
+from .asn_tools.asn_utils import find_species_by_name
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -318,7 +320,32 @@ class CaresSpeciesForm(ModelForm):
                 HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
                 css_class='mt-2'
             )
-        ) 
+        )
+
+    def clean_name(self):
+        name = normalize_species_text(self.cleaned_data.get('name'))
+        # Duplicate check only on edit (renaming into a collision has no
+        # sensible redirect target - the admin needs to pick a different
+        # name or merge by hand). On create, a duplicate isn't an error -
+        # the view redirects to the existing species instead, via
+        # find_species_by_name; raising here would pre-empt that redirect
+        # with a generic "already exists" field error and no link.
+        if self.instance and self.instance.pk:
+            if Species.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError(f'A species with the name "{name}" already exists.')
+        return name
+
+    def clean_alt_name(self):
+        return normalize_species_text(self.cleaned_data.get('alt_name'))
+
+    def clean_common_name(self):
+        return normalize_species_text(self.cleaned_data.get('common_name'))
+
+    def clean_description(self):
+        return normalize_species_text(self.cleaned_data.get('description'), keep_linebreaks=True)
+
+    def clean_local_distribution(self):
+        return normalize_species_text(self.cleaned_data.get('local_distribution'), keep_linebreaks=True)
 
 class CaresSpeciesForm2(ModelForm):
     class Meta:
@@ -775,11 +802,30 @@ class SpeciesForm (ModelForm):
         exclude = ['render_cares', 'species_instance_count', 'manage_collection_locations']
         widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':50}),
                     'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
+                    'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),
                     'description':        forms.Textarea(attrs={'rows':6,'cols':50}),
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
-        
+
+    # Normalize only - no duplicate check here. import_csv_species (the bulk
+    # CSV importer that uses this form) does its own duplicate detection via
+    # find_species_by_name and needs is_valid() to still pass for a dupe row
+    # so it can report "species exists" rather than a form validation error.
+    def clean_name(self):
+        return normalize_species_text(self.cleaned_data.get('name'))
+
+    def clean_alt_name(self):
+        return normalize_species_text(self.cleaned_data.get('alt_name'))
+
+    def clean_common_name(self):
+        return normalize_species_text(self.cleaned_data.get('common_name'))
+
+    def clean_description(self):
+        return normalize_species_text(self.cleaned_data.get('description'), keep_linebreaks=True)
+
+    def clean_local_distribution(self):
+        return normalize_species_text(self.cleaned_data.get('local_distribution'), keep_linebreaks=True)
+
 class SpeciesImportMinimumForm (ModelForm):
     class Meta:
         model = Species
@@ -804,6 +850,9 @@ class SpeciesInstanceForm (ModelForm):
                    'aquarist_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
                    'spawning_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
                    'fry_rearing_notes':          forms.Textarea(attrs={'rows':6,'cols':50}),}
+
+    def clean_name(self):
+        return normalize_species_text(self.cleaned_data.get('name'))
 
 class SpeciesInstanceForm2(ModelForm):
     class Meta:
@@ -956,6 +1005,9 @@ class SpeciesInstanceForm2(ModelForm):
             )
         )
 
+    def clean_name(self):
+        return normalize_species_text(self.cleaned_data.get('name'))
+
 class CombinedSpeciesForm(forms.Form):
     # Species fields
     species_name = forms.CharField(
@@ -1063,14 +1115,18 @@ class CombinedSpeciesForm(forms.Form):
         )
     
     def clean_species_name(self):
-        name = self. cleaned_data. get('species_name')
-        if Species.objects.filter(name__iexact=name).exists():
+        name = normalize_species_text(self.cleaned_data.get('species_name'))
+        if find_species_by_name(name) is not None:
             raise forms.ValidationError(
                 f'A species with the name "{name}" already exists.  '
                 'Please use the Search Species option to find this species.'
             )
         return name
-    
+
+    def clean_species_description(self):
+        return normalize_species_text(self.cleaned_data.get('species_description'), keep_linebreaks=True)
+
+
     def clean_year_acquired(self):
         from datetime import datetime
         year = self.cleaned_data.get('year_acquired')
