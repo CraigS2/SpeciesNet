@@ -238,9 +238,23 @@ class SpeciesSyncService:
         """Update an existing Species record from remote data."""
         update_kwargs = {}
         for field in SYNC_FIELDS:
-            if field in remote and remote[field] is not None:
-                if getattr(local, field) != remote[field]:
-                    update_kwargs[field] = remote[field]
+            if field not in remote or remote[field] is None:
+                continue
+            local_val = getattr(local, field)
+            remote_val = remote[field]
+            if field in _NORMALIZED_COMPARE_FIELDS:
+                # QuerySet.update() below bypasses Species.save(), so write
+                # the already-normalized remote value directly - otherwise
+                # a dirty remote value would land unnormalized. Comparison
+                # is normalized and case-insensitive, so a quote/case/
+                # whitespace-only difference is never written at all.
+                keep_linebreaks = _NORMALIZED_COMPARE_FIELDS[field]
+                remote_val = normalize_species_text(remote_val, keep_linebreaks=keep_linebreaks)
+                if normalize_species_text(local_val, keep_linebreaks=keep_linebreaks).lower() == remote_val.lower():
+                    continue
+            elif local_val == remote_val:
+                continue
+            update_kwargs[field] = remote_val
         if not local.render_cares:
             update_kwargs['render_cares'] = True
         # Preserve the remote lastUpdated via QuerySet.update() which bypasses
@@ -249,10 +263,4 @@ class SpeciesSyncService:
         if remote_last_updated is not None:
             update_kwargs['lastUpdated'] = remote_last_updated
         if update_kwargs:
-            # NOTE: QuerySet.update() bypasses Species.save(), so a dirty
-            # remote value (unnormalized quotes in alt_name/description/
-            # local_distribution) gets written through as-is. Only the
-            # *comparison* in _fields_match is normalized for pass 1 - see
-            # PASS1_SCOPE.md section 3.4/3.6. Pass 2's review workflow is
-            # where remote text actually gets cleaned before it lands here.
             Species.objects.filter(pk=local.pk).update(**update_kwargs)

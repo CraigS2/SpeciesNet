@@ -879,8 +879,8 @@ def dirtyDeed(request):
     #initialize_cares_species_fields()
 
     ### Scrub non-admin users/emails for test-env DB prep ###
-    modify_db = True
-    dirtyDeedScrubNonAdminUsersForTesting(modify_db)
+    # modify_db = True
+    # dirtyDeedScrubNonAdminUsersForTesting(modify_db)
 
     logger.info('Admin user %s executed dirtyDeed', request.user.username)
     return render(request, 'species/tools2.html')

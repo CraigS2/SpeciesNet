@@ -23,65 +23,34 @@ from species.asn_tools.text_normalize import normalize_species_text
 NAME_FIELDS = ['name', 'alt_name', 'common_name']
 FREE_TEXT_FIELDS = ['description', 'local_distribution']
 
-
-def _recompute_cares_registration_name(reg):
-    return f'{reg.species.name} - {reg.aquarist_name}' if reg.species_id else reg.name
-
-
-def _recompute_bap_species_name(bs):
-    return bs.species.name if bs.species_id else bs.name
-
-
-def _recompute_species_comment_name(c):
-    if c.user_id and c.species_id:
-        return f'{c.user.get_display_name()} - {c.species.name}'
-    return c.name
-
-
-def _recompute_species_feedback_name(fb):
-    if not fb.species_id:
-        return fb.name
-    if fb.user_id:
-        identifier = fb.user.username
-    elif fb.email:
-        identifier = fb.email.split('@')[0]
-    else:
-        identifier = 'Anonymous'
-    return f'{fb.species.name} - {identifier}'
-
-
-def _recompute_submission_name(s):
-    if s.aquarist_id and s.club_id and s.speciesInstance_id:
-        return f'{s.aquarist.username} - {s.club.name} - {s.speciesInstance.name}'
-    return s.name
-
-
-# (model, recompute fn, related fields to select_related for efficiency)
-LABEL_RECOMPUTERS = [
-    (CaresRegistration, _recompute_cares_registration_name, ('species',)),
-    (BapSpecies, _recompute_bap_species_name, ('species',)),
-    (SpeciesComment, _recompute_species_comment_name, ('user', 'species')),
-    (SpeciesFeedback, _recompute_species_feedback_name, ('user', 'species')),
-    (BapSubmission, _recompute_submission_name, ('aquarist', 'club', 'speciesInstance')),
-    (SmpSubmission, _recompute_submission_name, ('aquarist', 'club', 'speciesInstance')),
+# Models whose `name` is a label copied from a species (or species-instance)
+# name at creation time - see PASS1_SCOPE.md section 2, "Labels built from
+# species.name". Only normalized in place (quotes/whitespace), never
+# rebuilt from the related species/user/club: the construction pattern
+# varies by call site (e.g. CaresRegistration.name uses aquarist_name at
+# some call sites and the submitting user's username at others), so
+# rebuilding from "the" formula can silently change more than the quotes.
+LABEL_MODELS = [
+    CaresRegistration, BapSpecies, SpeciesComment,
+    SpeciesFeedback, BapSubmission, SmpSubmission,
 ]
 
 
 def refresh_labels(apply, writer):
     """
-    Re-derive every label built from a (now-clean) Species/SpeciesInstance
-    name and write it back if it differs - see PASS1_SCOPE.md section 2,
-    "Labels built from species.name".
+    Normalize quotes/whitespace in every label's EXISTING text in place.
+    Never reconstructs the label from related objects - see LABEL_MODELS.
     """
     total = 0
-    for model, recompute, related in LABEL_RECOMPUTERS:
-        for obj in model.objects.select_related(*related).all():
-            new_name = recompute(obj)
-            if new_name != obj.name:
-                writer.writerow([model.__name__, obj.pk, 'name', obj.name, new_name])
+    for model in LABEL_MODELS:
+        for obj in model.objects.only('pk', 'name').all():
+            before = obj.name or ''
+            after = normalize_species_text(before)
+            if after != before:
+                writer.writerow([model.__name__, obj.pk, 'name', before, after])
                 total += 1
                 if apply:
-                    model.objects.filter(pk=obj.pk).update(name=new_name)
+                    model.objects.filter(pk=obj.pk).update(name=after)
     return total
 
 
@@ -165,9 +134,14 @@ class Command(BaseCommand):
                     writer.writerow(['Species', '/'.join(str(s.pk) for s in group), 'COLLISION', names, key])
 
             if not apply:
+                # Report label changes in the dry run too, even though
+                # nothing is written yet - refresh_labels(apply=False)
+                # only computes and logs, it never calls .update().
+                label_count = refresh_labels(apply=False, writer=writer)
                 self.stdout.write(self.style.WARNING(
                     f'\nDry run complete. {len(species_changes)} species field change(s), '
                     f'{len(instance_changes)} species-instance name change(s), '
+                    f'{label_count} label change(s), '
                     f'{len(collisions)} collision(s). Change log: {csv_path}'
                 ))
                 return

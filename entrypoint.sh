@@ -29,7 +29,7 @@ END
 #python manage.py makemigrations --no-input
 #python manage.py squashmigrations species 0015 0021 --no-input
 #python manage.py squashmigrations pending_actions 0002 0006 --no-input
-python manage.py migrate --no-input
+python manage.py migrate --no-input || exit 1
 #python manage.py collectstatic --noinput --clear
 python manage.py collectstatic --noinput
 

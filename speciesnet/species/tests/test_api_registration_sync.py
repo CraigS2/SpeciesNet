@@ -459,6 +459,22 @@ class RegistrationSyncServiceTest(BaseTestCase):
         self.assertEqual(stats['errors'], 1)
 
     @patch.object(RegistrationSyncService, 'fetch_registrations')
+    def test_sync_resolves_curly_quoted_species_name(self, mock_fetch):
+        """PASS1_SCOPE.md: species lookup goes through find_species_by_name,
+        so a curly-quoted remote name still resolves to the straight-quoted
+        local species rather than being skipped as "species not found"."""
+        quoted_species = Species.objects.create(name="Haplochromis sp. 'kenya gold'")
+        row = {**SAMPLE_REG_ROW, 'id': 4242, 'species': 'Haplochromis sp. ‘kenya gold’'}
+        mock_fetch.return_value = iter([row])
+        service = RegistrationSyncService()
+        with patch('requests.get', return_value=self._mock_photo_response()):
+            stats = service.sync(dry_run=False)
+        self.assertEqual(stats['errors'], 0)
+        self.assertEqual(stats['created'], 1)
+        reg = CaresRegistration.objects.get(external_id=4242)
+        self.assertEqual(reg.species_id, quoted_species.id)
+
+    @patch.object(RegistrationSyncService, 'fetch_registrations')
     def test_sync_skips_missing_photo_url(self, mock_fetch):
         row = {**SAMPLE_REG_ROW, 'verification_photo_url': ''}
         mock_fetch.return_value = iter([row])

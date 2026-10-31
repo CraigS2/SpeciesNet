@@ -105,7 +105,41 @@ class CollectionPointField(forms.MultiValueField):
             raise forms.ValidationError('Invalid collection location selected.')
 
 
-class SpeciesForm2(ModelForm):
+class SpeciesTextNormalizationMixin:
+    """
+    Shared clean_<field> methods for every Species ModelForm: normalizes
+    quotes/whitespace (PASS1_SCOPE.md) on name/alt_name/common_name
+    (name rule) and description/local_distribution (free-text rule).
+
+    clean_name also blocks renaming into a collision with another
+    species - but only on edit (self.instance.pk set). On create, a
+    duplicate isn't a form error: the view redirects to the existing
+    species instead (via find_species_by_name). SpeciesForm (the bulk
+    CSV importer) never sets instance.pk, so this check naturally never
+    fires there, preserving its own "report duplicate rows" behavior.
+    """
+
+    def clean_name(self):
+        name = normalize_species_text(self.cleaned_data.get('name'))
+        if self.instance and self.instance.pk:
+            if Species.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError(f'A species with the name "{name}" already exists.')
+        return name
+
+    def clean_alt_name(self):
+        return normalize_species_text(self.cleaned_data.get('alt_name'))
+
+    def clean_common_name(self):
+        return normalize_species_text(self.cleaned_data.get('common_name'))
+
+    def clean_description(self):
+        return normalize_species_text(self.cleaned_data.get('description'), keep_linebreaks=True)
+
+    def clean_local_distribution(self):
+        return normalize_species_text(self.cleaned_data.get('local_distribution'), keep_linebreaks=True)
+
+
+class SpeciesForm2(SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -205,7 +239,7 @@ class SpeciesForm2(ModelForm):
             )
         )
 
-class CaresSpeciesForm(ModelForm):
+class CaresSpeciesForm(SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -322,32 +356,7 @@ class CaresSpeciesForm(ModelForm):
             )
         )
 
-    def clean_name(self):
-        name = normalize_species_text(self.cleaned_data.get('name'))
-        # Duplicate check only on edit (renaming into a collision has no
-        # sensible redirect target - the admin needs to pick a different
-        # name or merge by hand). On create, a duplicate isn't an error -
-        # the view redirects to the existing species instead, via
-        # find_species_by_name; raising here would pre-empt that redirect
-        # with a generic "already exists" field error and no link.
-        if self.instance and self.instance.pk:
-            if Species.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
-                raise forms.ValidationError(f'A species with the name "{name}" already exists.')
-        return name
-
-    def clean_alt_name(self):
-        return normalize_species_text(self.cleaned_data.get('alt_name'))
-
-    def clean_common_name(self):
-        return normalize_species_text(self.cleaned_data.get('common_name'))
-
-    def clean_description(self):
-        return normalize_species_text(self.cleaned_data.get('description'), keep_linebreaks=True)
-
-    def clean_local_distribution(self):
-        return normalize_species_text(self.cleaned_data.get('local_distribution'), keep_linebreaks=True)
-
-class CaresSpeciesForm2(ModelForm):
+class CaresSpeciesForm2(SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -795,7 +804,7 @@ class CaresApproverForm (ModelForm):
         fields = '__all__'
         exclude = ['name', 'last_updated_by']
         
-class SpeciesForm (ModelForm):
+class SpeciesForm (SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -807,24 +816,11 @@ class SpeciesForm (ModelForm):
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
 
-    # Normalize only - no duplicate check here. import_csv_species (the bulk
-    # CSV importer that uses this form) does its own duplicate detection via
-    # find_species_by_name and needs is_valid() to still pass for a dupe row
-    # so it can report "species exists" rather than a form validation error.
-    def clean_name(self):
-        return normalize_species_text(self.cleaned_data.get('name'))
-
-    def clean_alt_name(self):
-        return normalize_species_text(self.cleaned_data.get('alt_name'))
-
-    def clean_common_name(self):
-        return normalize_species_text(self.cleaned_data.get('common_name'))
-
-    def clean_description(self):
-        return normalize_species_text(self.cleaned_data.get('description'), keep_linebreaks=True)
-
-    def clean_local_distribution(self):
-        return normalize_species_text(self.cleaned_data.get('local_distribution'), keep_linebreaks=True)
+    # The mixin's clean_name only rejects duplicates when self.instance.pk
+    # is set. import_csv_species (the bulk CSV importer that uses this
+    # form) always constructs this form with no instance=, so that never
+    # fires - is_valid() still passes for a dupe row, and the importer's
+    # own find_species_by_name check reports "species exists" itself.
 
 class SpeciesImportMinimumForm (ModelForm):
     class Meta:

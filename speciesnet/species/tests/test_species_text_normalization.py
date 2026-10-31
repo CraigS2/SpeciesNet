@@ -11,7 +11,8 @@ from contextlib import redirect_stdout
 from unittest.mock import MagicMock
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from species.asn_tools.asn_csv_tools import import_csv_species
 from species.asn_tools.text_normalize import normalize_species_text
@@ -318,3 +319,94 @@ class ImportCsvSpeciesNormalizationTest(TestCase):
 
         sp = Species.objects.get()
         self.assertEqual(sp.name, "Haplochromis sp. 'kenya gold'")
+
+
+class SpeciesSyncFieldsMatchAndUpdateTest(TestCase):
+    """Code-review follow-up: _fields_match AND _update_species must both
+    treat quote/case/whitespace-only differences as no difference, and
+    _update_species must never write a non-normalized remote value
+    (QuerySet.update() bypasses Species.save())."""
+
+    def setUp(self):
+        self.species = Species.objects.create(
+            name='Test species D',
+            alt_name="Old 'alt'",
+            description='Some text.\n\nSecond paragraph.',
+            local_distribution='Lake Malawi',
+            global_region=Species.GlobalRegion.AFRICA,
+            cares_family=Species.CaresFamily.UNDEFINED,
+            iucn_red_list=Species.IucnRedList.UNDEFINED,
+            cares_classification=Species.CaresStatus.NOT_CARES_SPECIES,
+            render_cares=True,
+        )
+        self.service = SpeciesSyncService()
+
+    def _remote_matching(self, **overrides):
+        remote = {
+            'alt_name': 'Old “alt”',
+            'description': 'Some  text.\n\nSecond paragraph.',
+            'global_region': self.species.global_region,
+            'local_distribution': 'LAKE MALAWI',
+            'cares_family': self.species.cares_family,
+            'iucn_red_list': self.species.iucn_red_list,
+            'cares_classification': self.species.cares_classification,
+        }
+        remote.update(overrides)
+        return remote
+
+    def test_fields_match_ignores_quote_case_whitespace_differences(self):
+        self.assertTrue(self.service._fields_match(self.species, self._remote_matching()))
+
+    def test_update_species_does_not_write_quote_case_whitespace_only_differences(self):
+        self.service._update_species(self.species, self._remote_matching())
+        self.species.refresh_from_db()
+        self.assertEqual(self.species.alt_name, "Old 'alt'")
+        self.assertEqual(self.species.description, 'Some text.\n\nSecond paragraph.')
+        # Case must never be touched - 'LAKE MALAWI' must NOT overwrite 'Lake Malawi'.
+        self.assertEqual(self.species.local_distribution, 'Lake Malawi')
+
+    def test_update_species_writes_normalized_value_for_a_real_change(self):
+        remote = self._remote_matching(description='A really new ‘description’ text.')
+        self.service._update_species(self.species, remote)
+        self.species.refresh_from_db()
+        self.assertEqual(self.species.description, "A really new 'description' text.")
+
+
+class EditSpeciesViewTest(TestCase):
+    """Code-review follow-up: editSpecies (SpeciesForm2) normalizes, and
+    rejects renaming onto an existing species name as a field error."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email='admin@example.com', username='admin', password='x')
+        self.client = Client()
+        self.client.force_login(self.admin)
+        self.species = Species.objects.create(name='Original name')
+        self.other = Species.objects.create(name='Already taken')
+
+    def _post_data(self, **overrides):
+        data = {
+            'name': self.species.name,
+            'category': Species.Category.CICHLIDS,
+            'global_region': Species.GlobalRegion.AFRICA,
+            'cares_classification': Species.CaresStatus.NOT_CARES_SPECIES,
+        }
+        data.update(overrides)
+        return data
+
+    def test_edit_normalizes_curly_quotes_in_name(self):
+        response = self.client.post(
+            reverse('editSpecies', args=[self.species.pk]),
+            data=self._post_data(name='Haplochromis sp. ‘kenya gold’'),
+        )
+        self.species.refresh_from_db()
+        self.assertEqual(self.species.name, "Haplochromis sp. 'kenya gold'")
+        self.assertEqual(response.status_code, 302)
+
+    def test_edit_rejects_renaming_onto_an_existing_name(self):
+        response = self.client.post(
+            reverse('editSpecies', args=[self.species.pk]),
+            data=self._post_data(name='Already Taken'),  # case-different match for self.other
+        )
+        self.species.refresh_from_db()
+        self.assertEqual(self.species.name, 'Original name')  # unchanged
+        self.assertEqual(response.status_code, 200)  # re-renders the form with the error
