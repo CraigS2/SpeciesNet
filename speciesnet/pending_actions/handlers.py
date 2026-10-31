@@ -2,13 +2,26 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.html import escape, strip_tags
+from django.utils.html import strip_tags
 
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.models import CaresRegistration, UserEmail, SpeciesInstance
 
 from .forms import BapNotesRequiredForm, CaresClarificationResponseForm, ConfirmPendingActionForm
 from .registry import ActionHandler, register
+
+
+def _escape_html_text_content(text):
+    """
+    Escape only the characters that are actually unsafe when inserted into
+    HTML TEXT CONTENT (as opposed to an attribute value): & < >. Straight
+    quotes are left as literal characters - they don't need escaping outside
+    an attribute context, and escaping them here just produced a visible
+    &#x27;/&quot; in some clients instead of the quote it was meant to show
+    (noticeable now that PASS1_SCOPE.md's normalization makes straight
+    quotes common in species names/approver notes).
+    """
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 
 @register('cares_status_change')
@@ -55,8 +68,12 @@ class CaresStatusChangeHandler(ActionHandler):
         site_url = action.payload.get('site_url', '').rstrip('/')
         confirm_url = f'{site_url}{confirm_path}' if site_url else confirm_path
         body = action.payload['body']
-        escaped_body = escape(body).replace('\n', '<br>')
+        escaped_body = _escape_html_text_content(body).replace('\n', '<br>')
         species_name = registration.species.name if registration.species else registration.name
+        # Same selective escaping as escaped_body above, and for the same
+        # reason: the template's {{ species_name }} would otherwise go
+        # through Django's default autoescape, which escapes quotes too.
+        escaped_species_name = _escape_html_text_content(species_name)
         archive_body = f"To: {action.payload['aquarist_name']}\n Email: {action.payload['to_email']}\n\n{body}"
 
         # If the aquarist selected a club, cc that club's CARES liaison (when
@@ -71,6 +88,7 @@ class CaresStatusChangeHandler(ActionHandler):
             'action': action,
             'registration': registration,
             'species_name': species_name,
+            'escaped_species_name': escaped_species_name,
             'subject': action.payload['subject'],
             'body': body,
             'escaped_body': escaped_body,

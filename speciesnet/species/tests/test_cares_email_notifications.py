@@ -114,6 +114,40 @@ class CaresEmailNotificationTests(TestCase):
         self.assertIn('Review this update', mail.outbox[0].body)
         self.assertTrue(UserEmail.objects.filter(send_to=None, email_subject='Status Update').exists())
 
+    def test_status_change_email_shows_literal_quotes_but_still_escapes_markup(self):
+        """
+        Regression test: straight quotes (now common in species names per
+        PASS1_SCOPE.md's normalization) must render as literal ' characters,
+        not &#x27;. Covers both render layers - the plain-text body template
+        (species/cares/email_status_change_body.html, must have autoescape
+        off) and pending_actions/handlers.py's CaresStatusChangeHandler,
+        which must escape & < > (real injection risk from free-text
+        approver_notes) but leave quotes alone.
+        """
+        self.species.name = "Haplochromis sp. 'kenya gold'"
+        self.species.save()
+        self.registration.approver_notes = "Great fish! <script>alert(1)</script> & good luck."
+        self.registration.save(update_fields=['approver_notes'])
+
+        from django.template.loader import render_to_string
+        body = render_to_string(
+            'species/cares/email_status_change_body.html',
+            {'registration': self.registration, 'status_label': 'Approved',
+             'species_name': self.species.name},
+        ).strip()
+
+        sent = send_status_change_email(self.registration, 'Status Update', body)
+        self.assertTrue(sent)
+        rendered = mail.outbox[0].body
+
+        self.assertIn("Haplochromis sp. 'kenya gold'", rendered)
+        self.assertNotIn('&#x27;', rendered)
+        self.assertNotIn('&quot;', rendered)
+        # Markup from free-text approver_notes must still be neutralized.
+        self.assertNotIn('<script>', rendered)
+        self.assertIn('&lt;script&gt;', rendered)
+        self.assertIn('&amp; good luck', rendered)
+
     def test_status_change_email_ccs_club_liaison_when_club_has_one(self):
         club = AquaristClub.objects.create(
             name='Liaison Club', acronym='LC',
