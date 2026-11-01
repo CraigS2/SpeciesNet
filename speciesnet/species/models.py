@@ -176,7 +176,7 @@ class UserEmail (models.Model):
 
 class Species (models.Model):
 
-    name                      = models.CharField (max_length=240)
+    name                      = models.CharField (max_length=240, unique=True)  # see migrations/0016_species_name_unique.py
     alt_name                  = models.CharField (max_length=240, blank=True)
     common_name               = models.CharField (max_length=240, blank=True)
     description               = models.TextField (blank=True, max_length=2500)
@@ -300,9 +300,9 @@ class Species (models.Model):
 
     def save(self, *args, **kwargs):
         # Normalizes quotes/whitespace on every save (admin, forms, CSV
-        # importers, sync's Species.objects.create()). Case is never touched.
+        # importers, staging commit). Case is never touched.
         # NOTE: QuerySet.update() and bulk_create() bypass save() entirely -
-        # see the warning next to SpeciesSyncService._update_species.
+        # nothing writes Species that way today; keep it that way.
         self.name = normalize_species_text(self.name)
         self.alt_name = normalize_species_text(self.alt_name)
         self.common_name = normalize_species_text(self.common_name)
@@ -980,7 +980,9 @@ class ImportArchive (models.Model):
 
     name                      = models.CharField (max_length=240)
     aquarist                  = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, editable=False, related_name='aquarist_imports') # preserve import archives for deleted users
-    import_csv_file           = models.FileField(upload_to="uploads/%Y/%m/%d/")
+    # blank/null for CSO_SYNC batches - PASS2_SCOPE.md 4.1: there's no CSV
+    # file for a sync-generated batch, only staging rows built from the API.
+    import_csv_file           = models.FileField(upload_to="uploads/%Y/%m/%d/", blank=True, null=True)
     import_results_file       = models.FileField(upload_to="uploads/%Y/%m/%d/", null=True, blank=True)
 
     class ImportStatus (models.TextChoices):
@@ -988,8 +990,14 @@ class ImportArchive (models.Model):
         PARTIAL  = 'PART', _('Partial Import')
         FULL     = 'FULL', _('Full Import')
         FAIL     = 'FAIL', _('Import Failure')
-    
+
     import_status             = models.CharField (max_length=4, choices=ImportStatus.choices, default=ImportStatus.PENDING)
+
+    class ImportSource (models.TextChoices):
+        CSV      = 'CSV',      _('CSV Upload')
+        CSO_SYNC = 'CSO_SYNC', _('CSO Species Sync')
+
+    source                    = models.CharField (max_length=8, choices=ImportSource.choices, default=ImportSource.CSV)
     dateImported              = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1032,6 +1040,16 @@ class SpeciesImportStaging (models.Model):
     new_iucn_assessment_date   = models.CharField(max_length=10,  blank=True)
     #new_species_instance_count = models.PositiveIntegerField (default=0, blank=True)
 
+    # PASS2_SCOPE.md 4.3: the reviewer's own text for CSO_SYNC text review.
+    # Pre-filled with ASN's current text when the batch is built (blank for
+    # NEW species - see 4.6). Left unchanged = keep ASN's text. Edited =
+    # the reviewer's own wording, informed by CSO's. Only this gets
+    # committed to Species - see commit_species_import_staging; CSO's
+    # new_description/new_local_distribution are never copied verbatim
+    # unless the reviewer explicitly accepts them (D1).
+    final_description         = models.TextField(blank=True)
+    final_local_distribution  = models.CharField(max_length=200, blank=True)
+
     class ReviewStatus (models.TextChoices):
         PENDING           = 'PENDING',   _('Pending review')
         APPROVED          = 'APPROVED',  _('Approved')
@@ -1043,7 +1061,11 @@ class SpeciesImportStaging (models.Model):
     reviewed_at   = models.DateTimeField(null=True, blank=True)
     review_notes  = models.TextField(blank=True)
 
-    # Field-level change tracking: {'field_name': {'old': value, 'new': value}}
+    # Field-level change tracking: {'field_name': {'old': value, 'new': value}}.
+    # CSO_SYNC batches add an 'auto': True key for fields applied automatically
+    # when the batch was built (codes, region, category, auto-filled alt_name/
+    # common_name - PASS2_SCOPE.md 4.2/D3) so they're still visible to the
+    # reviewer even though they needed no decision.
     changed_fields = models.JSONField(default=dict, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
@@ -1055,6 +1077,22 @@ class SpeciesImportStaging (models.Model):
 
     def __str__(self):
         return f"Staging: {self.new_name} ({self.get_action_display()})"
+
+    @property
+    def auto_changed_fields(self):
+        """Fields auto-applied when this row was built (D3) - template-friendly accessor."""
+        return {
+            k: v for k, v in (self.changed_fields or {}).items()
+            if not k.startswith('_') and v.get('auto')
+        }
+
+    @property
+    def review_needed_fields(self):
+        """Fields that need a human decision - excludes auto-applied and internal keys."""
+        return {
+            k: v for k, v in (self.changed_fields or {}).items()
+            if not k.startswith('_') and not v.get('auto')
+        }
 
 
 ### Page View Tracking

@@ -157,7 +157,10 @@ class RegistrationSyncService:
                 else:
                     stats['skipped'] += 1
             except Exception as exc:
-                logger.error('RegistrationSyncService: Error processing row %s: %s', row, exc)
+                logger.error(
+                    'RegistrationSyncService: Error processing id=%s species=%s: %s',
+                    row.get('id'), row.get('species'), exc,
+                )
                 stats['errors'] += 1
 
         if not dry_run and stats['errors'] == 0:
@@ -425,7 +428,10 @@ class RegistrationStatusSyncService:
                 else:
                     stats['skipped'] += 1
             except Exception as exc:
-                logger.error('RegistrationStatusSyncService: Error processing row %s: %s', row, exc)
+                logger.error(
+                    'RegistrationStatusSyncService: Error processing external_id=%s species=%s: %s',
+                    row.get('external_id'), row.get('species'), exc,
+                )
                 stats['errors'] += 1
 
         if not dry_run and stats['errors'] == 0:

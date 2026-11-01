@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
@@ -21,6 +22,20 @@ def user_is_admin (cur_user: User):
         if cur_user.is_admin:
             user_is_admin = True
     return user_is_admin
+
+def user_can_review_species_import (cur_user: User):
+    """
+    PASS2_SCOPE.md D7: is_admin or is_staff may use the species import/sync
+    review tool - but NOT the API service account. create_api_user sets
+    is_staff=True on that account so it can authenticate against the REST
+    API; it must not also be able to approve/reject/commit staging rows.
+    """
+    if not cur_user.is_authenticated:
+        return False
+    api_service_email = (getattr(settings, 'API_SERVICE_EMAIL', '') or '').strip().lower()
+    if api_service_email and cur_user.email.strip().lower() == api_service_email:
+        return False
+    return bool(cur_user.is_admin or cur_user.is_staff)
 
 def user_can_edit (cur_user: User):
     userCanEdit = False

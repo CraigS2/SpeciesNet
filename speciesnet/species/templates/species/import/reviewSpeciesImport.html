@@ -2,7 +2,12 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h4>Review CARES Import – <small class="text-muted">Archive #{{ import_archive.pk }}</small></h4>
+    <h4>
+        Review CARES Import – <small class="text-muted">Archive #{{ import_archive.pk }}</small>
+        <span class="badge bg-{% if import_archive.source == 'CSO_SYNC' %}info{% else %}secondary{% endif %} ms-2">
+            {{ import_archive.get_source_display }}
+        </span>
+    </h4>
 
     <!-- Summary statistics -->
     <div class="row mb-3">
@@ -93,8 +98,23 @@
         <form method="POST" action="{% url 'approveSpeciesImportBatch' import_archive.pk %}">
             {% csrf_token %}
             {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
-            <button type="submit" class="btn btn-success btn-sm">Approve All Pending</button>
+            <button type="submit" class="btn btn-success btn-sm"
+                {% if import_archive.source == 'CSO_SYNC' %}
+                    title="CSO sync: only approves rows with automatic changes alone - text decisions must be reviewed per record or use 'Keep ASN Text'"
+                {% endif %}>
+                Approve All Pending
+            </button>
         </form>
+        {% if import_archive.source == 'CSO_SYNC' %}
+        <form method="POST" action="{% url 'keepAsnTextSpeciesImportBatch' import_archive.pk %}">
+            {% csrf_token %}
+            {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
+            <button type="submit" class="btn btn-outline-success btn-sm"
+                title="Marks pending rows reviewed without touching their pre-filled ASN text - the safe bulk option for text decisions (D6)">
+                Keep ASN Text (Bulk)
+            </button>
+        </form>
+        {% endif %}
         <form method="POST" action="{% url 'rejectSpeciesImportBatch' import_archive.pk %}">
             {% csrf_token %}
             {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
@@ -145,9 +165,18 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if record.changed_fields %}
-                            <small>{{ record.changed_fields.keys|join:", " }}</small>
-                        {% else %}
+                        {% if record.auto_changed_fields %}
+                            <div class="mb-1">
+                                {% for field, entry in record.auto_changed_fields.items %}
+                                    <span class="badge bg-info text-dark d-block mb-1" title="Applied automatically">
+                                        {{ field }}: {{ entry.old|default:"—" }} → {{ entry.new }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if record.review_needed_fields %}
+                            <small>Needs review: {{ record.review_needed_fields.keys|join:", " }}</small>
+                        {% elif not record.auto_changed_fields %}
                             <small class="text-muted">—</small>
                         {% endif %}
                     </td>

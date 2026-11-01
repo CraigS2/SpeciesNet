@@ -110,8 +110,8 @@ from .views_tools import (
 # Species Import with Review-Approve Workflow
 from .views_species_import import (
     importSpeciesToStaging, reviewSpeciesImport, reviewSpeciesImportDetail,
-    approveSpeciesImportBatch, rejectSpeciesImportBatch, commitSpeciesImport,
-    importSpeciesReferenceLinks,
+    approveSpeciesImportBatch, rejectSpeciesImportBatch, keepAsnTextSpeciesImportBatch,
+    commitSpeciesImport, importSpeciesReferenceLinks,
 )
 
 # BAP Import Workflow
@@ -193,7 +193,7 @@ __all__ = [
 
     # CARES Import Workflow
     'importSpeciesToStaging', 'reviewSpeciesImport', 'reviewSpeciesImportDetail',
-    'approveSpeciesImportBatch', 'rejectSpeciesImportBatch', 'commitSpeciesImport',
+    'approveSpeciesImportBatch', 'rejectSpeciesImportBatch', 'keepAsnTextSpeciesImportBatch', 'commitSpeciesImport',
 
     # Species Reference Link Import
     'importSpeciesReferenceLinks',

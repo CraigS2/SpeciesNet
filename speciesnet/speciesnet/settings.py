@@ -166,9 +166,11 @@ LOGGING = {
             'propagate': False,
         },
     },
-    # root logger catches everything not specified above
+    # root logger catches everything not specified above. 'console' (level
+    # INFO) already emits ERROR-level records, so adding 'error_console' here
+    # duplicated every error-level log line.
     'root': {
-        'handlers': ['console', 'error_console'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
 }

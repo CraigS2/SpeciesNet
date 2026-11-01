@@ -12,14 +12,19 @@ class SpeciesSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = Species
         fields = [
+            'id',
             'name',
             'alt_name',
+            'common_name',
             'description',
             'global_region',
             'local_distribution',
             'cares_family',
+            'cares_assessment_date',
             'iucn_red_list',
+            'iucn_assessment_date',
             'cares_classification',
+            'category',
             'render_cares',
             'created',
             'lastUpdated',

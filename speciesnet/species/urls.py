@@ -242,6 +242,7 @@ urlpatterns = [
     path('speciesImportReview/<str:pk>/', views.reviewSpeciesImport, name="reviewSpeciesImport"),
     path('speciesImportReviewDetail/<str:staging_id>/', views.reviewSpeciesImportDetail, name="reviewSpeciesImportDetail"),
     path('species/import/approve/<str:pk>/', views.approveSpeciesImportBatch, name="approveSpeciesImportBatch"),
+    path('species/import/keepAsnText/<str:pk>/', views.keepAsnTextSpeciesImportBatch, name="keepAsnTextSpeciesImportBatch"),
     path('species/import/reject/<str:pk>/', views.rejectSpeciesImportBatch, name="rejectSpeciesImportBatch"),
     path('species/import/commit/<str:pk>/', views.commitSpeciesImport, name="commitSpeciesImport"),
     path('species/import/referenceLinks/', views.importSpeciesReferenceLinks, name="importSpeciesReferenceLinks"),

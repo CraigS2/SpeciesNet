@@ -126,6 +126,22 @@ class SpeciesTextNormalizationMixin:
                 raise forms.ValidationError(f'A species with the name "{name}" already exists.')
         return name
 
+    def validate_unique(self):
+        # Species.name has a DB-level unique constraint (migrations/
+        # 0016_species_name_unique.py), so Django's ModelForm runs its own
+        # automatic uniqueness check on it independently of clean_name above
+        # - and that automatic check doesn't know about this mixin's
+        # create-vs-edit distinction (a duplicate on create isn't a form
+        # error; the view redirects instead - see clean_name's docstring).
+        # clean_name is solely responsible for the uniqueness decision, so
+        # exclude 'name' from Django's own check here.
+        exclude = set(self._get_validation_exclusions())
+        exclude.add('name')
+        try:
+            self.instance.validate_unique(exclude=exclude)
+        except forms.ValidationError as e:
+            self._update_errors(e)
+
     def clean_alt_name(self):
         return normalize_species_text(self.cleaned_data.get('alt_name'))
 
@@ -2103,13 +2119,32 @@ class CustomResetPasswordForm(ResetPasswordForm):
 
 
 class SpeciesImportStagingForm(ModelForm):
-    """Form for reviewing and approving/rejecting an individual staging record."""
+    """
+    Form for reviewing and approving/rejecting an individual staging record.
+
+    final_description/final_local_distribution (PASS2_SCOPE.md 4.3) are the
+    reviewer's own text for a CSO_SYNC batch - pre-filled with ASN's current
+    text by the view. Left unchanged = keep ASN's text. Edited = the
+    reviewer's own wording. Copied from CSO's proposed text (via the "Use
+    CSO text" button in the template) = accept CSO's wording verbatim (D1) -
+    there's no separate flag for this: commit_species_import_staging detects
+    it by comparing the final text to CSO's proposed text and attributes a
+    SpeciesReferenceLink automatically. Ignored for CSV batches.
+    """
     class Meta:
         model = SpeciesImportStaging
-        fields = ['review_status', 'review_notes']
+        fields = ['review_status', 'review_notes', 'final_description', 'final_local_distribution']
         widgets = {
             'review_notes': forms.Textarea(attrs={'rows': 3, 'cols': 60}),
+            'final_description': forms.Textarea(attrs={'rows': 6, 'cols': 60}),
+            'final_local_distribution': forms.TextInput(attrs={'size': 60}),
         }
+
+    def clean_final_description(self):
+        return normalize_species_text(self.cleaned_data.get('final_description'), keep_linebreaks=True)
+
+    def clean_final_local_distribution(self):
+        return normalize_species_text(self.cleaned_data.get('final_local_distribution'), keep_linebreaks=True)
 
 
 class SpeciesFeedbackForm(ModelForm):

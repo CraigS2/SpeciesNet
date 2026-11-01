@@ -261,16 +261,35 @@ class NormalizeSpeciesTextCommandTest(TestCase):
 
 
 class SpeciesSyncCreateNormalizationTest(TestCase):
-    """Species.objects.create() inside the sync's _create_species normalizes via Species.save()."""
+    """
+    PASS2_SCOPE.md: a NEW species from CSO is only staged, never written
+    directly - Species.objects.create() only happens when the staging row
+    is committed, going through Species.save() so it still normalizes.
+    """
 
-    def test_dirty_remote_name_and_alt_name_normalized_on_create(self):
-        service = SpeciesSyncService()
-        remote = {
-            'alt_name': 'Old “alt” name',
-            'description': '',
-            'render_cares': True,
-        }
-        service._create_species(remote, 'Haplochromis sp. ‘kenya gold’'.strip())
+    def test_dirty_remote_name_normalized_on_commit(self):
+        from species.models import ImportArchive, SpeciesImportStaging
+        from species.asn_tools.asn_csv_tools import commit_species_import_staging
+
+        admin = User.objects.create_user(email='admin2@example.com', username='admin2', password='x')
+        archive = ImportArchive.objects.create(source=ImportArchive.ImportSource.CSO_SYNC)
+        staging = SpeciesImportStaging.objects.create(
+            import_archive=archive,
+            import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.NEW,
+            new_name='Haplochromis sp. ‘kenya gold’',
+            new_alt_name='Old “alt” name',
+            new_category=Species.Category.CICHLIDS,
+            new_global_region=Species.GlobalRegion.AFRICA,
+            new_cares_family=Species.CaresFamily.UNDEFINED,
+            new_cares_classification=Species.CaresStatus.NOT_CARES_SPECIES,
+            new_iucn_red_list=Species.IucnRedList.UNDEFINED,
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+            reviewed_by=admin,
+        )
+
+        commit_species_import_staging(archive, admin)
+
         sp = Species.objects.get()
         self.assertEqual(sp.name, "Haplochromis sp. 'kenya gold'")
         self.assertEqual(sp.alt_name, "Old 'alt' name")
@@ -321,11 +340,14 @@ class ImportCsvSpeciesNormalizationTest(TestCase):
         self.assertEqual(sp.name, "Haplochromis sp. 'kenya gold'")
 
 
-class SpeciesSyncFieldsMatchAndUpdateTest(TestCase):
-    """Code-review follow-up: _fields_match AND _update_species must both
-    treat quote/case/whitespace-only differences as no difference, and
-    _update_species must never write a non-normalized remote value
-    (QuerySet.update() bypasses Species.save())."""
+class PlanStagingRowNormalizationTest(TestCase):
+    """
+    PASS2_SCOPE.md: _plan_staging_row must treat quote/case/whitespace-only
+    differences as no difference at all (no staging row), for both the
+    auto-fill-if-empty fields (alt_name/common_name) and the always-review
+    text fields (description/local_distribution). Case itself is never
+    treated as a reason to write a field - only to skip re-flagging it.
+    """
 
     def setUp(self):
         self.species = Species.objects.create(
@@ -343,6 +365,7 @@ class SpeciesSyncFieldsMatchAndUpdateTest(TestCase):
 
     def _remote_matching(self, **overrides):
         remote = {
+            'name': self.species.name,
             'alt_name': 'Old “alt”',
             'description': 'Some  text.\n\nSecond paragraph.',
             'global_region': self.species.global_region,
@@ -354,22 +377,20 @@ class SpeciesSyncFieldsMatchAndUpdateTest(TestCase):
         remote.update(overrides)
         return remote
 
-    def test_fields_match_ignores_quote_case_whitespace_differences(self):
-        self.assertTrue(self.service._fields_match(self.species, self._remote_matching()))
+    def test_quote_case_whitespace_only_differences_produce_no_staging_row(self):
+        plan = self.service._plan_staging_row(self._remote_matching(), self.species.name)
+        self.assertIsNone(plan)
 
-    def test_update_species_does_not_write_quote_case_whitespace_only_differences(self):
-        self.service._update_species(self.species, self._remote_matching())
-        self.species.refresh_from_db()
-        self.assertEqual(self.species.alt_name, "Old 'alt'")
-        self.assertEqual(self.species.description, 'Some text.\n\nSecond paragraph.')
-        # Case must never be touched - 'LAKE MALAWI' must NOT overwrite 'Lake Malawi'.
-        self.assertEqual(self.species.local_distribution, 'Lake Malawi')
-
-    def test_update_species_writes_normalized_value_for_a_real_change(self):
+    def test_real_change_produces_a_row_with_the_normalized_value(self):
         remote = self._remote_matching(description='A really new ‘description’ text.')
-        self.service._update_species(self.species, remote)
-        self.species.refresh_from_db()
-        self.assertEqual(self.species.description, "A really new 'description' text.")
+        plan = self.service._plan_staging_row(remote, self.species.name)
+        self.assertIsNotNone(plan)
+        self.assertIn('description', plan['changed_fields'])
+        self.assertEqual(plan['changed_fields']['description']['new'], 'A really new ‘description’ text.')
+        # final_description is pre-filled with ASN's CURRENT text, never CSO's -
+        # commit only writes final_description, so the raw CSO value is only
+        # ever a proposal until a reviewer accepts it (D1).
+        self.assertEqual(plan['final_description'], self.species.description)
 
 
 class EditSpeciesViewTest(TestCase):
