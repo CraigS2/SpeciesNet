@@ -54,6 +54,14 @@
         <div class="col">
             <div class="card text-center">
                 <div class="card-body p-2">
+                    <h5 class="card-title mb-0">{{ summary.committed }}</h5>
+                    <p class="card-text text-muted small">Committed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-body p-2">
                     <h5 class="card-title mb-0">{{ summary.rejected }}</h5>
                     <p class="card-text text-muted small">Rejected</p>
                 </div>
@@ -95,16 +103,15 @@
 
     <!-- Bulk action buttons -->
     <div class="mb-3 d-flex gap-2 flex-wrap">
+        {% if import_archive.source != 'CSO_SYNC' %}
         <form method="POST" action="{% url 'approveSpeciesImportBatch' import_archive.pk %}">
             {% csrf_token %}
             {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
-            <button type="submit" class="btn btn-success btn-sm"
-                {% if import_archive.source == 'CSO_SYNC' %}
-                    title="CSO sync: only approves rows with automatic changes alone - text decisions must be reviewed per record or use 'Keep ASN Text'"
-                {% endif %}>
+            <button type="submit" class="btn btn-success btn-sm">
                 Approve All Pending
             </button>
         </form>
+        {% endif %}
         {% if import_archive.source == 'CSO_SYNC' %}
         <form method="POST" action="{% url 'keepAsnTextSpeciesImportBatch' import_archive.pk %}">
             {% csrf_token %}
@@ -121,7 +128,7 @@
             <button type="submit" class="btn btn-warning btn-sm">Reject All Pending</button>
         </form>
         <a href="{% url 'commitSpeciesImport' import_archive.pk %}" class="btn btn-primary btn-sm">
-            Commit Approved ({{ summary.approved }})
+            Commit Approved ({{ summary.to_commit }})
         </a>
         <a href="{% url 'importArchiveResults' import_archive.pk %}" class="btn btn-outline-secondary btn-sm">
             Import Log
@@ -149,12 +156,14 @@
                     <td>
                         <em>{{ record.new_name }}</em>
                         {% if record.existing_species %}
-                            <br><small class="text-muted">→ <a href="{% url 'caresSpecies' record.existing_species.pk %}">existing</a></small>
+                            <br><small class="text-muted">→ <a href="{% url 'species' record.existing_species.pk %}">existing</a></small>
                         {% endif %}
                     </td>
                     <td><span class="badge bg-secondary">{{ record.get_action_display }}</span></td>
                     <td>
-                        {% if record.review_status == 'APPROVED' %}
+                        {% if record.is_committed %}
+                            <span class="badge bg-primary" title="Written to the Species table">Committed</span>
+                        {% elif record.review_status == 'APPROVED' %}
                             <span class="badge bg-success">{{ record.get_review_status_display }}</span>
                         {% elif record.review_status == 'OVERRIDE' %}
                             <span class="badge bg-warning text-dark">{{ record.get_review_status_display }}</span>

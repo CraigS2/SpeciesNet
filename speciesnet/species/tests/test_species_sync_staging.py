@@ -59,6 +59,7 @@ class BuildStagingBatchNewSpeciesTest(TestCase):
         self.assertEqual(row.review_status, SpeciesImportStaging.ReviewStatus.PENDING)
         self.assertEqual(row.new_description, 'A description')
         self.assertEqual(row.final_description, '')  # blank for the reviewer to fill in (4.6)
+        self.assertNotIn('_committed_at', row.changed_fields)  # PENDING - nothing committed yet
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_dry_run_creates_nothing(self, mock_fetch):
@@ -146,6 +147,10 @@ class BuildStagingBatchExistingSpeciesTest(TestCase):
         self.assertTrue(row.changed_fields['cares_classification']['auto'])
         self.assertEqual(summary['auto_only'], 1)
         self.assertEqual(summary['auto_field_counts']['cares_classification'], 1)
+        # Review-page UX fix: an auto-only row's change is already written
+        # to the species at build time - it must show as committed
+        # immediately, not look like it's still waiting on a commit click.
+        self.assertIn('_committed_at', row.changed_fields)
 
     @patch.object(SpeciesSyncService, 'fetch_species')
     def test_invalid_code_is_flagged_not_applied(self, mock_fetch):
@@ -382,12 +387,20 @@ class ReviewViewsRenderTest(TestCase):
         response = self.client.get(f'/speciesImportReview/{self.archive.pk}/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Rendered species')
+        # This workflow runs on Site1 (ASN) - the "existing species" link
+        # must point at the ASN 'species' page, never Site2-only 'caresSpecies'.
+        self.assertContains(response, f'/species/{self.species.pk}/')
+        self.assertNotContains(response, f'/caresSpecies/{self.species.pk}/')
 
     def test_detail_view_renders_with_diff_and_auto_changes(self):
         response = self.client.get(f'/speciesImportReviewDetail/{self.staging.pk}/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'CSO rewritten text')
         self.assertContains(response, 'Auto-applied')
+        # Same bug class as the list view - the ASN species page link must
+        # use 'species', not the Site2-only 'caresSpecies'.
+        self.assertContains(response, f'/species/{self.species.pk}/')
+        self.assertNotContains(response, f'/caresSpecies/{self.species.pk}/')
 
     def test_detail_view_post_saves_final_text(self):
         response = self.client.post(
@@ -411,6 +424,98 @@ class ReviewViewsRenderTest(TestCase):
         client.force_login(regular)
         response = client.get(f'/speciesImportReview/{self.archive.pk}/')
         self.assertEqual(response.status_code, 403)
+
+
+class CommittedIndicatorTest(TestCase):
+    """
+    Reviewer UX fix: the review page must distinguish rows that are
+    actually done (committed - written to Species) from rows that are
+    merely approved and still waiting on a commit click.
+    """
+
+    def setUp(self):
+        from django.test import Client
+        self.admin = User.objects.create_user(
+            email='committedadmin@example.com', username='committedadmin', password='x', is_admin=True,
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+        self.species = Species.objects.create(name='Committed indicator species', created_by=self.admin)
+
+    def test_committed_row_shows_committed_badge_not_approved(self):
+        archive = ImportArchive.objects.create(source=ImportArchive.ImportSource.CSO_SYNC)
+        SpeciesImportStaging.objects.create(
+            import_archive=archive, import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=self.species, new_name=self.species.name,
+            # '_committed_at' is a top-level key in changed_fields, written
+            # by the commit functions - not nested inside a field's entry.
+            changed_fields={
+                'cares_classification': {'old': 'NOTC', 'new': 'CEN', 'auto': True},
+                '_committed_at': '2026-01-01T00:00:00',
+            },
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+        )
+        SpeciesImportStaging.objects.create(
+            import_archive=archive, import_row_number=2,
+            action=SpeciesImportStaging.ImportAction.NEW,
+            new_name='Not yet committed species',
+            changed_fields={'description': {'old': '', 'new': 'CSO text'}},
+            review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+        )
+
+        response = self.client.get(f'/speciesImportReview/{archive.pk}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Committed')
+        self.assertContains(response, self.species.name)
+        self.assertContains(response, 'Not yet committed species')
+        self.assertContains(response, 'Pending')  # the other row's real status, untouched
+
+    def test_summary_counts_distinguish_committed_from_to_commit(self):
+        archive = ImportArchive.objects.create(source=ImportArchive.ImportSource.CSO_SYNC)
+        SpeciesImportStaging.objects.create(
+            import_archive=archive, import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=self.species, new_name=self.species.name,
+            changed_fields={'cares_classification': {'old': 'NOTC', 'new': 'CEN', 'auto': True}, '_committed_at': 'x'},
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+        )
+        other_species = Species.objects.create(name='Awaiting commit species', created_by=self.admin)
+        SpeciesImportStaging.objects.create(
+            import_archive=archive, import_row_number=2,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=other_species, new_name=other_species.name,
+            changed_fields={'cares_classification': {'old': 'NOTC', 'new': 'CVUL', 'auto': True}},
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+        )
+
+        response = self.client.get(f'/speciesImportReview/{archive.pk}/')
+        self.assertEqual(response.context['summary']['committed'], 1)
+        self.assertEqual(response.context['summary']['to_commit'], 1)
+        self.assertContains(response, 'Commit Approved (1)')
+
+    def test_approve_all_pending_button_hidden_for_cso_sync(self):
+        archive = ImportArchive.objects.create(source=ImportArchive.ImportSource.CSO_SYNC)
+        response = self.client.get(f'/speciesImportReview/{archive.pk}/')
+        self.assertNotContains(response, 'Approve All Pending')
+
+    def test_approve_all_pending_button_shown_for_csv(self):
+        archive = ImportArchive.objects.create(source=ImportArchive.ImportSource.CSV)
+        response = self.client.get(f'/speciesImportReview/{archive.pk}/')
+        self.assertContains(response, 'Approve All Pending')
+
+    def test_commit_confirm_page_excludes_already_committed_rows(self):
+        archive = ImportArchive.objects.create(source=ImportArchive.ImportSource.CSO_SYNC)
+        SpeciesImportStaging.objects.create(
+            import_archive=archive, import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=self.species, new_name=self.species.name,
+            changed_fields={'cares_classification': {'old': 'NOTC', 'new': 'CEN', 'auto': True}, '_committed_at': 'x'},
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+        )
+        response = self.client.get(f'/species/import/commit/{archive.pk}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['approved_count'], 0)
 
 
 class BatchSummaryEmailTest(TestCase):

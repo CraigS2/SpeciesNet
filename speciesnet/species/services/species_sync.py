@@ -599,6 +599,15 @@ class SpeciesSyncService:
                 species.save()
 
             remote = plan['remote']
+            # Review-page UX fix: an auto-only row's change was already
+            # written to the species above (or at the time an earlier
+            # commit of this exact value happened) - there's nothing left
+            # to commit for it, so mark it done immediately rather than
+            # leaving it reading "Approved" with no further action ever
+            # arriving. (Only UPDATE rows can be auto-only - a NEW row
+            # always needs the reviewer's text and starts PENDING.)
+            if plan['review_status'] == SpeciesImportStaging.ReviewStatus.APPROVED:
+                plan['changed_fields']['_committed_at'] = timezone.now().isoformat()
             SpeciesImportStaging.objects.create(
                 import_archive=import_archive,
                 import_row_number=row_number,

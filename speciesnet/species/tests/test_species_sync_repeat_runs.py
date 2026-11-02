@@ -409,15 +409,51 @@ class CommitConflictTest(TestCase):
         species.refresh_from_db()
         self.assertEqual(species.description, "Reviewer's own rewrite")
 
-        # Committing the SAME batch again (a later round, or a reviewer
-        # double-clicking) must be a safe no-op, not a conflict.
+        # The row is now marked committed, so a second commit of the SAME
+        # batch (a later round, or a reviewer double-clicking) skips it
+        # entirely - a safe no-op, not a conflict, and not reprocessed.
+        staging.refresh_from_db()
+        self.assertIn('_committed_at', staging.changed_fields)
+
         results2 = commit_species_import_staging(self.archive, self.reviewer)
         self.assertEqual(results2['errors'], 0)
-        self.assertEqual(results2['updated'], 1)
+        self.assertEqual(results2['total'], 0)
         species.refresh_from_db()
         self.assertEqual(species.description, "Reviewer's own rewrite")
         staging.refresh_from_db()
         self.assertEqual(staging.review_status, SpeciesImportStaging.ReviewStatus.APPROVED)
+
+    def test_already_committed_row_without_marker_is_still_a_safe_no_op(self):
+        """
+        Transition case: a row committed BEFORE this '_committed_at'
+        tracking existed has no marker, so it isn't filtered out - but the
+        "already written" check (ahead of the conflict check) still makes
+        reprocessing it harmless. The reviewer's own note: commit once more
+        after deploying, and those rows get marked with nothing written again.
+        """
+        species = Species.objects.create(
+            name='Legacy committed species', description="Reviewer's own rewrite", created_by=self.reviewer,
+        )
+        staging = SpeciesImportStaging.objects.create(
+            import_archive=self.archive,
+            import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=species,
+            new_name=species.name,
+            new_description='CSO proposed text',
+            final_description="Reviewer's own rewrite",  # already matches ASN's current text
+            changed_fields={'description': {'old': 'Original ASN text', 'new': 'CSO proposed text'}},
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+            reviewed_by=self.reviewer,
+        )
+
+        results = commit_species_import_staging(self.archive, self.reviewer)
+        self.assertEqual(results['errors'], 0)
+        self.assertEqual(results['total'], 1)  # reprocessed - no marker yet
+        species.refresh_from_db()
+        self.assertEqual(species.description, "Reviewer's own rewrite")  # unchanged, nothing written again
+        staging.refresh_from_db()
+        self.assertIn('_committed_at', staging.changed_fields)  # now marked, for next time
 
     def test_conflicted_row_commits_after_being_approved_again(self):
         """

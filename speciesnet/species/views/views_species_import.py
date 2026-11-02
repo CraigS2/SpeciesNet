@@ -95,8 +95,15 @@ def reviewSpeciesImport(request, pk):
     if status_filter:
         staging_qs = staging_qs.filter(review_status=status_filter)
 
+    # Django templates can't read a key starting with '_' (changed_fields'
+    # internal '_committed_at' marker), so compute a plain flag here.
+    staging_records = list(staging_qs)
+    for record in staging_records:
+        record.is_committed = bool((record.changed_fields or {}).get('_committed_at'))
+
     # Summary counts (always over the full set for the archive)
     all_staging = SpeciesImportStaging.objects.filter(import_archive=import_archive)
+    all_rows = list(all_staging.only('review_status', 'changed_fields'))
     summary = {
         'new':      all_staging.filter(action=SpeciesImportStaging.ImportAction.NEW).count(),
         'update':   all_staging.filter(action=SpeciesImportStaging.ImportAction.UPDATE).count(),
@@ -106,14 +113,22 @@ def reviewSpeciesImport(request, pk):
         'approved': all_staging.filter(review_status__in=[
             SpeciesImportStaging.ReviewStatus.APPROVED,
             SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
-        ]).count(),        
+        ]).count(),
         'rejected': all_staging.filter(review_status=SpeciesImportStaging.ReviewStatus.REJECTED).count(),
         'total':    all_staging.count(),
+        'committed': sum(1 for r in all_rows if (r.changed_fields or {}).get('_committed_at')),
+        'to_commit': sum(
+            1 for r in all_rows
+            if r.review_status in (
+                SpeciesImportStaging.ReviewStatus.APPROVED,
+                SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
+            ) and not (r.changed_fields or {}).get('_committed_at')
+        ),
     }
 
     context = {
         'import_archive': import_archive,
-        'staging_records': staging_qs,
+        'staging_records': staging_records,
         'summary': summary,
         'action_filter': action_filter,
         'status_filter': status_filter,
@@ -204,8 +219,11 @@ def reviewSpeciesImportDetail(request, staging_id):
             SpeciesFeedback.objects.filter(species=staging.existing_species).order_by('-created')
         )
 
+    # 'caresSpecies' only renders on Site2 (CSO) - this staging/review
+    # workflow runs on Site1 (ASN), so the link to the species' own page
+    # here must use 'species', not 'caresSpecies'.
     asn_species_url = (
-        reverse('caresSpecies', args=[staging.existing_species.pk]) if staging.existing_species else None
+        reverse('species', args=[staging.existing_species.pk]) if staging.existing_species else None
     )
     cso_species_url = _reference_link_url_for_cso_species(changed_fields.get('_cso_species_id')) if is_cso_sync else None
 
@@ -362,13 +380,20 @@ def commitSpeciesImport(request, pk):
         raise PermissionDenied()
 
     import_archive = get_object_or_404(ImportArchive, pk=pk)
-    approved_count = SpeciesImportStaging.objects.filter(
-        import_archive=import_archive,
-        review_status__in=[
-            SpeciesImportStaging.ReviewStatus.APPROVED,
-            SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
-        ],
-    ).count()
+    # Same staleness fix as the review list's "to_commit" count: a row
+    # already committed on an earlier run must not inflate this number -
+    # otherwise this confirmation page would say "commit N records" right
+    # after the list page correctly said there were none left.
+    approved_count = sum(
+        1 for r in SpeciesImportStaging.objects.filter(
+            import_archive=import_archive,
+            review_status__in=[
+                SpeciesImportStaging.ReviewStatus.APPROVED,
+                SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
+            ],
+        ).only('changed_fields')
+        if not (r.changed_fields or {}).get('_committed_at')
+    )
 
     if request.method == 'POST':
         results = commit_species_import_staging(import_archive, request.user)

@@ -1659,6 +1659,16 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
         ],
     ).select_related('existing_species')
 
+    # Review-page UX fix: a row already committed by an earlier run of this
+    # function (marked with '_committed_at' below) is skipped outright, so
+    # the review page can show it as done instead of leaving it looking
+    # like "Approved" forever with no sign anything happened. Filtering in
+    # Python avoids a JSON database lookup - batches are under 1,000 rows.
+    approved_records = [
+        r for r in approved_records
+        if not (r.changed_fields or {}).get('_committed_at')
+    ]
+
     is_cso_sync = import_archive.source == ImportArchive.ImportSource.CSO_SYNC
 
     csv_report_buffer = StringIO()
@@ -1854,9 +1864,16 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                         results['skipped'] += 1
                         csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'Skipped', ''])
 
-                    # Update staging record's reviewed_at timestamp
-                    staged_changes.reviewed_at = timezone.now()
-                    staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
+                    # Mark the row committed - the review-page badge and the
+                    # "already committed" filter above both key off this.
+                    # reviewed_at is left alone: it's when a human reviewed
+                    # the row, not when it was written to Species, and
+                    # overwriting it here lost that distinction.
+                    staged_changes.changed_fields = {
+                        **(staged_changes.changed_fields or {}),
+                        '_committed_at': timezone.now().isoformat(),
+                    }
+                    staged_changes.save(update_fields=['existing_species', 'changed_fields'])
 
             except _StagingTextConflict as exc:
                 # Fix 3 follow-up #1: the row's text write rolled back with
