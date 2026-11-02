@@ -61,7 +61,7 @@ services:
       env_file:
         - ./.env
       entrypoint: []
-      command: sh -c "sh /wait-for-db.sh && celery -A speciesnet worker -l info -Q emails,celery,default"
+      command: sh -c "sh /wait-for-db.sh && celery -A speciesnet worker -l info -Q emails,celery,default,sync"
 
     celery_beat:
       container_name: CELERY_BEAT

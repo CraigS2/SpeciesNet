@@ -106,6 +106,13 @@ REVIEWED_STATUSES = [
 # which means ASN and CSO genuinely match (PASS3_SCOPE.md Fix 1).
 PENDING_ELSEWHERE = 'PENDING_ELSEWHERE'
 
+# review_notes prefix written on a row rejected by Fix 1's supersede logic
+# (CSO changed its value while the row was still pending review). Nobody
+# actually reviewed this row - it must not count as "reviewed" in
+# _last_reviewed_cso_value, or a value CSO later reverts to would be
+# silently hidden by a rejection nobody made.
+SUPERSEDED_NOTE_PREFIX = 'Superseded by batch #'
+
 
 class SpeciesSyncService:
     """
@@ -287,7 +294,11 @@ class SpeciesSyncService:
             }
 
         superseded_row_ids = set()
-        pending_elsewhere_only = False
+        # Fields tentatively skipped as "already pending, unchanged" - see
+        # the carry-over pass below. A field here can turn out to belong to
+        # a row that gets superseded by a *different* field, in which case
+        # it must be promoted into changed_fields rather than lost with it.
+        pending_elsewhere_candidates = {}
 
         choices = _auto_apply_choices()
         for field in AUTO_APPLY_FIELDS:
@@ -352,7 +363,7 @@ class SpeciesSyncService:
                 pending_val, pending_row_id = self._pending_review_value(species, field)
                 if pending_val is not None:
                     if normalize_species_text(pending_val).lower() == normalize_species_text(remote_val).lower():
-                        pending_elsewhere_only = True
+                        pending_elsewhere_candidates[field] = (local_val, remote_val, pending_row_id)
                         continue
                     superseded_row_ids.add(pending_row_id)
                 changed_fields[field] = {'old': local_val, 'new': remote_val}
@@ -378,10 +389,25 @@ class SpeciesSyncService:
             if pending_val is not None:
                 if normalize_species_text(pending_val, keep_linebreaks=keep_lb).lower() == \
                         normalize_species_text(remote_val, keep_linebreaks=keep_lb).lower():
-                    pending_elsewhere_only = True
+                    pending_elsewhere_candidates[field] = (local_val, remote_val, pending_row_id)
                     continue
                 superseded_row_ids.add(pending_row_id)
             changed_fields[field] = {'old': local_val, 'new': remote_val}
+
+        # Carry-over pass: a field skipped above as "already pending,
+        # unchanged" can share its pending row with a DIFFERENT field that
+        # just got superseded (e.g. a description change supersedes a row
+        # that also carried an untouched local_distribution difference).
+        # That row is about to be rejected - promote the field into this
+        # plan instead of losing it along with the row (PASS3_SCOPE.md
+        # Fix 1 follow-up: a superseded row must not take other, still-
+        # valid differences down with it).
+        pending_elsewhere_only = False
+        for field, (local_val, remote_val, pending_row_id) in pending_elsewhere_candidates.items():
+            if pending_row_id in superseded_row_ids:
+                changed_fields[field] = {'old': local_val, 'new': remote_val}
+            else:
+                pending_elsewhere_only = True
 
         if not changed_fields:
             return PENDING_ELSEWHERE if pending_elsewhere_only else None
@@ -434,11 +460,17 @@ class SpeciesSyncService:
         *current* value - counting it as "reviewed" here hid most of the
         real differences in the first sync batch. See PASS3_SCOPE.md's
         follow-up fix.
+
+        Also excludes rows rejected by Fix 1's supersede logic (marked with
+        SUPERSEDED_NOTE_PREFIX) - nobody actually reviewed those, so they
+        must not suppress a value CSO later reverts back to.
         """
         rows = SpeciesImportStaging.objects.filter(
             existing_species=species,
             review_status__in=REVIEWED_STATUSES,
             import_archive__source=ImportArchive.ImportSource.CSO_SYNC,
+        ).exclude(
+            review_notes__startswith=SUPERSEDED_NOTE_PREFIX,
         ).order_by('-created')
         for row in rows:
             entry = (row.changed_fields or {}).get(field)
@@ -550,7 +582,9 @@ class SpeciesSyncService:
                 review_status=SpeciesImportStaging.ReviewStatus.PENDING,
             ).update(
                 review_status=SpeciesImportStaging.ReviewStatus.REJECTED,
-                review_notes=f'Superseded by batch #{import_archive.pk}',
+                review_notes=f'{SUPERSEDED_NOTE_PREFIX}{import_archive.pk}. CSO changed its '
+                              'value before this row was reviewed - if you had started '
+                              'editing final text here, re-apply it on the new row.',
                 reviewed_by=sync_user,
                 reviewed_at=timezone.now(),
             )

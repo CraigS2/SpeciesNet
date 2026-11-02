@@ -1613,6 +1613,17 @@ def _maybe_add_cso_reference_link(species, staged_changes, field, final_value, a
     )
 
 
+class _StagingTextConflict(Exception):
+    """
+    Raised internally by commit_species_import_staging when a reviewer's
+    text decision conflicts with ASN's text having changed since the batch
+    was built (PASS3_SCOPE.md Fix 3). Caught separately from a generic
+    error so the row can be bounced back to PENDING for re-review instead
+    of staying APPROVED and failing the same way on every future commit.
+    """
+    pass
+
+
 def commit_species_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Commit all APPROVED staging records for *import_archive* to the Species table.
@@ -1759,7 +1770,7 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                                 updated_fields_list.append(field)
 
                             if conflict_fields:
-                                raise ValueError(
+                                raise _StagingTextConflict(
                                     'ASN text changed since this batch was built; re-review '
                                     f"({', '.join(conflict_fields)})"
                                 )
@@ -1834,6 +1845,20 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                     # Update staging record's reviewed_at timestamp
                     staged_changes.reviewed_at = timezone.now()
                     staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
+
+            except _StagingTextConflict as exc:
+                # Fix 3 follow-up: the row's text write rolled back with the
+                # rest of this savepoint, but the row itself must not stay
+                # APPROVED - that would make it fail the same way on every
+                # future commit attempt. Bounce it back to PENDING so a
+                # human has to look at it again.
+                logger.warning('Text conflict committing staging pk=%s: %s', staged_changes.pk, exc)
+                results['errors'] += 1
+                staged_changes.review_status = SpeciesImportStaging.ReviewStatus.PENDING
+                staged_changes.reviewed_at = None
+                staged_changes.review_notes = str(exc)
+                staged_changes.save(update_fields=['review_status', 'reviewed_at', 'review_notes'])
+                csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'ERROR', str(exc)])
 
             except Exception as exc:
                 logger.error('Error committing staging pk=%s: %s', staged_changes.pk, exc, exc_info=True)

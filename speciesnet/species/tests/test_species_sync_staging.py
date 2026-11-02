@@ -303,7 +303,7 @@ class CommitCsoSyncStagingTest(TestCase):
             review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
             reviewed_by=self.reviewer,
         )
-        with override_settings(TARGET_API_URL='http://cso.example.com'):
+        with override_settings(SITE2_URL='', TARGET_API_URL='http://cso.example.com'):
             commit_species_import_staging(self.archive, self.reviewer)
 
         species.refresh_from_db()
@@ -333,7 +333,7 @@ class CommitCsoSyncStagingTest(TestCase):
             review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
             reviewed_by=self.reviewer,
         )
-        with override_settings(TARGET_API_URL='http://cso.example.com'):
+        with override_settings(SITE2_URL='', TARGET_API_URL='http://cso.example.com'):
             commit_species_import_staging(self.archive, self.reviewer)
 
         self.assertFalse(SpeciesReferenceLink.objects.filter(species=species).exists())

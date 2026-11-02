@@ -43,7 +43,7 @@ services:
         CELERY_BROKER_URL: "redis://redis:6379/0"
         CELERY_RESULT_BACKEND: "django-db"
       entrypoint: []
-      command: celery -A speciesnet worker -l info -Q emails,celery,default
+      command: celery -A speciesnet worker -l info -Q emails,celery,default,sync
       networks:
         - asn_test_network
 

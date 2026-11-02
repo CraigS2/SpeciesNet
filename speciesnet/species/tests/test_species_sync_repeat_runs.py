@@ -141,6 +141,94 @@ class SupersedePendingRowTest(TestCase):
         self.assertEqual(row1.review_status, SpeciesImportStaging.ReviewStatus.REJECTED)
         self.assertIn(f'#{archive2.pk}', row1.review_notes)
 
+    @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_superseding_one_field_carries_over_the_rows_other_untouched_difference(self, mock_fetch):
+        """
+        Reviewer follow-up: a pending row can hold MORE than one difference
+        (e.g. description AND local_distribution). If CSO changes only one
+        of them, the old row still gets superseded as a whole - the fix
+        must carry the untouched field's difference into the new row
+        instead of losing it (and silently hiding it forever, since a
+        rejected row would otherwise count as "reviewed").
+        """
+        mock_fetch.return_value = [_make_remote(
+            self.species.name,
+            description='CSO description one',
+            local_distribution='CSO distribution one',
+        )]
+        archive1, _ = self.service.build_staging_batch(dry_run=False)
+        row1 = SpeciesImportStaging.objects.get(import_archive=archive1)
+        self.assertIn('description', row1.changed_fields)
+        self.assertIn('local_distribution', row1.changed_fields)
+
+        # CSO changes ONLY the description before row1 is reviewed.
+        mock_fetch.return_value = [_make_remote(
+            self.species.name,
+            description='CSO description two',
+            local_distribution='CSO distribution one',  # unchanged
+        )]
+        archive2, summary2 = self.service.build_staging_batch(dry_run=False)
+        self.assertIsNotNone(archive2)
+
+        row2 = SpeciesImportStaging.objects.get(import_archive=archive2)
+        self.assertEqual(row2.changed_fields['description']['new'], 'CSO description two')
+        # The untouched local_distribution difference must have been
+        # carried over, not dropped along with the superseded row.
+        self.assertIn('local_distribution', row2.changed_fields)
+        self.assertEqual(row2.changed_fields['local_distribution']['new'], 'CSO distribution one')
+
+        row1.refresh_from_db()
+        self.assertEqual(row1.review_status, SpeciesImportStaging.ReviewStatus.REJECTED)
+
+        # A later run with CSO unchanged must not re-stage it again, and
+        # must not be fooled by the superseded row into thinking it was
+        # already reviewed.
+        mock_fetch.return_value = [_make_remote(
+            self.species.name,
+            description='CSO description two',
+            local_distribution='CSO distribution one',
+        )]
+        archive3, summary3 = self.service.build_staging_batch(dry_run=False)
+        self.assertIsNone(archive3)
+        self.assertEqual(summary3['pending_elsewhere'], 1)
+
+    @patch.object(SpeciesSyncService, 'fetch_species')
+    def test_superseded_row_does_not_count_as_reviewed(self, mock_fetch):
+        """
+        A row rejected by the supersede logic was never actually reviewed
+        by a human - it must not suppress CSO later reverting to the value
+        that row had proposed (PASS3_SCOPE.md follow-up: exclude
+        SUPERSEDED_NOTE_PREFIX rows from _last_reviewed_cso_value).
+        """
+        mock_fetch.return_value = [_make_remote(self.species.name, description='CSO version one')]
+        archive1, _ = self.service.build_staging_batch(dry_run=False)
+        row1 = SpeciesImportStaging.objects.get(import_archive=archive1)
+
+        # CSO changes its mind, superseding row1.
+        mock_fetch.return_value = [_make_remote(self.species.name, description='CSO version two')]
+        self.service.build_staging_batch(dry_run=False)
+        row1.refresh_from_db()
+        self.assertEqual(row1.review_status, SpeciesImportStaging.ReviewStatus.REJECTED)
+
+        # Now approve the SECOND row so the species' text is actually
+        # updated, then have CSO revert back to "version one" - the exact
+        # value the superseded row (never reviewed) had proposed. It must
+        # be staged again, not hidden by the rejection nobody made.
+        row2 = SpeciesImportStaging.objects.exclude(pk=row1.pk).get(existing_species=self.species)
+        row2.final_description = 'CSO version two'
+        row2.review_status = SpeciesImportStaging.ReviewStatus.APPROVED
+        row2.save()
+        from species.asn_tools.asn_csv_tools import commit_species_import_staging
+        commit_species_import_staging(row2.import_archive, self.user)
+        self.species.refresh_from_db()
+        self.assertEqual(self.species.description, 'CSO version two')
+
+        mock_fetch.return_value = [_make_remote(self.species.name, description='CSO version one')]
+        archive3, summary3 = self.service.build_staging_batch(dry_run=False)
+        self.assertIsNotNone(archive3)
+        row3 = SpeciesImportStaging.objects.get(import_archive=archive3)
+        self.assertEqual(row3.changed_fields['description']['new'], 'CSO version one')
+
 
 class DuplicateNewSpeciesCommitTest(TestCase):
     """Fix 2: committing two batches that both propose the same NEW species
@@ -279,6 +367,18 @@ class CommitConflictTest(TestCase):
         species.refresh_from_db()
         # The reviewer's stale decision must not clobber the newer text.
         self.assertEqual(species.description, "Someone else's newer text")
+
+        # Reviewer follow-up: a conflicted row must not stay APPROVED - that
+        # would make it fail the exact same way on every future commit
+        # attempt with no way out. It bounces back to PENDING for re-review.
+        staging.refresh_from_db()
+        self.assertEqual(staging.review_status, SpeciesImportStaging.ReviewStatus.PENDING)
+        self.assertIn('re-review', staging.review_notes)
+
+        # Re-running the commit now does nothing to this row (it's no
+        # longer in the APPROVED set) - no repeated, unavoidable error.
+        results2 = commit_species_import_staging(self.archive, self.reviewer)
+        self.assertEqual(results2['total'], 0)
 
 
 class RevertedAutomaticChangeTest(TestCase):
