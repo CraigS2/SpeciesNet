@@ -16,6 +16,18 @@ It now builds ONE SpeciesImportStaging batch per run instead:
   - A text difference already reviewed for this species+field, where CSO's
     value hasn't changed since, is not flagged again (4.5).
 
+PASS3_SCOPE.md: fixes for running this more than once before a batch is
+reviewed/committed (the nightly task, or a second manual run):
+
+  - A difference still PENDING in an earlier, uncommitted batch isn't
+    staged again; CSO changing its value while that row is pending
+    supersedes (rejects) the old row instead of leaving a stale duplicate
+    (Fix 1, _pending_review_value/_pending_new_species_row).
+  - An automatic change reverted on the species isn't re-applied unless
+    CSO's value changes again (Fix 4, _last_auto_applied_value).
+  - alt_name/common_name differences follow the same "don't re-flag once
+    reviewed" rule as description/local_distribution (Fix 5).
+
 See management/commands/sync_species.py for the CLI entry point and
 build_staging_batch() below for the batch-building logic itself.
 """
@@ -87,6 +99,12 @@ REVIEWED_STATUSES = [
     SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE,
     SpeciesImportStaging.ReviewStatus.REJECTED,
 ]
+
+# Sentinel returned by _plan_staging_row when there's nothing new to stage
+# only because every difference is already waiting for review (or already
+# staged as NEW) in an earlier, uncommitted batch - distinct from None,
+# which means ASN and CSO genuinely match (PASS3_SCOPE.md Fix 1).
+PENDING_ELSEWHERE = 'PENDING_ELSEWHERE'
 
 
 class SpeciesSyncService:
@@ -163,7 +181,7 @@ class SpeciesSyncService:
         """
         summary = {
             'fetched': 0, 'new': 0, 'update_review': 0, 'auto_only': 0,
-            'no_change': 0, 'errors': 0, 'invalid_codes': 0,
+            'no_change': 0, 'pending_elsewhere': 0, 'errors': 0, 'invalid_codes': 0,
             'auto_field_counts': Counter(),
         }
 
@@ -191,6 +209,9 @@ class SpeciesSyncService:
                 summary['errors'] += 1
                 continue
 
+            if plan == PENDING_ELSEWHERE:
+                summary['pending_elsewhere'] += 1
+                continue
             if plan is None:
                 summary['no_change'] += 1
                 continue
@@ -212,9 +233,9 @@ class SpeciesSyncService:
 
         logger.info(
             'build_staging_batch planned: new=%d update_review=%d auto_only=%d '
-            'no_change=%d invalid_codes=%d errors=%d',
+            'no_change=%d pending_elsewhere=%d invalid_codes=%d errors=%d',
             summary['new'], summary['update_review'], summary['auto_only'],
-            summary['no_change'], summary['invalid_codes'], summary['errors'],
+            summary['no_change'], summary['pending_elsewhere'], summary['invalid_codes'], summary['errors'],
         )
 
         if not plans:
@@ -228,14 +249,23 @@ class SpeciesSyncService:
 
     def _plan_staging_row(self, remote, name):
         """
-        Return a dict describing the staging row to create for *remote*, or
-        None if there is nothing to stage (everything already matches).
+        Return a dict describing the staging row to create for *remote*,
+        None if there is nothing to stage (everything already matches), or
+        PENDING_ELSEWHERE if the only reason there's nothing new to stage is
+        that it's already waiting for review in an earlier, uncommitted
+        batch (PASS3_SCOPE.md Fix 1 - running the sync more than once must
+        not pile up duplicate pending rows).
         """
         species = find_species_by_name(name)
         changed_fields = {}
         auto_updates = {}
 
         if species is None:
+            # Fix 1: a species already staged as NEW and still PENDING isn't
+            # staged again on every run before it's committed.
+            if self._pending_new_species_row(name) is not None:
+                return PENDING_ELSEWHERE
+
             # New species (D4): stage every non-empty CSO value for display,
             # all of it reviewed - text starts blank for the reviewer (4.6).
             for field in AUTO_APPLY_FIELDS + AUTO_FILL_IF_EMPTY_FIELDS + REVIEW_TEXT_FIELDS:
@@ -249,11 +279,15 @@ class SpeciesSyncService:
                 'review_status': SpeciesImportStaging.ReviewStatus.PENDING,
                 'changed_fields': changed_fields,
                 'auto_updates': {},
+                'superseded_row_ids': [],
                 'final_description': '',
                 'final_local_distribution': '',
                 'remote': remote,
                 'name': name,
             }
+
+        superseded_row_ids = set()
+        pending_elsewhere_only = False
 
         choices = _auto_apply_choices()
         for field in AUTO_APPLY_FIELDS:
@@ -269,6 +303,10 @@ class SpeciesSyncService:
                     continue
                 if local_val == parsed:
                     continue
+                # Fix 4: don't re-apply an automatic change that was reverted
+                # on the species, unless CSO's value has changed since.
+                if self._last_auto_applied_value(species, field) == remote_val:
+                    continue
                 changed_fields[field] = {'old': str(local_val or ''), 'new': remote_val, 'auto': True}
                 auto_updates[field] = parsed
                 continue
@@ -278,6 +316,8 @@ class SpeciesSyncService:
             valid_values = choices.get(field)
             if valid_values is not None and remote_val not in valid_values:
                 changed_fields[field] = {'old': local_val, 'new': remote_val, 'invalid': True}
+                continue
+            if self._last_auto_applied_value(species, field) == remote_val:
                 continue
             changed_fields[field] = {'old': local_val, 'new': remote_val, 'auto': True}
             auto_updates[field] = remote_val
@@ -290,11 +330,31 @@ class SpeciesSyncService:
             if normalize_species_text(local_val).lower() == normalize_species_text(remote_val).lower():
                 continue
             if not local_val.strip():
+                # Fix 4: don't re-apply if this exact value was auto-filled
+                # before and then cleared back out by a human.
+                last_auto = self._last_auto_applied_value(species, field)
+                if last_auto is not None and \
+                        normalize_species_text(last_auto).lower() == normalize_species_text(remote_val).lower():
+                    continue
                 normalized = normalize_species_text(remote_val)
                 changed_fields[field] = {'old': local_val, 'new': remote_val, 'auto': True}
                 auto_updates[field] = normalized
             else:
                 # Both sides have a value and they differ - review (D5).
+                # Fix 5: approving/rejecting that row means "keep ASN's
+                # value" - don't re-flag it while CSO's value is unchanged.
+                last_reviewed = self._last_reviewed_cso_value(species, field)
+                if last_reviewed is not None and \
+                        normalize_species_text(last_reviewed).lower() == normalize_species_text(remote_val).lower():
+                    continue
+                # Fix 1: don't re-stage a difference already pending review,
+                # unless CSO's value changed since - then supersede it.
+                pending_val, pending_row_id = self._pending_review_value(species, field)
+                if pending_val is not None:
+                    if normalize_species_text(pending_val).lower() == normalize_species_text(remote_val).lower():
+                        pending_elsewhere_only = True
+                        continue
+                    superseded_row_ids.add(pending_row_id)
                 changed_fields[field] = {'old': local_val, 'new': remote_val}
 
         for field in REVIEW_TEXT_FIELDS:
@@ -312,10 +372,19 @@ class SpeciesSyncService:
                     normalize_species_text(last_reviewed, keep_linebreaks=keep_lb).lower() == \
                     normalize_species_text(remote_val, keep_linebreaks=keep_lb).lower():
                 continue
+            # Fix 1: don't re-stage a difference already pending review,
+            # unless CSO's value changed since - then supersede it.
+            pending_val, pending_row_id = self._pending_review_value(species, field)
+            if pending_val is not None:
+                if normalize_species_text(pending_val, keep_linebreaks=keep_lb).lower() == \
+                        normalize_species_text(remote_val, keep_linebreaks=keep_lb).lower():
+                    pending_elsewhere_only = True
+                    continue
+                superseded_row_ids.add(pending_row_id)
             changed_fields[field] = {'old': local_val, 'new': remote_val}
 
         if not changed_fields:
-            return None
+            return PENDING_ELSEWHERE if pending_elsewhere_only else None
 
         self._stash_cso_id(changed_fields, remote)
         only_auto = all(
@@ -332,6 +401,7 @@ class SpeciesSyncService:
             'review_status': review_status,
             'changed_fields': changed_fields,
             'auto_updates': auto_updates,
+            'superseded_row_ids': list(superseded_row_ids),
             'final_description': species.description or '',
             'final_local_distribution': species.local_distribution or '',
             'remote': remote,
@@ -352,19 +422,100 @@ class SpeciesSyncService:
 
     def _last_reviewed_cso_value(self, species, field):
         """
-        Return the CSO value ('new') from the most recent REVIEWED staging
-        row for *species*/*field* (approved, override, or rejected), or
-        None if no such row exists. Used to suppress re-flagging text CSO
-        hasn't changed since it was last reviewed (4.5).
+        Return the CSO value ('new') from the most recent REVIEWED CSO_SYNC
+        staging row for *species*/*field* (approved, override, or
+        rejected), or None if no such row exists. Used to suppress
+        re-flagging text CSO hasn't changed since it was last reviewed
+        (4.5).
+
+        Restricted to source=CSO_SYNC: an approved CSV staging row often
+        holds the exact text CSO already has (it was CARES data from CSO to
+        begin with) even though nobody ever compared it against CSO's
+        *current* value - counting it as "reviewed" here hid most of the
+        real differences in the first sync batch. See PASS3_SCOPE.md's
+        follow-up fix.
         """
         rows = SpeciesImportStaging.objects.filter(
             existing_species=species,
             review_status__in=REVIEWED_STATUSES,
+            import_archive__source=ImportArchive.ImportSource.CSO_SYNC,
         ).order_by('-created')
         for row in rows:
             entry = (row.changed_fields or {}).get(field)
             if entry is not None:
                 return entry.get('new')
+        return None
+
+    def _last_auto_applied_value(self, species, field):
+        """
+        Return the CSO value ('new') from the most recent CSO_SYNC staging
+        row where *field* was recorded with auto: True for *species*,
+        regardless of the row's review status (a row with only automatic
+        changes is already APPROVED when it's built, but a row mixing an
+        automatic field with a field needing review stays PENDING as a
+        whole).
+
+        Used to avoid re-applying an automatic change that was deliberately
+        reverted by editing the species, unless CSO's value has changed
+        since (PASS2_SCOPE.md 4.2, PASS3_SCOPE.md Fix 4). Restricted to
+        source=CSO_SYNC for the same reason as _last_reviewed_cso_value -
+        CSV staging never sets 'auto', so this is belt-and-suspenders today,
+        but keeps every per-species sync-history lookup consistently scoped.
+        """
+        rows = SpeciesImportStaging.objects.filter(
+            existing_species=species,
+            import_archive__source=ImportArchive.ImportSource.CSO_SYNC,
+        ).order_by('-created')
+        for row in rows:
+            entry = (row.changed_fields or {}).get(field)
+            if entry is not None and entry.get('auto'):
+                return entry.get('new')
+        return None
+
+    def _pending_review_value(self, species, field):
+        """
+        Return (value, row_id) for the most recent PENDING CSO_SYNC staging
+        row where *field* was flagged for human review (not auto-applied)
+        for *species*, or (None, None) if there's no such row.
+
+        Used by Fix 1 to avoid re-staging a difference that's already
+        waiting for review on an earlier, uncommitted batch, and to detect
+        when CSO's value has changed since that pending row was created (in
+        which case the caller supersedes it rather than skipping).
+        Restricted to source=CSO_SYNC - a leftover unreviewed CSV staging
+        row is a different workflow and must never be silently rejected as
+        "superseded" by this sync.
+        """
+        rows = SpeciesImportStaging.objects.filter(
+            existing_species=species,
+            review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+            import_archive__source=ImportArchive.ImportSource.CSO_SYNC,
+        ).order_by('-created')
+        for row in rows:
+            entry = (row.changed_fields or {}).get(field)
+            if entry is not None and not entry.get('auto'):
+                return entry.get('new'), row.id
+        return None, None
+
+    def _pending_new_species_row(self, name):
+        """
+        Return the most recent PENDING NEW-action CSO_SYNC staging row
+        whose name normalizes to the same value as *name*, or None.
+
+        Used by Fix 1 so a species already staged as NEW and awaiting its
+        first commit isn't staged again as NEW on every subsequent run.
+        Restricted to source=CSO_SYNC - an unreviewed CSV NEW row must not
+        make this sync think the species is already pending elsewhere.
+        """
+        normalized = normalize_species_text(name).lower()
+        rows = SpeciesImportStaging.objects.filter(
+            action=SpeciesImportStaging.ImportAction.NEW,
+            review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+            import_archive__source=ImportArchive.ImportSource.CSO_SYNC,
+        ).order_by('-created')
+        for row in rows:
+            if normalize_species_text(row.new_name).lower() == normalized:
+                return row
         return None
 
     def _sync_user(self):
@@ -385,6 +536,24 @@ class SpeciesSyncService:
             source=ImportArchive.ImportSource.CSO_SYNC,
             import_status=ImportArchive.ImportStatus.FULL,
         )
+
+        # Fix 1: CSO changed a value while the old row proposing it was
+        # still PENDING - the new row above carries the latest value, and
+        # the superseded row is rejected so the reviewer never sees a stale
+        # proposal sitting alongside the current one.
+        superseded_ids = set()
+        for plan in plans:
+            superseded_ids.update(plan.get('superseded_row_ids') or [])
+        if superseded_ids:
+            SpeciesImportStaging.objects.filter(
+                pk__in=superseded_ids,
+                review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+            ).update(
+                review_status=SpeciesImportStaging.ReviewStatus.REJECTED,
+                review_notes=f'Superseded by batch #{import_archive.pk}',
+                reviewed_by=sync_user,
+                reviewed_at=timezone.now(),
+            )
 
         for row_number, plan in enumerate(plans, start=1):
             species = plan['existing_species']
@@ -443,6 +612,7 @@ class SpeciesSyncService:
             f'Updates needing review: {summary["update_review"]}',
             f'Updates with only automatic changes: {summary["auto_only"]}',
             f'No change (skipped): {summary["no_change"]}',
+            f'Already pending review elsewhere (skipped): {summary["pending_elsewhere"]}',
             f'Invalid codes flagged for review: {summary["invalid_codes"]}',
             f'Errors: {summary["errors"]}',
         ]
