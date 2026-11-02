@@ -11,7 +11,7 @@ from pending_actions.registry import get_handler_for_action_type
 from pending_actions.services import create_pending_action
 from pending_actions.services_email import send_email_message as real_send_email_message
 from pending_actions.tasks import send_action_email, sweep_expired_actions
-from species.models import CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, User, UserEmail
+from species.models import CaresApprover, CaresRegistration, Species, SpeciesCollectionLocation, SpeciesInstance, User, UserEmail
 from species.services.email_services import send_new_registration_notification, send_status_change_email
 
 
@@ -243,3 +243,45 @@ class PendingActionTests(TestCase):
         self.assertEqual(call_count['n'], 2, 'Expected one failed attempt and one successful retry.')
         self.assertEqual(UserEmail.objects.count(), before + 1,
                          'Exactly one UserEmail row must be created even after a failed first attempt.')
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    CELERY_TASK_ALWAYS_EAGER=True,
+    CELERY_TASK_EAGER_PROPAGATES=True,
+)
+class BapNotesRequiredEmailEscapingTest(TestCase):
+    """PASS3_SCOPE.md Fix 7: bap_notes_required_email.html is the HTML email
+    itself (sent with content_subtype='html'), so it must not run with
+    {% autoescape off %} - any user-entered species name must come through
+    escaped, not injected into the email as raw HTML."""
+
+    def test_species_name_with_html_is_escaped_in_email_body(self):
+        admin = User.objects.create_superuser(email='bapadmin@example.com', username='bapadmin', password='pass12345')
+        species = Species.objects.create(name='Test <b>bold</b>', created_by=admin)
+        keeper = User.objects.create_user(email='keeper@example.com', username='keeper', password='pass12345')
+        species_instance = SpeciesInstance.objects.create(name='Tank 1', user=keeper, species=species)
+
+        action_type = ActionType.objects.get(slug='bap_notes_required')
+        action, token = create_pending_action(
+            action_type,
+            payload={
+                'to_email': 'keeper@example.com',
+                'speciesInstance_id': species_instance.id,
+                'missing_fields': ['spawning_notes'],
+                'program': 'BAP',
+                'subject': 'Notes needed',
+                'site_url': 'http://testserver',
+                'token': '',
+            },
+            enqueue_email=False,
+        )
+        action.payload['token'] = token
+        action.save(update_fields=['payload'])
+
+        send_action_email(action.id)
+
+        self.assertEqual(len(mail.outbox), 1)
+        body = mail.outbox[0].body
+        self.assertIn('&lt;b&gt;', body)
+        self.assertNotIn('<b>bold</b>', body)

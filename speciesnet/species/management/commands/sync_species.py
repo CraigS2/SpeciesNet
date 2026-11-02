@@ -71,6 +71,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  Updates needing review       : {summary["update_review"]}')
         self.stdout.write(f'  Updates, only automatic chgs : {summary["auto_only"]}')
         self.stdout.write(f'  No change (skipped)          : {summary["no_change"]}')
+        self.stdout.write(f'  Pending elsewhere (skipped)  : {summary["pending_elsewhere"]}')
         self.stdout.write(f'  Invalid codes flagged        : {summary["invalid_codes"]}')
         self.stdout.write(f'  Errors                       : {summary["errors"]}')
         if summary['auto_field_counts']:

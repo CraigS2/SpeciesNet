@@ -284,26 +284,39 @@ def approveSpeciesImportBatch(request, pk):
 
 @login_required(login_url='login')
 def keepAsnTextSpeciesImportBatch(request, pk):
-    """Bulk-approve PENDING staging records, keeping each one's pre-filled ASN text."""
+    """Bulk-approve PENDING UPDATE staging records, keeping each one's
+    pre-filled ASN text.
+
+    PASS3_SCOPE.md Fix 6: CSO_SYNC only, and UPDATE rows only. NEW rows must
+    never be bulk-approved this way - final_description/final_local_distribution
+    start blank for a NEW row (4.6), so bulk-approving one would commit a
+    species with no text at all. A CSV batch has no "ASN text" concept
+    (final_* isn't used on the CSV commit path), so it's refused outright.
+    """
     if not user_can_review_species_import(request.user):
         raise PermissionDenied()
 
     import_archive = get_object_or_404(ImportArchive, pk=pk)
     if request.method == 'POST':
+        if import_archive.source != ImportArchive.ImportSource.CSO_SYNC:
+            messages.error(request, "Keep ASN Text only applies to CSO sync batches.")
+            return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[pk]))
+
         action_filter = request.POST.get('action_filter', '')
         qs = SpeciesImportStaging.objects.filter(
             import_archive=import_archive,
             review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
         )
-        if action_filter:
-            qs = qs.filter(action=action_filter)
+        if action_filter and action_filter != SpeciesImportStaging.ImportAction.UPDATE:
+            qs = SpeciesImportStaging.objects.none()
         count = qs.update(
             review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
         )
         logger.info('User %s bulk-kept-ASN-text for %d staging records in archive %s', request.user.username, count, pk)
-        messages.success(request, f'{count} staging record(s) approved, keeping ASN\'s current text.')
+        messages.success(request, f"{count} staging record(s) approved, keeping ASN's current text. NEW rows are never affected by this action.")
 
     return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[pk]))
 

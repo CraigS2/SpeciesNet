@@ -110,7 +110,7 @@
             {% csrf_token %}
             {% if action_filter %}<input type="hidden" name="action_filter" value="{{ action_filter }}">{% endif %}
             <button type="submit" class="btn btn-outline-success btn-sm"
-                title="Marks pending rows reviewed without touching their pre-filled ASN text - the safe bulk option for text decisions (D6)">
+                title="Marks pending UPDATE rows reviewed without touching their pre-filled ASN text - the safe bulk option for text decisions (D6). Does not affect NEW rows - those must be reviewed individually.">
                 Keep ASN Text (Bulk)
             </button>
         </form>

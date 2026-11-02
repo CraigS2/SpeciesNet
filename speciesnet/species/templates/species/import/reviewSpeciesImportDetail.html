@@ -72,6 +72,9 @@
                                 <span class="badge bg-info text-dark">Auto-applied</span>
                             {% elif row.changed %}
                                 <span class="text-warning">&#9654;</span>
+                                {% if row.field == 'alt_name' or row.field == 'common_name' %}
+                                    <br><small class="text-muted">Approving keeps ASN's value. Edit the species to change it.</small>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>

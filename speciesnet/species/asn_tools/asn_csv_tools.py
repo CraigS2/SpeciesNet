@@ -1564,8 +1564,18 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
 
 
 def _reference_link_url_for_cso_species(cso_id):
-    """Build a link to CSO's species page from its id, for D1 attribution."""
-    base = (getattr(settings, 'TARGET_API_URL', '') or '').rstrip('/')
+    """
+    Build a link to CSO's species page from its id, for D1 attribution and
+    the review screen's "CSO species page" link.
+
+    PASS3_SCOPE.md Fix 9: this is stored permanently in SpeciesReferenceLink
+    and shown to readers, so it must be CSO's public address (SITE2_URL),
+    not TARGET_API_URL (the API address, used only for server-to-server
+    calls and not necessarily reachable/correct for a human visitor).
+    TARGET_API_URL is kept only as a fallback for environments where
+    SITE2_URL isn't configured.
+    """
+    base = (getattr(settings, 'SITE2_URL', '') or getattr(settings, 'TARGET_API_URL', '') or '').rstrip('/')
     if not base or cso_id is None:
         return None
     return f'{base}/caresSpecies/{cso_id}/'
@@ -1641,134 +1651,189 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
         for staged_changes in approved_records:
             results['total'] += 1
             try:
-                if staged_changes.action == SpeciesImportStaging.ImportAction.NEW:
-                    logger.info('Species import saving staged changes to NEW species: %s', staged_changes.new_name)
+                # PASS3_SCOPE.md Fix 2: each row gets its own savepoint, so an
+                # error on one row (e.g. a duplicate NEW species from running
+                # the sync twice) rolls back only that row, not the whole batch.
+                with transaction.atomic():
+                    if staged_changes.action == SpeciesImportStaging.ImportAction.NEW:
+                        logger.info('Species import saving staged changes to NEW species: %s', staged_changes.new_name)
 
-                    # D4/4.6: codes and category come from CSO; text is the
-                    # reviewer's own (final_* starts blank unless they typed
-                    # something, or explicitly accepted CSO's wording - D1).
-                    description = staged_changes.final_description if is_cso_sync else staged_changes.new_description
-                    local_distribution = staged_changes.final_local_distribution if is_cso_sync else staged_changes.new_local_distribution
-
-                    species = Species(
-                        name=staged_changes.new_name,
-                        alt_name=staged_changes.new_alt_name,
-                        common_name=staged_changes.new_common_name,
-                        description=description,
-                        local_distribution=local_distribution,
-                        cares_family=staged_changes.new_cares_family or Species.CaresFamily.UNDEFINED,
-                        cares_classification=staged_changes.new_cares_classification or Species.CaresStatus.NOT_CARES_SPECIES,
-                        cares_assessment_date=_parse_date(staged_changes.new_cares_assessment_date),
-                        iucn_red_list=staged_changes.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
-                        iucn_assessment_date=_parse_date(staged_changes.new_iucn_assessment_date),
-                        category=staged_changes.new_category or Species.Category.CICHLIDS,
-                        global_region=staged_changes.new_global_region or Species.GlobalRegion.AFRICA,
-                        created_by=current_user,
-                        last_edited_by=current_user,
-                    )
-                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
-                    print ('Committing Species: ' + staged_changes.new_name)
-                    species.save()
-                    staged_changes.existing_species = species
-                    results['added'] += 1
-
-                    if is_cso_sync:
-                        reviewer = staged_changes.reviewed_by or current_user
-                        _maybe_add_cso_reference_link(species, staged_changes, 'description', description, reviewer)
-                        _maybe_add_cso_reference_link(species, staged_changes, 'local_distribution', local_distribution, reviewer)
-
-                    csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, 'NEW', 'Added', ''])
-
-                elif staged_changes.action in (SpeciesImportStaging.ImportAction.UPDATE, SpeciesImportStaging.ImportAction.CONFLICT):
-                    species = staged_changes.existing_species
-                    logger.info('Species import saving staged changes to existing species: %s', species.name)
-
-                    if species is None:
-                        raise ObjectDoesNotExist(f"existing_species is None for staging pk={staged_changes.pk}")
-
-                    updated_fields_list = []
-
-                    if is_cso_sync:
-                        # Codes/region/category/auto-filled alt_name/common_name
-                        # were already written when the batch was built. Only
-                        # the reviewer's own text is written here.
-                        reviewer = staged_changes.reviewed_by or current_user
-                        if staged_changes.final_description != (species.description or ''):
-                            species.description = staged_changes.final_description
-                            updated_fields_list.append('description')
-                        if staged_changes.final_local_distribution != (species.local_distribution or ''):
-                            species.local_distribution = staged_changes.final_local_distribution
-                            updated_fields_list.append('local_distribution')
-                        if updated_fields_list:
-                            species.last_edited_by = reviewer
-                            species.save()  # Species.save() normalizes - never .update() for text (4.4)
-
-                        _maybe_add_cso_reference_link(species, staged_changes, 'description', staged_changes.final_description, reviewer)
-                        _maybe_add_cso_reference_link(species, staged_changes, 'local_distribution', staged_changes.final_local_distribution, reviewer)
-                    else:
-                        new_vals = {
-                            'cares_classification':  staged_changes.new_cares_classification,
-                            'cares_family':          staged_changes.new_cares_family,
-                            'cares_assessment_date': staged_changes.new_cares_assessment_date,
-                            'iucn_red_list':         staged_changes.new_iucn_red_list,
-                            'iucn_assessment_date':  staged_changes.new_iucn_assessment_date,
-                            'global_region':         staged_changes.new_global_region,
-                            'category':              staged_changes.new_category,
-                            'common_name':           staged_changes.new_common_name,
-                            'alt_name':              staged_changes.new_alt_name,
-                            'description':           staged_changes.new_description,
-                            'local_distribution':    staged_changes.new_local_distribution,
-                        }
-                        is_override = staged_changes.review_status == SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE
-
-                        if is_override:
-                            # APPROVED_OVERRIDE: force-write every field that was detected as changed.
-                            for field, vals in staged_changes.changed_fields.items():
-                                new_val = vals.get('new')
-                                if new_val is None:
-                                    continue
-                                if field in SPECIES_DATE_FIELDS:
-                                    setattr(species, field, _parse_date(new_val))
-                                    updated_fields_list.append(field)
-                                elif new_val != '':
-                                    setattr(species, field, new_val)
-                                    updated_fields_list.append(field)
+                        # Fix 2: a second batch can propose the same NEW species
+                        # as an earlier batch that's already been committed -
+                        # check first instead of letting Species.save() raise
+                        # IntegrityError on the unique name constraint.
+                        duplicate = find_species_by_name(staged_changes.new_name)
+                        if duplicate is not None:
+                            logger.warning(
+                                'Skipping NEW staging pk=%s: species "%s" already exists '
+                                '(likely created by an earlier batch).',
+                                staged_changes.pk, staged_changes.new_name,
+                            )
+                            staged_changes.existing_species = duplicate
+                            results['skipped'] += 1
+                            csv_report_writer.writerow([
+                                staged_changes.import_row_number, staged_changes.new_name, 'NEW',
+                                'Skipped', 'Duplicate - species already exists',
+                            ])
                         else:
-                            # APPROVED: respect the standard field-level update rules.
-                            for field in SPECIES_ALWAYS_UPDATE_FIELDS:
-                                new_val = new_vals.get(field)
-                                if field in SPECIES_DATE_FIELDS:
-                                    if new_val:
+                            # D4/4.6: codes and category come from CSO; text is the
+                            # reviewer's own (final_* starts blank unless they typed
+                            # something, or explicitly accepted CSO's wording - D1).
+                            description = staged_changes.final_description if is_cso_sync else staged_changes.new_description
+                            local_distribution = staged_changes.final_local_distribution if is_cso_sync else staged_changes.new_local_distribution
+
+                            species = Species(
+                                name=staged_changes.new_name,
+                                alt_name=staged_changes.new_alt_name,
+                                common_name=staged_changes.new_common_name,
+                                description=description,
+                                local_distribution=local_distribution,
+                                cares_family=staged_changes.new_cares_family or Species.CaresFamily.UNDEFINED,
+                                cares_classification=staged_changes.new_cares_classification or Species.CaresStatus.NOT_CARES_SPECIES,
+                                cares_assessment_date=_parse_date(staged_changes.new_cares_assessment_date),
+                                iucn_red_list=staged_changes.new_iucn_red_list or Species.IucnRedList.UNDEFINED,
+                                iucn_assessment_date=_parse_date(staged_changes.new_iucn_assessment_date),
+                                category=staged_changes.new_category or Species.Category.CICHLIDS,
+                                global_region=staged_changes.new_global_region or Species.GlobalRegion.AFRICA,
+                                created_by=current_user,
+                                last_edited_by=current_user,
+                            )
+                            species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                            print ('Committing Species: ' + staged_changes.new_name)
+                            species.save()
+                            staged_changes.existing_species = species
+                            results['added'] += 1
+
+                            if is_cso_sync:
+                                reviewer = staged_changes.reviewed_by or current_user
+                                _maybe_add_cso_reference_link(species, staged_changes, 'description', description, reviewer)
+                                _maybe_add_cso_reference_link(species, staged_changes, 'local_distribution', local_distribution, reviewer)
+
+                            csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, 'NEW', 'Added', ''])
+
+                    elif staged_changes.action in (SpeciesImportStaging.ImportAction.UPDATE, SpeciesImportStaging.ImportAction.CONFLICT):
+                        species = staged_changes.existing_species
+                        logger.info('Species import saving staged changes to existing species: %s', species.name)
+
+                        if species is None:
+                            raise ObjectDoesNotExist(f"existing_species is None for staging pk={staged_changes.pk}")
+
+                        updated_fields_list = []
+
+                        if is_cso_sync:
+                            # Codes/region/category/auto-filled alt_name/common_name
+                            # were already written when the batch was built. Only
+                            # the reviewer's own text is written here.
+                            #
+                            # Fix 3: write final_<field> only if it differs from
+                            # the baseline ASN text recorded when this batch was
+                            # built (changed_fields[field]['old']). If the
+                            # reviewer left it unchanged, write nothing - "keep
+                            # ASN text" keeps ASN's CURRENT text, not a stale
+                            # snapshot. If the reviewer did change it, but the
+                            # species' current text no longer matches that
+                            # baseline (someone else edited it since), don't
+                            # overwrite - flag the row as a conflict instead.
+                            reviewer = staged_changes.reviewed_by or current_user
+                            conflict_fields = []
+                            for field, final_attr in (
+                                ('description', 'final_description'),
+                                ('local_distribution', 'final_local_distribution'),
+                            ):
+                                entry = (staged_changes.changed_fields or {}).get(field)
+                                if not entry:
+                                    continue  # nothing was proposed for this field - nothing to write
+                                baseline = entry.get('old') or ''
+                                final_val = getattr(staged_changes, final_attr) or ''
+                                if normalize_species_text(final_val, keep_linebreaks=True).lower() == \
+                                        normalize_species_text(baseline, keep_linebreaks=True).lower():
+                                    continue  # reviewer left it unchanged
+
+                                current_val = getattr(species, field) or ''
+                                if normalize_species_text(current_val, keep_linebreaks=True).lower() != \
+                                        normalize_species_text(baseline, keep_linebreaks=True).lower():
+                                    conflict_fields.append(field)
+                                    continue
+
+                                setattr(species, field, final_val)
+                                updated_fields_list.append(field)
+
+                            if conflict_fields:
+                                raise ValueError(
+                                    'ASN text changed since this batch was built; re-review '
+                                    f"({', '.join(conflict_fields)})"
+                                )
+
+                            if updated_fields_list:
+                                species.last_edited_by = reviewer
+                                species.save()  # Species.save() normalizes - never .update() for text (4.4)
+
+                            _maybe_add_cso_reference_link(species, staged_changes, 'description', staged_changes.final_description, reviewer)
+                            _maybe_add_cso_reference_link(species, staged_changes, 'local_distribution', staged_changes.final_local_distribution, reviewer)
+                        else:
+                            new_vals = {
+                                'cares_classification':  staged_changes.new_cares_classification,
+                                'cares_family':          staged_changes.new_cares_family,
+                                'cares_assessment_date': staged_changes.new_cares_assessment_date,
+                                'iucn_red_list':         staged_changes.new_iucn_red_list,
+                                'iucn_assessment_date':  staged_changes.new_iucn_assessment_date,
+                                'global_region':         staged_changes.new_global_region,
+                                'category':              staged_changes.new_category,
+                                'common_name':           staged_changes.new_common_name,
+                                'alt_name':              staged_changes.new_alt_name,
+                                'description':           staged_changes.new_description,
+                                'local_distribution':    staged_changes.new_local_distribution,
+                            }
+                            is_override = staged_changes.review_status == SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE
+
+                            if is_override:
+                                # APPROVED_OVERRIDE: force-write every field that was detected as changed.
+                                for field, vals in staged_changes.changed_fields.items():
+                                    new_val = vals.get('new')
+                                    if new_val is None:
+                                        continue
+                                    if field in SPECIES_DATE_FIELDS:
                                         setattr(species, field, _parse_date(new_val))
                                         updated_fields_list.append(field)
-                                elif new_val is not None and new_val != '':
-                                    setattr(species, field, new_val)
-                                    updated_fields_list.append(field)
-                            for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
-                                new_val = new_vals.get(field)
-                                if new_val is not None and new_val != '' and not getattr(species, field, ''):
-                                    setattr(species, field, new_val)
-                                    updated_fields_list.append(field)
-                            # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
+                                    elif new_val != '':
+                                        setattr(species, field, new_val)
+                                        updated_fields_list.append(field)
+                            else:
+                                # APPROVED: respect the standard field-level update rules.
+                                for field in SPECIES_ALWAYS_UPDATE_FIELDS:
+                                    new_val = new_vals.get(field)
+                                    if field in SPECIES_DATE_FIELDS:
+                                        if new_val:
+                                            setattr(species, field, _parse_date(new_val))
+                                            updated_fields_list.append(field)
+                                    elif new_val is not None and new_val != '':
+                                        setattr(species, field, new_val)
+                                        updated_fields_list.append(field)
+                                for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
+                                    new_val = new_vals.get(field)
+                                    if new_val is not None and new_val != '' and not getattr(species, field, ''):
+                                        setattr(species, field, new_val)
+                                        updated_fields_list.append(field)
+                                # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
 
-                        species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
-                        species.last_edited_by = current_user
-                        species.save()
+                            species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                            species.last_edited_by = current_user
+                            species.save()
 
-                    results['updated'] += 1
-                    csv_report_writer.writerow([
-                        staged_changes.import_row_number, staged_changes.new_name, staged_changes.action,
-                        'Updated', f"fields: {', '.join(updated_fields_list)}"
-                    ])
+                        results['updated'] += 1
+                        csv_report_writer.writerow([
+                            staged_changes.import_row_number, staged_changes.new_name, staged_changes.action,
+                            'Updated', f"fields: {', '.join(updated_fields_list)}"
+                        ])
 
-                else:
-                    # SKIP action – shouldn't normally be APPROVED, but handle gracefully
-                    results['skipped'] += 1
-                    csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'Skipped', ''])
+                    else:
+                        # SKIP action – shouldn't normally be APPROVED, but handle gracefully
+                        results['skipped'] += 1
+                        csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'Skipped', ''])
 
-                # Update staging record's reviewed_at timestamp
-                staged_changes.reviewed_at = timezone.now()
-                staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
+                    # Update staging record's reviewed_at timestamp
+                    staged_changes.reviewed_at = timezone.now()
+                    staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
 
             except Exception as exc:
                 logger.error('Error committing staging pk=%s: %s', staged_changes.pk, exc, exc_info=True)
