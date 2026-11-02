@@ -380,6 +380,88 @@ class CommitConflictTest(TestCase):
         results2 = commit_species_import_staging(self.archive, self.reviewer)
         self.assertEqual(results2['total'], 0)
 
+    def test_recommitting_an_already_written_batch_is_a_no_op(self):
+        """
+        Reviewer follow-up #1: with ~300 rows, reviewers approve and commit
+        in rounds, so commitSpeciesImport runs on the same batch more than
+        once. A row already written by an earlier commit must not look
+        like a conflict on the next one (final still differs from the old
+        baseline, and now so does ASN - for the same reason).
+        """
+        species = Species.objects.create(
+            name='Recommitted species', description='Original ASN text', created_by=self.reviewer,
+        )
+        staging = SpeciesImportStaging.objects.create(
+            import_archive=self.archive,
+            import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=species,
+            new_name=species.name,
+            new_description='CSO proposed text',
+            final_description="Reviewer's own rewrite",
+            changed_fields={'description': {'old': 'Original ASN text', 'new': 'CSO proposed text'}},
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+            reviewed_by=self.reviewer,
+        )
+
+        results1 = commit_species_import_staging(self.archive, self.reviewer)
+        self.assertEqual(results1['errors'], 0)
+        species.refresh_from_db()
+        self.assertEqual(species.description, "Reviewer's own rewrite")
+
+        # Committing the SAME batch again (a later round, or a reviewer
+        # double-clicking) must be a safe no-op, not a conflict.
+        results2 = commit_species_import_staging(self.archive, self.reviewer)
+        self.assertEqual(results2['errors'], 0)
+        self.assertEqual(results2['updated'], 1)
+        species.refresh_from_db()
+        self.assertEqual(species.description, "Reviewer's own rewrite")
+        staging.refresh_from_db()
+        self.assertEqual(staging.review_status, SpeciesImportStaging.ReviewStatus.APPROVED)
+
+    def test_conflicted_row_commits_after_being_approved_again(self):
+        """
+        Reviewer follow-up #2: once a conflict resets a row's baseline to
+        ASN's current text, approving the row again (even with the same
+        final text) must commit normally - not conflict forever against
+        the old, stale baseline.
+        """
+        species = Species.objects.create(
+            name='Re-approved species', description='Original ASN text', created_by=self.reviewer,
+        )
+        staging = SpeciesImportStaging.objects.create(
+            import_archive=self.archive,
+            import_row_number=1,
+            action=SpeciesImportStaging.ImportAction.UPDATE,
+            existing_species=species,
+            new_name=species.name,
+            new_description='CSO proposed text',
+            final_description="Reviewer's own rewrite",
+            changed_fields={'description': {'old': 'Original ASN text', 'new': 'CSO proposed text'}},
+            review_status=SpeciesImportStaging.ReviewStatus.APPROVED,
+            reviewed_by=self.reviewer,
+        )
+        species.description = "Someone else's newer text"
+        species.save()
+
+        results1 = commit_species_import_staging(self.archive, self.reviewer)
+        self.assertEqual(results1['errors'], 1)
+        staging.refresh_from_db()
+        self.assertEqual(staging.review_status, SpeciesImportStaging.ReviewStatus.PENDING)
+        self.assertEqual(staging.changed_fields['description']['old'], "Someone else's newer text")
+
+        # The reviewer looks at it again and approves (same decision).
+        staging.review_status = SpeciesImportStaging.ReviewStatus.APPROVED
+        staging.save()
+
+        results2 = commit_species_import_staging(self.archive, self.reviewer)
+        self.assertEqual(results2['errors'], 0)
+        self.assertEqual(results2['updated'], 1)
+        species.refresh_from_db()
+        self.assertEqual(species.description, "Reviewer's own rewrite")
+        staging.refresh_from_db()
+        self.assertEqual(staging.review_status, SpeciesImportStaging.ReviewStatus.APPROVED)
+
 
 class RevertedAutomaticChangeTest(TestCase):
     """Fix 4: an automatic change that's been reverted on the species isn't

@@ -1620,8 +1620,15 @@ class _StagingTextConflict(Exception):
     was built (PASS3_SCOPE.md Fix 3). Caught separately from a generic
     error so the row can be bounced back to PENDING for re-review instead
     of staying APPROVED and failing the same way on every future commit.
+
+    Carries conflict_fields so the handler can refresh each field's
+    baseline ('old') to ASN's current text - without that, the row's old
+    baseline would conflict with ASN's current text forever, and it could
+    never be approved and committed again (Fix 3 follow-up #2).
     """
-    pass
+    def __init__(self, message, conflict_fields):
+        super().__init__(message)
+        self.conflict_fields = conflict_fields
 
 
 def commit_species_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
@@ -1761,6 +1768,10 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                                     continue  # reviewer left it unchanged
 
                                 current_val = getattr(species, field) or ''
+                                if normalize_species_text(current_val, keep_linebreaks=True).lower() == \
+                                        normalize_species_text(final_val, keep_linebreaks=True).lower():
+                                    continue  # already written by an earlier commit of this batch
+
                                 if normalize_species_text(current_val, keep_linebreaks=True).lower() != \
                                         normalize_species_text(baseline, keep_linebreaks=True).lower():
                                     conflict_fields.append(field)
@@ -1772,7 +1783,8 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                             if conflict_fields:
                                 raise _StagingTextConflict(
                                     'ASN text changed since this batch was built; re-review '
-                                    f"({', '.join(conflict_fields)})"
+                                    f"({', '.join(conflict_fields)})",
+                                    conflict_fields,
                                 )
 
                             if updated_fields_list:
@@ -1847,17 +1859,35 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                     staged_changes.save(update_fields=['existing_species', 'reviewed_at'])
 
             except _StagingTextConflict as exc:
-                # Fix 3 follow-up: the row's text write rolled back with the
-                # rest of this savepoint, but the row itself must not stay
-                # APPROVED - that would make it fail the same way on every
-                # future commit attempt. Bounce it back to PENDING so a
-                # human has to look at it again.
+                # Fix 3 follow-up #1: the row's text write rolled back with
+                # the rest of this savepoint, but the row itself must not
+                # stay APPROVED - that would make it fail the same way on
+                # every future commit attempt. Bounce it back to PENDING so
+                # a human has to look at it again.
                 logger.warning('Text conflict committing staging pk=%s: %s', staged_changes.pk, exc)
                 results['errors'] += 1
                 staged_changes.review_status = SpeciesImportStaging.ReviewStatus.PENDING
                 staged_changes.reviewed_at = None
                 staged_changes.review_notes = str(exc)
-                staged_changes.save(update_fields=['review_status', 'reviewed_at', 'review_notes'])
+                update_fields = ['review_status', 'reviewed_at', 'review_notes']
+
+                # Fix 3 follow-up #2: refresh each conflicting field's
+                # baseline to ASN's current text, or this row's OLD
+                # baseline would conflict forever and it could never be
+                # approved and committed again. Reload the species fresh -
+                # the in-memory object may hold values from before the
+                # savepoint rolled back.
+                current_species = Species.objects.filter(pk=staged_changes.existing_species_id).first()
+                if current_species is not None:
+                    changed_fields = dict(staged_changes.changed_fields or {})
+                    for field in exc.conflict_fields:
+                        entry = dict(changed_fields.get(field) or {})
+                        entry['old'] = getattr(current_species, field) or ''
+                        changed_fields[field] = entry
+                    staged_changes.changed_fields = changed_fields
+                    update_fields.append('changed_fields')
+
+                staged_changes.save(update_fields=update_fields)
                 csv_report_writer.writerow([staged_changes.import_row_number, staged_changes.new_name, staged_changes.action, 'ERROR', str(exc)])
 
             except Exception as exc:
