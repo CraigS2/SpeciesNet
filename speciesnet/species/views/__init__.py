@@ -82,8 +82,9 @@ from .views_smp import (
 
 # User Experience
 from .views_ux import (
-    home, about_us, howItWorks, bap_overview, cares_overview, 
-    importArchiveResults, addSpeciesInstanceWizard1, addSpeciesInstanceWizard2
+    home, about_us, howItWorks, bap_overview, cares_overview,
+    importArchiveResults, addSpeciesInstanceWizard1, addSpeciesInstanceWizard2,
+    terms_of_use, legal_notice, privacy_policy,
 )
 
 # Page View Counts
@@ -183,8 +184,9 @@ __all__ = [
     'importArchiveResults',
     
     # UX
-    'home', 'about_us', 'howItWorks', 
-    'bap_overview', 'bap_submissions_overview', 'cares_overview', 
+    'home', 'about_us', 'howItWorks',
+    'bap_overview', 'bap_submissions_overview', 'cares_overview',
+    'terms_of_use', 'legal_notice', 'privacy_policy',
 
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',

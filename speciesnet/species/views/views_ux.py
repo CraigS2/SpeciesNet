@@ -31,6 +31,30 @@ def about_us(request):
     return render(request, settings.CURRENT_SITE_CONFIG['about_us'], context)
 
 
+def terms_of_use(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited terms_of_use page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited terms_of_use page.')
+    return render(request, settings.CURRENT_SITE_CONFIG['terms_template'])
+
+
+def legal_notice(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited legal_notice page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited legal_notice page.')
+    return render(request, settings.CURRENT_SITE_CONFIG['legal_notice_template'])
+
+
+def privacy_policy(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited privacy_policy page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited privacy_policy page.')
+    return render(request, settings.CURRENT_SITE_CONFIG['privacy_template'])
+
+
 def howItWorks(request):
     if request.user.is_authenticated:
         logger.info('User %s visited howItWorks page. ', request.user.username)

@@ -9,6 +9,9 @@ urlpatterns = [
     path('', views.home, name="home"),
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),
+    path('terms/', views.terms_of_use, name="termsOfUse"),
+    path('license/', views.legal_notice, name="legalNotice"),
+    path('privacy/', views.privacy_policy, name="privacyPolicy"),
 
     ### Users == Aquarists ###
 

@@ -10,6 +10,8 @@ from .views import (
     ClubAdminCaresSpeciesInstancesView,
     ClubAdminBapSubmissionsView,
     ClubAdminBapLeaderboardView,
+    PartnerSpeciesListView,
+    PartnerCaresSpeciesListView,
 )
 
 router = DefaultRouter()
@@ -24,4 +26,6 @@ urlpatterns = router.urls + [
     path('club-admin/cares-species-instances/', ClubAdminCaresSpeciesInstancesView.as_view(), name='clubAdminCaresSpeciesInstances'),
     path('club-admin/bap-submissions/', ClubAdminBapSubmissionsView.as_view(), name='clubAdminBapSubmissions'),
     path('club-admin/bap-leaderboard/', ClubAdminBapLeaderboardView.as_view(), name='clubAdminBapLeaderboard'),
+    path('partner/species/', PartnerSpeciesListView.as_view(), name='partnerSpeciesList'),
+    path('partner/cares-species/', PartnerCaresSpeciesListView.as_view(), name='partnerCaresSpeciesList'),
 ]

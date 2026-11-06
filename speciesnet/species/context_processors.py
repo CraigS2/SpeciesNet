@@ -14,4 +14,5 @@ def site_config(request):
 def environment_vars(request):
     return {
         'SITE_TITLE': os.environ.get('SITE_TITLE', 'Aquarist Species'),
+        'SITE_OWNER_DISPLAY_TEXT': settings.SITE_OWNER_DISPLAY_TEXT,
     }

@@ -51,5 +51,14 @@
     {% block content %}
     {% endblock %}
     </div>
+
+    <footer class="text-center text-muted small border-top mt-4 py-3">
+        {{ site_config.footer_copyright }}
+        {% if site_config.footer_shows_terms_license_privacy %}
+            &middot; <a href="{% url 'termsOfUse' %}">Terms</a>
+            &middot; <a href="{% url 'legalNotice' %}">License</a>
+            &middot; <a href="{% url 'privacyPolicy' %}">Privacy</a>
+        {% endif %}
+    </footer>
 </body>
-</html> 
+</html>

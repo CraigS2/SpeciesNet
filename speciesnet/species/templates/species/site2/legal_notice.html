@@ -1,0 +1,44 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+    <h2>License</h2>
+
+    <h4 class="mt-4">Who runs this site</h4>
+    <p>
+        CaresSpecies.org is run by {{ SITE_OWNER_DISPLAY_TEXT }} on behalf of the CARES program, pending formation of a
+        nonprofit corporation. When that corporation exists, the rights below will be transferred to it.
+    </p>
+
+    <h4 class="mt-4">Software</h4>
+    <p>
+        CaresSpecies.org runs on SpeciesNet, a free and open-source software licensed under the MIT License: 
+        see the <a href="https://github.com/CraigS2/SpeciesNet" target="_blank" rel="noopener">GitHub SpeciesNet project</a>.
+    </p>
+
+    <h4 class="mt-4">Original content</h4>
+    <p>
+        Text created by CARES Program contributors for this site is licensed under the
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International License (CC BY 4.0)</a>.
+        You may reuse it if you credit "CaresSpecies.org" and link to the source page.
+    </p>
+    <p>
+        Photos contributed by CARES Program contributors and site users are &copy; their photographers, shown with
+        a photo credit, and licensed for non-commercial reuse with credit under
+        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>.
+    </p>
+    <p>Details are in the <a href="{% url 'termsOfUse' %}">Terms of Use</a>.</p>
+
+    <h4 class="mt-4">Names and logos</h4>
+    <p>
+        CaresSpecies.org and its logo are not covered by these licenses. You may use the name to refer accurately
+        to this site, but not in a way that suggests we endorse you or your product.
+    </p>
+
+    <h4 class="mt-4">Contact and copyright complaints</h4>
+    <p>
+        To report content you believe infringes your copyright, email
+        <b><i>caresspecies@gmail.com</i></b> with the details listed in the
+        <a href="{% url 'termsOfUse' %}">Terms of Use</a>.
+    </p>
+</div>
+{% endblock content %}
