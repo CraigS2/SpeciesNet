@@ -1,0 +1,205 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container mt-4 mb-5">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h3 class="my-0">Partner Species API Documentation</h3>
+        </div>
+        <div class="card-body px-4 py-3">
+          <p>
+            The partner species API lets an approved partner service pull this site's species list
+            server-to-server, so the partner can link its own listings to the matching species pages
+            here. It is <strong>read-only</strong> and authenticated with a per-partner
+            <strong>API key</strong> rather than a user account.
+          </p>
+
+          <h5 class="mt-4">Authentication</h5>
+          <p>
+            Partner keys are issued by a site administrator on request &mdash; there is no
+            self-service page. The raw key is handed over <strong>exactly once</strong>, over a
+            secure channel; only a hash of it is stored here, so a lost key can't be recovered, only
+            replaced. Keep it on your server and never embed it in a browser page or mobile app.
+          </p>
+          <p>Send it on every request as a header (never in the URL or query string):</p>
+          <pre class="bg-light p-3 rounded small"><code>X-Partner-Api-Key: &lt;your-partner-api-key&gt;</code></pre>
+          <p>
+            <strong>Key rotation:</strong> a partner can have a second key active alongside the
+            current one, so you can switch to a new key without downtime. Ask the administrator for
+            the new key, deploy it, then let them know so the old key can be retired. Both keys
+            share the same rate limit.
+          </p>
+
+          <h5 class="mt-4">Errors</h5>
+          <table class="table table-sm table-bordered w-auto">
+            <thead class="table-light"><tr><th>Status</th><th>Meaning</th><th>Body</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>401</code></td>
+                <td>Header missing, or the API isn't enabled on this site</td>
+                <td><code>{"detail": "Partner API key required."}</code></td>
+              </tr>
+              <tr>
+                <td><code>401</code></td>
+                <td>Header present but the key doesn't match any partner</td>
+                <td><code>{"detail": "Invalid partner API key."}</code></td>
+              </tr>
+              <tr>
+                <td><code>400</code></td>
+                <td>Unparseable <code>since</code> value</td>
+                <td><code>["Invalid since value: \"...\". Use an ISO 8601 date or datetime."]</code></td>
+              </tr>
+              <tr>
+                <td><code>405</code></td>
+                <td>Any method other than <code>GET</code> (the API is read-only)</td>
+                <td><code>{"detail": "Method \"POST\" not allowed."}</code></td>
+              </tr>
+              <tr>
+                <td><code>429</code></td>
+                <td>Rate limit exceeded &mdash; see below</td>
+                <td><code>{"detail": "Request was throttled. Expected available in N seconds."}</code></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h5 class="mt-4">Rate limiting</h5>
+          <p>
+            Requests are limited per partner, by default to <strong>120 requests per hour</strong>.
+            Going over returns <code>429</code>; wait the number of seconds in the response (also
+            sent as a <code>Retry-After</code> header) before trying again. With page sizes up to
+            1,000 a full sync takes only a handful of requests, so the limit is rarely a concern for
+            a normal daily or hourly sync.
+          </p>
+
+          <h5 class="mt-4">Pagination</h5>
+          <p>
+            Every list response is wrapped in <code>count</code>, <code>next</code>,
+            <code>previous</code> and <code>results</code>. Follow <code>next</code> until it is
+            <code>null</code> to read every page.
+          </p>
+          <ul>
+            <li><code>?page_size=</code> &mdash; results per page, default 500, maximum 1,000.</li>
+            <li><code>?page=</code> &mdash; page number, starting at 1.</li>
+          </ul>
+
+          <h5 class="mt-4">Incremental sync: the <code>since</code> parameter</h5>
+          <p>
+            <code>?since=</code> returns only species updated at or after that time. Accepts a date
+            (<code>2026-10-01</code>) or an ISO 8601 datetime (<code>2026-10-01T00:00:00Z</code>).
+            Prefer the <code>Z</code> suffix for UTC; if you send an offset like
+            <code>+00:00</code>, URL-encode the <code>+</code> as <code>%2B</code>.
+            An unparseable value is a client error (<code>400</code>), not silently ignored, so a
+            typo can't turn an incremental sync into a full one. Store the time you
+            <em>started</em> each sync and pass it as <code>since</code> on the next run.
+          </p>
+
+          <h5 class="mt-4">Endpoints</h5>
+          <ul>
+            <li><a href="#species">Species</a></li>
+            <li><a href="#cares-species">CARES Species</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Species -->
+      <div class="card shadow-sm mb-4" id="species">
+        <div class="card-header"><h5 class="my-0">GET /api/partner/species/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>Every species on the site, ordered by name.</p>
+          <p class="text-muted small mb-1">
+            <strong>Query parameters:</strong> <code>since</code>, <code>page</code>,
+            <code>page_size</code> (all optional).
+          </p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl "https://yourdomain.example.com/api/partner/species/?since=2026-10-01" \
+  -H "X-Partner-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1234,
+      "name": "Xenotoca doadrioi",
+      "alt_name": "",
+      "url": "https://yourdomain.example.com/species/1234/",
+      "last_updated": "2026-10-31T14:02:11Z"
+    }
+  ]
+}</code></pre>
+          <p class="fw-semibold mb-1">Fields</p>
+          <table class="table table-sm table-bordered">
+            <thead class="table-light"><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>id</code></td><td>integer</td><td>Species id &mdash; stable, use it as your key</td></tr>
+              <tr><td><code>name</code></td><td>string</td><td>Scientific name as shown on the site</td></tr>
+              <tr><td><code>alt_name</code></td><td>string</td><td>Alternate/synonym name; empty string if none</td></tr>
+              <tr><td><code>url</code></td><td>string</td><td>Absolute link to the species page</td></tr>
+              <tr><td><code>last_updated</code></td><td>ISO 8601 datetime</td><td>When the species record last changed</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CARES Species -->
+      <div class="card shadow-sm mb-4" id="cares-species">
+        <div class="card-header"><h5 class="my-0">GET /api/partner/cares-species/</h5></div>
+        <div class="card-body px-4 py-3">
+          <p>
+            Only species flagged as CARES (conservation priority) species, with their CARES
+            classification. Same fields as <a href="#species">Species</a>, plus the two below.
+          </p>
+          <p class="text-muted small mb-1">
+            <strong>Query parameters:</strong> <code>since</code>, <code>page</code>,
+            <code>page_size</code> (all optional).
+          </p>
+          <p class="fw-semibold mb-1">Example request</p>
+<pre class="bg-light p-3 rounded small"><code>curl https://yourdomain.example.com/api/partner/cares-species/ \
+  -H "X-Partner-Api-Key: YOUR_KEY"</code></pre>
+          <p class="fw-semibold mb-1">Example response</p>
+<pre class="bg-light p-3 rounded small"><code>{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1234,
+      "name": "Xenotoca doadrioi",
+      "alt_name": "",
+      "url": "https://yourdomain.example.com/species/1234/",
+      "last_updated": "2026-10-31T14:02:11Z",
+      "cares_classification": "CCR",
+      "cares_classification_display": "Critically Endangered"
+    }
+  ]
+}</code></pre>
+          <p class="fw-semibold mb-1">Additional fields</p>
+          <table class="table table-sm table-bordered">
+            <thead class="table-light"><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>cares_classification</code></td><td>string code</td><td>One of the codes below</td></tr>
+              <tr><td><code>cares_classification_display</code></td><td>string</td><td>Human-readable label for the code</td></tr>
+            </tbody>
+          </table>
+          <table class="table table-sm table-bordered w-auto">
+            <thead class="table-light"><tr><th>Code</th><th>Label</th></tr></thead>
+            <tbody>
+              <tr><td><code>CNT</code></td><td>Near Threatened</td></tr>
+              <tr><td><code>CVU</code></td><td>Vulnerable</td></tr>
+              <tr><td><code>CEN</code></td><td>Endangered</td></tr>
+              <tr><td><code>CCR</code></td><td>Critically Endangered</td></tr>
+              <tr><td><code>CEW</code></td><td>Extinct in the Wild</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <a href="javascript:history.back()" class="btn btn-secondary btn-sm">&#8592; Back</a>
+
+    </div>
+  </div>
+</div>
+{% endblock content %}
