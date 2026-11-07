@@ -55,6 +55,16 @@ def privacy_policy(request):
     return render(request, settings.CURRENT_SITE_CONFIG['privacy_template'])
 
 
+def apiDocs(request):
+    """
+    Reference documentation for the partner species API (the endpoints
+    authenticated via X-Partner-Api-Key, used by Auction.fish). Static
+    reference, safe to view without being signed in. Orphaned for now -
+    reachable only at /api_docs/, not linked from any menu.
+    """
+    return render(request, 'species/apiDocs.html')
+
+
 def howItWorks(request):
     if request.user.is_authenticated:
         logger.info('User %s visited howItWorks page. ', request.user.username)

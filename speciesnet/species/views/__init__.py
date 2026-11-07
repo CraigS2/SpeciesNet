@@ -84,7 +84,7 @@ from .views_smp import (
 from .views_ux import (
     home, about_us, howItWorks, bap_overview, cares_overview,
     importArchiveResults, addSpeciesInstanceWizard1, addSpeciesInstanceWizard2,
-    terms_of_use, legal_notice, privacy_policy,
+    terms_of_use, legal_notice, privacy_policy, apiDocs,
 )
 
 # Page View Counts
@@ -186,7 +186,7 @@ __all__ = [
     # UX
     'home', 'about_us', 'howItWorks',
     'bap_overview', 'bap_submissions_overview', 'cares_overview',
-    'terms_of_use', 'legal_notice', 'privacy_policy',
+    'terms_of_use', 'legal_notice', 'privacy_policy', 'apiDocs',
 
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',

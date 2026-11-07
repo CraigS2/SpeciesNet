@@ -12,6 +12,7 @@ urlpatterns = [
     path('terms/', views.terms_of_use, name="termsOfUse"),
     path('license/', views.legal_notice, name="legalNotice"),
     path('privacy/', views.privacy_policy, name="privacyPolicy"),
+    path('api_docs/', views.apiDocs, name="apiDocs"),
 
     ### Users == Aquarists ###
 

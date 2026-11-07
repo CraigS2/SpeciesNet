@@ -255,3 +255,29 @@ class GeneratePartnerApiKeyCommandTest(MinimalTestCase):
         # beyond "the command ran and printed output", which confirms it
         # didn't try to touch a database table.
         self.assertIn('Nothing was stored', out.getvalue())
+
+
+class PartnerApiDocsViewTests(MinimalTestCase):
+    """Test suite for the apiDocs reference page (orphaned at /api_docs/)"""
+
+    def test_accessible_without_login(self):
+        """It's a static reference page with no partner-specific data — no auth required."""
+        response = self.client.get('/api_docs/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'species/apiDocs.html')
+
+    def test_documents_all_partner_endpoints(self):
+        response = self.client.get('/api_docs/')
+        for path in ('/api/partner/species/', '/api/partner/cares-species/'):
+            self.assertContains(response, path)
+
+    def test_documents_auth_header_and_errors(self):
+        response = self.client.get('/api_docs/')
+        self.assertContains(response, 'X-Partner-Api-Key')
+        self.assertContains(response, 'Partner API key required.')
+        self.assertContains(response, 'Invalid partner API key.')
+
+    def test_never_shows_configured_keys(self):
+        with override_settings(PARTNER_API_KEYS=PARTNER_API_KEYS):
+            response = self.client.get('/api_docs/')
+        self.assertNotContains(response, hashlib.sha256(RAW_KEY.encode()).hexdigest())
