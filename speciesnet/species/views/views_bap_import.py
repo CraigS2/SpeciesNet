@@ -35,6 +35,7 @@ from species.models import (
 from species.services.bap_service import create_bap_submission, resolve_bap_points
 from species.services.proxy_user_service import create_proxy_user, OUTCOME_CREATED
 from species.asn_tools.auction_fish_api import fetch_bap_lots, lookup_af_species_match, _QUOTA_EXHAUSTED, AuctionFishAPIError
+from species.asn_tools.asn_utils import find_species_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -706,13 +707,9 @@ def processBapImport(request, pk):
 
         try:
             # 1. Resolve species
-            try:
-                species_obj = Species.objects.get(name__iexact=species_name)
-            except Species.DoesNotExist:
+            species_obj = find_species_by_name(species_name)
+            if species_obj is None:
                 row['Import status'] = f'Error: species not found "{species_name}"'
-                continue
-            except Species.MultipleObjectsReturned:
-                row['Import status'] = f'Error: multiple species matched "{species_name}"'
                 continue
 
             # 2. Resolve / create user

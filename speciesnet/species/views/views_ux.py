@@ -31,6 +31,40 @@ def about_us(request):
     return render(request, settings.CURRENT_SITE_CONFIG['about_us'], context)
 
 
+def terms_of_use(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited terms_of_use page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited terms_of_use page.')
+    return render(request, settings.CURRENT_SITE_CONFIG['terms_template'])
+
+
+def legal_notice(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited legal_notice page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited legal_notice page.')
+    return render(request, settings.CURRENT_SITE_CONFIG['legal_notice_template'])
+
+
+def privacy_policy(request):
+    if request.user.is_authenticated:
+        logger.info('User %s visited privacy_policy page.', request.user.username)
+    else:
+        logger.info('Anonymous user visited privacy_policy page.')
+    return render(request, settings.CURRENT_SITE_CONFIG['privacy_template'])
+
+
+def apiDocs(request):
+    """
+    Reference documentation for the partner species API (the endpoints
+    authenticated via X-Partner-Api-Key, used by Auction.fish). Static
+    reference, safe to view without being signed in. Orphaned for now -
+    reachable only at /api_docs/, not linked from any menu.
+    """
+    return render(request, 'species/apiDocs.html')
+
+
 def howItWorks(request):
     if request.user.is_authenticated:
         logger.info('User %s visited howItWorks page. ', request.user.username)

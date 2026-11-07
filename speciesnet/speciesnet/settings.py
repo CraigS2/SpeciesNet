@@ -28,6 +28,16 @@ if SITE_ID==1:
 else:
     site_domain_2 = SITE_DOMAIN
 
+# Footer text per site-legal-notice-asn.md / site-legal-notice-cso.md
+# ("Footer (one line on every page)") - rendered in templates/main.html.
+# Set per deployment in .env - no real site name/ownership text lives in source.
+COPYRIGHT_TEXT = os.getenv('COPYRIGHT_TEXT', '')
+DISPLAY_TERMS_LICENSE_PRIVACY = os.getenv('DISPLAY_TERMS_LICENSE_PRIVACY', 'False') == 'True'
+
+# Who runs the site, shown on the Terms/License/Privacy pages - set per
+# deployment in .env rather than hardcoding a real name in source.
+SITE_OWNER_DISPLAY_TEXT = os.getenv('SITE_OWNER_DISPLAY_TEXT', 'Site Owner Name')
+
 SITE_CONFIGS = {
     1: {
         'name': 'Aquarist Species',
@@ -36,10 +46,15 @@ SITE_CONFIGS = {
         #'primary_color': 'rgb(152, 199, 231)',  # ASN blue
         #'secondary_color': '#6c757d',
         #'contact_email': 'contact@aquarist.example.com',
-        'main_css': 'styles/site1/asn_main.css',        
+        'main_css': 'styles/site1/asn_main.css',
         'navbar_template': 'site1/navbar.html',
         'home_template': 'species/site1/home.html',
         'about_us': 'species/site1/about_us.html',
+        'terms_template': 'species/site1/terms_of_use.html',
+        'legal_notice_template': 'species/site1/legal_notice.html',
+        'privacy_template': 'species/site1/privacy_policy.html',
+        'footer_copyright': COPYRIGHT_TEXT,
+        'footer_shows_terms_license_privacy': DISPLAY_TERMS_LICENSE_PRIVACY,
     },
     2: {
         'name': 'CARES Species',
@@ -48,10 +63,15 @@ SITE_CONFIGS = {
         #'primary_color': 'rgb(183, 208, 189)',  # CARES green
         #'secondary_color': '#ffc107',
         #'contact_email': 'contact@cares.example.com',
-        'main_css': 'styles/site2/cares_main.css',        
+        'main_css': 'styles/site2/cares_main.css',
         'navbar_template': 'site2/navbar.html',
         'home_template': 'species/site2/home.html',
         'about_us': 'species/site2/about_us.html',
+        'terms_template': 'species/site2/terms_of_use.html',
+        'legal_notice_template': 'species/site2/legal_notice.html',
+        'privacy_template': 'species/site2/privacy_policy.html',
+        'footer_copyright': COPYRIGHT_TEXT,
+        'footer_shows_terms_license_privacy': DISPLAY_TERMS_LICENSE_PRIVACY,
     }
 }
 
@@ -166,9 +186,11 @@ LOGGING = {
             'propagate': False,
         },
     },
-    # root logger catches everything not specified above
+    # root logger catches everything not specified above. 'console' (level
+    # INFO) already emits ERROR-level records, so adding 'error_console' here
+    # duplicated every error-level log line.
     'root': {
-        'handlers': ['console', 'error_console'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
 }
@@ -466,6 +488,17 @@ TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
 ### Admin notification email (used for sync error alerts) ###
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+
+### ASN Partner Species API (site-wide, read-only - see               ###
+### "ASN Partner Species API — Requirements.md"). Not to be confused   ###
+### with the per-club auction.fish API key encryption below, which is  ###
+### a separate, club-scoped integration.                               ###
+
+# Comma-separated 'label:sha256hex' entries, e.g. 'auctionfish:3f5a...'.
+# Empty means the API is off (SEC-6). Malformed entries are ignored.
+# Generate entries with: python manage.py generate_partner_api_key <label>
+PARTNER_API_KEYS = os.environ.get('PARTNER_API_KEYS', '')
+PARTNER_API_THROTTLE_RATE = os.environ.get('PARTNER_API_THROTTLE_RATE', '120/hour')
 
 
 

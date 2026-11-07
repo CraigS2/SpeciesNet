@@ -82,8 +82,9 @@ from .views_smp import (
 
 # User Experience
 from .views_ux import (
-    home, about_us, howItWorks, bap_overview, cares_overview, 
-    importArchiveResults, addSpeciesInstanceWizard1, addSpeciesInstanceWizard2
+    home, about_us, howItWorks, bap_overview, cares_overview,
+    importArchiveResults, addSpeciesInstanceWizard1, addSpeciesInstanceWizard2,
+    terms_of_use, legal_notice, privacy_policy, apiDocs,
 )
 
 # Page View Counts
@@ -110,8 +111,8 @@ from .views_tools import (
 # Species Import with Review-Approve Workflow
 from .views_species_import import (
     importSpeciesToStaging, reviewSpeciesImport, reviewSpeciesImportDetail,
-    approveSpeciesImportBatch, rejectSpeciesImportBatch, commitSpeciesImport,
-    importSpeciesReferenceLinks,
+    approveSpeciesImportBatch, rejectSpeciesImportBatch, keepAsnTextSpeciesImportBatch,
+    commitSpeciesImport, importSpeciesReferenceLinks,
 )
 
 # BAP Import Workflow
@@ -183,8 +184,9 @@ __all__ = [
     'importArchiveResults',
     
     # UX
-    'home', 'about_us', 'howItWorks', 
-    'bap_overview', 'bap_submissions_overview', 'cares_overview', 
+    'home', 'about_us', 'howItWorks',
+    'bap_overview', 'bap_submissions_overview', 'cares_overview',
+    'terms_of_use', 'legal_notice', 'privacy_policy', 'apiDocs',
 
     # Admin Tools
     'speciesInstancesWithLogs', 'speciesInstancesWithEmptyLogs', 'speciesInstancesWithVideos',
@@ -193,7 +195,7 @@ __all__ = [
 
     # CARES Import Workflow
     'importSpeciesToStaging', 'reviewSpeciesImport', 'reviewSpeciesImportDetail',
-    'approveSpeciesImportBatch', 'rejectSpeciesImportBatch', 'commitSpeciesImport',
+    'approveSpeciesImportBatch', 'rejectSpeciesImportBatch', 'keepAsnTextSpeciesImportBatch', 'commitSpeciesImport',
 
     # Species Reference Link Import
     'importSpeciesReferenceLinks',

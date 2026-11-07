@@ -6,7 +6,8 @@ from .models import User
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
 from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive, BapImportBatch
-from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, CaresRegistration, CaresApprover
+from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, BapYear, CaresRegistration, CaresApprover
+from .models import BapTier, BapLifetimeTotal, SmpLeaderboard, SmpLifetimeTotal
 from .models import SpeciesFeedback, SpeciesAdmin
 from .models import PageViewCount, PageViewMonthlySnapshot
 from allauth.account.models import EmailAddress
@@ -36,7 +37,7 @@ class UserAdmin(BaseUserAdmin):
     #readonly_fields = ('date_joined', 'last_login')  # TODO enable when last_login is added back to the model 
     readonly_fields = ('date_joined',)  # Must be readonly
     list_filter  = BaseUserAdmin.list_filter +  ('is_admin', 'is_species_admin', 'is_private_name', 'is_private_location', 'is_proxy',)
-    list_display = BaseUserAdmin.list_display + ('is_admin', 'is_species_admin', 'is_proxy','get_verified_status',)
+    list_display = BaseUserAdmin.list_display + ('is_admin', 'is_species_admin', 'is_proxy','get_verified_status', 'date_joined',)
     inlines = [EmailAddressInline]
 
     def get_queryset(self, request):
@@ -101,21 +102,98 @@ class AquaristClubAdmin(admin.ModelAdmin):
 
 
 admin.site.register (AquaristClubMember)
-admin.site.register (Species)
+
+
+class SpeciesModelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'cares_classification', 'render_cares', 'created')
+    list_filter = ('category', 'cares_classification', 'render_cares')
+    date_hierarchy = 'created'
+
+
+admin.site.register(Species, SpeciesModelAdmin)
 admin.site.register (SpeciesComment)
 admin.site.register (SpeciesAdmin)
 admin.site.register (SpeciesReferenceLink)
-admin.site.register (SpeciesInstance)
+
+
+class SpeciesInstanceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'species', 'currently_keep', 'created')
+    list_filter = ('currently_keep',)
+    date_hierarchy = 'created'
+
+
+admin.site.register(SpeciesInstance, SpeciesInstanceAdmin)
 admin.site.register (SpeciesInstanceLabel)
 admin.site.register (SpeciesInstanceLogEntry)
 admin.site.register (SpeciesMaintenanceLog)
 admin.site.register (SpeciesMaintenanceLogEntry)
 admin.site.register (ImportArchive)
-admin.site.register (BapSubmission)
+
+
+class BapSubmissionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'aquarist', 'club', 'species', 'status', 'points', 'created')
+    list_filter = ('status', 'club')
+    date_hierarchy = 'created'
+
+
+admin.site.register(BapSubmission, BapSubmissionAdmin)
 admin.site.register (BapGenus)
 admin.site.register (BapSpecies)
 admin.site.register (BapLeaderboard)
-admin.site.register (CaresRegistration)
+
+
+class BapYearAdmin(admin.ModelAdmin):
+    list_display = ('club', 'year_label', 'status', 'start_date', 'end_date', 'closed_at')
+    list_filter = ('status', 'club')
+    ordering = ('club', '-year_label')
+
+
+admin.site.register(BapYear, BapYearAdmin)
+
+
+class BapTierAdmin(admin.ModelAdmin):
+    list_display = ('club', 'program', 'name', 'threshold_points', 'sort_order')
+    list_filter = ('program', 'club')
+    ordering = ('club', 'program', 'sort_order')
+
+
+admin.site.register(BapTier, BapTierAdmin)
+
+
+class BapLifetimeTotalAdmin(admin.ModelAdmin):
+    list_display = ('club', 'aquarist', 'points', 'species_count', 'cares_species_count', 'current_tier')
+    list_filter = ('club', 'current_tier')
+    ordering = ('club', '-points')
+
+
+admin.site.register(BapLifetimeTotal, BapLifetimeTotalAdmin)
+
+
+class SmpLeaderboardAdmin(admin.ModelAdmin):
+    list_display = ('club', 'aquarist', 'bap_year', 'points', 'species_count', 'is_final')
+    list_filter = ('club', 'bap_year', 'is_final')
+    ordering = ('club', '-points')
+
+
+admin.site.register(SmpLeaderboard, SmpLeaderboardAdmin)
+
+
+class SmpLifetimeTotalAdmin(admin.ModelAdmin):
+    list_display = ('club', 'aquarist', 'points', 'species_count', 'current_tier')
+    list_filter = ('club', 'current_tier')
+    ordering = ('club', '-points')
+
+
+admin.site.register(SmpLifetimeTotal, SmpLifetimeTotalAdmin)
+
+
+class CaresRegistrationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'aquarist_name', 'species', 'affiliate_club', 'status', 'date_requested')
+    list_filter = ('status', 'affiliate_club')
+    date_hierarchy = 'date_requested'
+
+
+admin.site.register(CaresRegistration, CaresRegistrationAdmin)
 admin.site.register (CaresApprover)
 admin.site.register(SpeciesFeedback, SpeciesFeedbackAdmin)
 

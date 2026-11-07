@@ -4,6 +4,7 @@ from django.forms import formset_factory
 from django.forms.formsets import formset_factory
 from django.utils import timezone
 from django.core.validators import MinValueValidator, validate_email
+from django.db.models import Q
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, Row, Column, Field, Submit, HTML, Div
 from crispy_forms.bootstrap import PrependedText, AppendedText, FormActions
@@ -13,6 +14,8 @@ from .models import SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry, ImportArc
 from .models import User, UserEmail, AquaristClub, AquaristClubMember
 from .models import BapSubmission, BapGenus, BapSpecies, BapTier, SmpSubmission, CaresRegistration, CaresApprover
 from .models import SpeciesFeedback
+from .asn_tools.text_normalize import normalize_species_text
+from .asn_tools.asn_utils import find_species_by_name
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -102,7 +105,57 @@ class CollectionPointField(forms.MultiValueField):
             raise forms.ValidationError('Invalid collection location selected.')
 
 
-class SpeciesForm2(ModelForm):
+class SpeciesTextNormalizationMixin:
+    """
+    Shared clean_<field> methods for every Species ModelForm: normalizes
+    quotes/whitespace (PASS1_SCOPE.md) on name/alt_name/common_name
+    (name rule) and description/local_distribution (free-text rule).
+
+    clean_name also blocks renaming into a collision with another
+    species - but only on edit (self.instance.pk set). On create, a
+    duplicate isn't a form error: the view redirects to the existing
+    species instead (via find_species_by_name). SpeciesForm (the bulk
+    CSV importer) never sets instance.pk, so this check naturally never
+    fires there, preserving its own "report duplicate rows" behavior.
+    """
+
+    def clean_name(self):
+        name = normalize_species_text(self.cleaned_data.get('name'))
+        if self.instance and self.instance.pk:
+            if Species.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError(f'A species with the name "{name}" already exists.')
+        return name
+
+    def validate_unique(self):
+        # Species.name has a DB-level unique constraint (migrations/
+        # 0016_species_name_unique.py), so Django's ModelForm runs its own
+        # automatic uniqueness check on it independently of clean_name above
+        # - and that automatic check doesn't know about this mixin's
+        # create-vs-edit distinction (a duplicate on create isn't a form
+        # error; the view redirects instead - see clean_name's docstring).
+        # clean_name is solely responsible for the uniqueness decision, so
+        # exclude 'name' from Django's own check here.
+        exclude = set(self._get_validation_exclusions())
+        exclude.add('name')
+        try:
+            self.instance.validate_unique(exclude=exclude)
+        except forms.ValidationError as e:
+            self._update_errors(e)
+
+    def clean_alt_name(self):
+        return normalize_species_text(self.cleaned_data.get('alt_name'))
+
+    def clean_common_name(self):
+        return normalize_species_text(self.cleaned_data.get('common_name'))
+
+    def clean_description(self):
+        return normalize_species_text(self.cleaned_data.get('description'), keep_linebreaks=True)
+
+    def clean_local_distribution(self):
+        return normalize_species_text(self.cleaned_data.get('local_distribution'), keep_linebreaks=True)
+
+
+class SpeciesForm2(SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -202,7 +255,7 @@ class SpeciesForm2(ModelForm):
             )
         )
 
-class CaresSpeciesForm(ModelForm):
+class CaresSpeciesForm(SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -317,9 +370,9 @@ class CaresSpeciesForm(ModelForm):
                 HTML('<a href="{% url \'speciesSearch\' %}" class="btn btn-secondary btn-lg ms-2">Cancel</a>'),
                 css_class='mt-2'
             )
-        ) 
+        )
 
-class CaresSpeciesForm2(ModelForm):
+class CaresSpeciesForm2(SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
@@ -464,6 +517,10 @@ class CaresRegistrationAnonymousForm (ModelForm):
 
 
 class CaresRegistrationAnonymousForm2(ModelForm):
+    # verification_photo is blank=True on the model (to allow legacy imports with no
+    # original photo) — new submissions must still require it, so re-assert it here.
+    verification_photo = forms.ImageField(required=True)
+
     class Meta:
         model = CaresRegistration
         fields = ['aquarist_name', 'aquarist_email', 'affiliate_club', 'collection_location',
@@ -579,6 +636,10 @@ class CaresRegistrationFromInstanceForm(ModelForm):
     the aquarist only needs to supply affiliate_club, species_source,
     and a verification_photo.
     """
+    # verification_photo is blank=True on the model (to allow legacy imports with no
+    # original photo) — new submissions must still require it, so re-assert it here.
+    verification_photo = forms.ImageField(required=True)
+
     class Meta:
         model = CaresRegistration
         fields = ['affiliate_club', 'species_source', 'verification_photo']
@@ -648,10 +709,26 @@ class CaresRegistrationAdminForm (ModelForm):
         exclude = ['name', 'species', 'collection_location']
         widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}        
+                    'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        species = self.instance.species if self.instance else None
+        if species:
+            # Manual edit, unlike the automatic approver swap: a CaresApprover
+            # with specialty 'UDF' (Undefined) is kept as an option here on
+            # purpose, since an admin occasionally needs to assign a
+            # catch-all approver by hand.
+            self.fields['cares_approver'].queryset = CaresApprover.objects.filter(
+                Q(specialty=species.cares_family) | Q(specialty='UDF')
+            )
 
 # registration submition by Cares Admin
 class CaresRegistrationSubmitionAdminForm (ModelForm):
+    # verification_photo is blank=True on the model (to allow legacy imports with no
+    # original photo) — new submissions must still require it, so re-assert it here.
+    verification_photo = forms.ImageField(required=True)
+
     class Meta:
         model = CaresRegistration
         fields = '__all__'
@@ -678,6 +755,15 @@ class CaresRegistrationApprovalForm(ModelForm):
     def __init__(self, *args, species=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['cares_approver'].required = False
+
+        if species:
+            # Manual edit, unlike the automatic approver swap: a CaresApprover
+            # with specialty 'UDF' (Undefined) is kept as an option here on
+            # purpose, since an admin occasionally needs to assign a
+            # catch-all approver by hand.
+            self.fields['cares_approver'].queryset = CaresApprover.objects.filter(
+                Q(specialty=species.cares_family) | Q(specialty='UDF')
+            )
 
         if species and species.manage_collection_locations:
             location_choices = [('', '-- Not specified --')]
@@ -734,18 +820,24 @@ class CaresApproverForm (ModelForm):
         fields = '__all__'
         exclude = ['name', 'last_updated_by']
         
-class SpeciesForm (ModelForm):
+class SpeciesForm (SpeciesTextNormalizationMixin, ModelForm):
     class Meta:
         model = Species
         fields = '__all__'
         exclude = ['render_cares', 'species_instance_count', 'manage_collection_locations']
         widgets = {'name':                forms.Textarea(attrs={'rows':1,'cols':50}),
                     'alt_name':           forms.Textarea(attrs={'rows':1,'cols':50}),
-                    'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),                   
+                    'common_name':        forms.Textarea(attrs={'rows':1,'cols':50}),
                     'description':        forms.Textarea(attrs={'rows':6,'cols':50}),
                     'photo_credit':       forms.Textarea(attrs={'rows':1,'cols':50}),
                     'local_distribution': forms.Textarea(attrs={'rows':1,'cols':50}),}
-        
+
+    # The mixin's clean_name only rejects duplicates when self.instance.pk
+    # is set. import_csv_species (the bulk CSV importer that uses this
+    # form) always constructs this form with no instance=, so that never
+    # fires - is_valid() still passes for a dupe row, and the importer's
+    # own find_species_by_name check reports "species exists" itself.
+
 class SpeciesImportMinimumForm (ModelForm):
     class Meta:
         model = Species
@@ -770,6 +862,9 @@ class SpeciesInstanceForm (ModelForm):
                    'aquarist_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
                    'spawning_notes':             forms.Textarea(attrs={'rows':6,'cols':50}),
                    'fry_rearing_notes':          forms.Textarea(attrs={'rows':6,'cols':50}),}
+
+    def clean_name(self):
+        return normalize_species_text(self.cleaned_data.get('name'))
 
 class SpeciesInstanceForm2(ModelForm):
     class Meta:
@@ -922,6 +1017,9 @@ class SpeciesInstanceForm2(ModelForm):
             )
         )
 
+    def clean_name(self):
+        return normalize_species_text(self.cleaned_data.get('name'))
+
 class CombinedSpeciesForm(forms.Form):
     # Species fields
     species_name = forms.CharField(
@@ -1029,14 +1127,18 @@ class CombinedSpeciesForm(forms.Form):
         )
     
     def clean_species_name(self):
-        name = self. cleaned_data. get('species_name')
-        if Species.objects.filter(name__iexact=name).exists():
+        name = normalize_species_text(self.cleaned_data.get('species_name'))
+        if find_species_by_name(name) is not None:
             raise forms.ValidationError(
                 f'A species with the name "{name}" already exists.  '
                 'Please use the Search Species option to find this species.'
             )
         return name
-    
+
+    def clean_species_description(self):
+        return normalize_species_text(self.cleaned_data.get('species_description'), keep_linebreaks=True)
+
+
     def clean_year_acquired(self):
         from datetime import datetime
         year = self.cleaned_data.get('year_acquired')
@@ -2017,13 +2119,32 @@ class CustomResetPasswordForm(ResetPasswordForm):
 
 
 class SpeciesImportStagingForm(ModelForm):
-    """Form for reviewing and approving/rejecting an individual staging record."""
+    """
+    Form for reviewing and approving/rejecting an individual staging record.
+
+    final_description/final_local_distribution (PASS2_SCOPE.md 4.3) are the
+    reviewer's own text for a CSO_SYNC batch - pre-filled with ASN's current
+    text by the view. Left unchanged = keep ASN's text. Edited = the
+    reviewer's own wording. Copied from CSO's proposed text (via the "Use
+    CSO text" button in the template) = accept CSO's wording verbatim (D1) -
+    there's no separate flag for this: commit_species_import_staging detects
+    it by comparing the final text to CSO's proposed text and attributes a
+    SpeciesReferenceLink automatically. Ignored for CSV batches.
+    """
     class Meta:
         model = SpeciesImportStaging
-        fields = ['review_status', 'review_notes']
+        fields = ['review_status', 'review_notes', 'final_description', 'final_local_distribution']
         widgets = {
             'review_notes': forms.Textarea(attrs={'rows': 3, 'cols': 60}),
+            'final_description': forms.Textarea(attrs={'rows': 6, 'cols': 60}),
+            'final_local_distribution': forms.TextInput(attrs={'size': 60}),
         }
+
+    def clean_final_description(self):
+        return normalize_species_text(self.cleaned_data.get('final_description'), keep_linebreaks=True)
+
+    def clean_final_local_distribution(self):
+        return normalize_species_text(self.cleaned_data.get('final_local_distribution'), keep_linebreaks=True)
 
 
 class SpeciesFeedbackForm(ModelForm):

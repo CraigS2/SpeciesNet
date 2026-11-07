@@ -118,9 +118,10 @@ def createSpecies(request):
             try:
                 species = form.save(commit=False)
                 species_name = species.name
-                
+
                 # Assure unique species names - prevent duplicates
-                if not Species.objects.filter(name=species_name).exists():
+                existing = find_species_by_name(species_name)
+                if existing is None:
                     species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                     species.created_by = request.user
                     species.save()
@@ -131,9 +132,8 @@ def createSpecies(request):
                 else:
                     dupe_msg = f"{species_name} already exists.  Please use this Species entry."
                     messages.info(request, dupe_msg)
-                    species = Species.objects.get(name=species_name)
-                    logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
-                    return HttpResponseRedirect(reverse("species", args=[species.id]))
+                    logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, existing.name)
+                    return HttpResponseRedirect(reverse("species", args=[existing.id]))
             except IntegrityError as e: 
                 logger.error(f"IntegrityError creating species: {str(e)}", exc_info=True)
                 messages.error(request, 'This species data conflicts with existing records (possibly duplicate name).')

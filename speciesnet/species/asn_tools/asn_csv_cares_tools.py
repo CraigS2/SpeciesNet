@@ -8,9 +8,11 @@ from io import StringIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from ..models import CaresApprover, ImportArchive, Species, User
 from ..models import AquaristClub, CaresRegistration, Species
+from .asn_utils import find_species_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +69,11 @@ def _parse_date(raw: str):
 
 
 def _resolve_species(name: str):
-    """Lookup Species by exact name (case-insensitive). Raises ValueError on miss."""
-    try:
-        return Species.objects.get(name__iexact=name)
-    except Species.DoesNotExist:
+    """Lookup Species by normalized, case-insensitive name. Raises ValueError on miss."""
+    species = find_species_by_name(name)
+    if species is None:
         raise ValueError(f'Species not found: "{name}"')
-    except Species.MultipleObjectsReturned:
-        match = Species.objects.filter(name__iexact=name).first()
-        logger.warning('Legacy import: multiple species match "%s"; using id=%d.', name, match.id)
-        return match
+    return species
 
 
 def _resolve_club(acronym: str):
@@ -178,6 +176,7 @@ def import_legacy_cares_registrations(import_archive, imported_by):
             email_address         = row.get('email_address', '').strip()
             club_acronym          = row.get('club', '').strip()
             last_update_raw       = row.get('last_update', '').strip()
+            notes                 = row.get('notes', '').strip()
 
             missing = [f for f in REQUIRED_FIELDS if not row.get(f, '').strip()]
             if missing:
@@ -237,10 +236,12 @@ def import_legacy_cares_registrations(import_archive, imported_by):
                 affiliate_club      = affiliate_club,
                 species_has_spawned = is_breeding_group,
                 year_acquired       = year_acquired,
-                last_report_date    = registration_date,   # closest available date field
+                last_report_date    = timezone.localdate(),   # date of this import, not the legacy registration_date
                 status              = status,
                 last_updated_by     = imported_by,
                 verification_photo  = '',   # no photo available for legacy records
+                submitter_notes     = notes,
+                approver_notes      = 'Legacy registration imported from CSV - no verification photo or approver.',
             )
             reg.save()
 

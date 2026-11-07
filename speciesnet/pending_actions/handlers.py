@@ -2,13 +2,26 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.html import escape, strip_tags
+from django.utils.html import strip_tags
 
 from species.asn_tools.asn_img_tools import processUploadedImageFile
 from species.models import CaresRegistration, UserEmail, SpeciesInstance
 
 from .forms import BapNotesRequiredForm, CaresClarificationResponseForm, ConfirmPendingActionForm
 from .registry import ActionHandler, register
+
+
+def _escape_html_text_content(text):
+    """
+    Escape only the characters that are actually unsafe when inserted into
+    HTML TEXT CONTENT (as opposed to an attribute value): & < >. Straight
+    quotes are left as literal characters - they don't need escaping outside
+    an attribute context, and escaping them here just produced a visible
+    &#x27;/&quot; in some clients instead of the quote it was meant to show
+    (noticeable now that PASS1_SCOPE.md's normalization makes straight
+    quotes common in species names/approver notes).
+    """
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 
 @register('cares_status_change')
@@ -49,19 +62,33 @@ class CaresStatusChangeHandler(ActionHandler):
         return registration.status == CaresRegistration.CaresRegistrationStatus.PENDING
 
     def build_email_context(self, action, token=None):
-        registration = CaresRegistration.objects.select_related('species').get(pk=action.payload['registration_id'])
+        registration = CaresRegistration.objects.select_related('species', 'affiliate_club').get(pk=action.payload['registration_id'])
         token = token or action.payload.get('token')
         confirm_path = reverse('pending_action_confirm', args=[token]) if token else ''
         site_url = action.payload.get('site_url', '').rstrip('/')
         confirm_url = f'{site_url}{confirm_path}' if site_url else confirm_path
         body = action.payload['body']
-        escaped_body = escape(body).replace('\n', '<br>')
+        escaped_body = _escape_html_text_content(body).replace('\n', '<br>')
         species_name = registration.species.name if registration.species else registration.name
+        # Same selective escaping as escaped_body above, and for the same
+        # reason: the template's {{ species_name }} would otherwise go
+        # through Django's default autoescape, which escapes quotes too.
+        escaped_species_name = _escape_html_text_content(species_name)
         archive_body = f"To: {action.payload['aquarist_name']}\n Email: {action.payload['to_email']}\n\n{body}"
+
+        # If the aquarist selected a club, cc that club's CARES liaison (when
+        # one is configured) so the club stays in the loop on its members'
+        # registration decisions.
+        cc = []
+        club = registration.affiliate_club
+        if club and club.cares_liason_email:
+            cc.append(club.cares_liason_email)
+
         return {
             'action': action,
             'registration': registration,
             'species_name': species_name,
+            'escaped_species_name': escaped_species_name,
             'subject': action.payload['subject'],
             'body': body,
             'escaped_body': escaped_body,
@@ -69,6 +96,7 @@ class CaresStatusChangeHandler(ActionHandler):
             'aquarist_name': action.payload['aquarist_name'],
             'reply_to': action.payload.get('reply_to'),
             'confirm_url': confirm_url,
+            'cc': cc,
             'archive_name': f"CARES status update to {action.payload['aquarist_name']}",
             'archive_text': archive_body,
         }
@@ -156,6 +184,48 @@ class CaresNewRegistrationNotificationHandler(ActionHandler):
             'archive_name': f"CARES registration notification to {action.payload['username']}",
             'archive_text': f"To: {action.payload['approver_name']}\nEmail: {action.payload['to_email']}\n{plain_body}",
             'send_to_user': action.user,
+        }
+
+
+@register('cares_registration_summary')
+class CaresRegistrationSummaryHandler(ActionHandler):
+    """
+    FYI-only summary of all CaresRegistrations matching an email address,
+    sent to that address itself rather than rendered to whoever typed it in
+    — the anonymous "check your CARES registration status" lookup must not
+    reveal registration details to someone who doesn't own that email.
+    """
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'registration_ids'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required CARES registration summary payload values: {sorted(missing)}')
+
+    def build_email_context(self, action, token=None):
+        to_email = action.payload['to_email']
+        registrations = list(
+            CaresRegistration.objects.filter(pk__in=action.payload['registration_ids'])
+            .select_related('species', 'affiliate_club')
+            .order_by('-date_requested')
+        )
+        html_body = render_to_string(
+            'species/cares/email_registration_summary.html',
+            {
+                'registrations': registrations,
+                'email': to_email,
+                'registration_count': len(registrations),
+            },
+        )
+        plain_body = strip_tags(html_body)
+        return {
+            'registrations': registrations,
+            'email': to_email,
+            'registration_count': len(registrations),
+            'subject': 'Your CARES Registrations Summary',
+            'to_email': to_email,
+            'archive_name': f'CARES registration summary to {to_email}',
+            'archive_text': plain_body,
         }
 
 

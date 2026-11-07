@@ -559,7 +559,7 @@ class SpeciesReadViewTest(TestCase):
     def test_species_with_no_keepers_shows_none(self):
         """Test the aquarist list shows 'None' when nobody keeps the species"""
         response = self.client.get(reverse('species', args=[self.species.id]))
-        self.assertContains(response, '<p><b>None</b></p>')
+        self.assertContains(response, '<p><b>&nbsp;&nbsp;None</b></p>')
 
     def test_species_aquarist_list_shows_keeper_username_and_photo(self):
         """Test a current keeper appears in the aquarist list with their
@@ -607,7 +607,7 @@ class SpeciesReadViewTest(TestCase):
 
         response = self.client.get(reverse('species', args=[self.species.id]))
         self.assertNotContains(response, 'formerkeeper')
-        self.assertContains(response, '<p><b>None</b></p>')
+        self.assertContains(response, '<p><b>&nbsp;&nbsp;None</b></p>')
 
     def test_species_aquarist_list_shows_accent_badges(self):
         """Test the Breeding/Young Available/Species Log/Spawning Notes/Fry

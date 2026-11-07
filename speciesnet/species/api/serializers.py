@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.urls import reverse
 from rest_framework import serializers
 from species.models import Species, CaresRegistration
 
@@ -12,14 +13,19 @@ class SpeciesSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = Species
         fields = [
+            'id',
             'name',
             'alt_name',
+            'common_name',
             'description',
             'global_region',
             'local_distribution',
             'cares_family',
+            'cares_assessment_date',
             'iucn_red_list',
+            'iucn_assessment_date',
             'cares_classification',
+            'category',
             'render_cares',
             'created',
             'lastUpdated',
@@ -106,4 +112,45 @@ class RegistrationStatusSyncSerializer(serializers.ModelSerializer):
             'aquarist_name',
             'lastUpdated',
         ]
+        read_only_fields = fields
+
+
+class PartnerSpeciesSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the ASN Partner Species API (see
+    "ASN Partner Species API — Requirements.md"), used by
+    GET /api/partner/species/.
+    """
+
+    url = serializers.SerializerMethodField()
+    last_updated = serializers.DateTimeField(source='lastUpdated', read_only=True)
+
+    class Meta:
+        model = Species
+        fields = ['id', 'name', 'alt_name', 'url', 'last_updated']
+        read_only_fields = fields
+
+    def get_url(self, obj):
+        # FR-4: SITE1_URL (ASN's public address) when set, otherwise the
+        # request host - keeps links on the public domain behind nginx.
+        path = reverse('species', args=[obj.pk])
+        site1_url = (getattr(settings, 'SITE1_URL', '') or '').rstrip('/')
+        if site1_url:
+            return f'{site1_url}{path}'
+        request = self.context.get('request')
+        if request is not None:
+            return request.build_absolute_uri(path)
+        return path
+
+
+class PartnerCaresSpeciesSerializer(PartnerSpeciesSerializer):
+    """
+    Serializer for GET /api/partner/cares-species/ - adds the CARES
+    classification fields that only apply to the CARES-only endpoint.
+    """
+
+    cares_classification_display = serializers.CharField(source='get_cares_classification_display', read_only=True)
+
+    class Meta(PartnerSpeciesSerializer.Meta):
+        fields = PartnerSpeciesSerializer.Meta.fields + ['cares_classification', 'cares_classification_display']
         read_only_fields = fields

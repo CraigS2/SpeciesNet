@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from species.models import User, Species, SpeciesReferenceLink, SpeciesComment, SpeciesInstance
@@ -9,6 +10,8 @@ from django.utils import timezone
 from urllib.parse import urlparse
 import logging, bleach, re
 
+from species.asn_tools.text_normalize import normalize_species_text
+
 logger = logging.getLogger(__name__)
 
 # user_can_edit | user_is_admin
@@ -19,6 +22,20 @@ def user_is_admin (cur_user: User):
         if cur_user.is_admin:
             user_is_admin = True
     return user_is_admin
+
+def user_can_review_species_import (cur_user: User):
+    """
+    PASS2_SCOPE.md D7: is_admin or is_staff may use the species import/sync
+    review tool - but NOT the API service account. create_api_user sets
+    is_staff=True on that account so it can authenticate against the REST
+    API; it must not also be able to approve/reject/commit staging rows.
+    """
+    if not cur_user.is_authenticated:
+        return False
+    api_service_email = (getattr(settings, 'API_SERVICE_EMAIL', '') or '').strip().lower()
+    if api_service_email and cur_user.email.strip().lower() == api_service_email:
+        return False
+    return bool(cur_user.is_admin or cur_user.is_staff)
 
 def user_can_edit (cur_user: User):
     userCanEdit = False
@@ -345,3 +362,27 @@ def validate_normalize_youtube_url(url):
     return url
  
     
+
+def find_species_by_name(name):
+    """
+    Look up a Species by name, normalizing quotes/whitespace first and then
+    matching case-insensitively. Returns the matching Species, or None.
+
+    The single shared replacement for the scattered name__iexact / name=
+    lookups that used to be spread across sync, CSV import, and views - see
+    PASS1_SCOPE.md section 3.3 for the full list of call sites this replaces.
+    """
+    normalized = normalize_species_text(name)
+    if not normalized:
+        return None
+    try:
+        return Species.objects.get(name__iexact=normalized)
+    except Species.DoesNotExist:
+        return None
+    except MultipleObjectsReturned:
+        match = Species.objects.filter(name__iexact=normalized).order_by('pk').first()
+        logger.warning(
+            'find_species_by_name: multiple species match "%s" case-insensitively; using id=%s.',
+            normalized, match.id if match else None,
+        )
+        return match

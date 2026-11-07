@@ -1,8 +1,10 @@
 import logging
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import ValidationError
 from django.urls import reverse
 from rest_framework.response import Response
 from django.utils.dateparse import parse_datetime, parse_date
@@ -16,8 +18,14 @@ from species.models import (
     BapSubmission,
     BapLeaderboard,
 )
-from .serializers import SpeciesSyncSerializer, RegistrationSyncSerializer, RegistrationStatusSyncSerializer
-from .authentication import ClubApiKeyAuthentication, HasAuthenticatedClub
+from .serializers import (
+    SpeciesSyncSerializer, RegistrationSyncSerializer, RegistrationStatusSyncSerializer,
+    PartnerSpeciesSerializer, PartnerCaresSpeciesSerializer,
+)
+from .authentication import (
+    ClubApiKeyAuthentication, HasAuthenticatedClub,
+    PartnerApiKeyAuthentication, HasAuthenticatedPartner, PartnerApiThrottle,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +54,80 @@ def _parse_since_param(since_param):
     if dt is not None and timezone.is_naive(dt):
         dt = timezone.make_aware(dt, timezone.utc)
     return dt
+
+
+class PartnerPagination(PageNumberPagination):
+    """Pagination for the ASN Partner Species API - default page size 500,
+    up to 1,000 via ?page_size=."""
+    page_size = 500
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+
+def _partner_since_filter(queryset, since_param):
+    """
+    Apply ?since= filtering for the partner API. Unlike the internal sync
+    APIs above (which silently ignore a bad `since`), the partner API spec
+    requires an unparseable value to be a client error (FR-3): raises
+    ValidationError, which DRF turns into HTTP 400.
+    """
+    if not since_param:
+        return queryset
+    since_dt = _parse_since_param(since_param)
+    if since_dt is None:
+        raise ValidationError(f'Invalid since value: "{since_param}". Use an ISO 8601 date or datetime.')
+    return queryset.filter(lastUpdated__gte=since_dt)
+
+
+class PartnerSpeciesListView(generics.ListAPIView):
+    """
+    GET /api/partner/species/ - every ASN species, for Auction.fish (see
+    "ASN Partner Species API — Requirements.md"). Read-only: POST/PUT/
+    PATCH/DELETE return 405 (default ListAPIView behaviour - no write
+    mixins are included).
+    """
+
+    serializer_class = PartnerSpeciesSerializer
+    authentication_classes = [PartnerApiKeyAuthentication]
+    permission_classes = [HasAuthenticatedPartner]
+    throttle_classes = [PartnerApiThrottle]
+    pagination_class = PartnerPagination
+
+    def get_queryset(self):
+        queryset = Species.objects.all().order_by('name', 'id')
+        return _partner_since_filter(queryset, self.request.query_params.get('since'))
+
+    def list(self, request, *args, **kwargs):
+        logger.info(
+            'partner-species list requested by partner=%s since=%s',
+            getattr(request, 'partner', '?'), request.query_params.get('since'),
+        )
+        return super().list(request, *args, **kwargs)
+
+
+class PartnerCaresSpeciesListView(generics.ListAPIView):
+    """
+    GET /api/partner/cares-species/ - CARES species only (render_cares=True,
+    the same rule species-sync uses), with CARES classification, for
+    Auction.fish.
+    """
+
+    serializer_class = PartnerCaresSpeciesSerializer
+    authentication_classes = [PartnerApiKeyAuthentication]
+    permission_classes = [HasAuthenticatedPartner]
+    throttle_classes = [PartnerApiThrottle]
+    pagination_class = PartnerPagination
+
+    def get_queryset(self):
+        queryset = Species.objects.filter(render_cares=True).order_by('name', 'id')
+        return _partner_since_filter(queryset, self.request.query_params.get('since'))
+
+    def list(self, request, *args, **kwargs):
+        logger.info(
+            'partner-cares-species list requested by partner=%s since=%s',
+            getattr(request, 'partner', '?'), request.query_params.get('since'),
+        )
+        return super().list(request, *args, **kwargs)
 
 
 class SpeciesSyncViewSet(viewsets.ReadOnlyModelViewSet):

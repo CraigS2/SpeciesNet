@@ -1,0 +1,55 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container">
+    <h2>Terms of Use</h2>
+    <p class="text-muted"><b>CaresSpecies.org Terms of Use</b><br>Last updated: 2026-10-30</p>
+
+    <p><b>1. Who we are.</b> CaresSpecies.org is operated by {{ SITE_OWNER_DISPLAY_TEXT }} ("we"), pending formation of a
+    nonprofit corporation, which will assume these terms when it is formed. Contact: caresspecies@gmail.com.</p>
+
+    <p><b>2. Using the site.</b> Reading the site is free and open to everyone. By registering a CARES species or
+    posting anything, you agree to these terms. You must be at least 16 years old to register a CARES species or
+    post content to the site.</p>
+
+    <p><b>3. Your contributions.</b> You keep the copyright in what you post. Only post your own photos and
+    writing, or material you have permission to share.</p>
+    <ul>
+        <li><b>Photos:</b> you allow CaresSpecies.org to display your photos submitted as species feedback, each
+        with your photo credit, on the site and in its educational and conservation materials. These photos are
+        shared under the Creative Commons Attribution 4.0 International NonCommercial License
+        (<a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>).</li>
+        <li><b>Written content</b> (species descriptions, registration notes, species data): are shared under the
+        Creative Commons Attribution 4.0 International License
+        (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>).</li>
+    </ul>
+    <p>These licenses cover copyright only; your personal information is handled under our <a href="{% url 'privacyPolicy' %}">Privacy Policy</a>.</p>
+    
+    <p>If you delete a photo, a post, or your account, we will remove it from the site.</p>
+
+    <p><b>4. What not to post.</b> No copied text or images from other websites or books, no illegal content, no
+    harassment, no spam or advertising, and no listings to buy, sell or trade fish or goods. Do not post
+    information that would help anyone collect or trade species in breach of law. We may remove content or
+    accounts at our discretion.</p>
+
+    <p><b>5. Information, not advice.</b> Species information is provided for education. It may be incomplete or
+    wrong. Check local laws before keeping, breeding, moving or releasing any animal, and never release aquarium
+    fish into the wild.</p>
+
+    <p><b>6. Copyright complaints.</b> If you believe content on the site infringes your copyright, send a notice
+    to our designated agent at <b><i>caresspecies@gmail.com</i></b> with: your contact details, the work you say
+    is infringed, the URL of the material, a statement that you believe in good faith that the use is not
+    authorized, and a statement that the notice is accurate and that you are the owner or authorized to act for
+    the owner.</p>
+
+    <p><b>7. No warranty; limitation of liability.</b> The site and its content are provided "as is" without
+    warranties of any kind. To the extent the law allows, we are not liable for any loss arising from use of the
+    site or its content.</p>
+
+    <p><b>8. Licenses for site content.</b> Our own software and content licenses are set out on the
+    <a href="{% url 'legalNotice' %}">License page</a>.</p>
+
+    <p><b>9. Changes.</b> We may update these terms and will post the date of the latest version above.</p>
+
+    <p><b>10. Law.</b> These terms are governed by the laws of the Commonwealth of Massachusetts.</p>
+</div>
+{% endblock content %}

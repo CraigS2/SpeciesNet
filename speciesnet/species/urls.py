@@ -9,6 +9,10 @@ urlpatterns = [
     path('', views.home, name="home"),
     path('about_us/', views.about_us, name="about_us"),
     path('howItWorks/', views.howItWorks, name="howItWorks"),
+    path('terms/', views.terms_of_use, name="termsOfUse"),
+    path('license/', views.legal_notice, name="legalNotice"),
+    path('privacy/', views.privacy_policy, name="privacyPolicy"),
+    path('api_docs/', views.apiDocs, name="apiDocs"),
 
     ### Users == Aquarists ###
 
@@ -242,6 +246,7 @@ urlpatterns = [
     path('speciesImportReview/<str:pk>/', views.reviewSpeciesImport, name="reviewSpeciesImport"),
     path('speciesImportReviewDetail/<str:staging_id>/', views.reviewSpeciesImportDetail, name="reviewSpeciesImportDetail"),
     path('species/import/approve/<str:pk>/', views.approveSpeciesImportBatch, name="approveSpeciesImportBatch"),
+    path('species/import/keepAsnText/<str:pk>/', views.keepAsnTextSpeciesImportBatch, name="keepAsnTextSpeciesImportBatch"),
     path('species/import/reject/<str:pk>/', views.rejectSpeciesImportBatch, name="rejectSpeciesImportBatch"),
     path('species/import/commit/<str:pk>/', views.commitSpeciesImport, name="commitSpeciesImport"),
     path('species/import/referenceLinks/', views.importSpeciesReferenceLinks, name="importSpeciesReferenceLinks"),

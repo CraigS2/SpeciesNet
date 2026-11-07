@@ -3,6 +3,7 @@
 import logging
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db import transaction
+from django.utils import timezone
 
 from species.services.email_services import send_notes_required_email
 from species.services.notes_service import notes_requirements_met
@@ -21,6 +22,7 @@ def _get_models():
         BapSubmission,
         BapTier,
         BapYear,
+        SmpLeaderboard,
         SpeciesInstance,
     )
     return (
@@ -32,6 +34,7 @@ def _get_models():
         BapSubmission,
         BapTier,
         BapYear,
+        SmpLeaderboard,
         SpeciesInstance,
     )
 
@@ -50,7 +53,7 @@ def reassign_bap_genus_example_species(species, dry_run=False) -> list:
     (the default) only once the deletion is actually confirmed.
     """
     from species.models import Species
-    _, BapGenus, _, _, _, _, _, _, _ = _get_models()
+    _, BapGenus, _, _, _, _, _, _, _, _ = _get_models()
 
     affected = BapGenus.objects.filter(example_species=species)
     unresolved = []
@@ -85,7 +88,7 @@ def find_bap_genus_missing_example_species(dry_run=True) -> list[dict]:
     assigned_species is None when no matching species could be found.
     """
     from species.models import Species
-    _, BapGenus, _, _, _, _, _, _, _ = _get_models()
+    _, BapGenus, _, _, _, _, _, _, _, _ = _get_models()
 
     results = []
     for bap_genus in BapGenus.objects.filter(example_species__isnull=True).select_related('club'):
@@ -106,7 +109,7 @@ def find_bap_genus_missing_example_species(dry_run=True) -> list[dict]:
 
 
 def has_approved_bap_species(aquarist, club, species, exclude_submission_id=None) -> bool:
-    _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
+    _, _, _, _, _, BapSubmission, _, _, _, _ = _get_models()
     qs = BapSubmission.objects.filter(
         aquarist=aquarist,
         club=club,
@@ -119,14 +122,14 @@ def has_approved_bap_species(aquarist, club, species, exclude_submission_id=None
 
 
 def _mark_submission_duplicate(submission, reason):
-    _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
+    _, _, _, _, _, BapSubmission, _, _, _, _ = _get_models()
     submission.status = BapSubmission.BapSubmissionStatus.DUPLICATE
     submission.admin_comments = reason
     submission.save(update_fields=['status', 'admin_comments', 'lastUpdated'])
 
 
 def resolve_bap_points(species_instance, club) -> dict:
-    _, BapGenus, _, _, BapSpecies, _, _, _, _ = _get_models()
+    _, BapGenus, _, _, BapSpecies, _, _, _, _, _ = _get_models()
 
     species_name = species_instance.species.name
     result = {
@@ -184,9 +187,160 @@ def resolve_bap_points(species_instance, club) -> dict:
     return result
 
 
+def _plus_one_year(d):
+    try:
+        return d.replace(year=d.year + 1)
+    except ValueError:
+        return d.replace(month=2, day=28, year=d.year + 1)
+
+
+def _roll_forward_bap_year_window(start_date, end_date, today=None):
+    """
+    Advance a (start_date, end_date) window forward by whole years until
+    end_date is on or after today. Loops rather than shifting once, so a
+    year that has lapsed by more than one cycle (e.g. rollover wasn't run
+    for a while) still lands on a currently-valid window in one call.
+    """
+    today = today or timezone.localdate()
+    while end_date < today:
+        start_date, end_date = _plus_one_year(start_date), _plus_one_year(end_date)
+    return start_date, end_date
+
+
+def _resolve_bap_year_breeder_of_year(bap_year):
+    _, _, BapLeaderboard, _, _, BapSubmission, _, _, _, _ = _get_models()
+
+    top_rows = list(
+        BapLeaderboard.objects
+        .filter(club=bap_year.club, bap_year=bap_year)
+        .order_by('-points', 'created')
+    )
+    if not top_rows:
+        return None
+
+    winning_points = top_rows[0].points
+    tied = [r for r in top_rows if r.points == winning_points]
+    if len(tied) == 1:
+        return tied[0].aquarist
+
+    best_user = None
+    best_ts = None
+    for row in tied:
+        running = 0
+        reached_at = None
+        subs = BapSubmission.objects.filter(
+            club=bap_year.club,
+            bap_year=bap_year,
+            aquarist=row.aquarist,
+            status=BapSubmission.BapSubmissionStatus.APPROVED,
+        ).order_by('created', 'id')
+        for sub in subs:
+            running += sub.points
+            if running >= winning_points:
+                reached_at = sub.created
+                break
+        if reached_at is not None and (best_ts is None or reached_at < best_ts):
+            best_ts = reached_at
+            best_user = row.aquarist
+
+    return best_user
+
+
+def _get_or_create_bap_year_window(club, start_date, end_date):
+    _, _, _, _, _, _, _, BapYear, _, _ = _get_models()
+    year_label = end_date.year
+    new_year, _ = BapYear.objects.get_or_create(
+        club=club,
+        year_label=year_label,
+        defaults={
+            'start_date': start_date,
+            'end_date': end_date,
+            'status': BapYear.Status.OPEN,
+            'name': f'{year_label} BAP Year',
+        },
+    )
+    return new_year
+
+
+def close_and_roll_bap_year(bap_year):
+    """
+    Close a single lapsed BapYear: finalize its BAP/SMP leaderboards,
+    resolve breeder-of-year, mark it CLOSED, and create (or find) the
+    successor OPEN BapYear by rolling its window forward until it covers
+    today. Returns the successor BapYear. Used by both the close_bap_years
+    management command and the lazy self-heal path in
+    ensure_current_bap_year, so both stay consistent.
+    """
+    _, _, BapLeaderboard, _, _, _, _, BapYear, SmpLeaderboard, _ = _get_models()
+
+    with transaction.atomic():
+        BapLeaderboard.objects.filter(club=bap_year.club, bap_year=bap_year).update(is_final=True)
+        SmpLeaderboard.objects.filter(club=bap_year.club, bap_year=bap_year).update(is_final=True)
+
+        winner = _resolve_bap_year_breeder_of_year(bap_year)
+        bap_year.bap_breeder_of_year = winner
+        bap_year.status = BapYear.Status.CLOSED
+        bap_year.closed_at = timezone.now()
+        bap_year.save(update_fields=['bap_breeder_of_year', 'status', 'closed_at'])
+
+        next_start, next_end = _roll_forward_bap_year_window(bap_year.start_date, bap_year.end_date)
+        next_year = _get_or_create_bap_year_window(bap_year.club, next_start, next_end)
+        logger.info('Closed BAP year: club=%s year_label=%s winner=%s', bap_year.club_id, bap_year.year_label, winner.id if winner else None)
+
+    return next_year
+
+
+def ensure_current_bap_year(club):
+    """
+    Return the club's current, currently-valid OPEN BapYear, self-healing
+    as needed so callers never silently get back None just because nobody
+    ran the close_bap_years rollover:
+      - if an OPEN year already covers today, return it unchanged.
+      - if the most recent year is still OPEN but has lapsed, close it out
+        (via close_and_roll_bap_year) and return the resulting successor.
+      - if the most recent year is already closed with no successor (e.g.
+        close_bap_years ran but the next year's row was never created or
+        was removed), just roll its window forward and create the
+        successor.
+      - if the club has no BapYear at all yet, bootstrap the first one
+        from AquaristClub.bap_start_date/bap_end_date.
+    Returns None only when there's nothing to build from: no BapYear
+    exists yet AND the club has no configured bap_start_date/bap_end_date,
+    or its most recent BapYear has a malformed start >= end window that
+    can't be rolled forward automatically.
+    """
+    _, _, _, _, _, _, _, BapYear, _, _ = _get_models()
+    today = timezone.localdate()
+
+    open_year = BapYear.objects.get_open(club)
+    if open_year and open_year.end_date >= today:
+        return open_year
+
+    latest = BapYear.objects.filter(club=club).order_by('-end_date').first()
+
+    if latest is None:
+        if not club.bap_start_date or not club.bap_end_date or club.bap_end_date <= club.bap_start_date:
+            return None
+        start_date, end_date = _roll_forward_bap_year_window(club.bap_start_date, club.bap_end_date, today)
+        return _get_or_create_bap_year_window(club, start_date, end_date)
+
+    if latest.end_date <= latest.start_date:
+        logger.error(
+            'BapYear id=%s for club=%s has a malformed date window (start=%s end=%s); cannot roll forward automatically.',
+            latest.id, club.name, latest.start_date, latest.end_date,
+        )
+        return None
+
+    if latest.status != BapYear.Status.OPEN:
+        # already closed, but no valid successor exists yet - just roll forward
+        start_date, end_date = _roll_forward_bap_year_window(latest.start_date, latest.end_date, today)
+        return _get_or_create_bap_year_window(club, start_date, end_date)
+
+    return close_and_roll_bap_year(latest)
+
+
 def _current_open_bap_year(club):
-    _, _, _, _, _, _, _, BapYear, _ = _get_models()
-    return BapYear.objects.get_open(club)
+    return ensure_current_bap_year(club)
 
 
 def create_bap_submission(species_instance, club, committed_by=None):
@@ -197,6 +351,7 @@ def create_bap_submission(species_instance, club, committed_by=None):
         _,
         _,
         BapSubmission,
+        _,
         _,
         _,
         _,
@@ -257,7 +412,7 @@ def create_bap_submission(species_instance, club, committed_by=None):
 
 
 def recalculate_bap_leaderboard_for_year(club, bap_year):
-    _, _, BapLeaderboard, _, _, BapSubmission, _, _, _ = _get_models()
+    _, _, BapLeaderboard, _, _, BapSubmission, _, _, _, _ = _get_models()
 
     if bap_year is None:
         return BapLeaderboard.objects.none()
@@ -305,7 +460,7 @@ def recalculate_bap_leaderboard_for_year(club, bap_year):
 
 
 def _update_bap_lifetime_total(submission):
-    _, _, _, BapLifetimeTotal, _, _, BapTier, _, _ = _get_models()
+    _, _, _, BapLifetimeTotal, _, _, BapTier, _, _, _ = _get_models()
     total, created = BapLifetimeTotal.objects.get_or_create(
         aquarist=submission.aquarist,
         club=submission.club,
@@ -334,7 +489,7 @@ def _update_bap_lifetime_total(submission):
 
 
 def approve_bap_submission(submission, admin_user):
-    _, _, _, _, _, BapSubmission, _, _, _ = _get_models()
+    _, _, _, _, _, BapSubmission, _, _, _, _ = _get_models()
 
     if submission.status == BapSubmission.BapSubmissionStatus.APPROVED:
         return submission
@@ -359,8 +514,12 @@ def approve_bap_submission(submission, admin_user):
             submission.species = submission.speciesInstance.species
         if submission.bap_year is None:
             submission.bap_year = _current_open_bap_year(submission.club)
-        if submission.bap_year:
-            submission.year = submission.bap_year.year_label
+        if submission.bap_year is None:
+            raise ValueError(
+                f'Cannot approve: club "{submission.club.name}" has no BAP year configured. '
+                f'Set a BAP start/end date on the club (editAquaristClub) and try again.'
+            )
+        submission.year = submission.bap_year.year_label
         submission.save()
         _update_bap_lifetime_total(submission)
 

@@ -8,7 +8,7 @@ Species-related views: CRUD operations, search, comments, reference links
 from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
-from species.services.email_services import send_new_registration_notification, send_status_change_email
+from species.services.email_services import send_new_registration_notification, send_status_change_email, send_registration_summary_email
 from species.services.bap_service import reassign_bap_genus_example_species
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
@@ -18,20 +18,30 @@ from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrati
 def caresSpecies(request, pk):
     species = get_object_or_404(Species, pk=pk)
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+    show_iucn_assessment = species.iucn_red_list not in (
+        Species.IucnRedList.UNDEFINED,
+        Species.IucnRedList.NOT_EVALUATED,
+    )
+    # Lake Victoria cichlids don't carry a meaningful IUCN assessment for this
+    # program, so hide it regardless of the field's actual value. Display-only
+    # - the underlying data is untouched. (caresSpecies only renders on Site2.)
+    if species.cares_family == Species.CaresFamily.LV_CICHLIDS:
+        show_iucn_assessment = False
     speciesInstances = SpeciesInstance.objects.filter(species=species)
     speciesReferenceLinks = SpeciesReferenceLink.objects.filter(species=species).order_by('created')
     userCanEdit = user_can_edit_s(request.user, species)
-   
+
     if request.user.is_authenticated:
         logger.info('User %s visited species page: %s.', request.user.username, species.name)
     else:
         logger.info('Anonymous user visited species page: %s.', species.name)
-    
+
     context = {
         'species': species,
         'speciesInstances':  speciesInstances,
         'speciesReferenceLinks': speciesReferenceLinks,
         'renderCares': renderCares,
+        'show_iucn_assessment': show_iucn_assessment,
         'userCanEdit': userCanEdit    }
     return render(request, 'species/cares/caresSpecies.html', context)
 
@@ -51,7 +61,8 @@ def createCaresSpecies(request):
                 # Must declare the CARES Classification
                 if species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES:
                     # Assure unique species names - prevent duplicates
-                    if not Species.objects.filter(name=species_name).exists():
+                    existing = find_species_by_name(species_name)
+                    if existing is None:
                         species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
                         species.created_by = request.user
                         species.save()
@@ -62,9 +73,8 @@ def createCaresSpecies(request):
                     else:
                         dupe_msg = f"{species_name} already exists.  Please use this Species entry."
                         messages.info(request, dupe_msg)
-                        species = Species.objects.get(name=species_name)
-                        logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, species.name)
-                        return HttpResponseRedirect(reverse("caresSpecies", args=[species.id]))
+                        logger.info('User %s attempted to create duplicate species.  Redirected to:  %s', request.user.username, existing.name)
+                        return HttpResponseRedirect(reverse("caresSpecies", args=[existing.id]))
                 else:
                     messages.error (request, "Cares Species must declare Risk Classification. Cannot use 'Undefined'" )
             except IntegrityError as e: 
@@ -244,6 +254,7 @@ def caresPriorityList (request):
 
 def caresRegistration(request, pk):
     registration = get_object_or_404(CaresRegistration, pk=pk)
+    maybe_reassign_cares_approver(request.user, registration)
     userCanEdit = user_can_edit_cares_reg(request.user, registration)
     if request.user.is_authenticated:
         logger.info('User %s visited CaresRegistration page: %s.', request.user.username, registration.name)
@@ -274,18 +285,20 @@ def registrationLookup(request):
         #                                - select_related (performance optimization using SQL JOIN avoids N+X queries)
         registrations = CaresRegistration.objects.filter(aquarist_email__iexact=email).select_related(
             'species', 'affiliate_club', 'cares_approver').order_by('-date_requested')
-        
-        if not registrations.exists():
-            messages.warning(
-                request, 
-                f'No registrations found for {email}'
-            )
-            return render(request, 'species/cares/registrationLookup.html')
-        
-        context = {'registrations': registrations, 'email': email, 'registration_count': registrations.count()}
-        logger.info('registrationLookup inquiry for ' + email + ' found ' + str(registrations.count()) + ' registrations')
-        return render(request, 'species/cares/registrationLookupResults.html', context)
-    
+
+        # Never render registration details to whoever typed the email in — send
+        # the summary to that address instead, and show the same confirmation
+        # message either way so the page can't be used to probe which emails
+        # have registrations on file.
+        if registrations.exists():
+            send_registration_summary_email(email, registrations)
+            logger.info('registrationLookup inquiry for %s matched %d registration(s); summary emailed.', email, registrations.count())
+        else:
+            logger.info('registrationLookup inquiry for %s found no registrations; no email sent.', email)
+
+        messages.success(request, f'A summary of your CARES Registrations has been sent to {email}.')
+        return render(request, 'species/cares/registrationLookup.html')
+
     logger.info('User visited registrationLookup page.')
     return render(request, 'species/cares/registrationLookup.html')
 
@@ -470,6 +483,7 @@ def editCaresRegistration(request, pk):
             logger.warning(f"Cares registration form validation failed for registration_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
+        maybe_reassign_cares_approver(request.user, registration)
         form = CaresRegistrationApprovalForm(instance=registration, species=species)
 
     context = {'form': form, 'registration': registration, 'userIsAdmin': userIsAdmin}
@@ -596,22 +610,19 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
         queryset = CaresRegistration.objects.select_related(
             'cares_approver', 'species', 'affiliate_club'
         )
-        
+
         cares_family = self.request.GET.get('cares_family', '')
         reg_status = self.request.GET.get('reg_status', '')
-        approver = self.request.GET.get('approver', '')
         club = self.request.GET.get('club', '')
         query_text = self.request.GET.get('q', '')
-        
+
         if cares_family:
             queryset = queryset.filter(species__cares_family=cares_family)
-        if reg_status: 
+        if reg_status:
             queryset = queryset.filter(status=reg_status)
-        if approver:
-            queryset = queryset.filter(cares_approver_id=approver)
         if club:
             queryset = queryset.filter(affiliate_club_id=club)
-        if query_text: 
+        if query_text:
             queryset = queryset.filter(
                 Q(name__icontains=query_text) |
                 Q(species_source__icontains=query_text) |
@@ -623,26 +634,50 @@ class CaresRegistrationListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         if self.request.user.is_authenticated:
             logger.info('User %s visited caresRegistrations page.', self.request.user.username)
-        
+
         context = super().get_context_data(**kwargs)
-        
-        # Get unique approvers
-        approvers = CaresRegistration.objects.values_list(
-            'cares_approver__id', 'cares_approver__name'
-        ).distinct().order_by('cares_approver__name')
-        context['approvers'] = [(id, name) for id, name in approvers if id is not None]
-        
+
+        # Cosmetic approver display: while a registration is OPEN, show it as
+        # "assigned" to the viewing user if they hold a CaresApprover record
+        # sharing that species' CARES family — display-only, does not persist
+        # (see maybe_reassign_cares_approver for the persisted version used on
+        # the registration detail/edit pages). Several approvers can share a
+        # specialty; this just avoids the single cares_approver field looking
+        # "stuck" on whoever was auto-assigned at creation time.
+        registrations = context['registrations_list']
+        for reg in registrations:
+            reg.display_approver_name = reg.cares_approver.name if reg.cares_approver else ''
+
+        user = self.request.user
+        if user.is_authenticated:
+            open_families = {
+                reg.species.cares_family
+                for reg in registrations
+                if reg.status == CaresRegistration.CaresRegistrationStatus.OPEN and reg.species
+            }
+            if open_families:
+                by_specialty = {
+                    ca.specialty: ca
+                    for ca in CaresApprover.objects.filter(
+                        approver=user, specialty__in=open_families,
+                    )
+                }
+                for reg in registrations:
+                    if reg.status == CaresRegistration.CaresRegistrationStatus.OPEN and reg.species:
+                        match = by_specialty.get(reg.species.cares_family)
+                        if match:
+                            reg.display_approver_name = match.name
+
         # Get unique clubs
         clubs = CaresRegistration.objects.values_list(
             'affiliate_club__id', 'affiliate_club__name'
         ).distinct().order_by('affiliate_club__name')
         context['clubs'] = [(id, name) for id, name in clubs if id is not None]
-        
+
         context['cares_families'] = Species.CaresFamily.choices
         context['reg_status_options'] = CaresRegistration.CaresRegistrationStatus.choices
         context['selected_cares_family'] = self.request.GET.get('cares_family', '')
         context['selected_reg_status'] = self.request.GET.get('reg_status', '')
-        context['selected_approver'] = self.request.GET.get('approver', '')
         context['selected_club'] = self.request.GET.get('club', '')
         context['query_text'] = self.request.GET.get('q', '')
 

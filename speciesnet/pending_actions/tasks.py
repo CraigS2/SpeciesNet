@@ -49,8 +49,8 @@ def send_action_email(self, pending_action_id):
         body=html_body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[to_email],
+        cc=email_context.get('cc') or None,
         reply_to=[reply_to] if reply_to else None,
-        #cc=settings.EMAIL_BCC_ADDRESSES or None,
         bcc=settings.EMAIL_BCC_ADDRESSES or None,
     )
     email_message.content_subtype = 'html'
@@ -169,3 +169,41 @@ def sync_registration_statuses_task(self, dry_run=False, since_iso=None):
     stats = service.sync(since=since, dry_run=dry_run)
     logger.info('sync_registration_statuses_task complete: %s', stats)
     return stats
+
+
+# ---------------------------------------------------------------------------
+# Nightly CSO species sync (PASS2_SCOPE.md D8)
+#
+# Builds a species import staging batch from CSO (Site2) and emails
+# ADMIN_EMAIL a summary when the batch isn't empty - see
+# SpeciesSyncService.build_staging_batch(). Uses the same ``sync`` queue as
+# the registration sync tasks above; the periodic schedule itself (time of
+# day) is created in Django admin, same as those.
+# ---------------------------------------------------------------------------
+
+@shared_task(bind=True, base=RetriableTask, queue='sync')
+def sync_species_task(self, dry_run=False, since_iso=None):
+    """
+    Nightly: build a species import staging batch from CSO (Site1 only).
+
+    Args:
+        dry_run:    if True, report what would be staged without writing.
+        since_iso:  optional ISO-8601 datetime string to limit the fetch.
+    """
+    from django.utils.dateparse import parse_datetime
+    from species.services.species_sync import SpeciesSyncService
+
+    since = None
+    if since_iso:
+        since = parse_datetime(since_iso)
+        if since and not since.tzinfo:
+            from django.utils import timezone as tz
+            since = tz.make_aware(since, tz.utc)
+
+    service = SpeciesSyncService()
+    import_archive, summary = service.build_staging_batch(since=since, dry_run=dry_run)
+    logger.info(
+        'sync_species_task complete: archive=%s summary=%s',
+        import_archive.pk if import_archive else None, summary,
+    )
+    return summary

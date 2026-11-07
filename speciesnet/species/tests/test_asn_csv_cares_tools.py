@@ -298,6 +298,33 @@ class ImportStatusUpdatesTests(TestCase):
         self.assertEqual(result['updated'], 0)
         self.assertEqual(result['skipped'], 1)
 
+    def test_skip_already_approved_registration(self):
+        """Once a registration is Approved on Site1, further status-update imports
+        for it must be skipped entirely - no save, no approver_notes/last_updated_by
+        churn - even if the incoming row repeats 'Approved' or sends 'Declined'."""
+        self.reg.status = CaresRegistration.CaresRegistrationStatus.APPROVED
+        self.reg.approver_notes = 'Original notes'
+        self.reg.save(update_fields=['status', 'approver_notes'])
+        original_last_updated = self.reg.lastUpdated
+
+        rows = [{
+            'asn_id': str(self.reg.id),
+            'cso_id': '200',
+            'species': 'Julidochromis dickfeldi',
+            'aquarist_name': 'Alice',
+            'aquarist_email': 'alice@example.com',
+            'status': CaresRegistration.CaresRegistrationStatus.APPROVED,
+            'approver_notes': 'New notes from Site2',
+        }]
+        result = self._run_import(rows, list(rows[0].keys()))
+        self.assertEqual(result['updated'], 0)
+        self.assertEqual(result['skipped'], 1)
+
+        self.reg.refresh_from_db()
+        self.assertEqual(self.reg.status, CaresRegistration.CaresRegistrationStatus.APPROVED)
+        self.assertEqual(self.reg.approver_notes, 'Original notes')
+        self.assertEqual(self.reg.lastUpdated, original_last_updated)
+
     def test_skip_non_aprv_decl_status(self):
         rows = [{
             'asn_id': str(self.reg.id),

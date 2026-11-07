@@ -1,4 +1,4 @@
-Hello {{ registration.aquarist_name }},
+{% autoescape off %}Hello {{ registration.aquarist_name }},
 
 Your CARES registration for {{ species_name }} has been {{ status_label }}.
 
@@ -11,3 +11,4 @@ If you have questions or need to provide updates, please reply to this email.
 
 Thank you,
 CARES Species Team
+{% endautoescape %}

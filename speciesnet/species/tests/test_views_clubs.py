@@ -349,18 +349,29 @@ class AquaristClubEditViewTests(TestCase):
         self.assertEqual(self.club.name, 'Test Club')
 
     def test_edit_club_template_shows_blank_api_key_hints(self):
-        """When no API keys have been generated, the hint lines render blank"""
+        """When no API keys have been generated, both key sections render
+        the 'No key configured.' blank state (not a stored hint)."""
         self.client.login(email='clubadmin@test.com', password='testpass123')
         url = reverse('editAquaristClub', args=[self.club.id])
         response = self.client.get(url)
-        self.assertContains(response, 'Auction.fish API hint:')
-        self.assertContains(response, 'Aquarist Club API hint:')
+        self.assertContains(response, 'No key configured.', count=2)
 
     def test_edit_club_template_shows_configured_api_key_hints(self):
-        """The hint lines display the club's stored API key hints"""
+        """The hint lines display the club's stored API key hints.
+
+        has_auction_fish_api_key/has_club_api_key gate on the raw encrypted
+        key fields (see models.py), so the hint alone isn't enough to flip
+        the template into its "configured" branch — set both, mirroring how
+        forms.py/generate_club_api_key() always set key and hint together.
+        """
+        self.club.auction_fish_api_key = 'af-raw-key'
         self.club.auction_fish_api_key_hint = 'af-hint-123'
+        self.club.club_api_key = 'club-raw-key'
         self.club.club_api_key_hint = 'club-hint-456'
-        self.club.save(update_fields=['auction_fish_api_key_hint', 'club_api_key_hint'])
+        self.club.save(update_fields=[
+            'auction_fish_api_key', 'auction_fish_api_key_hint',
+            'club_api_key', 'club_api_key_hint',
+        ])
 
         self.client.login(email='clubadmin@test.com', password='testpass123')
         url = reverse('editAquaristClub', args=[self.club.id])
