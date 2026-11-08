@@ -460,7 +460,7 @@ def exportSpeciesCollectionLocations(request):
 
     response = HttpResponse(
         content_type='text/csv',
-        headers={'Content-Disposition': 'attachment; filename="species_collection_locations.csv"'},
+        headers={'Content-Disposition': export_content_disposition('species_collection_locations')},
     )
     writer = csv.writer(response)
     writer.writerow(['id', 'species_id', 'species_name', 'name', 'created'])

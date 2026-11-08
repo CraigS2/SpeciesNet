@@ -258,6 +258,7 @@ urlpatterns = [
     path('tools/species-feedback/<int:pk>/apply-photo/', views.applySpeciesFeedbackPhoto, name='applySpeciesFeedbackPhoto'),
     path('tools/species-feedback/<int:pk>/archive/', views.archiveSpeciesFeedback, name='archiveSpeciesFeedback'),
     path('tools/species-feedback/<int:pk>/delete/', views.deleteSpeciesFeedback, name='deleteSpeciesFeedback'),
+    path('tools/species-feedback/export/', views.exportSpeciesFeedback, name='exportSpeciesFeedback'),
 
     # django: re_path configuration for media files solves production error with nginx serving up image files
     re_path(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}),

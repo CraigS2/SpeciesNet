@@ -1,5 +1,5 @@
 from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus
-from species.models import ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation
+from species.models import ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation, SpeciesFeedback
 from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 
 from django.db import transaction, IntegrityError
@@ -23,7 +23,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 from django.core.validators import URLValidator
 from django.conf import settings
 from species.asn_tools.asn_cares_tools import get_matching_cares_approver
-from species.asn_tools.asn_utils import find_species_by_name
+from species.asn_tools.asn_utils import find_species_by_name, export_content_disposition
 from species.asn_tools.text_normalize import normalize_species_text
 from species.services.email_services import send_new_registration_notification
 
@@ -571,7 +571,7 @@ def export_csv_bap_genus(bap_club: AquaristClub):
     bapGenusSet = BapGenus.objects.filter(club=bap_club)
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="bap_genus_points_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('bap_genus_points_export')},
     )
     writer = csv.writer(response)
     writer.writerow(['club', 'name', 'points', 'category', 'global_region', 'example_species', 'example_species_description'])
@@ -588,7 +588,7 @@ def export_csv_aquarists():
     aquaristSet = User.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="asn_aquarists_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('aquarists_export')},
     )
     writer = csv.writer(response)
 
@@ -663,14 +663,8 @@ def export_csv_species():
     speciesSet = Species.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="asn_species_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('species_export')},
     )
-    site_id = getattr(settings, 'SITE_ID', 1)
-    if site_id == 2:
-        response = HttpResponse (
-            content_type="text/csv",
-            headers={"Content-Disposition": 'attachment; filename="cso_species_export.csv"'},
-        )        
 
     writer = csv.writer(response)
 
@@ -710,7 +704,7 @@ def export_csv_speciesInstances():
     speciesInstances = SpeciesInstance.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="species_instance_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('aquarist_species_export')},
     )
     writer = csv.writer(response)
 
@@ -742,7 +736,7 @@ def export_csv_aquaristClubs():
     clubs = AquaristClub.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="aquarist_club_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('aquarist_club_export')},
     )
     writer = csv.writer(response)
 
@@ -766,11 +760,39 @@ def export_csv_aquaristClubs():
 
     return response
 
+def export_csv_speciesFeedback():
+    feedbackSet = SpeciesFeedback.objects.select_related('species', 'user', 'reviewed_by').all()
+    response = HttpResponse (
+        content_type="text/csv",
+        headers={"Content-Disposition": export_content_disposition('species_feedback_export')},
+    )
+    writer = csv.writer(response)
+
+    writer.writerow([
+       # id     name    species_id    species_name    user    email    comment
+        'id', 'name', 'species_id', 'species_name', 'user', 'email', 'comment',
+       # species_image    species_photo_credit    approved    reviewed_by    reviewed_at    created
+        'species_image', 'species_photo_credit', 'approved', 'reviewed_by', 'reviewed_at', 'created'
+        ])
+    for feedback in feedbackSet:
+        writer.writerow([
+            #    id           name           species_id           species_name
+            feedback.id, feedback.name, feedback.species_id, feedback.species.name,
+            #    user                                                      email           comment
+            feedback.user.username if feedback.user else '', feedback.email, feedback.comment,
+            #    species_image           species_photo_credit           approved
+            feedback.species_image, feedback.species_photo_credit, feedback.approved,
+            #    reviewed_by                                                             reviewed_at           created
+            feedback.reviewed_by.username if feedback.reviewed_by else '', feedback.reviewed_at, feedback.created
+        ])
+
+    return response
+
 def export_csv_aquaristClubMembers():
     club_members = AquaristClubMember.objects.all()
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="aquarist_club_member_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('aquarist_club_member_export')},
     )
     writer = csv.writer(response)
      
@@ -801,7 +823,7 @@ def export_csv_bap_submissions(club_id=None):
         bap_submissions = bap_submissions.filter(club_id=club_id)
     response = HttpResponse (
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="aquarist_club_member_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('bap_submissions_export')},
     )
 
     writer = csv.writer(response)
@@ -854,7 +876,7 @@ def export_csv_caresRegistrations_asn():
     registrations = CaresRegistration.objects.all()
     response = HttpResponse(
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="cares_registration_asn_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('cares_registration_export')},
     )
     writer = csv.writer(response)
     writer.writerow([
@@ -939,7 +961,7 @@ def export_csv_caresRegistrations_cso():
     registrations = CaresRegistration.objects.all()
     response = HttpResponse(
         content_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="cares_registration_cso_export.csv"'},
+        headers={"Content-Disposition": export_content_disposition('cares_registration_export')},
     )
     writer = csv.writer(response)
     writer.writerow([

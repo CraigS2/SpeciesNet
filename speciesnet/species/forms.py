@@ -2088,10 +2088,16 @@ class EmailAquaristForm (ModelForm):
                     'email_text':         forms.Textarea(attrs={'rows':10,'cols':50}),}       
 
 class ImportCsvForm (ModelForm):
+    # Explicit field list, not '__all__': ImportArchive.source (default CSV)
+    # must never be user-editable, and import_csv_file is blank=True on the
+    # model only for CSO_SYNC batches - every CSV upload still requires a file.
     class Meta:
         model = ImportArchive
-        fields = '__all__'
-        exclude = ['name', 'aquarist', 'import_results_file', 'import_status']
+        fields = ['import_csv_file']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['import_csv_file'].required = True
 
 class ImportSpeciesCollectionLocationsForm(forms.Form):
     csv_file = forms.FileField()

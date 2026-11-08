@@ -72,6 +72,9 @@
     <div class="card-body">
       <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
+        {% endif %}
         <div class="mb-3">
           {{ form.import_csv_file.label_tag }}
           {{ form.import_csv_file }}

@@ -265,3 +265,13 @@ def deleteSpeciesFeedback(request, pk):
         'filter_status': filter_status,
     }
     return render(request, 'species/tools/deleteSpeciesFeedback.html', context)
+
+
+### Export Species Feedback (staff-only)
+
+@login_required(login_url='login')
+def exportSpeciesFeedback(request):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    logger.info('Staff user %s exported species feedback to CSV.', request.user.username)
+    return export_csv_speciesFeedback()

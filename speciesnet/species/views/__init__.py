@@ -124,7 +124,8 @@ from .views_bap_import import (
 # Species Feedback
 from .views_feedback import (
     submitSpeciesFeedback, speciesFeedbackTools, 
-    applySpeciesFeedbackPhoto, archiveSpeciesFeedback, deleteSpeciesFeedback
+    applySpeciesFeedbackPhoto, archiveSpeciesFeedback, deleteSpeciesFeedback,
+    exportSpeciesFeedback
 )
 
 
@@ -204,5 +205,5 @@ __all__ = [
     'uploadBapImport', 'reviewBapImport', 'processBapImport', 'pullBapImportFromAuction',
 
     # Species Feedback
-    'submitSpeciesFeedback', 'speciesFeedbackTools', 'approveSpeciesFeedback', 'deleteSpeciesFeedback',
+    'submitSpeciesFeedback', 'speciesFeedbackTools', 'approveSpeciesFeedback', 'deleteSpeciesFeedback', 'exportSpeciesFeedback',
 ] # type: ignore

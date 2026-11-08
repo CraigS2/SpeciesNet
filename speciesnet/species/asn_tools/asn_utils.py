@@ -14,6 +14,24 @@ from species.asn_tools.text_normalize import normalize_species_text
 
 logger = logging.getLogger(__name__)
 
+# export_csv_filename
+
+def export_csv_filename (base_name: str) -> str:
+    """
+    Archive-friendly CSV export filename: '<YYYYMMDD>_<site>_<base_name>.csv',
+    e.g. '20261108_asn_species_export.csv'. Site prefix comes from SITE_ID
+    (1 = asn, 2 = cso) so exports from both sites sort and stay distinct in
+    one backup folder. Date is today in settings.TIME_ZONE.
+    """
+    site_prefix = 'cso' if getattr(settings, 'SITE_ID', 1) == 2 else 'asn'
+    date_stamp = timezone.localdate().strftime('%Y%m%d')
+    return f'{date_stamp}_{site_prefix}_{base_name}.csv'
+
+
+def export_content_disposition (base_name: str) -> str:
+    """Content-Disposition header value for an export_csv_filename download."""
+    return f'attachment; filename="{export_csv_filename(base_name)}"'
+
 # user_can_edit | user_is_admin
 
 def user_is_admin (cur_user: User):
