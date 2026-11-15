@@ -325,6 +325,49 @@ class ImportStatusUpdatesTests(TestCase):
         self.assertEqual(self.reg.approver_notes, 'Original notes')
         self.assertEqual(self.reg.lastUpdated, original_last_updated)
 
+    def test_skip_when_already_declined_on_both_sites(self):
+        """DECL on Site2 and DECL on Site1 is not a change - must be reported as
+        SKIP, not 'SUCCESS - updated status from DECL to DECL', and must not
+        touch approver_notes/last_updated_by/lastUpdated."""
+        self.reg.status = CaresRegistration.CaresRegistrationStatus.DECLINED
+        self.reg.approver_notes = 'Original notes'
+        self.reg.save(update_fields=['status', 'approver_notes'])
+        original_last_updated = self.reg.lastUpdated
+
+        rows = [{
+            'asn_id': str(self.reg.id),
+            'cso_id': '200',
+            'species': 'Julidochromis dickfeldi',
+            'aquarist_name': 'Alice',
+            'aquarist_email': 'alice@example.com',
+            'status': CaresRegistration.CaresRegistrationStatus.DECLINED,
+            'approver_notes': 'Original notes',
+        }]
+        result = self._run_import(rows, list(rows[0].keys()))
+        self.assertEqual(result['updated'], 0)
+        self.assertEqual(result['skipped'], 1)
+
+        self.reg.refresh_from_db()
+        self.assertEqual(self.reg.status, CaresRegistration.CaresRegistrationStatus.DECLINED)
+        self.assertEqual(self.reg.lastUpdated, original_last_updated)
+
+    def test_declined_to_approved_still_updates(self):
+        self.reg.status = CaresRegistration.CaresRegistrationStatus.DECLINED
+        self.reg.save(update_fields=['status'])
+        rows = [{
+            'asn_id': str(self.reg.id),
+            'cso_id': '200',
+            'species': 'Julidochromis dickfeldi',
+            'aquarist_name': 'Alice',
+            'aquarist_email': 'alice@example.com',
+            'status': CaresRegistration.CaresRegistrationStatus.APPROVED,
+            'approver_notes': 'Resubmitted photo accepted',
+        }]
+        result = self._run_import(rows, list(rows[0].keys()))
+        self.assertEqual(result['updated'], 1)
+        self.reg.refresh_from_db()
+        self.assertEqual(self.reg.status, CaresRegistration.CaresRegistrationStatus.APPROVED)
+
     def test_skip_non_aprv_decl_status(self):
         rows = [{
             'asn_id': str(self.reg.id),

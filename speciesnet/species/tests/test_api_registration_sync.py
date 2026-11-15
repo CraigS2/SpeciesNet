@@ -626,6 +626,17 @@ class RegistrationStatusSyncServiceTest(BaseTestCase):
         self.assertEqual(stats['skipped'], 1)
 
     @patch.object(RegistrationStatusSyncService, 'fetch_status_updates')
+    def test_sync_skips_already_declined(self, mock_fetch):
+        self.site1_reg.status = 'DECL'
+        self.site1_reg.save()
+        row = {**SAMPLE_STATUS_ROW, 'external_id': self.site1_reg.id, 'status': 'DECL'}
+        mock_fetch.return_value = iter([row])
+        service = RegistrationStatusSyncService()
+        stats = service.sync(dry_run=False)
+        self.assertEqual(stats['skipped'], 1)
+        self.assertEqual(stats['updated'], 0)
+
+    @patch.object(RegistrationStatusSyncService, 'fetch_status_updates')
     def test_sync_guards_duplicate_external_id_in_batch(self, mock_fetch):
         row = {**SAMPLE_STATUS_ROW, 'external_id': self.site1_reg.id}
         mock_fetch.return_value = iter([row, row])  # same row twice

@@ -1345,6 +1345,15 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
                         csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, registration.status, new_status, status_txt])
                         logger.info('CARES status update import row %d: %s', row_count, status_txt)
                         continue
+                    # Same status on both sites (e.g. DECL/DECL) is not a change - skip
+                    # rather than re-save and report a false SUCCESS. Matches
+                    # RegistrationStatusSyncService._sync_one on the REST path.
+                    if registration.status == new_status:
+                        skip_count += 1
+                        status_txt = f'SKIP - registration id={asn_id} status already {new_status}'
+                        csv_report_writer.writerow([row_count, asn_id, cso_id_raw, species_name, aquarist, registration.status, new_status, status_txt])
+                        logger.info('CARES status update import row %d: %s', row_count, status_txt)
+                        continue
                     old_status = registration.status
                     registration.status = new_status
                     registration.approver_notes = import_row.get('approver_notes', '').strip()
