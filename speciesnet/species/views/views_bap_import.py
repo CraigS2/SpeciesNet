@@ -756,7 +756,7 @@ def processBapImport(request, pk):
                 species_instance = SpeciesInstance.objects.create(
                     user=user_obj,
                     species=species_obj,
-                    name=f'{user_obj.username} - {species_obj.name}',
+                    name=species_obj.name,
                 )
 
             # 4. Create BapSubmission — block duplicates for ANY OPEN or APPROVED submission to prevent duplicates on re-import

@@ -433,7 +433,7 @@ class SpeciesInstance (models.Model):
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, blank=True)
     collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='species_instances')
-    acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, related_name='shared_species_instances') # self == SpeciesInstance
+    acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='shared_species_instances') # self == SpeciesInstance
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     aquarist_notes            = models.TextField (blank=True)
     have_spawned              = models.BooleanField(default=False)

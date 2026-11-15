@@ -447,6 +447,7 @@ class ProcessBapImportViewTests(TestCase):
         self.assertTrue(user.is_proxy)
         self.assertTrue(AquaristClubMember.objects.filter(user=user, club=self.club).exists())
         self.assertTrue(SpeciesInstance.objects.filter(user=user, species=self.species).exists())
+        self.assertEqual(SpeciesInstance.objects.get(user=user, species=self.species).name, 'Corydoras paleatus')
         self.assertTrue(BapSubmission.objects.filter(aquarist=user, club=self.club).exists())
 
         # Batch should now be PROCESSED
@@ -475,6 +476,9 @@ class ProcessBapImportViewTests(TestCase):
         self.client.post(url)
 
         self.assertTrue(BapSubmission.objects.filter(aquarist=active_user, club=self.club).exists())
+        # New SpeciesInstance is named after the species only - no username prefix
+        si = SpeciesInstance.objects.get(user=active_user, species=self.species)
+        self.assertEqual(si.name, 'Corydoras paleatus')
 
     @patch('species.views.views_bap_import._send_bap_join_invites')
     def test_active_non_member_path_skips_and_invites(self, mock_invite):
