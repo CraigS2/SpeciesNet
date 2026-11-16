@@ -433,9 +433,11 @@ class SpeciesInstance (models.Model):
     genetic_traits            = models.CharField (max_length=2, choices=GeneticLine.choices, default=GeneticLine.AQUARIUM_STRAIN)
     collection_point          = models.CharField (max_length=200, blank=True)
     collection_location       = models.ForeignKey('SpeciesCollectionLocation', on_delete=models.SET_NULL, null=True, blank=True, related_name='species_instances')
-    acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='shared_species_instances') # self == SpeciesInstance
+    #acquired_from             = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='shared_species_instances') # self == SpeciesInstance
     year_acquired             = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1900), MaxValueValidator(2100)], default=get_cur_year) # no () on get_cur_year
     aquarist_notes            = models.TextField (blank=True)
+    tank_setup_notes          = models.TextField (blank=True)
+    water_conditions_notes    = models.TextField (blank=True)
     have_spawned              = models.BooleanField(default=False)
     spawning_notes            = models.TextField (blank=True)
     have_reared_fry           = models.BooleanField(default=False)
@@ -456,8 +458,7 @@ class SpeciesInstance (models.Model):
         verbose_name_plural = "Aquarist Species"
 
     def save(self, *args, **kwargs):
-        # Aquarists type this name freely - normalize quotes/whitespace on
-        # every save. Case is never touched.
+        # Aquarists type this name freely - normalize quotes/whitespace on every save.
         self.name = normalize_species_text(self.name)
         super().save(*args, **kwargs)
 
@@ -470,6 +471,9 @@ class SpeciesInstanceLogEntry (models.Model):
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     log_entry_video_url       = models.URLField (max_length=500, blank=True)  # help_text="YouTube video link"
     log_entry_notes           = models.TextField (null=False, blank=False)
+    husbandry_care_notes      = models.TextField (blank=True)
+    breeding_event_notes      = models.TextField (blank=True)
+    health_observation_notes  = models.TextField (blank=True)
     created                   = models.DateTimeField (auto_now_add=True)      # updated only at 1st save
     lastUpdated               = models.DateTimeField (auto_now=True)          # updated every save
 
@@ -530,6 +534,9 @@ class SpeciesMaintenanceLogEntry (models.Model):
     log_entry_image           = models.ImageField (upload_to='images/%Y/%m/%d', null=True, blank=True)
     log_entry_video_url       = models.URLField (max_length=500, blank=True)                     # help_text="YouTube video link"
     log_entry_notes           = models.TextField (blank=False)
+    husbandry_care_notes      = models.TextField (blank=True)
+    breeding_event_notes      = models.TextField (blank=True)
+    health_observation_notes  = models.TextField (blank=True)
     created                   = models.DateTimeField(auto_now_add=True)  # updated only at 1st save
     lastUpdated               = models.DateTimeField(auto_now=True)      # updated every save
 
@@ -554,6 +561,9 @@ class AquaristClub (models.Model):
     require_member_approval   = models.BooleanField (default=True)
     bap_guidelines            = models.TextField (blank=True)
     bap_default_points        = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], default=10)
+    bap_invite_interval_days  = models.PositiveIntegerField(default=90, validators=[MinValueValidator(1)],
+                                    verbose_name='Days between BAP invitations',
+                                    help_text='Minimum days before the same person is re-invited after a BAP import.')
     cares_muliplier           = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)], default=2)  
     bap_start_date            = models.DateField (null=True, blank=True)
     bap_end_date              = models.DateField (null=True, blank=True)
@@ -669,7 +679,37 @@ class AquaristClubEmailAlias (models.Model):
         return f'{self.club.acronym}: {self.alias_email} → {self.user.username}'
 
 
+class AquaristClubContactFilter (models.Model):
+    """
+    Per (club, user) BAP outreach state. Throttles repeat club/BAP invitations
+    triggered by BAP imports (see AquaristClub.bap_invite_interval_days) and
+    records a user's 'no thanks' so imports stop inviting them. Opting out
+    suppresses invitations only - BAP submissions are still recorded.
+    """
+    club                      = models.ForeignKey(AquaristClub, on_delete=models.CASCADE, related_name='contact_filters')
+    user                      = models.ForeignKey(User, on_delete=models.CASCADE, related_name='club_contact_filters') # proxies are Users too
+    last_invited_at           = models.DateTimeField(null=True, blank=True)
+    invite_count              = models.PositiveIntegerField(default=0)
+    opted_out                 = models.BooleanField(default=False)
+    opted_out_at              = models.DateTimeField(null=True, blank=True)
+    notes                     = models.TextField(blank=True)                # free-form admin context
+    created                   = models.DateTimeField(auto_now_add=True)    # updated only at 1st save
+    lastUpdated               = models.DateTimeField(auto_now=True)        # updated every save
+
+    class Meta:
+        ordering = ['club', 'user']
+        verbose_name = 'Club Contact Filter'
+        verbose_name_plural = 'Club Contact Filters'
+        constraints = [
+            models.UniqueConstraint(fields=['club', 'user'], name='uniq_club_contact_filter'),
+        ]
+
+    def __str__(self):
+        return f'{self.club} - {self.user}'
+
+
 ### CARES Registration & Approver
+
 
 class CaresApprover (models.Model):
     name              = models.CharField (max_length=240)

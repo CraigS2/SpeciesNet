@@ -5,7 +5,7 @@ from .models import User
 # Register your models here.
 from .models import Species, SpeciesComment, SpeciesReferenceLink, SpeciesCollectionLocation
 from .models import SpeciesInstance, SpeciesInstanceLabel, SpeciesInstanceLogEntry, SpeciesMaintenanceLog, SpeciesMaintenanceLogEntry 
-from .models import User, UserEmail, AquaristClub, AquaristClubMember, ImportArchive, BapImportBatch
+from .models import User, UserEmail, AquaristClub, AquaristClubMember, AquaristClubContactFilter, ImportArchive, BapImportBatch
 from .models import BapSubmission, BapGenus, BapSpecies, BapLeaderboard, BapYear, CaresRegistration, CaresApprover
 from .models import BapTier, BapLifetimeTotal, SmpLeaderboard, SmpLifetimeTotal
 from .models import SpeciesFeedback, SpeciesAdmin
@@ -102,6 +102,14 @@ class AquaristClubAdmin(admin.ModelAdmin):
 
 
 admin.site.register (AquaristClubMember)
+
+
+@admin.register(AquaristClubContactFilter)
+class AquaristClubContactFilterAdmin(admin.ModelAdmin):
+    list_display = ('club', 'user', 'opted_out', 'last_invited_at', 'invite_count')
+    list_filter = ('club', 'opted_out')
+    search_fields = ('user__username', 'user__email')
+    raw_id_fields = ('user',)
 
 
 class SpeciesModelAdmin(admin.ModelAdmin):
