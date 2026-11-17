@@ -2149,16 +2149,61 @@ class SpeciesImportStagingForm(ModelForm):
     CSO text" button in the template) = accept CSO's wording verbatim (D1) -
     there's no separate flag for this: commit_species_import_staging detects
     it by comparing the final text to CSO's proposed text and attributes a
-    SpeciesReferenceLink automatically. Ignored for CSV batches.
+    SpeciesReferenceLink automatically.
+
+    CSV batches use the final text the same way (pre-filled at staging), plus
+    an accept_<field> checkbox per changed non-text field (accept_fields),
+    stored as changed_fields[field]['accept'] for the commit to honour.
+
+    text_fields limits which final_* fields this form handles - a final-text
+    box the page doesn't show must not be wiped by a POST that lacks it.
     """
     class Meta:
         model = SpeciesImportStaging
         fields = ['review_status', 'review_notes', 'final_description', 'final_local_distribution']
         widgets = {
-            'review_notes': forms.Textarea(attrs={'rows': 3, 'cols': 60}),
-            'final_description': forms.Textarea(attrs={'rows': 6, 'cols': 60}),
-            'final_local_distribution': forms.TextInput(attrs={'size': 60}),
+            'review_status': forms.RadioSelect(attrs={'class': 'btn-check'}),   # rendered as a button group
+            'review_notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'final_description': forms.Textarea(attrs={'rows': 6, 'class': 'form-control'}),
+            'final_local_distribution': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
         }
+
+    def __init__(self, *args, accept_fields=(), text_fields=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 'Approved with Override' commits exactly like 'Approved' now that the
+        # accept checkboxes decide which fields are written, so reviewers aren't
+        # offered it. Older rows still holding it show as Approved here.
+        override = SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE
+        self.fields['review_status'].choices = [
+            choice for choice in self.fields['review_status'].choices if choice[0] != override
+        ]
+        if self.instance.review_status == override:
+            self.initial['review_status'] = SpeciesImportStaging.ReviewStatus.APPROVED
+        self.accept_fields = list(accept_fields)
+        changed_fields = self.instance.changed_fields or {}
+        for field in self.accept_fields:
+            self.fields[f'accept_{field}'] = forms.BooleanField(
+                required=False,
+                initial=bool(changed_fields.get(field, {}).get('accept')),
+                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            )
+        if text_fields is not None:
+            for field in ('description', 'local_distribution'):
+                if field not in text_fields:
+                    del self.fields[f'final_{field}']
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.accept_fields:
+            changed_fields = dict(instance.changed_fields or {})
+            for field in self.accept_fields:
+                entry = dict(changed_fields.get(field) or {})
+                entry['accept'] = self.cleaned_data.get(f'accept_{field}', False)
+                changed_fields[field] = entry
+            instance.changed_fields = changed_fields
+        if commit:
+            instance.save()
+        return instance
 
     def clean_final_description(self):
         return normalize_species_text(self.cleaned_data.get('final_description'), keep_linebreaks=True)

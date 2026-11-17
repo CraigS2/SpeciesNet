@@ -6,36 +6,72 @@ import re
 
 from .base import *
 from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from species.models import SpeciesImportStaging, SpeciesFeedback
 from species.forms import SpeciesImportStagingForm
 from species.asn_tools.asn_csv_tools import (import_csv_species_to_staging, commit_species_import_staging,
-                                              import_csv_species_reference_links, _reference_link_url_for_cso_species,)
+                                              import_csv_species_reference_links, _reference_link_url_for_cso_species,
+                                              SPECIES_REVIEW_TEXT_FIELDS,)
 
 
 _WORD_TOKEN_RE = re.compile(r'\s+|\S+')
 
 
-def _word_diff(old_text, new_text):
+def _redline_html(old_text, new_text):
     """
-    Word-level diff between *old_text* (ASN) and *new_text* (CSO) for the
-    review screen's diff column (PASS2_SCOPE.md 4.3). Returns a list of
-    {'tag': 'equal'|'delete'|'insert', 'text': str} tokens.
+    One paragraph showing *old_text* edited into *new_text*: removed words in
+    red strike-through, added words green underlined, unchanged text plain.
+
+    Word-level diffs of reworded sentences tend to alternate change / one
+    unchanged word / change. Unchanged runs of a single word (or bare
+    whitespace) between two changes are folded into the surrounding change,
+    so each edit reads as one replaced phrase instead of word-by-word pairs.
     """
     old_tokens = _WORD_TOKEN_RE.findall(old_text or '')
     new_tokens = _WORD_TOKEN_RE.findall(new_text or '')
     matcher = difflib.SequenceMatcher(a=old_tokens, b=new_tokens, autojunk=False)
-    result = []
+
+    # segments: ['equal', text] or ['change', removed, added]
+    segments = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == 'equal':
-            result.append({'tag': 'equal', 'text': ''.join(old_tokens[i1:i2])})
-        elif tag == 'delete':
-            result.append({'tag': 'delete', 'text': ''.join(old_tokens[i1:i2])})
-        elif tag == 'insert':
-            result.append({'tag': 'insert', 'text': ''.join(new_tokens[j1:j2])})
-        elif tag == 'replace':
-            result.append({'tag': 'delete', 'text': ''.join(old_tokens[i1:i2])})
-            result.append({'tag': 'insert', 'text': ''.join(new_tokens[j1:j2])})
-    return result
+        old_part, new_part = ''.join(old_tokens[i1:i2]), ''.join(new_tokens[j1:j2])
+        segments.append(['equal', old_part] if tag == 'equal' else ['change', old_part, new_part])
+
+    merged = []
+    for index, segment in enumerate(segments):
+        is_short_gap = (
+            segment[0] == 'equal' and 0 < index < len(segments) - 1
+            and len(segment[1].split()) <= 1
+            and segments[index - 1][0] == 'change' and segments[index + 1][0] == 'change'
+        )
+        if is_short_gap:
+            merged[-1][1] += segment[1]
+            merged[-1][2] += segment[1]
+        elif segment[0] == 'change' and merged and merged[-1][0] == 'change':
+            merged[-1][1] += segment[1]
+            merged[-1][2] += segment[2]
+        else:
+            merged.append(list(segment))
+
+    parts = []
+    for segment in merged:
+        if segment[0] == 'equal':
+            parts.append(escape(segment[1]))
+            continue
+        removed, added = segment[1], segment[2]
+        # keep the whitespace around an edit outside the del/ins marks
+        leading = added[:len(added) - len(added.lstrip())] or removed[:len(removed) - len(removed.lstrip())]
+        parts.append(leading)
+        if removed.strip():
+            parts.append(format_html('<del class="text-danger">{}</del>', removed.strip()))
+        if added.strip():
+            if removed.strip():
+                parts.append(' ')
+            parts.append(format_html('<ins class="text-success">{}</ins>', added.strip()))
+        trailing = added[len(added.rstrip()):] or removed[len(removed.rstrip()):]
+        parts.append(trailing)
+    return mark_safe(''.join(str(p) for p in parts))
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +178,20 @@ def reviewSpeciesImport(request, pk):
 # Step 2b: Review a single staging record (side-by-side comparison)
 # ---------------------------------------------------------------------------
 
+def _next_pending_staging(staging):
+    """
+    The next record still needing a decision after *staging* in row order,
+    wrapping to the start of the import - for "Save and Load Next". SKIP rows
+    (no changes) are passed over; returns None when nothing is left pending.
+    """
+    pending = SpeciesImportStaging.objects.filter(
+        import_archive=staging.import_archive,
+        review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+    ).exclude(action=SpeciesImportStaging.ImportAction.SKIP).exclude(pk=staging.pk)
+    return (pending.filter(import_row_number__gt=staging.import_row_number).first()
+            or pending.first())
+
+
 @login_required(login_url='login')
 def reviewSpeciesImportDetail(request, staging_id):
     """Side-by-side comparison and approve/reject of an individual staging record."""
@@ -151,24 +201,9 @@ def reviewSpeciesImportDetail(request, staging_id):
     staging = get_object_or_404(SpeciesImportStaging, pk=staging_id)
     import_archive = staging.import_archive
     is_cso_sync = import_archive.source == ImportArchive.ImportSource.CSO_SYNC
+    is_new = staging.action == SpeciesImportStaging.ImportAction.NEW
+    changed_fields = staging.changed_fields or {}
 
-    form = SpeciesImportStagingForm(instance=staging)
-    if request.method == 'POST':
-        form = SpeciesImportStagingForm(request.POST, instance=staging)
-        if form.is_valid():
-            updated = form.save(commit=False)
-            updated.reviewed_by = request.user
-            updated.reviewed_at = timezone.now()
-            updated.save()
-            logger.info(
-                'User %s set staging %s to %s',
-                request.user.username, staging.pk, updated.review_status,
-            )
-            messages.success(request, f'Staging record updated to {updated.get_review_status_display()}.')
-            return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[import_archive.pk]))
-
-    # Build field comparison rows for the template - codes/facts only;
-    # description/local_distribution get their own diff+edit section below.
     field_labels = {
         'name':                  'Scientific Name',
         'alt_name':              'Alternate Name',
@@ -181,7 +216,41 @@ def reviewSpeciesImportDetail(request, staging_id):
         'iucn_red_list':         'IUCN Red List Status',
         'iucn_assessment_date':  'IUCN Assessment Date',
     }
-    changed_fields = staging.changed_fields or {}
+
+    # CSV batches: every changed non-text field gets an accept checkbox. CSO
+    # sync batches have none - their codes were auto-applied at build time.
+    accept_fields = []
+    if not is_cso_sync and not is_new:
+        accept_fields = [
+            field for field in field_labels
+            if field in changed_fields and not changed_fields[field].get('auto')
+        ]
+    # A final-text box is shown (and posted) for every text field of a NEW
+    # row, and for changed text fields otherwise.
+    text_fields = [f for f in SPECIES_REVIEW_TEXT_FIELDS if is_new or f in changed_fields]
+
+    form = SpeciesImportStagingForm(instance=staging, accept_fields=accept_fields, text_fields=text_fields)
+    if request.method == 'POST':
+        form = SpeciesImportStagingForm(request.POST, instance=staging, accept_fields=accept_fields, text_fields=text_fields)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.reviewed_by = request.user
+            updated.reviewed_at = timezone.now()
+            updated.save()
+            logger.info(
+                'User %s set staging %s to %s',
+                request.user.username, staging.pk, updated.review_status,
+            )
+            messages.success(request, f'Row {updated.import_row_number} saved as {updated.get_review_status_display()}.')
+            if 'save_next' in request.POST:
+                next_row = _next_pending_staging(updated)
+                if next_row is not None:
+                    return HttpResponseRedirect(reverse('reviewSpeciesImportDetail', args=[next_row.pk]))
+                messages.info(request, 'No more pending records to review in this import.')
+            return HttpResponseRedirect(reverse('reviewSpeciesImport', args=[import_archive.pk]))
+
+    # Field comparison rows - codes/facts only; description/local_distribution
+    # get their own redline + final-text section below.
     comparison = []
     for field, label in field_labels.items():
         raw_current = getattr(staging.existing_species, field, None) if staging.existing_species else None
@@ -197,20 +266,23 @@ def reviewSpeciesImportDetail(request, staging_id):
             'changed': field in changed_fields,
             'auto': bool(entry.get('auto')),
             'invalid': bool(entry.get('invalid')),
+            'accept': form[f'accept_{field}'] if field in accept_fields else None,
         })
 
-    # PASS2_SCOPE.md 4.3: description/local_distribution get ASN's text, CSO's
-    # text, a word diff, and an editable "ASN final text" box (the form field).
+    # Description/local_distribution: current text, a redline of the proposed
+    # change, and the editable final text (the form field) when there's
+    # something to decide.
     text_diffs = {}
     for field, label in (('description', 'Description'), ('local_distribution', 'Local Distribution')):
-        current_val = getattr(staging.existing_species, field, '') if staging.existing_species else ''
+        current_val = (getattr(staging.existing_species, field, '') if staging.existing_species else '') or ''
         proposed_val = getattr(staging, f'new_{field}', '') or ''
         text_diffs[field] = {
             'label': label,
-            'current': current_val or '',
+            'current': current_val,
             'proposed': proposed_val,
             'changed': field in changed_fields,
-            'diff': _word_diff(current_val, proposed_val) if field in changed_fields else [],
+            'redline': _redline_html(current_val, proposed_val) if field in changed_fields else '',
+            'final': form[f'final_{field}'] if field in text_fields else None,
         }
 
     feedback_list = []
@@ -236,6 +308,8 @@ def reviewSpeciesImportDetail(request, staging_id):
         'staging': staging,
         'import_archive': import_archive,
         'is_cso_sync': is_cso_sync,
+        'is_new': is_new,
+        'source_label': 'CSO' if is_cso_sync else 'CSV',
         'form': form,
         'comparison': comparison,
         'text_diffs': text_diffs,

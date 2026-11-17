@@ -49,13 +49,6 @@ def _normalize_email(email: str) -> str:
 # Required CSV columns – rows missing these will be skipped with an error
 SPECIES_IMPORT_REQUIRED_FIELDS = ['name', 'category', 'global_region']
 
-# Default values applied when an optional enum cell is blank
-SPECIES_IMPORT_ENUM_DEFAULTS = {
-    'cares_family':         Species.CaresFamily.UNDEFINED,
-    'iucn_red_list':        Species.IucnRedList.UNDEFINED,
-    'cares_classification': Species.CaresStatus.NOT_CARES_SPECIES,
-}
-
 # Fields that are always overwritten on UPDATE (high-trust authoritative data)
 SPECIES_ALWAYS_UPDATE_FIELDS = [
     'cares_classification',
@@ -84,6 +77,35 @@ SPECIES_TRACKED_FIELDS = (
     + SPECIES_UPDATE_IF_EMPTY_FIELDS
     + SPECIES_NEVER_UPDATE_FIELDS
 )
+
+# CARES/IUCN properties. Usually kept in step by the REST sync rather than a
+# CSV, so a blank or missing cell is never a proposed change - only a value
+# actually given in the CSV is staged (and ticked for review by default).
+SPECIES_CARES_FIELDS = [
+    'cares_family',
+    'cares_classification',
+    'cares_assessment_date',
+    'iucn_red_list',
+    'iucn_assessment_date',
+]
+
+# Free-text fields the reviewer edits as final text; every other changed
+# field gets an accept checkbox on the CSV review screen.
+SPECIES_REVIEW_TEXT_FIELDS = ['description', 'local_distribution']
+
+
+def _default_accept(field: str, old_val, new_val) -> bool:
+    """
+    Initial state of a CSV review checkbox - mirrors the old commit rules, so
+    bulk approve still does what it always did: ALWAYS fields (CARES/IUCN
+    included) are accepted, IF_EMPTY fields only when the current value is
+    blank, and a blank CSV cell never replaces an existing value.
+    """
+    if not new_val:
+        return False
+    if field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
+        return not old_val
+    return field in SPECIES_ALWAYS_UPDATE_FIELDS
 
 # Import Species List
 # iterate through csv rows add only valid and non-duplicate species to DB
@@ -1472,6 +1494,8 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
     changed = {}
     for csv_field, model_field in field_map.items():
         new_val = import_row.get(csv_field, '')
+        if csv_field in SPECIES_CARES_FIELDS and not new_val.strip():
+            continue  # blank/missing CARES cell - not a proposed change
         old_val = str(getattr(existing_species, model_field, '') or '')
         if csv_field in text_field_linebreaks:
             keep_lb = text_field_linebreaks[csv_field]
@@ -1481,6 +1505,8 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
         elif new_val == old_val:
             continue
         changed[csv_field] = {'old': old_val, 'new': new_val}
+        if csv_field not in SPECIES_REVIEW_TEXT_FIELDS:
+            changed[csv_field]['accept'] = _default_accept(csv_field, old_val, new_val)
     return changed
 
 
@@ -1489,11 +1515,11 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
     Parse a species CSV and create SpeciesImportStaging records for review.
 
     Required CSV columns: name, category, global_region
-    Optional columns (blank cells use defaults):
+    Optional columns:
       - alt_name, common_name, description, local_distribution  → blank string
-      - cares_family          → UDF (Undefined)
-      - iucn_red_list         → UN  (Undefined)
-      - cares_classification  → NOTC (Not a CARES Species)
+      - CARES/IUCN columns (SPECIES_CARES_FIELDS) may be blank or missing.
+        A blank cell is not a change for an existing species; a NEW species
+        gets the model defaults at commit (UDF / NOTC / UN, no dates).
 
     Returns a summary dict with counts: new, update, skip, conflict, error.
     """
@@ -1521,11 +1547,6 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
                 csv_report_writer.writerow([row_number, species_name, 'ERROR', 'N/A', '', notes])
                 continue
 
-            # Apply defaults for optional enum fields when cell is blank
-            for field, default in SPECIES_IMPORT_ENUM_DEFAULTS.items():
-                if not import_row.get(field, '').strip():
-                    import_row[field] = default
-
             existing = _find_existing_species(species_name)
 
             if existing is None:
@@ -1550,11 +1571,25 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
                     else:
                         summary['update'] += 1
 
+            # Final text starts as what a plain approve should commit: the CSV
+            # text for a NEW species, otherwise the current text - or the CSV
+            # text when the current text is blank (the old if-empty rule).
+            final_text = {}
+            for field in SPECIES_REVIEW_TEXT_FIELDS:
+                current = (getattr(existing, field, '') or '') if existing else ''
+                final_text[field] = current or import_row.get(field, '')
+
+            # Marks rows staged with per-field accept flags and final text -
+            # the commit refuses CSV UPDATE rows staged before that existed.
+            changed_fields['_csv_review'] = True
+
             staging = SpeciesImportStaging(
                 import_archive=import_archive,
                 import_row_number=row_number,
                 action=action,
                 existing_species=existing,
+                final_description=final_text['description'],
+                final_local_distribution=final_text['local_distribution'],
                 new_name=species_name,
                 new_alt_name=import_row.get('alt_name', ''),
                 new_common_name=import_row.get('common_name', ''),
@@ -1572,7 +1607,7 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
             )
             staging.save()
 
-            changed_fields_str = ', '.join(changed_fields.keys()) if changed_fields else ''
+            changed_fields_str = ', '.join(k for k in changed_fields if not k.startswith('_'))
             csv_report_writer.writerow([row_number, species_name, action, 'PENDING', changed_fields_str, notes])
 
     # Persist import summary report
@@ -1662,14 +1697,54 @@ class _StagingTextConflict(Exception):
         self.conflict_fields = conflict_fields
 
 
+def _apply_final_text(species, staged_changes):
+    """
+    Write the reviewer's final_description/final_local_distribution to
+    *species* (in memory) for an UPDATE row. Returns (updated, conflicts).
+
+    Fix 3: write final_<field> only if it differs from the baseline text
+    recorded when the batch was built (changed_fields[field]['old']). If the
+    reviewer left it unchanged, write nothing - "keep current text" keeps the
+    CURRENT text, not a stale snapshot. If the reviewer did change it, but the
+    species' current text no longer matches that baseline (someone else
+    edited it since), don't overwrite - report the field as a conflict.
+    """
+    updated, conflicts = [], []
+    for field, final_attr in (
+        ('description', 'final_description'),
+        ('local_distribution', 'final_local_distribution'),
+    ):
+        entry = (staged_changes.changed_fields or {}).get(field)
+        if not entry:
+            continue  # nothing was proposed for this field - nothing to write
+        baseline = entry.get('old') or ''
+        final_val = getattr(staged_changes, final_attr) or ''
+        if normalize_species_text(final_val, keep_linebreaks=True).lower() == \
+                normalize_species_text(baseline, keep_linebreaks=True).lower():
+            continue  # reviewer left it unchanged
+
+        current_val = getattr(species, field) or ''
+        if normalize_species_text(current_val, keep_linebreaks=True).lower() == \
+                normalize_species_text(final_val, keep_linebreaks=True).lower():
+            continue  # already written by an earlier commit of this batch
+
+        if normalize_species_text(current_val, keep_linebreaks=True).lower() != \
+                normalize_species_text(baseline, keep_linebreaks=True).lower():
+            conflicts.append(field)
+            continue
+
+        setattr(species, field, final_val)
+        updated.append(field)
+    return updated, conflicts
+
+
 def commit_species_import_staging(import_archive: ImportArchive, current_user: User) -> dict:
     """
     Commit all APPROVED staging records for *import_archive* to the Species table.
 
-    CSV batches (import_archive.source == CSV, pass 1 behaviour, unchanged):
-    - SPECIES_ALWAYS_UPDATE_FIELDS: always written on UPDATE
-    - SPECIES_UPDATE_IF_EMPTY_FIELDS: written only when existing value is blank
-    - SPECIES_NEVER_UPDATE_FIELDS: never written on UPDATE
+    CSV batches (import_archive.source == CSV): on UPDATE, only the changed
+    fields whose accept checkbox is ticked (changed_fields[field]['accept'])
+    are written, plus the reviewer's final_description/final_local_distribution.
 
     CSO_SYNC batches (PASS2_SCOPE.md 4.4): codes/region/category/auto-filled
     alt_name/common_name were already applied when the batch was built
@@ -1738,8 +1813,9 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                             # D4/4.6: codes and category come from CSO; text is the
                             # reviewer's own (final_* starts blank unless they typed
                             # something, or explicitly accepted CSO's wording - D1).
-                            description = staged_changes.final_description if is_cso_sync else staged_changes.new_description
-                            local_distribution = staged_changes.final_local_distribution if is_cso_sync else staged_changes.new_local_distribution
+                            uses_final_text = is_cso_sync or (staged_changes.changed_fields or {}).get('_csv_review')
+                            description = staged_changes.final_description if uses_final_text else staged_changes.new_description
+                            local_distribution = staged_changes.final_local_distribution if uses_final_text else staged_changes.new_local_distribution
 
                             species = Species(
                                 name=staged_changes.new_name,
@@ -1783,43 +1859,8 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                             # Codes/region/category/auto-filled alt_name/common_name
                             # were already written when the batch was built. Only
                             # the reviewer's own text is written here.
-                            #
-                            # Fix 3: write final_<field> only if it differs from
-                            # the baseline ASN text recorded when this batch was
-                            # built (changed_fields[field]['old']). If the
-                            # reviewer left it unchanged, write nothing - "keep
-                            # ASN text" keeps ASN's CURRENT text, not a stale
-                            # snapshot. If the reviewer did change it, but the
-                            # species' current text no longer matches that
-                            # baseline (someone else edited it since), don't
-                            # overwrite - flag the row as a conflict instead.
                             reviewer = staged_changes.reviewed_by or current_user
-                            conflict_fields = []
-                            for field, final_attr in (
-                                ('description', 'final_description'),
-                                ('local_distribution', 'final_local_distribution'),
-                            ):
-                                entry = (staged_changes.changed_fields or {}).get(field)
-                                if not entry:
-                                    continue  # nothing was proposed for this field - nothing to write
-                                baseline = entry.get('old') or ''
-                                final_val = getattr(staged_changes, final_attr) or ''
-                                if normalize_species_text(final_val, keep_linebreaks=True).lower() == \
-                                        normalize_species_text(baseline, keep_linebreaks=True).lower():
-                                    continue  # reviewer left it unchanged
-
-                                current_val = getattr(species, field) or ''
-                                if normalize_species_text(current_val, keep_linebreaks=True).lower() == \
-                                        normalize_species_text(final_val, keep_linebreaks=True).lower():
-                                    continue  # already written by an earlier commit of this batch
-
-                                if normalize_species_text(current_val, keep_linebreaks=True).lower() != \
-                                        normalize_species_text(baseline, keep_linebreaks=True).lower():
-                                    conflict_fields.append(field)
-                                    continue
-
-                                setattr(species, field, final_val)
-                                updated_fields_list.append(field)
+                            updated_fields_list, conflict_fields = _apply_final_text(species, staged_changes)
 
                             if conflict_fields:
                                 raise _StagingTextConflict(
@@ -1835,54 +1876,35 @@ def commit_species_import_staging(import_archive: ImportArchive, current_user: U
                             _maybe_add_cso_reference_link(species, staged_changes, 'description', staged_changes.final_description, reviewer)
                             _maybe_add_cso_reference_link(species, staged_changes, 'local_distribution', staged_changes.final_local_distribution, reviewer)
                         else:
-                            new_vals = {
-                                'cares_classification':  staged_changes.new_cares_classification,
-                                'cares_family':          staged_changes.new_cares_family,
-                                'cares_assessment_date': staged_changes.new_cares_assessment_date,
-                                'iucn_red_list':         staged_changes.new_iucn_red_list,
-                                'iucn_assessment_date':  staged_changes.new_iucn_assessment_date,
-                                'global_region':         staged_changes.new_global_region,
-                                'category':              staged_changes.new_category,
-                                'common_name':           staged_changes.new_common_name,
-                                'alt_name':              staged_changes.new_alt_name,
-                                'description':           staged_changes.new_description,
-                                'local_distribution':    staged_changes.new_local_distribution,
-                            }
-                            is_override = staged_changes.review_status == SpeciesImportStaging.ReviewStatus.APPROVED_OVERRIDE
+                            if not (staged_changes.changed_fields or {}).get('_csv_review'):
+                                raise ValueError('Staged before field-level review was added - re-import this CSV to review it.')
 
-                            if is_override:
-                                # APPROVED_OVERRIDE: force-write every field that was detected as changed.
-                                for field, vals in staged_changes.changed_fields.items():
-                                    new_val = vals.get('new')
-                                    if new_val is None:
-                                        continue
-                                    if field in SPECIES_DATE_FIELDS:
-                                        setattr(species, field, _parse_date(new_val))
-                                        updated_fields_list.append(field)
-                                    elif new_val != '':
-                                        setattr(species, field, new_val)
-                                        updated_fields_list.append(field)
-                            else:
-                                # APPROVED: respect the standard field-level update rules.
-                                for field in SPECIES_ALWAYS_UPDATE_FIELDS:
-                                    new_val = new_vals.get(field)
-                                    if field in SPECIES_DATE_FIELDS:
-                                        if new_val:
-                                            setattr(species, field, _parse_date(new_val))
-                                            updated_fields_list.append(field)
-                                    elif new_val is not None and new_val != '':
-                                        setattr(species, field, new_val)
-                                        updated_fields_list.append(field)
-                                for field in SPECIES_UPDATE_IF_EMPTY_FIELDS:
-                                    new_val = new_vals.get(field)
-                                    if new_val is not None and new_val != '' and not getattr(species, field, ''):
-                                        setattr(species, field, new_val)
-                                        updated_fields_list.append(field)
-                                # SPECIES_NEVER_UPDATE_FIELDS are intentionally skipped
+                            for field, entry in staged_changes.changed_fields.items():
+                                if field.startswith('_') or field in SPECIES_REVIEW_TEXT_FIELDS:
+                                    continue
+                                if not entry.get('accept'):
+                                    continue
+                                new_val = entry.get('new')
+                                if field in SPECIES_DATE_FIELDS:
+                                    setattr(species, field, _parse_date(new_val))
+                                else:
+                                    setattr(species, field, new_val)
+                                updated_fields_list.append(field)
 
-                            species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
-                            species.last_edited_by = current_user
-                            species.save()
+                            text_updated, conflict_fields = _apply_final_text(species, staged_changes)
+                            if conflict_fields:
+                                raise _StagingTextConflict(
+                                    'Species text changed since this batch was built; re-review '
+                                    f"({', '.join(conflict_fields)})",
+                                    conflict_fields,
+                                )
+                            updated_fields_list += text_updated
+
+                            if updated_fields_list:
+                                if any(f in SPECIES_CARES_FIELDS for f in updated_fields_list):
+                                    species.render_cares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
+                                species.last_edited_by = current_user
+                                species.save()
 
                         results['updated'] += 1
                         csv_report_writer.writerow([
