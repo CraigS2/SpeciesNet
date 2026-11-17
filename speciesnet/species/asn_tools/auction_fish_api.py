@@ -9,6 +9,7 @@ Usage:
 
 import logging
 from datetime import date
+from urllib.parse import urlencode
 
 import requests
 
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 _QUOTA_EXHAUSTED = object()  # sentinel returned by lookup_af_species_match on 429
 _AUCTION_FISH_BASE_URL = 'https://auction.fish/api/v1/clubs'
 _REQUEST_TIMEOUT_SECONDS = 15
+_AUCTION_FISH_NEW_LOT_URL = 'https://auction.fish/lots/new/'
+_AUCTION_FISH_LOT_NAME_MAX = 40   # auction.fish rejects longer lot names
 
 # Species-lookup calls happen once per CSV row, synchronously, inside the request/response cycle. 
 # Keep this short so a slow/hanging call can never combine with the per-batch row cap to exceed the Gunicorn worker timeout
@@ -254,3 +257,44 @@ def lookup_af_species_match(club, query: str) -> dict | None:
         club.name,
     )
     return top
+
+
+def _auction_fish_lot_name(species_instance) -> str:
+    """
+    Pick the most descriptive lot name that fits auction.fish's 40-char limit:
+    SpeciesInstance name, else 'Species name - common name', else species name.
+    """
+    species = species_instance.species
+    candidates = [species_instance.name]
+    if species.common_name:
+        candidates.append(f'{species.name} - {species.common_name}')
+    for candidate in candidates:
+        if len(candidate) <= _AUCTION_FISH_LOT_NAME_MAX:
+            return candidate
+    return species.name[:_AUCTION_FISH_LOT_NAME_MAX]
+
+
+def build_auction_fish_new_lot_url(species_instance) -> str:
+    """
+    Build an auction.fish 'new lot' link pre-populated from *species_instance*
+    (Site 1 'Sell offspring on Auction.fish' button). auction.fish only fills
+    in its form from these GET params; nothing is saved until the user clicks save.
+    """
+    from django.conf import settings
+    from django.urls import reverse
+    from species.asn_tools.asn_csv_tools import _build_media_url
+
+    domain = getattr(settings, 'SITE_DOMAIN', '').rstrip('/')
+    params = {
+        'lot_name': _auction_fish_lot_name(species_instance),
+        'summernote_description': (
+            f'Group of young {species_instance.name}. Please see my AquaristSpecies.net '
+            f'species page (reference link) for more information on these fish.'
+        ),
+        'reference_link': f'https://{domain}{reverse("speciesInstance", args=[species_instance.pk])}',
+        'i_bred_this_fish': 'True',
+    }
+    image = species_instance.young_available_image or species_instance.aquarist_species_image
+    if image:
+        params['image_url'] = _build_media_url(image.name)
+    return f'{_AUCTION_FISH_NEW_LOT_URL}?{urlencode(params)}'

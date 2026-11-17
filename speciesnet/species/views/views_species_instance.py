@@ -6,6 +6,7 @@ These represent individual aquarist's fish/species entries
 ## TODO Review ALL  if request.method == 'POST': statements and confirm/add else to handle validation feedback to user if bad data entered
 
 from .base import *
+from species.asn_tools.auction_fish_api import build_auction_fish_new_lot_url
 
 ### View Species Instance
 
@@ -64,6 +65,12 @@ def speciesInstance(request, pk):
     renderCares = species.cares_classification != Species.CaresStatus.NOT_CARES_SPECIES
     userCanEdit = user_can_edit_si(request.user, speciesInstance)
 
+    # Site 1 only: owner with young available gets a pre-filled auction.fish new-lot link
+    auctionFishSellUrl = None
+    if (getattr(settings, 'SITE_ID', 1) == 1 and speciesInstance.young_available
+            and request.user == speciesInstance.user):
+        auctionFishSellUrl = build_auction_fish_new_lot_url(speciesInstance)
+
     # TODO improve finding and displaying optional CARES registrations for speciesInstance owner or admin)
     caresRegistration = None
     print ('Looking for CaresRegistration for SpeciesInstance, Species = ' + species.name)
@@ -112,7 +119,8 @@ def speciesInstance(request, pk):
         'smpSubmissions': smpSubmissions,
         'renderCares':  renderCares,
         'caresRegistration': caresRegistration,
-        'userCanEdit': userCanEdit
+        'userCanEdit': userCanEdit,
+        'auctionFishSellUrl': auctionFishSellUrl,
     }
     record_page_view(PageViewCount.PageType.SPECIES_INSTANCE, speciesInstance.id, request.user.is_authenticated)
     return render(request, 'species/speciesInstance.html', context)

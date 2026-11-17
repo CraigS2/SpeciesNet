@@ -2,7 +2,7 @@
 <!-- context = {'speciesInstance': speciesInstance, 'speciesInstanceLogEntries': speciesInstanceLogEntries, 'userCanEdit': userCanEdit} -->
 {% block content %}
 
-<div class="container mt-4"></div>
+<div class="container-fluid mt-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card shadow-sm">
@@ -50,6 +50,7 @@
                         <p>No Species Logs Found</p>
                     {% endif %}
                     <p><a class="btn btn-secondary" href="{% url 'speciesInstance' speciesInstance.id %}" role="button">Back to Aquarist Species</a></p>
+                </div>
             </div>
         </div>
     </div>

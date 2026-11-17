@@ -2,7 +2,7 @@
 <!-- context = speciesInstance, species, speciesMaintenanceLog, isBapParticipant, bapEligibleMemberships, renderCares, userCanEdit -->
 {% block content %}
 
-<div class="container mt-4"></div>
+<div class="container-fluid mt-4">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card shadow-sm">
@@ -84,6 +84,10 @@
                             <p><a class="btn btn-secondary" href="{% url 'editSpeciesInstance' speciesInstance.id  %}" role="button">&nbsp;&nbsp; Edit Aquarist Species &nbsp;&nbsp;</a></p>
                         {% endif %} 
 
+                        {% if auctionFishSellUrl %}
+                            <p><a class="btn btn-secondary" href="{{ auctionFishSellUrl }}" target="_blank" rel="noopener" role="button">&nbsp;&nbsp; Sell offspring on Auction.fish &nbsp;&nbsp;</a></p>
+                        {% endif %}
+
                         {% if speciesInstance.enable_species_log %}
                             <div class="mb-3 section-bordered">
                                 <h5>Species Logs</h5>
@@ -96,7 +100,7 @@
 
                         {% if speciesMaintenanceLog %}
                             {% if userCanEdit or not speciesMaintenanceLog.log_is_private %}
-                                <div class="css_class='mb-3 section-bordered">
+                                <div class="mb-3 section-bordered">
                                     <h5>Species Maintenance Collaboration</h5>
                                     <p>Species Maintenance Logs enable collaboration among aquarists working together to maintain a species.</p> 
                                     <p><a class="btn btn-secondary" href="{% url 'speciesMaintenanceLog' speciesMaintenanceLog.id  %}" role="button">&nbsp;&nbsp; View Species Maintenance Log &nbsp;&nbsp;</a></p>
@@ -105,7 +109,7 @@
                         {% endif %}
 
                         {% if isBapParticipant %}
-                           <div class="css_class='mb-3 section-bordered">
+                           <div class="mb-3 section-bordered">
                                 <h5>BAP Programs</h5>
                                 {% if bapEligibleMemberships|length > 0 %}
                                     <p>Breeder Award Programs (BAP) are hosted by Aquarium Clubs. 
@@ -119,13 +123,12 @@
                                     {% for bapSubmission in bapSubmissions %}
                                         <p><a class="btn btn-secondary" href="{% url 'bapSubmission' bapSubmission.id %}" role="button">&nbsp;{{bapClubMember.club.acronym}}View BAP Request&nbsp;</a></p>
                                     {% endfor %}    
-                                    </div>
                                 {% endif %} 
                             </div>  
                         {% endif %}    
 
                         {% if smpEligibleMemberships|length > 0 %}
-                           <div class="css_class='mb-3 section-bordered">
+                           <div class="mb-3 section-bordered">
                                 <h5>CARES SMP Program</h5>
                                 <p>CARES Species Maintenance Program (SMP) submissions are annual and focus on long-term CARES species maintenance.</p>
                                 {% for smpClubMember in smpEligibleMemberships %}
@@ -138,7 +141,7 @@
                         {% endif %}
 
                         {% if speciesInstance.species.render_cares %}
-                           <div class="css_class='mb-3 section-bordered">
+                           <div class="mb-3 section-bordered">
                                 <h5>CARES Conservation Program</h5>
                                 {% if not caresRegistration %}
                                     <p>The CARES Fish Preservation Program encourages aquarists to maintain, breed, and distribute offspring of at-risk species. 
