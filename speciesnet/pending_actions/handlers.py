@@ -11,6 +11,14 @@ from .forms import BapNotesRequiredForm, CaresClarificationResponseForm, Confirm
 from .registry import ActionHandler, register
 
 
+def _build_opt_out_url(action, token):
+    """Absolute 'No thanks, stop inviting me' link for a club invitation email."""
+    if not token:
+        return ''
+    base_url = action.payload.get('base_url', '').rstrip('/')
+    return f"{base_url}{reverse('club_invite_opt_out', args=[token])}"
+
+
 def _escape_html_text_content(text):
     """
     Escape only the characters that are actually unsafe when inserted into
@@ -265,6 +273,7 @@ class ProxyUserInviteHandler(ActionHandler):
             'club_name': club_name,
             'invited_by_username': invited_by,
             'activation_url': activation_url,
+            'opt_out_url': _build_opt_out_url(action, token),
             'subject': f'You have been invited to join {club_name} on AquaristSpecies',
             'archive_name': f'Proxy invite to {action.payload["to_email"]} for {club_name}',
             'archive_text': (
@@ -297,6 +306,7 @@ class BapJoinInviteHandler(ActionHandler):
         return False
 
     def build_email_context(self, action, token=None):
+        token = token or action.payload.get('token')
         club_name = action.payload.get('club_name', '')
         species_list = action.payload.get('species_list', [])
         join_url = action.payload.get('join_url', '')
@@ -306,6 +316,7 @@ class BapJoinInviteHandler(ActionHandler):
             'club_name': club_name,
             'species_list': species_list,
             'join_url': join_url,
+            'opt_out_url': _build_opt_out_url(action, token),
             'subject': f'Join {club_name} to submit BAP entries',
             'archive_name': f'BAP join invite to {action.payload["to_email"]} for {club_name}',
             'archive_text': (

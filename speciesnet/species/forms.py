@@ -1558,7 +1558,7 @@ class AquaristClubForm2 (ModelForm):
         ]
         widgets = {
             'about':              forms.Textarea(attrs={'rows': 3}),
-            'bap_guidelines':     forms.Textarea(attrs={'rows': 3}),
+            'bap_guidelines':     forms.Textarea(attrs={'rows': 8}),
         }
           
     def __init__(self, *args, **kwargs):
@@ -1649,8 +1649,21 @@ class AquaristClubForm2 (ModelForm):
             'style': 'max-width: 250px;',
             'class': 'form-control'
         })
+        self.fields['bap_invite_interval_days'].help_text = 'Minimum days before a non-member seller is re-invited to join after a BAP import.'
+        self.fields['bap_invite_interval_days'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        })
         self.fields['cares_smp_multiplier'].help_text = 'SMP points multiplier applied to base BAP points.'
+        self.fields['cares_smp_multiplier'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        })
         self.fields['cares_smp_year_cap'].help_text = 'Maximum maintenance year multiplier applied in SMP.'
+        self.fields['cares_smp_year_cap'].widget.attrs.update({
+            'style': 'max-width: 250px;',
+            'class': 'form-control'
+        })
         self.fields['require_spawning_notes'].help_text = 'Require spawning notes before BAP/SMP approval.'
         self.fields['require_fry_rearing_notes'].help_text = 'Require fry-rearing notes before BAP/SMP approval.'
         self.fields['auction_fish_slug'].widget.attrs.update({
@@ -1713,6 +1726,7 @@ class AquaristClubForm2 (ModelForm):
                 Field('cares_muliplier', css_class='mb-1'),
                 Field('bap_start_date', css_class='mb-1'),
                 Field('bap_end_date', css_class='mb-1'),
+                Field('bap_invite_interval_days', css_class='mb-1'),
                 Field('cares_smp_multiplier', css_class='mb-1'),
                 Field('cares_smp_year_cap', css_class='mb-1'),
                 Field('require_spawning_notes', css_class='mb-1'),

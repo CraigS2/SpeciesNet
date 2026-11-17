@@ -17,6 +17,7 @@ from django.db.models import F
 
 from pending_actions.models import ActionType, PendingAction
 from pending_actions.services import create_pending_action
+from species.services.contact_filter_service import record_invite
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +171,7 @@ def create_proxy_user(email: str, club, invited_by,
     action.save(update_fields=['payload'])
     from pending_actions.tasks import send_action_email
     send_action_email.apply_async(args=[action.id], queue='emails')
+    record_invite(club, user)
 
     logger.info(
         'Proxy user created: email=%s username=%s club=%s invited_by=%s action_id=%s',

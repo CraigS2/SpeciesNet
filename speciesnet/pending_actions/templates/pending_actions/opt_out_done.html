@@ -1,0 +1,17 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; margin-top: 3rem;">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="mb-3">You're all set</h2>
+            <p>
+                {{ club.name }} won't send you any more invitations after its auctions.
+            </p>
+            <p class="text-muted small">
+                Changed your mind? You can still join the club at any time from its club page.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock content %}

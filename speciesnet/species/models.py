@@ -704,6 +704,14 @@ class AquaristClubContactFilter (models.Model):
             models.UniqueConstraint(fields=['club', 'user'], name='uniq_club_contact_filter'),
         ]
 
+    def save(self, *args, **kwargs):
+        # Keep opted_out_at in step with opted_out, including edits made in the admin.
+        if self.opted_out and not self.opted_out_at:
+            self.opted_out_at = timezone.now()
+        elif not self.opted_out:
+            self.opted_out_at = None
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f'{self.club} - {self.user}'
 

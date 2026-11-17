@@ -27,6 +27,12 @@
         If you did not expect this invitation, you can safely ignore this email.
         No account will be activated unless you click the link above.
     </p>
+    {% if opt_out_url %}
+    <p style="color: #6c757d; font-size: 0.9em;">
+        Not interested? <a href="{{ opt_out_url }}" style="color: #6c757d;">No thanks, stop inviting me</a>
+        to {{ club_name }}.
+    </p>
+    {% endif %}
     <p style="color: #6c757d; font-size: 0.9em;">
         This message was sent from AquaristSpecies.
     </p>

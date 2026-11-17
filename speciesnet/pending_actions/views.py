@@ -6,6 +6,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views import View
 from django.views.generic.edit import FormView
 
 from .models import PendingAction
@@ -202,3 +203,53 @@ class ProxyActivationView(FormView):
             self.action.payload.get('club_id'),
         )
         return redirect('home')
+
+
+# Invite emails whose 'No thanks' link records a club contact opt-out.
+OPT_OUT_ACTION_SLUGS = ('bap_join_invite', 'proxy_user_invite')
+
+
+class ClubInviteOptOutView(View):
+    """
+    'No thanks, stop inviting me' link from a club invitation email.
+
+    GET shows a confirmation page; only POST records the opt-out, so email
+    link scanners that prefetch URLs can't opt someone out by accident.
+
+    Unlike PendingActionConfirmView this ignores the action's status and
+    TTL: informational invites are marked COMPLETED as soon as they're sent,
+    and a 'stop emailing me' request should keep working long after the
+    invite itself has expired. The signature and stored token hash are
+    still checked, so only the recipient's own link works.
+    """
+
+    template_name = 'pending_actions/opt_out_confirm.html'
+    done_template_name = 'pending_actions/opt_out_done.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        from species.models import AquaristClub
+
+        token = kwargs.get('token')
+        try:
+            payload = load_signed_token(token, max_age=None)
+        except (PendingActionTokenExpired, PendingActionTokenInvalid):
+            raise Http404('Invalid link.')
+
+        self.action = PendingAction.objects.select_related('action_type', 'user').filter(
+            pk=payload.get('action_id'), action_type__slug__in=OPT_OUT_ACTION_SLUGS,
+        ).first()
+        if self.action is None or self.action.token_hash != hash_token(token) or self.action.user is None:
+            raise Http404('Invalid link.')
+
+        self.club = AquaristClub.objects.filter(pk=self.action.payload.get('club_id')).first()
+        if self.club is None:
+            raise Http404('Invalid link.')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {'club': self.club})
+
+    def post(self, request, *args, **kwargs):
+        from species.services.contact_filter_service import opt_out
+        opt_out(self.club, self.action.user)
+        return render(request, self.done_template_name, {'club': self.club})

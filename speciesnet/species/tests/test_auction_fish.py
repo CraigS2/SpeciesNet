@@ -165,6 +165,7 @@ class EditClubApiKeyViewTests(TestCase):
             'clear_auction_fish_api_key': '',   # unchecked
             # Required numeric fields
             'bap_default_points': 10,
+            'bap_invite_interval_days': 90,
             'cares_muliplier': 1,
             'cares_smp_multiplier': '0.50',
             'cares_smp_year_cap': 5,
@@ -184,6 +185,7 @@ class EditClubApiKeyViewTests(TestCase):
             'auction_fish_api_key_input': 'new_key_abcdef1234567890',
             'clear_auction_fish_api_key': '',
             'bap_default_points': 10,
+            'bap_invite_interval_days': 90,
             'cares_muliplier': 1,
             'cares_smp_multiplier': '0.50',
             'cares_smp_year_cap': 5,
@@ -207,6 +209,7 @@ class EditClubApiKeyViewTests(TestCase):
             'auction_fish_api_key_input': 'also_submitted_but_irrelevant',
             'clear_auction_fish_api_key': 'on',  # checked
             'bap_default_points': 10,
+            'bap_invite_interval_days': 90,
             'cares_muliplier': 1,
             'cares_smp_multiplier': '0.50',
             'cares_smp_year_cap': 5,

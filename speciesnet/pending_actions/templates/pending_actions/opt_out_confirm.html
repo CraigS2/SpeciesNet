@@ -1,0 +1,22 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; margin-top: 3rem;">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="mb-3">Stop invitations from {{ club.name }}?</h2>
+            <p>
+                You'll no longer receive emails inviting you to join <strong>{{ club.name }}</strong>
+                or its Breeder Award Program after its auctions.
+            </p>
+            <p class="text-muted small">
+                This only affects {{ club.name }}. You can still join the club at any time from its club page.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary">No thanks, stop inviting me</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

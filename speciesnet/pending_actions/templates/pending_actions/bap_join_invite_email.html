@@ -14,7 +14,7 @@
     <p>
         To submit these species for BAP credit, please join <strong>{{ club_name }}</strong>
         using the link below. Once you are an approved member, you can submit your BAP entries
-        manually from your species collection.
+        manually from your species collection or contact your club BAP coordinator to re-import your BAP auction lots.
     </p>
     {% if join_url %}
     <p style="margin: 2rem 0;">
@@ -30,8 +30,14 @@
     <p style="color: #6c757d; font-size: 0.9em; margin-top: 2rem;">
         If you did not participate in a {{ club_name }} auction, you can safely ignore this email.
     </p>
+    {% if opt_out_url %}
     <p style="color: #6c757d; font-size: 0.9em;">
-        This message was sent from AquaristSpecies.
+        Not interested? <a href="{{ opt_out_url }}" style="color: #6c757d;">No thanks, please stop inviting me</a>
+        to {{ club_name }}.
+    </p>
+    {% endif %}
+    <p style="color: #6c757d; font-size: 0.9em;">
+        This message was sent from <i>AquaristSpecies.net</i>.
     </p>
 </body>
 </html>

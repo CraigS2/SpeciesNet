@@ -34,6 +34,7 @@ from species.models import (
 
 from species.services.bap_service import create_bap_submission, resolve_bap_points
 from species.services.proxy_user_service import create_proxy_user, OUTCOME_CREATED
+from species.services.contact_filter_service import check_invite, record_invite, INVITE_OK, INVITE_OPTED_OUT, INVITE_TOO_SOON
 from species.asn_tools.auction_fish_api import fetch_bap_lots, lookup_af_species_match, _QUOTA_EXHAUSTED, AuctionFishAPIError
 from species.asn_tools.asn_utils import find_species_by_name
 
@@ -677,8 +678,10 @@ def processBapImport(request, pk):
                 if sp_name:
                     active_non_member_species.setdefault(email, []).append(sp_name)
 
-    # Send one invite per active non-member (deduped)
-    _send_bap_join_invites(active_non_member_species, club, request)
+    # Send one invite per active non-member (deduped, throttled, opt-outs honoured)
+    invite_outcomes = _send_bap_join_invites(active_non_member_species, club, request)
+    if not isinstance(invite_outcomes, dict):
+        invite_outcomes = {}
 
 
     # ---------- Second pass: process rows ----------
@@ -702,7 +705,7 @@ def processBapImport(request, pk):
 
         # Skip active non-members (already invited above)
         if email in active_non_member_species:
-            row['Import status'] = 'Skipped: invited to join club'
+            row['Import status'] = _non_member_skip_status(invite_outcomes.get(email))
             continue
 
         try:
@@ -845,14 +848,29 @@ def _send_bap_join_invites(active_non_member_species: dict, club, request):
     Uses the pending_actions PendingAction/send_action_email pipeline with
     action type slug 'bap_join_invite'.  If that ActionType doesn't exist
     (DB not seeded yet), falls back to a plain Django send_mail.
+
+    Invites are filtered through AquaristClubContactFilter: users who opted
+    out of this club's invitations, or were invited within the club's
+    bap_invite_interval_days, are not emailed again.
+
+    Returns {email: (decision, last_invited_at)} so the import report can
+    say why each row was skipped. decision is INVITE_OK (sent),
+    INVITE_OPTED_OUT or INVITE_TOO_SOON.
     """
     from django.conf import settings
     from pending_actions.models import ActionType, PendingAction
     from pending_actions.services import create_pending_action
 
+    outcomes = {}
     for email, species_list in active_non_member_species.items():
         user = User.objects.filter(email=email).first()
         if user is None:
+            continue
+
+        decision, contact_filter = check_invite(club, user)
+        if decision != INVITE_OK:
+            outcomes[email] = (decision, contact_filter.last_invited_at)
+            logger.info('bap_join_invite not sent to user=%s club=%s: %s', user.username, club.name, decision)
             continue
         # Deduplicate species list
         unique_species = list(dict.fromkeys(s for s in species_list if s))
@@ -880,6 +898,8 @@ def _send_bap_join_invites(active_non_member_species: dict, club, request):
             action.save(update_fields=['payload'])
             from pending_actions.tasks import send_action_email
             send_action_email.apply_async(args=[action.id], queue='emails')
+            record_invite(club, user)
+            outcomes[email] = (INVITE_OK, None)
             logger.info('bap_join_invite queued for user=%s club=%s', user.username, club.name)
         except ActionType.DoesNotExist:
             # Fallback: plain email
@@ -894,8 +914,23 @@ def _send_bap_join_invites(active_non_member_species: dict, club, request):
                     f'Please join {club.name} to submit these species for BAP points.\n'
                 ),
             )
+            record_invite(club, user)
+            outcomes[email] = (INVITE_OK, None)
         except Exception as exc:
             logger.error('Failed to send bap_join_invite to %s: %s', email, exc)
+
+    return outcomes
+
+
+def _non_member_skip_status(invite_outcome) -> str:
+    """Import status text for a skipped active non-member row."""
+    decision, last_invited_at = invite_outcome if isinstance(invite_outcome, tuple) else (INVITE_OK, None)
+    if decision == INVITE_OPTED_OUT:
+        return 'Skipped: not a club member - opted out of club invitations'
+    if decision == INVITE_TOO_SOON:
+        when = timezone.localtime(last_invited_at).date().isoformat() if last_invited_at else 'recently'
+        return f'Skipped: not a club member - already invited {when}, invite not resent'
+    return 'Skipped: invited to join club'
 
 
 def _finalise_batch(batch: BapImportBatch, rows: list, fieldnames: list, processed_by):
