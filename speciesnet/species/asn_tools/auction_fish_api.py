@@ -288,7 +288,7 @@ def build_auction_fish_new_lot_url(species_instance) -> str:
     params = {
         'lot_name': _auction_fish_lot_name(species_instance),
         'summernote_description': (
-            f'Group of young {species_instance.name}. Please see my AquaristSpecies.net '
+            f'Group of young {species_instance.name}. <br>Please see my AquaristSpecies.net '
             f'species page (reference link) for more information on these fish.'
         ),
         'reference_link': f'https://{domain}{reverse("speciesInstance", args=[species_instance.pk])}',

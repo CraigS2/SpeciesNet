@@ -98,6 +98,15 @@ def importSpeciesToStaging(request):
                 'User %s created CARES staging import %s: %s',
                 request.user.username, import_archive.pk, summary,
             )
+            if summary['file_error']:
+                messages.error(request, summary['file_error'])
+                return render(request, 'species/import/importSpeciesStaging.html', {'form': ImportCsvForm()})
+            if summary['ignored_columns']:
+                messages.warning(
+                    request,
+                    f"Ignored columns (no matching species field - check the spelling): "
+                    f"{', '.join(summary['ignored_columns'])}",
+                )
             messages.success(
                 request,
                 f"Staging import complete – {summary['new']} new, "

@@ -54,10 +54,13 @@ class CsvStagingTestBase(TestCase):
         shutil.rmtree(self.tmp_media, ignore_errors=True)
 
     def _stage(self, *rows):
+        return self._stage_bytes((CSV_HEADER + ''.join(rows)).encode('utf-8'))
+
+    def _stage_bytes(self, data):
         archive = ImportArchive(source=ImportArchive.ImportSource.CSV, name='csv test')
-        archive.import_csv_file = SimpleUploadedFile('species.csv', (CSV_HEADER + ''.join(rows)).encode('utf-8'))
+        archive.import_csv_file = SimpleUploadedFile('species.csv', data)
         archive.save()
-        import_csv_species_to_staging(archive, self.admin)
+        self.summary = import_csv_species_to_staging(archive, self.admin)
         return archive
 
     def _approve_all(self, archive):
@@ -71,7 +74,7 @@ class CaresFieldTests(CsvStagingTestBase):
     def test_blank_cares_cells_are_not_changes(self):
         archive = self._stage(_csv_row('Aulonocara jacobfreibergi', global_region='SAM', common_name='Fairy cichlid'))
         row = SpeciesImportStaging.objects.get(import_archive=archive)
-        self.assertEqual(set(row.review_needed_fields), {'global_region', 'description'})
+        self.assertEqual(set(row.review_needed_fields), {'global_region'})
 
     def test_missing_cares_columns_are_not_changes(self):
         archive = ImportArchive(source=ImportArchive.ImportSource.CSV, name='csv test')
@@ -139,15 +142,16 @@ class AcceptCheckboxTests(CsvStagingTestBase):
         return archive, SpeciesImportStaging.objects.get(import_archive=archive)
 
     def test_default_accept_mirrors_old_rules(self):
-        _, row = self._row(common_name='Sunshine peacock', alt_name='Aulonocara sp.', global_region='SAM')
+        _, row = self._row(common_name='Sunshine peacock', alt_name='Aulonocara sp.', global_region='SAM',
+                           description='CSV description.')
         self.assertTrue(row.changed_fields['global_region']['accept'])      # always-update field
         self.assertFalse(row.changed_fields['common_name']['accept'])       # has a value already
         self.assertTrue(row.changed_fields['alt_name']['accept'])           # was blank
         self.assertNotIn('accept', row.changed_fields['description'])       # text uses final text
 
-    def test_blank_csv_value_never_accepted_by_default(self):
-        _, row = self._row(common_name='')
-        self.assertFalse(row.changed_fields['common_name']['accept'])
+    def test_blank_common_name_is_not_proposed(self):
+        _, row = self._row(common_name='', global_region='SAM')
+        self.assertNotIn('common_name', row.changed_fields)
 
     def test_commit_writes_only_accepted_fields(self):
         archive, row = self._row(common_name='Sunshine peacock', global_region='SAM')
@@ -259,6 +263,75 @@ class ReviewDetailViewTests(CsvStagingTestBase):
         })
         self.row.refresh_from_db()
         self.assertEqual(self.row.final_local_distribution, 'Kept as is')
+
+
+class CsvFileHandlingTests(CsvStagingTestBase):
+    """Blank cells, short rows, Excel byte-order marks, non-UTF-8 files, misnamed columns."""
+
+    def _only_row(self, archive):
+        return SpeciesImportStaging.objects.get(import_archive=archive)
+
+    def test_blank_description_on_existing_species_is_skip(self):
+        archive = self._stage(_csv_row('Aulonocara jacobfreibergi', common_name='Fairy cichlid'))
+        row = self._only_row(archive)
+        self.assertEqual(row.action, SpeciesImportStaging.ImportAction.SKIP)
+        self.assertNotIn('description', row.changed_fields)
+
+    def test_short_row_is_staged_without_error(self):
+        archive = self._stage_bytes((CSV_HEADER + '"Tropheus moorii","","","Short row.","CIC","AFR"\n').encode('utf-8'))
+        row = self._only_row(archive)
+        self.assertEqual(row.action, SpeciesImportStaging.ImportAction.NEW)
+        self.assertEqual(row.new_local_distribution, '')
+        self.assertEqual(row.new_cares_classification, '')
+        self.assertEqual(self.summary['error'], 0)
+
+    def test_long_row_extra_cells_are_ignored(self):
+        archive = self._stage_bytes((CSV_HEADER + _csv_row('Tropheus moorii').rstrip('\n') + ',"extra","cells"\n').encode('utf-8'))
+        self.assertEqual(self._only_row(archive).action, SpeciesImportStaging.ImportAction.NEW)
+
+    def test_excel_byte_order_mark_is_accepted(self):
+        archive = self._stage_bytes((CSV_HEADER + _csv_row('Tropheus moorii', description='From Excel.')).encode('utf-8-sig'))
+        row = self._only_row(archive)
+        self.assertEqual(row.new_name, 'Tropheus moorii')
+        self.assertEqual(self.summary['error'], 0)
+        self.assertEqual(self.summary['ignored_columns'], [])
+
+    def test_non_utf8_file_fails_cleanly(self):
+        archive = self._stage_bytes((CSV_HEADER + _csv_row('Tropheus moorii', description='Décrit par Poll.')).encode('cp1252'))
+        self.assertIn('CSV UTF-8', self.summary['file_error'])
+        self.assertFalse(SpeciesImportStaging.objects.filter(import_archive=archive).exists())
+        archive.refresh_from_db()
+        self.assertEqual(archive.import_status, ImportArchive.ImportStatus.FAIL)
+
+    def test_misnamed_columns_are_reported(self):
+        csv_text = ('name,category,global_region,Description,local distribution\n'
+                    '"Tropheus moorii","CIC","AFR","Lost text","Lake Tanganyika"\n')
+        self._stage_bytes(csv_text.encode('utf-8'))
+        self.assertEqual(self.summary['ignored_columns'], ['Description', 'local distribution'])
+
+
+class StagingUploadViewMessagesTests(CsvStagingTestBase):
+
+    def setUp(self):
+        super().setUp()
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+    def _upload(self, data):
+        return self.client.post('/speciesImportToStaging/', {
+            'import_csv_file': SimpleUploadedFile('species.csv', data, content_type='text/csv'),
+        }, follow=True)
+
+    def test_non_utf8_upload_shows_error_and_stays_on_upload_page(self):
+        response = self._upload((CSV_HEADER + _csv_row('Tropheus moorii', description='Décrit.')).encode('cp1252'))
+        self.assertContains(response, 'CSV UTF-8')
+        self.assertFalse(SpeciesImportStaging.objects.exists())
+        self.assertEqual(response.redirect_chain, [])
+
+    def test_ignored_columns_warning_shown(self):
+        response = self._upload(b'name,category,global_region,Description\n"Tropheus moorii","CIC","AFR","x"\n')
+        self.assertContains(response, 'Ignored columns')
+        self.assertContains(response, 'Description')
 
 
 class SaveAndLoadNextTests(CsvStagingTestBase):

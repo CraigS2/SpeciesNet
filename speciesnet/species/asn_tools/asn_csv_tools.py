@@ -111,7 +111,7 @@ def _default_accept(field: str, old_val, new_val) -> bool:
 # iterate through csv rows add only valid and non-duplicate species to DB
 
 def import_csv_species (import_archive: ImportArchive, current_user: User):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path,'r', encoding="utf-8-sig") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -176,7 +176,7 @@ def import_csv_species (import_archive: ImportArchive, current_user: User):
 # NOTE: users can have multiple instances of the same species assuming they vary in collection point or genetic traits
 
 def import_csv_speciesInstances (import_archive: ImportArchive, current_user: User):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path,'r', encoding="utf-8-sig") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -247,7 +247,7 @@ def import_csv_speciesInstances (import_archive: ImportArchive, current_user: Us
 # iterate through csv rows check if club exists, and create if it does not yet exist in the db. 
 
 def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User, aquarist_club: AquaristClub):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path,'r', encoding="utf-8-sig") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -316,7 +316,7 @@ def import_csv_aquarist_clubs (import_archive: ImportArchive, current_user: User
 # iterate through csv rows check if example species exists, and add or update BAP Genus entries. Supports club import/update workflow
 
 def import_csv_bap_genus (import_archive: ImportArchive, current_user: User, bap_club: AquaristClub):
-    with open(import_archive.import_csv_file.path,'r', encoding="utf-8") as import_file:
+    with open(import_archive.import_csv_file.path,'r', encoding="utf-8-sig") as import_file:
 
         # create results csv file
         csv_report_buffer = StringIO()
@@ -467,7 +467,7 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
     success_count = 0
     errors = []
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8-sig') as import_file:
         for import_row in DictReader(import_file):
             row_count = row_count + 1
             raw_species_name = import_row.get('species', '')
@@ -1061,7 +1061,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
     skip_count = 0
     error_count = 0
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8-sig') as import_file:
         for import_row in DictReader(import_file):
             row_count += 1
 
@@ -1308,7 +1308,7 @@ def _import_cares_registration_status_updates(import_archive: ImportArchive, cur
     skip_count = 0
     error_count = 0
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
+    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8-sig') as import_file:
         for import_row in DictReader(import_file):
             row_count += 1
 
@@ -1493,9 +1493,9 @@ def _build_changed_fields(existing_species: Species, import_row: dict) -> dict:
     }
     changed = {}
     for csv_field, model_field in field_map.items():
-        new_val = import_row.get(csv_field, '')
-        if csv_field in SPECIES_CARES_FIELDS and not new_val.strip():
-            continue  # blank/missing CARES cell - not a proposed change
+        new_val = import_row.get(csv_field) or ''
+        if not new_val.strip():
+            continue  # blank/missing cell - never a proposed change (a CSV can't clear a field)
         old_val = str(getattr(existing_species, model_field, '') or '')
         if csv_field in text_field_linebreaks:
             keep_lb = text_field_linebreaks[csv_field]
@@ -1515,100 +1515,130 @@ def import_csv_species_to_staging(import_archive: ImportArchive, current_user: U
     Parse a species CSV and create SpeciesImportStaging records for review.
 
     Required CSV columns: name, category, global_region
-    Optional columns:
-      - alt_name, common_name, description, local_distribution  → blank string
-      - CARES/IUCN columns (SPECIES_CARES_FIELDS) may be blank or missing.
-        A blank cell is not a change for an existing species; a NEW species
-        gets the model defaults at commit (UDF / NOTC / UN, no dates).
+    Optional columns: alt_name, common_name, description, local_distribution
+    and the CARES/IUCN columns (SPECIES_CARES_FIELDS). Any of them may be
+    blank or missing: a blank cell is never a change for an existing species,
+    and a NEW species gets blank text and the model's CARES defaults at commit
+    (UDF / NOTC / UN, no dates).
 
-    Returns a summary dict with counts: new, update, skip, conflict, error.
+    Returns a summary dict with counts: new, update, skip, conflict, error,
+    plus 'ignored_columns' (headers that match no species field - usually a
+    typo, which would otherwise read as an all-blank column) and 'file_error'
+    (set when the file isn't UTF-8 and nothing was staged).
     """
-    summary = {'new': 0, 'update': 0, 'skip': 0, 'conflict': 0, 'error': 0, 'total': 0}
+    summary = {'new': 0, 'update': 0, 'skip': 0, 'conflict': 0, 'error': 0, 'total': 0,
+               'ignored_columns': [], 'file_error': ''}
 
-    with open(import_archive.import_csv_file.path, 'r', encoding='utf-8') as import_file:
-        csv_report_buffer = StringIO()
-        csv_report_writer = csv.writer(csv_report_buffer)
-        csv_report_writer.writerow(['Row', 'Species', 'Action', 'Review_Status', 'Changed_Fields', 'Notes'])
+    # Read the whole file up front so an encoding problem fails the import
+    # cleanly before any row is staged. utf-8-sig also accepts Excel's
+    # "CSV UTF-8" byte-order mark.
+    try:
+        with open(import_archive.import_csv_file.path, 'r', encoding='utf-8-sig') as import_file:
+            csv_text = import_file.read()
+    except UnicodeDecodeError:
+        summary['file_error'] = ("The file isn't UTF-8 encoded. In Excel, use Save As and choose "
+                                 "'CSV UTF-8 (Comma delimited)', then import it again.")
+        logger.warning('Species staging import %s rejected: not UTF-8', import_archive.pk)
+        import_archive.import_status = ImportArchive.ImportStatus.FAIL
+        import_archive.name = f"{current_user.username}_cares_species_staging"
+        import_archive.save()
+        return summary
 
-        row_number = 0
-        for import_row in DictReader(import_file):
-            row_number += 1
-            summary['total'] += 1
-            species_name = import_row.get('name', '').strip()
-            notes = ''
+    reader = DictReader(StringIO(csv_text))
+    known_columns = set(SPECIES_IMPORT_REQUIRED_FIELDS) | {
+        'alt_name', 'common_name', 'description', 'local_distribution',
+    } | set(SPECIES_CARES_FIELDS)
+    summary['ignored_columns'] = [h for h in (reader.fieldnames or []) if h and h not in known_columns]
+    if summary['ignored_columns']:
+        logger.warning('Species staging import %s ignored columns: %s', import_archive.pk, summary['ignored_columns'])
 
-            # Validate required fields
-            missing = [f for f in SPECIES_IMPORT_REQUIRED_FIELDS if not import_row.get(f, '').strip()]
-            if missing or not species_name:
-                all_missing = (['name'] if not species_name else []) + [f for f in missing if f != 'name']
-                notes = f'Missing required field(s): {", ".join(all_missing)}'
-                logger.warning('Species staging row %d skipped: %s', row_number, notes)
-                summary['error'] += 1
-                csv_report_writer.writerow([row_number, species_name, 'ERROR', 'N/A', '', notes])
-                continue
+    csv_report_buffer = StringIO()
+    csv_report_writer = csv.writer(csv_report_buffer)
+    csv_report_writer.writerow(['Row', 'Species', 'Action', 'Review_Status', 'Changed_Fields', 'Notes'])
 
-            existing = _find_existing_species(species_name)
+    row_number = 0
+    for import_row in reader:
+        # DictReader gives None for cells missing from a short row, and
+        # puts a long row's extra cells under a None key - normalize once
+        # so every lookup below sees plain strings.
+        import_row = {k: (v or '') for k, v in import_row.items() if k is not None}
+        row_number += 1
+        summary['total'] += 1
+        species_name = import_row.get('name', '').strip()
+        notes = ''
 
-            if existing is None:
-                # New species
-                action = SpeciesImportStaging.ImportAction.NEW
-                changed_fields = {}
-                summary['new'] += 1
+        # Validate required fields
+        missing = [f for f in SPECIES_IMPORT_REQUIRED_FIELDS if not import_row.get(f, '').strip()]
+        if missing or not species_name:
+            all_missing = (['name'] if not species_name else []) + [f for f in missing if f != 'name']
+            notes = f'Missing required field(s): {", ".join(all_missing)}'
+            logger.warning('Species staging row %d skipped: %s', row_number, notes)
+            summary['error'] += 1
+            csv_report_writer.writerow([row_number, species_name, 'ERROR', 'N/A', '', notes])
+            continue
+
+        existing = _find_existing_species(species_name)
+
+        if existing is None:
+            # New species
+            action = SpeciesImportStaging.ImportAction.NEW
+            changed_fields = {}
+            summary['new'] += 1
+        else:
+            changed_fields = _build_changed_fields(existing, import_row)
+            if not changed_fields:
+                action = SpeciesImportStaging.ImportAction.SKIP
+                summary['skip'] += 1
             else:
-                changed_fields = _build_changed_fields(existing, import_row)
-                if not changed_fields:
-                    action = SpeciesImportStaging.ImportAction.SKIP
-                    summary['skip'] += 1
+                # Determine if any change is a potential conflict (non-empty to non-empty)
+                has_conflict = any(
+                    v['old'] and v['new'] and v['old'] != v['new']
+                    for v in changed_fields.values()
+                )
+                action = SpeciesImportStaging.ImportAction.CONFLICT if has_conflict else SpeciesImportStaging.ImportAction.UPDATE
+                if action == SpeciesImportStaging.ImportAction.CONFLICT:
+                    summary['conflict'] += 1
                 else:
-                    # Determine if any change is a potential conflict (non-empty to non-empty)
-                    has_conflict = any(
-                        v['old'] and v['new'] and v['old'] != v['new']
-                        for v in changed_fields.values()
-                    )
-                    action = SpeciesImportStaging.ImportAction.CONFLICT if has_conflict else SpeciesImportStaging.ImportAction.UPDATE
-                    if action == SpeciesImportStaging.ImportAction.CONFLICT:
-                        summary['conflict'] += 1
-                    else:
-                        summary['update'] += 1
+                    summary['update'] += 1
 
-            # Final text starts as what a plain approve should commit: the CSV
-            # text for a NEW species, otherwise the current text - or the CSV
-            # text when the current text is blank (the old if-empty rule).
-            final_text = {}
-            for field in SPECIES_REVIEW_TEXT_FIELDS:
-                current = (getattr(existing, field, '') or '') if existing else ''
-                final_text[field] = current or import_row.get(field, '')
+        # Final text starts as what a plain approve should commit: the CSV
+        # text for a NEW species, otherwise the current text - or the CSV
+        # text when the current text is blank (the old if-empty rule).
+        final_text = {}
+        for field in SPECIES_REVIEW_TEXT_FIELDS:
+            current = (getattr(existing, field, '') or '') if existing else ''
+            final_text[field] = current or import_row.get(field, '')
 
-            # Marks rows staged with per-field accept flags and final text -
-            # the commit refuses CSV UPDATE rows staged before that existed.
-            changed_fields['_csv_review'] = True
+        # Marks rows staged with per-field accept flags and final text -
+        # the commit refuses CSV UPDATE rows staged before that existed.
+        changed_fields['_csv_review'] = True
 
-            staging = SpeciesImportStaging(
-                import_archive=import_archive,
-                import_row_number=row_number,
-                action=action,
-                existing_species=existing,
-                final_description=final_text['description'],
-                final_local_distribution=final_text['local_distribution'],
-                new_name=species_name,
-                new_alt_name=import_row.get('alt_name', ''),
-                new_common_name=import_row.get('common_name', ''),
-                new_description=import_row.get('description', ''),
-                new_category=import_row.get('category', ''),
-                new_global_region=import_row.get('global_region', ''),
-                new_local_distribution=import_row.get('local_distribution', ''),
-                new_cares_family=import_row.get('cares_family', ''),
-                new_cares_classification=import_row.get('cares_classification', ''),
-                new_cares_assessment_date=import_row.get('cares_assessment_date', ''),
-                new_iucn_red_list=import_row.get('iucn_red_list', ''),
-                new_iucn_assessment_date=import_row.get('iucn_assessment_date', ''),
-                changed_fields=changed_fields,
-                review_status=SpeciesImportStaging.ReviewStatus.PENDING,
-            )
-            staging.save()
+        staging = SpeciesImportStaging(
+            import_archive=import_archive,
+            import_row_number=row_number,
+            action=action,
+            existing_species=existing,
+            final_description=final_text['description'],
+            final_local_distribution=final_text['local_distribution'],
+            new_name=species_name,
+            new_alt_name=import_row.get('alt_name', ''),
+            new_common_name=import_row.get('common_name', ''),
+            new_description=import_row.get('description', ''),
+            new_category=import_row.get('category', ''),
+            new_global_region=import_row.get('global_region', ''),
+            new_local_distribution=import_row.get('local_distribution', ''),
+            new_cares_family=import_row.get('cares_family', ''),
+            new_cares_classification=import_row.get('cares_classification', ''),
+            new_cares_assessment_date=import_row.get('cares_assessment_date', ''),
+            new_iucn_red_list=import_row.get('iucn_red_list', ''),
+            new_iucn_assessment_date=import_row.get('iucn_assessment_date', ''),
+            changed_fields=changed_fields,
+            review_status=SpeciesImportStaging.ReviewStatus.PENDING,
+        )
+        staging.save()
 
-            changed_fields_str = ', '.join(k for k in changed_fields if not k.startswith('_'))
-            csv_report_writer.writerow([row_number, species_name, action, 'PENDING', changed_fields_str, notes])
+        changed_fields_str = ', '.join(k for k in changed_fields if not k.startswith('_'))
+        csv_report_writer.writerow([row_number, species_name, action, 'PENDING', changed_fields_str, notes])
 
     # Persist import summary report
     csv_report_file = ContentFile(csv_report_buffer.getvalue().encode('utf-8'))
