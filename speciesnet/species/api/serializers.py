@@ -47,6 +47,7 @@ class RegistrationSyncSerializer(serializers.ModelSerializer):
     # Resolve FK relations to plain strings, mirroring the CSV export
     species = serializers.CharField(source='species.name', default='')
     collection_location = serializers.SerializerMethodField()
+    affiliate_club = serializers.SerializerMethodField()
     verification_photo_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -55,6 +56,7 @@ class RegistrationSyncSerializer(serializers.ModelSerializer):
             'id',
             'aquarist_name',
             'aquarist_email',
+            'affiliate_club',
             'species',
             'species_source',
             'collection_location',
@@ -70,6 +72,12 @@ class RegistrationSyncSerializer(serializers.ModelSerializer):
     def get_collection_location(self, obj):
         if obj.collection_location:
             return obj.collection_location.name
+        return ''
+
+    def get_affiliate_club(self, obj):
+        # Club name, matching the CSV export's affiliate_club column; Site2 matches it by name
+        if obj.affiliate_club:
+            return obj.affiliate_club.name
         return ''
 
     def get_verification_photo_url(self, obj):

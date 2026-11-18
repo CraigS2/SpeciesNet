@@ -325,7 +325,7 @@ def registerCaresSpecies(request, pk):
     cares_species = get_object_or_404(Species, pk=pk)
     collection_location_required = cares_species.manage_collection_locations
 
-    print ('Begin annoymous CARES Registration on Site 2')
+    print ('Begin annoymous CARES Registration on Site 2: ' + cares_species.name)
 
     if request.method == 'POST':
         form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species)

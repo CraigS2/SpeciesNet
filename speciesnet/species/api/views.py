@@ -211,7 +211,7 @@ class RegistrationSyncViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = CaresRegistration.objects.filter(
             status=CaresRegistration.CaresRegistrationStatus.OPEN,
-        ).order_by('date_requested')
+        ).select_related('species', 'collection_location', 'affiliate_club').order_by('date_requested')
 
         since_param = self.request.query_params.get('since')
         if since_param:

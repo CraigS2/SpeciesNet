@@ -88,7 +88,7 @@ class RegistrationSyncSerializerTest(MinimalTestCase):
         from species.api.serializers import RegistrationSyncSerializer
         data = RegistrationSyncSerializer(self.reg).data
         expected = {
-            'id', 'aquarist_name', 'aquarist_email', 'species',
+            'id', 'aquarist_name', 'aquarist_email', 'affiliate_club', 'species',
             'species_source', 'collection_location', 'year_acquired',
             'species_has_spawned', 'young_available', 'offspring_shared',
             'date_requested', 'verification_photo_url',
@@ -123,6 +123,20 @@ class RegistrationSyncSerializerTest(MinimalTestCase):
         request = factory.get('/')
         data = RegistrationSyncSerializer(self.reg, context={'request': request}).data
         self.assertIn('http', data['verification_photo_url'])
+
+    def test_affiliate_club_serialized_as_name(self):
+        from species.api.serializers import RegistrationSyncSerializer
+        club = AquaristClub.objects.create(name='Ottawa Valley Aquarium Society', acronym='OVAS')
+        self.reg.affiliate_club = club
+        self.reg.save()
+        data = RegistrationSyncSerializer(self.reg).data
+        self.assertEqual(data['affiliate_club'], 'Ottawa Valley Aquarium Society')
+
+    def test_affiliate_club_empty_when_none(self):
+        from species.api.serializers import RegistrationSyncSerializer
+        self.assertIsNone(self.reg.affiliate_club)
+        data = RegistrationSyncSerializer(self.reg).data
+        self.assertEqual(data['affiliate_club'], '')
 
     def test_id_exposed(self):
         from species.api.serializers import RegistrationSyncSerializer
@@ -363,6 +377,7 @@ SAMPLE_REG_ROW = {
     'id': 99,
     'aquarist_name': 'Jane Doe',
     'aquarist_email': 'jane@example.com',
+    'affiliate_club': '',
     'species': 'Ptychochromis insolitus',
     'species_source': 'Test source',
     'collection_location': '',
@@ -380,9 +395,9 @@ class RegistrationSyncServiceTest(BaseTestCase):
     def setUp(self):
         super().setUp()
         # cares_species ('Ptychochromis insolitus') exists from BaseTestCase
-        # RegistrationSyncService._sync_one() hard-codes affiliate_club_id=1
-        # for the default "Cares For Individuals" club (mirroring the CSV
-        # importer's same assumption). Auto-increment PKs are not reset
+        # RegistrationSyncService._sync_one() falls back to affiliate_club_id=1
+        # (the default "Cares For Individuals" club) for a blank or unmatched
+        # club name, the same as the CSV importer. Auto-increment PKs are not reset
         # between test classes, so pk=1 is not otherwise guaranteed to exist
         # when this class runs after others in a full suite run.
         AquaristClub.objects.get_or_create(
@@ -419,6 +434,33 @@ class RegistrationSyncServiceTest(BaseTestCase):
         self.assertEqual(stats['created'], 1)
         self.assertEqual(stats['errors'], 0)
         self.assertTrue(CaresRegistration.objects.filter(external_id=99).exists())
+
+    @patch.object(RegistrationSyncService, 'fetch_registrations')
+    def test_sync_sets_matching_affiliate_club(self, mock_fetch):
+        club = AquaristClub.objects.create(name='Ottawa Valley Aquarium Society', acronym='OVAS')
+        row = {**SAMPLE_REG_ROW, 'affiliate_club': 'ottawa valley aquarium society'}
+        mock_fetch.return_value = iter([row])
+        with patch('requests.get', return_value=self._mock_photo_response()):
+            stats = RegistrationSyncService().sync(dry_run=False)
+        self.assertEqual(stats['created'], 1)
+        self.assertEqual(CaresRegistration.objects.get(external_id=99).affiliate_club_id, club.id)
+
+    @patch.object(RegistrationSyncService, 'fetch_registrations')
+    def test_sync_unknown_affiliate_club_defaults_to_cfi(self, mock_fetch):
+        row = {**SAMPLE_REG_ROW, 'affiliate_club': 'No Such Club'}
+        mock_fetch.return_value = iter([row])
+        with patch('requests.get', return_value=self._mock_photo_response()):
+            RegistrationSyncService().sync(dry_run=False)
+        self.assertEqual(CaresRegistration.objects.get(external_id=99).affiliate_club_id, 1)
+
+    @patch.object(RegistrationSyncService, 'fetch_registrations')
+    def test_sync_without_affiliate_club_field_defaults_to_cfi(self, mock_fetch):
+        # A Site1 still running the old serializer sends no affiliate_club key
+        row = {k: v for k, v in SAMPLE_REG_ROW.items() if k != 'affiliate_club'}
+        mock_fetch.return_value = iter([row])
+        with patch('requests.get', return_value=self._mock_photo_response()):
+            RegistrationSyncService().sync(dry_run=False)
+        self.assertEqual(CaresRegistration.objects.get(external_id=99).affiliate_club_id, 1)
 
     @patch.object(RegistrationSyncService, 'fetch_registrations')
     def test_sync_dry_run_does_not_create(self, mock_fetch):

@@ -33,7 +33,7 @@ from species.models import (
     RegistrationSyncState,
     Species,
 )
-from species.asn_tools.asn_csv_tools import _normalize_email, _normalize_species_name
+from species.asn_tools.asn_csv_tools import _normalize_email, _normalize_species_name, resolve_affiliate_club_id
 from species.asn_tools.asn_cares_tools import get_matching_cares_approver
 from species.asn_tools.asn_utils import find_species_by_name
 from species.services.email_services import send_status_change_email, send_new_registration_notification
@@ -281,8 +281,10 @@ class RegistrationSyncService:
                 registration.external_id = site1_id
                 registration.status = CaresRegistration.CaresRegistrationStatus.OPEN
 
-                # Use default club (id=1 = "Cares For Individuals")
-                registration.affiliate_club_id = 1
+                # Match Site1's club by name; blank/unknown -> "Cares For Individuals" (id=1), same as the CSV import
+                registration.affiliate_club_id = resolve_affiliate_club_id(
+                    row.get('affiliate_club', ''), source='RegistrationSyncService',
+                )
 
                 registration.cares_approver = get_matching_cares_approver(registration.species)
 

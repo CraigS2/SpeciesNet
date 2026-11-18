@@ -882,6 +882,24 @@ def _build_media_url(relative_path):
     path = str(relative_path).lstrip('/')
     return f'https://{domain}/media/{path}'
 
+DEFAULT_AFFILIATE_CLUB_ID = 1   # internal 'Cares For Individuals' club, always id=1
+
+def resolve_affiliate_club_id(club_name, source='CSO import'):
+    """
+    Site2: match a Site1 club name (case-insensitive) to a local AquaristClub id.
+    Blank or unmatched names fall back to the default 'Cares For Individuals' club.
+    Shared by the CSV import and the REST API registration sync.
+    """
+    club_name = (club_name or '').strip()
+    if not club_name:
+        return DEFAULT_AFFILIATE_CLUB_ID
+    club = AquaristClub.objects.filter(name__iexact=club_name).order_by('id').first()
+    if club is None:
+        logger.warning(f"{source}: unable to match affiliate_club: {club_name}")
+        return DEFAULT_AFFILIATE_CLUB_ID
+    logger.info(f"{source}: set affiliate_club: {club.acronym}")
+    return club.id
+
 def _collection_location_name(collection_location):
     if not collection_location:
         return ''
@@ -1225,16 +1243,7 @@ def _import_cares_registrations_from_asn(import_archive: ImportArchive, current_
                     registration.asn_imported = True
                     registration.external_id = asn_id
 
-                    club_name = import_row.get('affiliate_club', '').strip()
-                    if club_name:
-                        try:
-                            registration.affiliate_club = AquaristClub.objects.get(name__iexact=club_name)
-                            logger.info(f"CSO import: set affiliate_club: {registration.affiliate_club.acronym}")
-                        except AquaristClub.DoesNotExist:
-                            registration.affiliate_club_id = 1            # Set default internal Club 'Cares For Individuals' always id=1
-                            logger.warning (f"CSO import: unable to match affiliate_club: {club_name}")
-                    else:
-                        registration.affiliate_club_id = 1            # Set default internal Club 'Cares For Individuals' always id=1
+                    registration.affiliate_club_id = resolve_affiliate_club_id(import_row.get('affiliate_club', ''))
 
                     registration.cares_approver  = get_matching_cares_approver(registration.species)
 
