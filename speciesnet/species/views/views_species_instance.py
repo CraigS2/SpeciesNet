@@ -217,13 +217,9 @@ def deleteSpeciesInstance(request, pk):
     if request.method == 'POST':
         messages.success (request, 'Deleted Aquarist Species: ' + speciesInstance.name)
         logger.info('User %s deleted speciesInstance: %s (%s)', request.user.username, speciesInstance.name, str(speciesInstance.id))
+        owner_id = speciesInstance.user_id
         speciesInstance.delete()
-
-        site_id = getattr(settings, 'SITE_ID', 1)
-        if site_id == 2:
-            return redirect('caresSpeciesSearch')
-        else:
-            return redirect('speciesSearch')
+        return redirect('aquarist', owner_id)   # back to the owner's Fishroom
     
     context = {'speciesInstance': speciesInstance}
     return render(request, 'species/deleteSpeciesInstance.html', context)

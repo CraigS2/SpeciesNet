@@ -281,9 +281,8 @@ class SpeciesInstanceDeleteViewTest(TestCase):
         
         response = self.client.post(reverse('deleteSpeciesInstance', args=[self.species_instance.id]))
         
-        # Should redirect on success
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/speciesSearch', response.url)
+        # Should redirect to the owner's Fishroom, not the admin's
+        self.assertRedirects(response, reverse('aquarist', args=[self.user.id]), fetch_redirect_response=False)
         
         # SpeciesInstance should be deleted
         self.assertEqual(SpeciesInstance.objects.count(), 0)
@@ -294,7 +293,7 @@ class SpeciesInstanceDeleteViewTest(TestCase):
         
         response = self.client.post(reverse('deleteSpeciesInstance', args=[self.species_instance.id]))
         
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('aquarist', args=[self.user.id]), fetch_redirect_response=False)
         self.assertEqual(SpeciesInstance.objects.count(), 0)
     
     def test_deleting_instance_does_not_delete_species(self):
