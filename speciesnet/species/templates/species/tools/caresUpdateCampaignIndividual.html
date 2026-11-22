@@ -1,0 +1,84 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>CARES Registration Updates: Individuals</h3>
+    <p class="text-muted">
+        Emails every aquarist who has an Approved or Expired registration due for review. The link opens a login-free page listing
+        all of their Approved and Expired registrations, so one save brings them all up to date. This page is a preview: nothing is
+        sent until you confirm below.
+    </p>
+
+    {% if plan.limited_to %}
+    <div class="alert alert-info">
+        Limited to {{ plan.limited_to|length }} selected aquarist(s): {{ plan.limited_to|join:", " }}.
+        <a href="{% url 'caresUpdateCampaignIndividual' %}">Remove the limit</a>
+        {% if plan.unmatched_emails %}<br>Not emailed (nothing due, or email blocked): {{ plan.unmatched_emails|join:", " }}{% endif %}
+    </div>
+    {% endif %}
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+            <label for="interval_days" class="form-label">Review interval (days)</label>
+            <input type="number" min="1" class="form-control" id="interval_days" name="interval_days" value="{{ plan.interval_days }}" style="width: 150px;">
+        </div>
+        {% for email in plan.limited_to %}<input type="hidden" name="email" value="{{ email }}">{% endfor %}
+        <div class="col-auto"><button type="submit" class="btn btn-outline-secondary">Update preview</button></div>
+    </form>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <p class="mb-1">Registrations last reviewed on or before <strong>{{ plan.cutoff|date:"Y-m-d" }}</strong> are due.</p>
+            <ul class="mb-2">
+                <li><strong>{{ plan.recipient_count }}</strong> recipient(s) (distinct emails)</li>
+                <li><strong>{{ plan.registration_count }}</strong> registration(s): {{ plan.approved_count }} Approved, {{ plan.expired_count }} Expired
+                    ({{ plan.due_count }} due; the rest belong to the same aquarists and are included so everything is reviewed together)</li>
+            </ul>
+            <p class="mb-1 text-muted">Skipped:</p>
+            <ul class="mb-0 text-muted">
+                <li>{{ plan.skipped.too_new }} belonging to aquarists with nothing due yet</li>
+                {% if plan.limited_to %}<li>{{ plan.skipped.not_selected }} belonging to aquarists not selected</li>{% endif %}
+                <li>{{ plan.skipped.blank_email }} due with no email address</li>
+                <li>{{ plan.skipped.email_blocked_recipients }} recipient(s) with email blocked ({{ plan.skipped.email_blocked_registrations }} registrations)</li>
+            </ul>
+        </div>
+    </div>
+
+    {% if plan.recipients %}
+    <details class="mb-3">
+        <summary>Recipients ({{ plan.recipient_count }})</summary>
+        <div class="table-responsive mt-2">
+            <table class="table table-sm">
+                <thead class="table-light"><tr><th>Aquarist</th><th>Email</th><th>Species</th></tr></thead>
+                <tbody>
+                    {% for recipient in plan.recipients %}
+                    <tr>
+                        <td>{{ recipient.aquarist_name }}</td>
+                        <td>{{ recipient.to_email }}</td>
+                        <td>{% for reg in recipient.registrations %}<em>{% if reg.species %}{{ reg.species.name }}{% else %}{{ reg.name }}{% endif %}</em>{% if reg.status == 'EXPI' %} (Expired){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <form method="post" class="card shadow-sm">
+        {% csrf_token %}
+        <div class="card-body">
+            <input type="hidden" name="interval_days" value="{{ plan.interval_days }}">
+            {% for email in plan.limited_to %}<input type="hidden" name="email" value="{{ email }}">{% endfor %}
+            <label for="message" class="form-label">Message from CARES (optional, included in every email)</label>
+            <textarea class="form-control mb-3" id="message" name="message" rows="3">{{ message }}</textarea>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="confirm" name="confirm" required>
+                <label class="form-check-label" for="confirm">Send {{ plan.recipient_count }} email(s) now</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Send</button>
+            <a href="{% url 'tools2' %}" class="btn btn-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+    {% else %}
+    <div class="alert alert-info">No registrations are due for review at this interval.</div>
+    {% endif %}
+</div>
+{% endblock content %}

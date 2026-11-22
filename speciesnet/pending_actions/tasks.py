@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 @shared_task(bind=True, base=RetriableTask, queue='emails')
 def send_action_email(self, pending_action_id):
     action = PendingAction.objects.select_related('action_type', 'user').get(pk=pending_action_id)
+    if action.status == PendingAction.Status.CANCELLED:
+        # Superseded before its (staggered) email went out - e.g. a newer CARES update campaign
+        logger.info('Pending action email skipped: action cancelled. action_id=%s', action.id)
+        return False
     handler = get_handler_for_action_type(action.action_type)
     email_context = handler.build_email_context(action)
     subject = email_context['subject']
@@ -207,3 +211,52 @@ def sync_species_task(self, dry_run=False, since_iso=None):
         import_archive.pk if import_archive else None, summary,
     )
     return summary
+
+
+# ---------------------------------------------------------------------------
+# CARES Registration periodic update (Site 2 only)
+#
+# Seeded DISABLED by migration 0008_seed_cares_update; enable in Django admin.
+# Campaign runs don't auto-retry: a retry after a partial send would re-create
+# actions (the superseded ones get cancelled, but it's noisy). Run again by hand.
+# ---------------------------------------------------------------------------
+
+@shared_task(bind=True, queue='default')
+def run_cares_update_campaign(self, kind, interval_days=None, min_age_days=7):
+    """
+    Scheduled CARES update campaign. kind is 'individual' or 'liaison'.
+    A liaison run only follows up an individual campaign that is between
+    min_age_days and the link lifetime old and not yet followed up.
+    """
+    from species.services import cares_update_service as service
+
+    if getattr(settings, 'SITE_ID', 1) != 2:
+        logger.info('run_cares_update_campaign skipped: Site 2 only')
+        return {'skipped': 'site'}
+
+    if kind == service.KIND_INDIVIDUAL:
+        result = service.send_individual_campaign(interval_days, label='scheduled')
+    elif kind == service.KIND_LIAISON:
+        campaign, reason = service.scheduled_liaison_follow_up_target(min_age_days=min_age_days)
+        if campaign is None:
+            logger.info('run_cares_update_campaign (liaison) skipped: %s', reason)
+            return {'skipped': reason}
+        result = service.send_liaison_campaign(follow_up_of=campaign['campaign_id'], interval_days=interval_days, label='scheduled')
+    else:
+        raise ValueError(f'Unknown CARES update campaign kind: {kind!r}')
+
+    summary = {'campaign_id': result['campaign_id'], 'registrations': result['registration_count']}
+    logger.info('run_cares_update_campaign (%s) complete: %s', kind, summary)
+    return summary
+
+
+@shared_task(bind=True, base=RetriableTask, queue='default')
+def expire_cares_registrations_task(self, dry_run=False):
+    """Nightly: APRV unconfirmed for CARES_REG_EXPIRE_DAYS -> EXPI; EXPI for CARES_REG_CLOSE_DAYS -> CLSD."""
+    from species.services.cares_update_service import expire_and_close
+
+    if getattr(settings, 'SITE_ID', 1) != 2:
+        logger.info('expire_cares_registrations_task skipped: Site 2 only')
+        return {'skipped': 'site'}
+    result = expire_and_close(dry_run=dry_run)
+    return {'expired': len(result['expired']), 'closed': len(result['closed']), 'dry_run': dry_run}

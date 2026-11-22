@@ -1,0 +1,36 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h3 class="mb-2">CARES registration review for {{ payload.aquarist_name }}</h3>
+            <p class="mb-1">
+                Please check each species below. Tick or untick <strong>Breeding Group</strong> and <strong>Young Available</strong>
+                so they're current, or tick <strong>No longer keep</strong> if you no longer have the species. Then click <strong>Update</strong>.
+                Saving with no changes still confirms your registrations.
+            </p>
+            <p class="text-muted small mb-1">This link works until {{ action.expires_at|date:"F j, Y" }}. You can come back and change your answers until then.</p>
+            <p class="text-muted small">Closing removes the registration.{% if admin_email %} If you close one by mistake, contact {{ admin_email }}.{% endif %}</p>
+
+            {% if rows %}
+            <form method="post" id="cares-update-form">
+                {% csrf_token %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        {% include 'pending_actions/_cares_update_head.html' %}
+                        <tbody>
+                            {% for row in rows %}{% include 'pending_actions/_cares_update_row.html' %}{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-success">Update</button>
+            </form>
+            {% include 'pending_actions/_cares_update_script.html' %}
+            {% else %}
+            <div class="alert alert-info mb-0">There are no registrations left to review on this link.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

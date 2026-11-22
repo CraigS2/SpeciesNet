@@ -1,0 +1,15 @@
+<script>
+// "No longer keep" greys out that row's flags; closing asks for confirmation before saving.
+document.querySelectorAll('.close-box').forEach(function (box) {
+    box.addEventListener('change', function () {
+        box.closest('tr').querySelectorAll('.flag-box').forEach(function (flag) { flag.disabled = box.checked; });
+        box.closest('tr').classList.toggle('text-muted', box.checked);
+    });
+});
+document.getElementById('cares-update-form').addEventListener('submit', function (event) {
+    var closing = document.querySelectorAll('.close-box:checked').length;
+    if (closing && !window.confirm('Close ' + closing + ' registration(s)? This removes them from the active CARES list.')) {
+        event.preventDefault();
+    }
+});
+</script>

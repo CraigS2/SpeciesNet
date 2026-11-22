@@ -1,0 +1,58 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h3 class="mb-2">{% if club %}{{ club.name }}: {% endif %}CARES registrations needing an update</h3>
+            <p class="mb-1">
+                These members were asked to review their CARES registrations and haven't responded. As CARES Liaison you can update
+                <strong>Breeding Group</strong> and <strong>Young Available</strong>, confirm them unchanged, or tick
+                <strong>No longer keep</strong>. One <strong>Update</strong> saves every row shown. Members are emailed when you close a registration for them.
+            </p>
+            <p class="text-muted small mb-1">This link works until {{ action.expires_at|date:"F j, Y" }}. Rows a member updates themselves drop off this page.</p>
+            <p class="text-muted small">Closing removes the registration.{% if admin_email %} If one is closed by mistake, contact {{ admin_email }}.{% endif %}</p>
+
+            {% if members %}
+            <div class="mb-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="expand-all">Expand all</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-1" id="collapse-all">Collapse all</button>
+            </div>
+            <form method="post" id="cares-update-form">
+                {% csrf_token %}
+                {% for member in members %}
+                <details class="border rounded mb-2"{% if start_expanded %} open{% endif %}>
+                    <summary class="p-2 bg-light">
+                        <strong>{{ member.aquarist_name }}</strong>
+                        <span class="text-muted small ms-1">{{ member.aquarist_email }}</span>
+                        <span class="badge bg-secondary ms-2">{{ member.rows|length }} species</span>
+                        <span class="badge bg-light text-dark border ms-1">oldest: {{ member.oldest_months }} months</span>
+                    </summary>
+                    <div class="table-responsive ps-3">
+                        <table class="table table-sm align-middle mb-0">
+                            {% include 'pending_actions/_cares_update_head.html' %}
+                            <tbody>
+                                {% for row in member.rows %}{% include 'pending_actions/_cares_update_row.html' %}{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+                {% endfor %}
+                <button type="submit" class="btn btn-success mt-2">Update</button>
+            </form>
+            {% include 'pending_actions/_cares_update_script.html' %}
+            <script>
+                document.getElementById('expand-all').addEventListener('click', function () {
+                    document.querySelectorAll('#cares-update-form details').forEach(function (d) { d.open = true; });
+                });
+                document.getElementById('collapse-all').addEventListener('click', function () {
+                    document.querySelectorAll('#cares-update-form details').forEach(function (d) { d.open = false; });
+                });
+            </script>
+            {% else %}
+            <div class="alert alert-info mb-0">There are no registrations left to review on this link.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

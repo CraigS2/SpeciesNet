@@ -40,7 +40,7 @@ class AuctionFishNewLotUrlTests(TestCase):
         self.assertEqual(params['i_bred_this_fish'], 'True')
         self.assertEqual(
             params['summernote_description'],
-            'Group of young Corydoras paleatus long-fin. Please see my AquaristSpecies.net '
+            'Group of young Corydoras paleatus long-fin. <br>Please see my AquaristSpecies.net '
             'species page (reference link) for more information on these fish.',
         )
         self.assertEqual(

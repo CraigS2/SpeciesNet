@@ -165,6 +165,21 @@
                                         <a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a>
                                         <a class="btn btn-warning ms-2" href="{% url 'registerCaresSpeciesInstance' speciesInstance.id %}" role="button">&nbsp;Re-submit Registration&nbsp;</a>
                                     </p>
+                                {% elif caresRegistration.status == caresRegistration.CaresRegistrationStatus.EXPIRED %}
+                                    <div class="alert alert-secondary">
+                                        <strong>CARES Registration Inactive</strong><br>
+                                        Your registration for <i>{{ caresRegistration.species.name }}</i> expired because it wasn't confirmed in time.
+                                        If you still keep this species, reopen it to make it active again.
+                                    </div>
+                                    <form method="post" action="{% url 'reopenCaresRegistration' caresRegistration.id %}" class="d-inline"
+                                          onsubmit="return confirm('Reopen this CARES registration?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="species_instance_id" value="{{ speciesInstance.id }}">
+                                        <a class="btn btn-secondary" href="{% url 'caresRegistration' caresRegistration.id %}" role="button">&nbsp;View Registration&nbsp;</a>
+                                        {% if speciesInstance.user == request.user %}
+                                        <button type="submit" class="btn btn-success ms-2">&nbsp;Reopen Registration&nbsp;</button>
+                                        {% endif %}
+                                    </form>
                                 {% else %}
                                     {# OPEN or RESUBMIT #}
                                     <div class="alert alert-info">

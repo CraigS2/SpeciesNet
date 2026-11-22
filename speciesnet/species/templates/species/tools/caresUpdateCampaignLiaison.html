@@ -1,0 +1,97 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>CARES Registration Updates: Club Liaisons</h3>
+    <p class="text-muted">
+        Emails each club's CARES Liaison a login-free page listing the club's registrations that nobody has reported on since the
+        individual campaign, grouped by member. This page is a preview: nothing is sent until you confirm below.
+    </p>
+
+    {% if limited_clubs %}
+    <div class="alert alert-info">
+        Limited to {{ limited_clubs|length }} selected club(s): {% for club in limited_clubs %}{{ club.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+        <a href="{% url 'caresUpdateCampaignLiaison' %}">Remove the limit</a>
+    </div>
+    {% endif %}
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+            <label for="follow_up_of" class="form-label">Follow up individual campaign</label>
+            <select class="form-select" id="follow_up_of" name="follow_up_of" {% if plan.include_all %}disabled{% endif %}>
+                {% for campaign in campaigns %}
+                <option value="{{ campaign.campaign_id }}" {% if campaign.campaign_id == plan.follow_up_of %}selected{% endif %}>
+                    {{ campaign.created_at|date:"Y-m-d" }} – {{ campaign.recipient_count }} recipient(s){% if campaign.limited %}, selected aquarists only{% endif %} ({{ campaign.campaign_id }})
+                </option>
+                {% empty %}
+                <option value="">No individual campaigns yet</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label for="interval_days" class="form-label">Review interval (days)</label>
+            <input type="number" min="1" class="form-control" id="interval_days" name="interval_days" value="{{ plan.interval_days }}" style="width: 150px;">
+        </div>
+        <div class="col-auto form-check ms-2 mb-2">
+            <input class="form-check-input" type="checkbox" id="include_all" name="include_all" {% if plan.include_all %}checked{% endif %}>
+            <label class="form-check-label" for="include_all">Include all currently due registrations (ignore the campaign)</label>
+        </div>
+        {% for club in limited_clubs %}<input type="hidden" name="club_id" value="{{ club.id }}">{% endfor %}
+        <div class="col-auto"><button type="submit" class="btn btn-outline-secondary">Update preview</button></div>
+    </form>
+
+    {% if plan.error %}
+    <div class="alert alert-warning">{{ plan.error }}</div>
+    {% else %}
+    <div class="table-responsive mb-3">
+        <table class="table table-sm">
+            <thead class="table-light"><tr><th>Club</th><th>Liaison</th><th>Members</th><th>Registrations</th></tr></thead>
+            <tbody>
+                {% for entry in plan.clubs %}
+                <tr>
+                    <td>{{ entry.club.name }} ({{ entry.club.acronym }})</td>
+                    <td>{{ entry.liaison_name }} &lt;{{ entry.to_email }}&gt;</td>
+                    <td>{{ entry.member_count }}</td>
+                    <td>{{ entry.registrations|length }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">No clubs have registrations needing an update.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if plan.skipped %}
+    <h5>Can't be emailed</h5>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm text-muted">
+            <thead class="table-light"><tr><th>Club</th><th>Reason</th><th>Registrations</th></tr></thead>
+            <tbody>
+                {% for entry in plan.skipped %}
+                <tr><td>{% if entry.club %}{{ entry.club.name }}{% else %}(none){% endif %}</td><td>{{ entry.reason }}</td><td>{{ entry.registration_count }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if plan.clubs %}
+    <form method="post" class="card shadow-sm">
+        {% csrf_token %}
+        <div class="card-body">
+            <input type="hidden" name="interval_days" value="{{ plan.interval_days }}">
+            {% if plan.include_all %}<input type="hidden" name="include_all" value="on">{% else %}<input type="hidden" name="follow_up_of" value="{{ plan.follow_up_of }}">{% endif %}
+            {% for club in limited_clubs %}<input type="hidden" name="club_id" value="{{ club.id }}">{% endfor %}
+            <label for="message" class="form-label">Message from CARES (optional, included in every email)</label>
+            <textarea class="form-control mb-3" id="message" name="message" rows="3">{{ message }}</textarea>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="confirm" name="confirm" required>
+                <label class="form-check-label" for="confirm">Send {{ plan.club_count }} email(s) now</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Send</button>
+            <a href="{% url 'tools2' %}" class="btn btn-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock content %}

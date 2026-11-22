@@ -41,7 +41,7 @@ from .views_species_instance import (
     createSpeciesAndInstance, speciesInstanceLog, createSpeciesInstanceLogEntry,
     editSpeciesInstanceLogEntry, deleteSpeciesInstanceLogEntry, chooseSpeciesInstancesForLabels, editSpeciesInstanceLabels,
     reassignSpeciesInstance, exportSpeciesInstances,
-    registerCaresSpeciesInstance
+    registerCaresSpeciesInstance, reopenCaresRegistration
 )
 
 # Maintenance Logs
@@ -105,6 +105,7 @@ from .views_tools import (
     enforceSpeciesNameSingleQuotes, collectSpeciesData, collectionLocations,
     exportSpeciesCollectionLocations, importSpeciesCollectionLocations, importSpeciesInstanceCollectionLocations,
     speciesWithManageCollectionLocations, flushPendingActionEmails, fixBapGenusMissingExampleSpecies,
+    caresUpdateCampaignIndividual, caresUpdateCampaignLiaison, caresRegistrationUpdates,
     tools, tools2, dirtyDeed
 )
 

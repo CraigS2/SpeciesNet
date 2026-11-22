@@ -4,6 +4,7 @@ from .views import (
     SpeciesSyncViewSet,
     RegistrationSyncViewSet,
     RegistrationStatusSyncViewSet,
+    RegistrationReopenView,
     ClubAdminMembersView,
     ClubAdminSpeciesInstancesView,
     ClubAdminCaresSpeciesView,
@@ -20,6 +21,7 @@ router.register(r'registrations-sync', RegistrationSyncViewSet, basename='regist
 router.register(r'registrations-status-sync', RegistrationStatusSyncViewSet, basename='registrations-status-sync')
 
 urlpatterns = router.urls + [
+    path('registrations-reopen/', RegistrationReopenView.as_view(), name='registrationsReopen'),
     path('club-admin/members/', ClubAdminMembersView.as_view(), name='clubAdminMembers'),
     path('club-admin/species-instances/', ClubAdminSpeciesInstancesView.as_view(), name='clubAdminSpeciesInstances'),
     path('club-admin/cares-species/', ClubAdminCaresSpeciesView.as_view(), name='clubAdminCaresSpecies'),

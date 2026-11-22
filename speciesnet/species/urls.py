@@ -123,6 +123,7 @@ urlpatterns = [
     path('cares_overview/', views.cares_overview, name="cares_overview"),
     path('caresLiaisonDashboard/<str:pk>/', views.AquaristClubCaresLiaisonListView.as_view(), name="caresLiaisonDashboard"), 
     path('registerCaresSpeciesInstance/<str:pk>/', views.registerCaresSpeciesInstance, name="registerCaresSpeciesInstance"),
+    path('reopenCaresRegistration/<int:pk>/', views.reopenCaresRegistration, name="reopenCaresRegistration"),     # Site 1, owner only
     path('exportCaresRegistrations/', views.exportCaresRegistrations, name="exportCaresRegistrations"),
     path('importCaresRegistrations/', views.importCaresRegistrations, name="importCaresRegistrations"),
     path('importSpeciesExternalIds/', views.importSpeciesExternalIds, name="importSpeciesExternalIds"),
@@ -238,6 +239,9 @@ urlpatterns = [
     path('dirtyDeed/', views.dirtyDeed, name="dirtyDeed"),                                              # admin-only
 
     path('tools/flush-pending-emails/', views.flushPendingActionEmails, name="flushPendingActionEmails"),
+    path('tools/cares-update-individuals/', views.caresUpdateCampaignIndividual, name="caresUpdateCampaignIndividual"),    # staff-only, Site 2
+    path('tools/cares-update-liaisons/', views.caresUpdateCampaignLiaison, name="caresUpdateCampaignLiaison"),           # staff-only, Site 2
+    path('tools/cares-registration-updates/', views.caresRegistrationUpdates, name="caresRegistrationUpdates"),          # staff-only, Site 2
     path('pageviews/top_ranking/', views.pageviewsTopRanking, name='pageviewsTopRanking'),
 
     ### Species Import Workflow ###

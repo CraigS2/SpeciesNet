@@ -1,0 +1,14 @@
+{% with reg=row.registration %}
+<tr class="cares-update-row">
+    <td>
+        <a href="{% url 'caresRegistration' reg.id %}" target="_blank" rel="noopener"><em>{% if reg.species %}{{ reg.species.name }}{% else %}{{ reg.name }}{% endif %}</em></a>
+        {% if row.is_expired %}<span class="badge bg-warning text-dark ms-1">Expired</span>{% endif %}
+    </td>
+    <td>{% if reg.species %}{{ reg.species.get_cares_classification_display }}{% endif %}</td>
+    <td>{{ reg.date_requested|date:"Y-m-d" }}</td>
+    <td>{% if reg.last_report_date %}{{ reg.last_report_date|date:"Y-m-d" }}{% else %}Never{% endif %}</td>
+    <td class="text-center"><input class="form-check-input flag-box" type="checkbox" name="bg_{{ reg.id }}" aria-label="Breeding Group" {% if reg.species_has_spawned %}checked{% endif %}></td>
+    <td class="text-center"><input class="form-check-input flag-box" type="checkbox" name="ya_{{ reg.id }}" aria-label="Young Available" {% if reg.young_available %}checked{% endif %}></td>
+    <td class="text-center"><input class="form-check-input close-box" type="checkbox" name="close_{{ reg.id }}" aria-label="No longer keep"></td>
+</tr>
+{% endwith %}

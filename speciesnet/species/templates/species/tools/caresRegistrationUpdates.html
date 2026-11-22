@@ -1,0 +1,179 @@
+{% extends 'main.html' %}
+{% block content %}
+<div class="container-fluid mt-4 px-4">
+    <h3>CARES Registration Updates: Overview</h3>
+    <p class="text-muted mb-2">
+        Approved and Expired registrations not reviewed in the last {{ review_days }} days. Approved registrations expire
+        {{ expire_days }} days after their last review, but only once an update request has been out for at least
+        {{ request_grace_days }} days. Expired registrations close after a further {{ close_days }} days.
+    </p>
+    <p class="mb-3">
+        {% for band, label in band_labels.items %}
+        <a href="?band={{ band }}" class="badge rounded-pill text-decoration-none me-1
+            {% if band == 'expired' %}bg-danger{% elif band == 'expiring' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+            {{ label }}: {% for key, count in band_counts.items %}{% if key == band %}{{ count }}{% endif %}{% endfor %}
+        </a>
+        {% endfor %}
+        <span class="text-muted small ms-2">Expiring soon = expires within {{ expiring_soon_days }} days.</span>
+    </p>
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+            <label for="band" class="form-label">Band</label>
+            <select name="band" id="band" class="form-select">
+                <option value="">All</option>
+                {% for band, label in band_labels.items %}
+                <option value="{{ band }}" {% if band == selected_band %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label for="club" class="form-label">Club</label>
+            <select name="club" id="club" class="form-select">
+                <option value="">All clubs</option>
+                {% for club in clubs %}
+                <option value="{{ club.id }}" {% if club.id == selected_club %}selected{% endif %}>{{ club.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label for="q" class="form-label">Search</label>
+            <input type="text" name="q" id="q" class="form-control" value="{{ query_text }}" placeholder="Species, aquarist or email">
+        </div>
+        <div class="col-auto">
+            <label for="sort" class="form-label">Sort</label>
+            <select name="sort" id="sort" class="form-select">
+                {% for key, label in sort_options %}
+                <option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-secondary">Apply</button>
+            {% if selected_band or selected_club or query_text or sort != 'review' %}
+            <a href="{% url 'caresRegistrationUpdates' %}" class="btn btn-link">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <form method="get" id="selection-form">
+        <input type="hidden" name="include_all" value="on">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <button type="submit" class="btn btn-primary btn-sm" formaction="{% url 'caresUpdateCampaignIndividual' %}" id="ask-aquarists" disabled>
+                Ask selected aquarists (<span id="aquarist-count">0</span>)
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm" formaction="{% url 'caresUpdateCampaignLiaison' %}" id="ask-liaisons" disabled>
+                Ask liaisons of selected clubs (<span id="club-count">0</span>)
+            </button>
+            <span class="text-muted small">Each button opens the usual preview; nothing is sent until you confirm there.
+                An aquarist's email covers all of their registrations.</span>
+            <span class="ms-auto">{{ row_count }} registration(s)</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ask aquarist</th>
+                        <th>Ask liaison</th>
+                        <th>Species</th>
+                        <th>Aquarist</th>
+                        <th>Email</th>
+                        <th>Club</th>
+                        <th>Status</th>
+                        <th>Requested</th>
+                        <th>Last report</th>
+                        <th class="text-end">Days since review</th>
+                        <th>Expires / closes</th>
+                        <th>Last update request</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in page_obj %}
+                    {% with reg=row.registration %}
+                    <tr>
+                        <td>{% if row.can_email %}<input type="checkbox" class="form-check-input" name="email" value="{{ row.email_key }}" aria-label="Ask {{ reg.aquarist_name }}">{% endif %}</td>
+                        <td>{% if row.can_ask_liaison %}<input type="checkbox" class="form-check-input" name="club_id" value="{{ reg.affiliate_club_id }}" aria-label="Ask the {{ reg.affiliate_club.acronym }} liaison">{% endif %}</td>
+                        <td><a href="{% url 'caresRegistration' reg.id %}"><em>{{ row.species_name }}</em></a></td>
+                        <td>{{ reg.aquarist_name }}</td>
+                        <td>
+                            {% if row.email_key %}{{ reg.aquarist_email }}{% else %}<span class="text-danger">No email</span>{% endif %}
+                            {% if row.email_blocked %}<span class="badge bg-secondary">Blocked</span>{% endif %}
+                        </td>
+                        <td>{{ reg.affiliate_club.acronym|default:"" }}</td>
+                        <td>{{ reg.get_status_display }}</td>
+                        <td>{{ reg.date_requested|date:"Y-m-d" }}</td>
+                        <td>{{ reg.last_report_date|date:"Y-m-d"|default:"—" }}</td>
+                        <td class="text-end">{{ row.days_since_review }}</td>
+                        <td>
+                            <span class="badge {% if row.band == 'expired' %}bg-danger{% elif row.band == 'expiring' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ row.band_label }}</span>
+                            {% if row.band == 'expired' %}closes {{ row.next_date|date:"Y-m-d" }}
+                            {% elif row.on_hold %}<span title="Past the expiry date, but it won't expire until an update request has been sent">on hold, not asked yet</span>
+                            {% else %}expires {{ row.next_date|date:"Y-m-d" }}{% endif %}
+                        </td>
+                        <td>
+                            {% if row.last_request %}
+                            {{ row.last_request.created_at|date:"Y-m-d" }}
+                            {% if row.last_request_kind == 'liaison' %}(liaison){% else %}(aquarist){% endif %}:
+                            {{ row.last_request_status }}
+                            {% else %}<span class="text-danger">Never asked</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr><td colspan="12" class="text-muted">No registrations match.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ filter_query }}{% if filter_query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ filter_query }}{% if filter_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+(function () {
+    const form = document.getElementById('selection-form');
+    function refresh() {
+        const emails = new Set([...form.querySelectorAll('input[name="email"]:checked')].map(box => box.value));
+        const clubs = new Set([...form.querySelectorAll('input[name="club_id"]:checked')].map(box => box.value));
+        document.getElementById('aquarist-count').textContent = emails.size;
+        document.getElementById('club-count').textContent = clubs.size;
+        document.getElementById('ask-aquarists').disabled = emails.size === 0;
+        document.getElementById('ask-liaisons').disabled = clubs.size === 0;
+    }
+    // Ticking one row ticks every row of the same aquarist (or club): they share one email.
+    form.addEventListener('change', function (event) {
+        const box = event.target;
+        if (box.name !== 'email' && box.name !== 'club_id') return;
+        form.querySelectorAll(`input[name="${box.name}"]`).forEach(other => {
+            if (other.value === box.value) other.checked = box.checked;
+        });
+        refresh();
+    });
+    // Each button sends only its own kind of selection.
+    form.addEventListener('submit', function (event) {
+        const toLiaisons = event.submitter && event.submitter.id === 'ask-liaisons';
+        form.querySelectorAll(`input[name="${toLiaisons ? 'email' : 'club_id'}"]`).forEach(box => { box.disabled = true; });
+        form.querySelector('input[name="include_all"]').disabled = !toLiaisons;
+    });
+    window.addEventListener('pageshow', function () {
+        form.querySelectorAll('input').forEach(box => { box.disabled = false; });
+        refresh();
+    });
+    refresh();
+})();
+</script>
+{% endblock content %}

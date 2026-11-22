@@ -1,0 +1,51 @@
+<!-- CARES registration update request email — not a page, do not extend main.html -->
+<html>
+<body style="font-family: Arial, sans-serif; color: #212529; max-width: 600px; margin: 0 auto;">
+    <h3 style="margin-bottom: 1rem;">Please review your CARES registrations</h3>
+    <p>Hello {{ aquarist_name }},</p>
+    <p>
+        To keep the CARES program's records current, please confirm that the details below are still right for
+        each species you have registered. It only takes a minute, and you don't need to log in.
+    </p>
+    {% if message %}
+    <div style="border-left: 4px solid #198754; padding: 0.5rem 1rem; margin: 1rem 0; background: #f8f9fa;">
+        <strong>Message from CARES:</strong><br>{{ message|linebreaksbr }}
+    </div>
+    {% endif %}
+    <table style="border-collapse: collapse; margin: 1rem 0; width: 100%;">
+        <tr style="background: #f1f3f5;">
+            <th style="text-align: left; padding: 6px;">Species</th>
+            <th style="text-align: left; padding: 6px;">Breeding Group</th>
+            <th style="text-align: left; padding: 6px;">Young Available</th>
+        </tr>
+        {% for reg in registrations %}
+        <tr style="border-top: 1px solid #dee2e6;">
+            <td style="padding: 6px;"><em>{% if reg.species %}{{ reg.species.name }}{% else %}{{ reg.name }}{% endif %}</em>{% if reg.status == 'EXPI' %} <span style="color: #b02a37;">(Expired)</span>{% endif %}</td>
+            <td style="padding: 6px;">{{ reg.species_has_spawned|yesno:"Yes,No" }}</td>
+            <td style="padding: 6px;">{{ reg.young_available|yesno:"Yes,No" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p>
+        On the review page you can update these, confirm them unchanged, or tell us you no longer keep a species.
+        Expired registrations become active again as soon as you confirm them.
+    </p>
+    {% if update_url %}
+    <p style="margin: 2rem 0;">
+        <a href="{{ update_url }}" style="background-color: #198754; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+            Review my registrations
+        </a>
+    </p>
+    <p style="color: #6c757d; font-size: 0.9em;">
+        If the button above doesn't work, copy and paste this link:<br>{{ update_url }}
+    </p>
+    {% endif %}
+    <p style="color: #6c757d; font-size: 0.9em;">
+        This link works until {{ expires_at|date:"F j, Y" }}. Please do not forward it: anyone with the link can update these registrations.
+    </p>
+    {% if admin_email %}
+    <p style="color: #6c757d; font-size: 0.9em;">If you close a registration by mistake, contact {{ admin_email }}.</p>
+    {% endif %}
+    <p style="color: #6c757d; font-size: 0.9em;">This message was sent from CARES Species registration tools.</p>
+</body>
+</html>

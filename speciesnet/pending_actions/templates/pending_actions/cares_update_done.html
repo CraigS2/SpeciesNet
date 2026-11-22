@@ -1,0 +1,28 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h3 class="mb-3">Thank you - your CARES registrations are updated</h3>
+            {% if results %}
+            <table class="table table-sm">
+                <thead class="table-light"><tr><th>Species</th><th>Result</th></tr></thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{% if result.registration.aquarist_name and action.action_type.slug == 'cares_registration_update_liaison' %}{{ result.registration.aquarist_name }}: {% endif %}<em>{{ result.species_name }}</em></td>
+                        <td>{{ result.lines|join:"; " }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>There was nothing left to update on this link.</p>
+            {% endif %}
+            <p class="text-muted small mb-1">You can <a href="{{ update_again_url }}">review again</a> until {{ action.expires_at|date:"F j, Y" }} if you need to correct something.</p>
+            {% if admin_email %}<p class="text-muted small">If a registration was closed by mistake, contact {{ admin_email }}.</p>{% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

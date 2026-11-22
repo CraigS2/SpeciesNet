@@ -63,20 +63,26 @@
         <p><a href="{% url 'exportCaresRegistrations'%}">Export CARES Registrations to CSV</a></p>
         <p><a href="{% url 'importCaresRegistrations'%}">Import ASN CARES Registrations from CSV</a></p>
         <p><a href="{% url 'importCaresLegacyRegistrations'%}">Import CARES Legacy Registrations from CSV</a></p>        
+        {% if is_cares_site %}
+            <p><a href="{% url 'caresRegistrationUpdates'%}">CARES Registration Pending Updates</a></p>  
+            <p><a href="{% url 'caresUpdateCampaignIndividual'%}">CARES Registration Updates: Bulk email to Individuals</a></p>
+            <p><a href="{% url 'caresUpdateCampaignLiaison'%}">CARES Registration Updates: Bulk email to Club Liaisons</a></p>
+        {% endif %}
     </div>    
     <div>
         <h3>Scheduled Task Tools</h3>
         <p><a href="{% url 'flushPendingActionEmails'%}">Flush Queued Pending Action Emails</a></p>   
     </div>   
-
-    <div>
-        <h3>Raffle Tools</h3>
-        <p><a href="{% url 'raffle_enter' %}">Species Raffle Entry Form</a></p>
-        <p><a href="{% url 'raffle_dashboard' %}">Species Raffle Dashboard</a></p>
-        <p><a href="{% url 'raffle_upload_species' %}">Upload Raffle Species List</a></p>
-        <p><a href="{% url 'raffle_export_entries' %}">Export Raffle Results</a></p>
-        <p><a href="https://wheelofnames.com/" target="_blank" rel="noopener noreferrer">Wheel of Names (external site)</a></p>
-    </div>    
+    {% if not is_cares_site %}
+        <div>
+            <h3>Raffle Tools</h3>
+            <p><a href="{% url 'raffle_enter' %}">Species Raffle Entry Form</a></p>
+            <p><a href="{% url 'raffle_dashboard' %}">Species Raffle Dashboard</a></p>
+            <p><a href="{% url 'raffle_upload_species' %}">Upload Raffle Species List</a></p>
+            <p><a href="{% url 'raffle_export_entries' %}">Export Raffle Results</a></p>
+            <p><a href="https://wheelofnames.com/" target="_blank" rel="noopener noreferrer">Wheel of Names (external site)</a></p>
+        </div>
+    {% endif %}
     <div>
         <h3>Danger Will Robinson</h3>
         <p><a href="{% url 'dirtyDeed' %}">Do the Dirty Deed - Temporary Hacks to tweak DB - DO NOT USE UNLESS YOU KNOW EXACTLY WHAT IT WILL DO</a></p>  

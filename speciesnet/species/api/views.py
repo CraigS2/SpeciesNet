@@ -3,6 +3,9 @@ from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser
+from rest_framework.authentication import BasicAuthentication
+from django.conf import settings
+from django.http import Http404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
 from django.urls import reverse
@@ -195,7 +198,7 @@ class RegistrationSyncViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only API viewset for Site1 → Site2 new-registration sync.
 
-    Exposes OPEN CaresRegistration rows created on Site1 so that Site2's
+    Exposes OPEN and RESU CaresRegistration rows created on Site1 so that Site2's
     RegistrationSyncService can pull them and create corresponding records
     on Site2 (storing Site1's ``id`` as ``external_id``).
 
@@ -208,9 +211,16 @@ class RegistrationSyncViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = RegistrationSyncSerializer
     permission_classes = [IsAdminUser]
 
+    # RESU here is a new Site1 registration made after a decline; it has a fresh
+    # date_requested, so the since filter below still applies.
+    SYNCED_STATUSES = [
+        CaresRegistration.CaresRegistrationStatus.OPEN,
+        CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+    ]
+
     def get_queryset(self):
         qs = CaresRegistration.objects.filter(
-            status=CaresRegistration.CaresRegistrationStatus.OPEN,
+            status__in=self.SYNCED_STATUSES,
         ).select_related('species', 'collection_location', 'affiliate_club').order_by('date_requested')
 
         since_param = self.request.query_params.get('since')
@@ -262,7 +272,7 @@ class RegistrationStatusSyncViewSet(viewsets.ReadOnlyModelViewSet):
     Read-only API viewset for Site2 → Site1 status-update sync.
 
     Exposes CaresRegistration rows on Site2 where external_id > 0 and
-    status is APRV or DECL, so that Site1's RegistrationStatusSyncService
+    status is APRV, DECL, EXPI or CLSD, so that Site1's RegistrationStatusSyncService
     can pull status changes and apply them back to the original Site1 records.
 
     Endpoints (Site2 only):
@@ -277,6 +287,8 @@ class RegistrationStatusSyncViewSet(viewsets.ReadOnlyModelViewSet):
     ACCEPTED_STATUSES = {
         CaresRegistration.CaresRegistrationStatus.APPROVED,
         CaresRegistration.CaresRegistrationStatus.DECLINED,
+        CaresRegistration.CaresRegistrationStatus.EXPIRED,
+        CaresRegistration.CaresRegistrationStatus.CLOSED,
     }
 
     def get_queryset(self):
@@ -343,6 +355,36 @@ def _serialize_species_instance(request, instance, name=None, url_name='speciesI
         'have_reared_fry': instance.have_reared_fry,
         'young_available': instance.young_available,
     }
+
+
+class RegistrationReopenView(APIView):
+    """
+    Site2 only: real-time Reopen requested by Site1.
+
+        POST /api/registrations-reopen/   {"external_id": <Site1 registration id>}
+
+    Reactivates an Expired registration (EXPI -> APRV). Any other status is left
+    unchanged and reported back, so Site2 always decides. Service account only.
+    """
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        if getattr(settings, 'SITE_ID', 1) != 2:
+            raise Http404()
+        from species.services.cares_update_service import reopen_registration
+
+        try:
+            external_id = int(request.data.get('external_id'))
+        except (TypeError, ValueError):
+            return Response({'result': 'invalid', 'detail': 'external_id must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        result, registration = reopen_registration(external_id)
+        if result == 'not_found':
+            return Response({'result': 'not_found'}, status=status.HTTP_404_NOT_FOUND)
+        if result == 'not_expired':
+            return Response({'result': 'not_expired', 'status': registration.status})
+        return Response({'result': 'ok', 'status': registration.status, 'approver_notes': registration.approver_notes})
 
 
 class ClubAdminBaseApiView(APIView):

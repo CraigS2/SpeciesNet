@@ -1,0 +1,39 @@
+<!-- CARES liaison follow-up email — not a page, do not extend main.html -->
+<html>
+<body style="font-family: Arial, sans-serif; color: #212529; max-width: 600px; margin: 0 auto;">
+    <h3 style="margin-bottom: 1rem;">{% if club %}{{ club.acronym }}: {% endif %}CARES registrations needing an update</h3>
+    <p>Hello {{ liaison_name|default:"CARES Liaison" }},</p>
+    <p>
+        We recently asked {% if club %}{{ club.name }}{% else %}your club's{% endif %} members to review their CARES registrations.
+        The members below haven't responded yet. As the club's CARES Liaison, you can review and update their registrations for them.
+    </p>
+    {% if message %}
+    <div style="border-left: 4px solid #198754; padding: 0.5rem 1rem; margin: 1rem 0; background: #f8f9fa;">
+        <strong>Message from CARES:</strong><br>{{ message|linebreaksbr }}
+    </div>
+    {% endif %}
+    <ul style="margin: 1rem 0;">
+        {% for member in members %}
+            <li>{{ member.aquarist_name }}: {{ member.species_count }} species</li>
+        {% endfor %}
+    </ul>
+    {% if update_url %}
+    <p style="margin: 2rem 0;">
+        <a href="{{ update_url }}" style="background-color: #198754; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+            Review club registrations
+        </a>
+    </p>
+    <p style="color: #6c757d; font-size: 0.9em;">
+        If the button above doesn't work, copy and paste this link:<br>{{ update_url }}
+    </p>
+    {% endif %}
+    <p style="color: #6c757d; font-size: 0.9em;">
+        This link works until {{ expires_at|date:"F j, Y" }}. Please do not forward it: anyone with the link can update these registrations.
+        Members are emailed if you close a registration for them.
+    </p>
+    {% if admin_email %}
+    <p style="color: #6c757d; font-size: 0.9em;">If a registration is closed by mistake, contact {{ admin_email }}.</p>
+    {% endif %}
+    <p style="color: #6c757d; font-size: 0.9em;">This message was sent from CARES Species registration tools.</p>
+</body>
+</html>

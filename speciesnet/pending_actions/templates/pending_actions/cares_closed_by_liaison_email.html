@@ -1,0 +1,20 @@
+<!-- CARES close notice email — not a page, do not extend main.html -->
+<html>
+<body style="font-family: Arial, sans-serif; color: #212529; max-width: 600px; margin: 0 auto;">
+    <h3 style="margin-bottom: 1rem;">{% if club %}{{ club.acronym }}: {% endif %}CARES registrations closed on your behalf</h3>
+    <p>Hello {{ aquarist_name }},</p>
+    <p>
+        Your club's CARES Liaison, {{ liaison_name|default:"your club liaison" }}, reported that you no longer keep the species below,
+        so their CARES registrations have been closed:
+    </p>
+    <ul style="margin: 1rem 0;">
+        {% for name in species_names %}
+            <li><em>{{ name }}</em></li>
+        {% endfor %}
+    </ul>
+    {% if admin_email %}
+    <p>If this was a mistake, contact {{ admin_email }} and we'll reinstate them.</p>
+    {% endif %}
+    <p style="color: #6c757d; font-size: 0.9em;">This message was sent from CARES Species registration tools.</p>
+</body>
+</html>

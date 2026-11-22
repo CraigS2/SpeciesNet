@@ -9,9 +9,12 @@ from .base import *
 import csv
 from io import TextIOWrapper
 from django.core.management import call_command
+from django.core.paginator import Paginator
+from django.http import Http404
 from pending_actions.models import PendingAction
 from pending_actions.tasks import send_action_email
 from species.services.bap_service import find_bap_genus_missing_example_species
+from species.services import cares_update_service
 
 ### Species Reports
 
@@ -138,6 +141,11 @@ def speciesInstancesWithEmptyLogs(request):
 
 ### Admin Tools Pages
 
+def _tools_context():
+    """Shared by tools and tools2 so site-specific sections hide the same way on both pages."""
+    return {'is_cares_site': getattr(settings, 'SITE_ID', 1) == 2}
+
+
 def tools(request):
     """
     Main admin tools dashboard - collection of utilities for CSV import/export and DB maintenance
@@ -152,7 +160,7 @@ def tools(request):
         raise PermissionDenied()
     
     logger.info('Admin user %s visited tools page', request.user.username)
-    return render(request, 'species/tools.html')
+    return render(request, 'species/tools.html', _tools_context())
 
 
 def tools2(request):
@@ -169,7 +177,7 @@ def tools2(request):
         raise PermissionDenied()
     
     logger.info('Admin user %s visited tools2 page', request.user.username)
-    return render(request, 'species/tools2.html')
+    return render(request, 'species/tools2.html', _tools_context())
 
 
 ### DB text field integrity cleanup - eliminate use of NULL with search-replace of NULL with empty text strings
@@ -649,6 +657,150 @@ def flushPendingActionEmails(request):
     pending_count = PendingAction.objects.filter(status=PendingAction.Status.PENDING).count()
     context = {'pending_count': pending_count}
     return render(request, 'species/tools/flushPendingActionEmails.html', context)
+
+
+### CARES Registration Update Campaigns (staff-only, Site 2) ###
+
+
+def _require_staff_site2(request):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    if getattr(settings, 'SITE_ID', 1) != 2:
+        raise Http404('CARES update campaigns are only available on the CARES site.')
+
+
+def _positive_int(value, default):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return default
+    return number if number > 0 else default
+
+
+def _selected_club_ids(data):
+    return sorted({club_id for club_id in (_positive_int(value, None) for value in data.getlist('club_id')) if club_id})
+
+
+@login_required(login_url='login')
+def caresUpdateCampaignIndividual(request):
+    """GET previews the individual campaign (sends nothing); POST sends exactly that plan."""
+    _require_staff_site2(request)
+    data = request.POST if request.method == 'POST' else request.GET
+    interval_days = _positive_int(data.get('interval_days'), cares_update_service.review_days())
+    emails = [email for email in data.getlist('email') if email.strip()]
+
+    if request.method == 'POST':
+        if not request.POST.get('confirm'):
+            messages.error(request, 'Tick the confirmation box to send the campaign.')
+        else:
+            result = cares_update_service.send_individual_campaign(
+                interval_days, message=request.POST.get('message', '').strip(), created_by=request.user, emails=emails,
+            )
+            messages.success(request, f"Queued {result['recipient_count']} CARES update email(s) covering "
+                                      f"{result['registration_count']} registration(s) (campaign {result['campaign_id']}).")
+            return redirect('tools2')
+
+    plan = cares_update_service.plan_individual_campaign(interval_days, emails=emails)
+    context = {'plan': plan, 'message': data.get('message', '')}
+    return render(request, 'species/tools/caresUpdateCampaignIndividual.html', context)
+
+
+@login_required(login_url='login')
+def caresUpdateCampaignLiaison(request):
+    """GET previews the liaison follow-up campaign (sends nothing); POST sends exactly that plan."""
+    _require_staff_site2(request)
+    data = request.POST if request.method == 'POST' else request.GET
+    follow_up_of = data.get('follow_up_of') or None
+    include_all = data.get('include_all') == 'on'
+    interval_days = _positive_int(data.get('interval_days'), None)
+    club_ids = _selected_club_ids(data)
+
+    if request.method == 'POST':
+        if not request.POST.get('confirm'):
+            messages.error(request, 'Tick the confirmation box to send the campaign.')
+        else:
+            result = cares_update_service.send_liaison_campaign(
+                follow_up_of, include_all, interval_days,
+                message=request.POST.get('message', '').strip(), created_by=request.user, club_ids=club_ids,
+            )
+            if result['error']:
+                messages.error(request, result['error'])
+            else:
+                messages.success(request, f"Queued {result['club_count']} club liaison email(s) covering "
+                                          f"{result['registration_count']} registration(s) (campaign {result['campaign_id']}).")
+                return redirect('tools2')
+
+    plan = cares_update_service.plan_liaison_campaign(follow_up_of, include_all, interval_days, club_ids=club_ids)
+    context = {
+        'plan': plan,
+        'campaigns': cares_update_service.individual_campaigns(),
+        'message': data.get('message', ''),
+        'limited_clubs': AquaristClub.objects.filter(pk__in=club_ids).order_by('name') if club_ids else [],
+    }
+    return render(request, 'species/tools/caresUpdateCampaignLiaison.html', context)
+
+
+CARES_UPDATE_SORTS = {
+    'review': ('Last review, oldest first', lambda row: (row['anchor'], row['species_name'])),
+    '-review': ('Last review, newest first', lambda row: (-row['anchor'].toordinal(), row['species_name'])),
+    'requested': ('Date requested, oldest first', lambda row: (row['registration'].date_requested, row['species_name'])),
+    '-requested': ('Date requested, newest first', lambda row: (-row['registration'].date_requested.timestamp(), row['species_name'])),
+    'aquarist': ('Aquarist', lambda row: (row['registration'].aquarist_name.lower(), row['species_name'])),
+}
+
+
+@login_required(login_url='login')
+def caresRegistrationUpdates(request):
+    """
+    Staff overview of registrations past the review window: when each expires or
+    closes and what was last asked. Ticked aquarists or clubs go to the campaign
+    preview pages as a limited send.
+    """
+    _require_staff_site2(request)
+    rows = cares_update_service.update_overview()
+    band_counts = {band: sum(1 for row in rows if row['band'] == band) for band in cares_update_service.BAND_LABELS}
+    clubs = sorted({row['registration'].affiliate_club for row in rows if row['registration'].affiliate_club},
+                   key=lambda club: club.name.lower())
+
+    band = request.GET.get('band', '')
+    club_id = _positive_int(request.GET.get('club'), None)
+    query_text = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'review')
+    if sort not in CARES_UPDATE_SORTS:
+        sort = 'review'
+
+    if band in cares_update_service.BAND_LABELS:
+        rows = [row for row in rows if row['band'] == band]
+    if club_id:
+        rows = [row for row in rows if row['registration'].affiliate_club_id == club_id]
+    if query_text:
+        needle = query_text.lower()
+        rows = [row for row in rows if needle in row['species_name'].lower()
+                or needle in (row['registration'].aquarist_name or '').lower() or needle in row['email_key']]
+    rows.sort(key=CARES_UPDATE_SORTS[sort][1])
+
+    page_obj = Paginator(rows, 100).get_page(request.GET.get('page'))
+    filter_params = request.GET.copy()
+    filter_params.pop('page', None)
+    context = {
+        'page_obj': page_obj,
+        'row_count': len(rows),
+        'band_counts': band_counts,
+        'band_labels': cares_update_service.BAND_LABELS,
+        'clubs': clubs,
+        'selected_band': band,
+        'selected_club': club_id,
+        'query_text': query_text,
+        'sort': sort,
+        'sort_options': [(key, label) for key, (label, _) in CARES_UPDATE_SORTS.items()],
+        'filter_query': filter_params.urlencode(),
+        'review_days': cares_update_service.review_days(),
+        'expire_days': settings.CARES_REG_EXPIRE_DAYS,
+        'close_days': settings.CARES_REG_CLOSE_DAYS,
+        'expiring_soon_days': cares_update_service.EXPIRING_SOON_DAYS,
+        'request_grace_days': cares_update_service.REQUEST_GRACE_DAYS,
+    }
+    return render(request, 'species/tools/caresRegistrationUpdates.html', context)
 
 
 ################ Danger Will Robinson ###########################################

@@ -489,6 +489,12 @@ TARGET_API_URL = os.environ.get('TARGET_API_URL', 'http://localhost:8001')
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
 
+### CARES Registration periodic review (Site 2) ###
+# Days are counted from the registration's review anchor: last_report_date, else date_requested.
+CARES_REG_REVIEW_DAYS = int(os.environ.get('CARES_REG_REVIEW_DAYS', '180'))    # due for review: campaigns email about it
+CARES_REG_EXPIRE_DAYS = int(os.environ.get('CARES_REG_EXPIRE_DAYS', '365'))   # Approved and unconfirmed this long -> Expired
+CARES_REG_CLOSE_DAYS = int(os.environ.get('CARES_REG_CLOSE_DAYS', '180'))     # Expired this long -> Closed
+
 ### ASN Partner Species API (site-wide, read-only - see               ###
 ### "ASN Partner Species API — Requirements.md"). Not to be confused   ###
 ### with the per-club auction.fish API key encryption below, which is  ###

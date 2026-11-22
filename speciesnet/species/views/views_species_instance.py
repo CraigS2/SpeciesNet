@@ -7,6 +7,7 @@ These represent individual aquarist's fish/species entries
 
 from .base import *
 from species.asn_tools.auction_fish_api import build_auction_fish_new_lot_url
+from species.services.registration_sync import request_registration_reopen
 
 ### View Species Instance
 
@@ -530,9 +531,13 @@ def registerCaresSpeciesInstance(request, pk):
             CaresRegistration.CaresRegistrationStatus.OPEN,
             CaresRegistration.CaresRegistrationStatus.APPROVED,
             CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+            CaresRegistration.CaresRegistrationStatus.EXPIRED,
         ]).first()
     
     if existing_registration:
+        if existing_registration.status == CaresRegistration.CaresRegistrationStatus.EXPIRED:
+            messages.info(request, f'"{cares_species.name}" has an expired CARES registration. Use Reopen to make it active again.')
+            return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))
         messages.info(request, f'"{cares_species.name}" already has an active CARES registration.')
         return HttpResponseRedirect(reverse('speciesInstance', args=[species_instance.id]))    
 
@@ -654,3 +659,40 @@ def exportSpeciesInstances(request):
         
 #     form = ImportCsvForm()
 #     return render(request, "species/importSpecies.html", {"form": form})
+
+
+### Reopen an Expired CARES Registration (Site 1 - asks Site 2 in real time) ###
+
+@login_required(login_url='login')
+@require_POST
+def reopenCaresRegistration(request, pk):
+    """
+    Owner-only. Site 2 decides: only an Expired registration is reactivated there,
+    and the local row changes only after Site 2 confirms. No email is sent.
+    """
+    registration = get_object_or_404(CaresRegistration, pk=pk)
+    if (registration.aquarist_email or '').strip().lower() != (request.user.email or '').strip().lower():
+        raise PermissionDenied()
+
+    species_instance_id = request.POST.get('species_instance_id', '')
+    if species_instance_id.isdigit() and SpeciesInstance.objects.filter(pk=species_instance_id, user=request.user).exists():
+        return_url = reverse('speciesInstance', args=[species_instance_id])
+    else:
+        return_url = reverse('caresRegistration', args=[registration.id])
+
+    if registration.status != CaresRegistration.CaresRegistrationStatus.EXPIRED:
+        messages.info(request, 'This CARES registration is not expired.')
+        return HttpResponseRedirect(return_url)
+
+    result, data = request_registration_reopen(registration)
+    if result == 'ok':
+        registration.status = CaresRegistration.CaresRegistrationStatus.APPROVED
+        registration.approver_notes = data.get('approver_notes', registration.approver_notes)
+        registration.save(update_fields=['status', 'approver_notes', 'lastUpdated'])
+        logger.info('User %s reopened CARES registration %s', request.user.username, registration.id)
+        messages.success(request, 'Your CARES registration is active again.')
+    else:
+        logger.warning('User %s reopen of CARES registration %s failed: %s', request.user.username, registration.id, result)
+        contact = f' or contact {settings.ADMIN_EMAIL}' if settings.ADMIN_EMAIL else ''
+        messages.error(request, f"We couldn't reactivate this registration right now. Please try again later{contact}.")
+    return HttpResponseRedirect(return_url)

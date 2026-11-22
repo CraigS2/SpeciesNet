@@ -10,6 +10,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from species.services.email_services import send_new_registration_notification, send_status_change_email, send_registration_summary_email
 from species.services.bap_service import reassign_bap_genus_example_species
+from species.services.cares_update_service import stamp_review_on_approval
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
 
@@ -454,6 +455,7 @@ def editCaresRegistration(request, pk):
                 # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
                 # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
                 registration.last_updated_by = request.user
+                stamp_review_on_approval(registration, old_status)   # approval counts as a CARES review
 
                 # Resolve collection_location FK if species uses managed locations
                 if species and species.manage_collection_locations:
@@ -509,6 +511,7 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
                 # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
                 # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
                 registration.last_updated_by = request.user
+                stamp_review_on_approval(registration, old_status)   # approval counts as a CARES review
                 registration.save()
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
                 if _is_status_change_notification_transition(old_status, registration.status):

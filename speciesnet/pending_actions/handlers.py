@@ -375,3 +375,143 @@ class BapNotesRequiredHandler(ActionHandler):
         if update_fields:
             species_instance.save(update_fields=update_fields)
         return None
+
+
+# ---------------------------------------------------------------------------
+# CARES Registration periodic update (Site 2) - see species/services/cares_update_service.py
+# ---------------------------------------------------------------------------
+
+def _cares_update_common_context(action):
+    from species.services.cares_update_service import update_page_url
+    token = action.payload.get('token')
+    return {
+        'action': action,
+        'to_email': action.payload['to_email'],
+        'update_url': update_page_url(action, token) if token else '',
+        'expires_at': action.expires_at,
+        'message': action.payload.get('message', ''),
+        'admin_email': settings.ADMIN_EMAIL,
+    }
+
+
+class _CaresUpdateHandler(ActionHandler):
+    """The update pages are served by CaresRegistrationUpdateView, not the generic confirm view."""
+    required_keys = set()
+
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        missing = self.required_keys.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required CARES update payload values: {sorted(missing)}')
+
+    def get_response_form_class(self, action=None):
+        return None
+
+    def requires_response(self, action):
+        return True
+
+
+@register('cares_registration_update_individual')
+class CaresRegistrationUpdateIndividualHandler(_CaresUpdateHandler):
+    required_keys = {'campaign_id', 'recipient_key', 'to_email', 'aquarist_name', 'registration_ids'}
+
+    def build_email_context(self, action, token=None):
+        from species.services.cares_update_service import REVIEWABLE_STATUSES
+        registrations = list(
+            CaresRegistration.objects.filter(pk__in=action.payload['registration_ids'], status__in=REVIEWABLE_STATUSES)
+            .select_related('species').order_by('species__name')
+        )
+        context = _cares_update_common_context(action)
+        species_lines = [
+            f"{reg.species.name if reg.species else reg.name}: Breeding Group {'Yes' if reg.species_has_spawned else 'No'}, "
+            f"Young Available {'Yes' if reg.young_available else 'No'}"
+            f"{' (Expired)' if reg.status == CaresRegistration.CaresRegistrationStatus.EXPIRED else ''}"
+            for reg in registrations
+        ]
+        context.update({
+            'subject': 'Please review your CARES registrations',
+            'aquarist_name': action.payload['aquarist_name'],
+            'registrations': registrations,
+            'archive_name': f"CARES update request to {action.payload['to_email']} ({action.payload['campaign_id']})",
+            # No token URL in the archive
+            'archive_text': (
+                f"To: {action.payload['aquarist_name']} <{action.payload['to_email']}>\n"
+                f"Campaign: {action.payload['campaign_id']}\n\n" + '\n'.join(species_lines)
+            ),
+        })
+        return context
+
+
+@register('cares_registration_update_liaison')
+class CaresRegistrationUpdateLiaisonHandler(_CaresUpdateHandler):
+    required_keys = {'campaign_id', 'club_id', 'to_email', 'liaison_name', 'registration_ids'}
+
+    def build_email_context(self, action, token=None):
+        from species.services.cares_update_service import REVIEWABLE_STATUSES, club_for_action
+        club = club_for_action(action)
+        registrations = CaresRegistration.objects.filter(
+            pk__in=action.payload['registration_ids'], status__in=REVIEWABLE_STATUSES,
+        )
+        members = {}
+        for reg in registrations:
+            key = (reg.aquarist_email or '').strip().lower()
+            member = members.setdefault(key, {'aquarist_name': reg.aquarist_name, 'species_count': 0})
+            member['species_count'] += 1
+        member_list = sorted(members.values(), key=lambda m: m['aquarist_name'].lower())
+        acronym = club.acronym if club else 'CARES'
+        context = _cares_update_common_context(action)
+        context.update({
+            'subject': f'{acronym}: CARES registrations needing an update',
+            'club': club,
+            'liaison_name': action.payload.get('liaison_name', ''),
+            'members': member_list,
+            'archive_name': f"CARES liaison update request to {action.payload['to_email']} ({action.payload['campaign_id']})",
+            'archive_text': (
+                f"To: {action.payload.get('liaison_name', '')} <{action.payload['to_email']}>\n"
+                f"Club: {club.name if club else action.payload['club_id']}\n"
+                f"Campaign: {action.payload['campaign_id']}\n\n"
+                + '\n'.join(f"{m['aquarist_name']}: {m['species_count']} species" for m in member_list)
+            ),
+        })
+        return context
+
+
+@register('cares_registration_closed_by_liaison')
+class CaresRegistrationClosedByLiaisonHandler(ActionHandler):
+    """Information-only notice to the aquarist, CC'd to the liaison and ADMIN_EMAIL."""
+
+    def validate_payload(self, payload):
+        super().validate_payload(payload)
+        required = {'to_email', 'aquarist_name', 'club_id', 'liaison_name', 'liaison_email', 'registration_ids'}
+        missing = required.difference(payload.keys())
+        if missing:
+            raise ValueError(f'Missing required CARES close notice payload values: {sorted(missing)}')
+
+    def requires_response(self, action):
+        return False
+
+    def build_email_context(self, action, token=None):
+        from species.services.cares_update_service import club_for_action
+        club = club_for_action(action)
+        registrations = list(
+            CaresRegistration.objects.filter(pk__in=action.payload['registration_ids']).select_related('species').order_by('species__name')
+        )
+        species_names = [reg.species.name if reg.species else reg.name for reg in registrations]
+        cc = [email for email in (action.payload.get('liaison_email'), settings.ADMIN_EMAIL) if email]
+        acronym = club.acronym if club else 'CARES'
+        return {
+            'action': action,
+            'subject': f'{acronym}: CARES registrations closed on your behalf',
+            'to_email': action.payload['to_email'],
+            'cc': cc,
+            'aquarist_name': action.payload['aquarist_name'],
+            'liaison_name': action.payload['liaison_name'],
+            'club': club,
+            'species_names': species_names,
+            'admin_email': settings.ADMIN_EMAIL,
+            'archive_name': f"CARES close notice to {action.payload['to_email']}",
+            'archive_text': (
+                f"To: {action.payload['aquarist_name']} <{action.payload['to_email']}>\nCC: {', '.join(cc)}\n"
+                f"Closed by club liaison {action.payload['liaison_name']}:\n" + '\n'.join(species_names)
+            ),
+        }

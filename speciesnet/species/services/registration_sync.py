@@ -40,6 +40,15 @@ from species.services.email_services import send_status_change_email, send_new_r
 
 logger = logging.getLogger(__name__)
 
+# Statuses that count as a live registration for the email+species duplicate check
+ACTIVE_REGISTRATION_STATUSES = [
+    CaresRegistration.CaresRegistrationStatus.OPEN,
+    CaresRegistration.CaresRegistrationStatus.PENDING,
+    CaresRegistration.CaresRegistrationStatus.RESUBMIT,
+    CaresRegistration.CaresRegistrationStatus.APPROVED,
+    CaresRegistration.CaresRegistrationStatus.EXPIRED,
+]
+
 
 # ---------------------------------------------------------------------------
 # Admin notification helpers
@@ -209,10 +218,12 @@ class RegistrationSyncService:
         if matched_species is None:
             raise ValueError(f'Species not found on Site2: {species_name!r}')
 
-        # Idempotency guard 2: email+species already exists
+        # Idempotency guard 2: an active email+species registration already exists.
+        # Declined or closed records don't block a new registration.
         if CaresRegistration.objects.filter(
             aquarist_email__iexact=email,
             species=matched_species,
+            status__in=ACTIVE_REGISTRATION_STATUSES,
         ).exists():
             logger.info(
                 'RegistrationSyncService: skip id=%d – email+species already registered', site1_id
@@ -350,9 +361,13 @@ class RegistrationStatusSyncService:
     aquarists are notified without a manual admin click.
     """
 
+    # EXPI and CLSD come from the CARES periodic review lifecycle; none of their
+    # transitions notify the aquarist (_is_status_change_notification_transition excludes them).
     ACCEPTED_STATUSES = {
         CaresRegistration.CaresRegistrationStatus.APPROVED,
         CaresRegistration.CaresRegistrationStatus.DECLINED,
+        CaresRegistration.CaresRegistrationStatus.EXPIRED,
+        CaresRegistration.CaresRegistrationStatus.CLOSED,
     }
 
     def __init__(self, target_url=None, email=None, password=None):
@@ -480,7 +495,7 @@ class RegistrationStatusSyncService:
         new_status = row.get('status', '').strip()
         if new_status not in self.ACCEPTED_STATUSES:
             logger.info(
-                'RegistrationStatusSyncService: skip external_id=%d – status %r not APRV/DECL',
+                'RegistrationStatusSyncService: skip external_id=%d – status %r not synced',
                 external_id, new_status,
             )
             return 'skipped'
@@ -552,3 +567,44 @@ def _trigger_aquarist_notification(registration):
             'RegistrationStatusSyncService: failed to queue aquarist notification for id=%d: %s',
             registration.id, exc,
         )
+
+
+# ---------------------------------------------------------------------------
+# Real-time Reopen  (runs on Site1 – asks Site2 to reactivate an Expired registration)
+# ---------------------------------------------------------------------------
+
+REOPEN_TIMEOUT_SECONDS = 10
+
+
+def request_registration_reopen(registration, target_url=None, email=None, password=None):
+    """
+    Ask Site2 to reactivate this Site1 registration (Site2 stores the Site1 id
+    as external_id). Site2 decides: only an Expired registration is reactivated.
+
+    Returns (result, data): result is 'ok', 'not_expired', 'not_found' or
+    'error' (Site2 unreachable, timeout, or an unexpected reply). Never raises.
+    """
+    base_url = (target_url or getattr(settings, 'TARGET_API_URL', 'http://localhost:8001')).rstrip('/')
+    auth = HTTPBasicAuth(
+        email or getattr(settings, 'API_SERVICE_EMAIL', 'api_service@localhost'),
+        password or getattr(settings, 'API_SERVICE_PASSWORD', 'changeme_in_production'),
+    )
+    try:
+        response = requests.post(
+            f'{base_url}/api/registrations-reopen/',
+            json={'external_id': registration.id},
+            auth=auth,
+            timeout=REOPEN_TIMEOUT_SECONDS,
+        )
+        data = response.json()
+    except Exception as exc:
+        logger.error('Reopen request for registration id=%d failed: %s', registration.id, exc)
+        return 'error', {}
+
+    result = data.get('result') if isinstance(data, dict) else None
+    if result not in ('ok', 'not_expired', 'not_found'):
+        logger.error('Reopen request for registration id=%d: unexpected reply HTTP %s %r',
+                     registration.id, response.status_code, data)
+        return 'error', {}
+    logger.info('Reopen request for registration id=%d: %s', registration.id, result)
+    return result, data

@@ -253,3 +253,108 @@ class ClubInviteOptOutView(View):
         from species.services.contact_filter_service import opt_out
         opt_out(self.club, self.action.user)
         return render(request, self.done_template_name, {'club': self.club})
+
+
+class CaresRegistrationUpdateView(View):
+    """
+    Login-free CARES registration update page (individual aquarist or club liaison).
+
+    The token is the credential. Unlike PendingActionConfirmView, a COMPLETED
+    action is still accepted while it's within its TTL, so the recipient can
+    come back and correct a save. CANCELLED (superseded by a newer campaign)
+    and EXPIRED actions show the expired page. GET never writes.
+    """
+
+    TEMPLATES = {
+        'cares_registration_update_individual': 'pending_actions/cares_update_individual.html',
+        'cares_registration_update_liaison': 'pending_actions/cares_update_liaison.html',
+    }
+    done_template_name = 'pending_actions/cares_update_done.html'
+
+    def _load_action(self, token):
+        try:
+            payload = load_signed_token(token, max_age=None)
+        except PendingActionTokenExpired:
+            return None, 'expired'
+        except PendingActionTokenInvalid:
+            return None, 'invalid'
+
+        action = PendingAction.objects.select_related('action_type').filter(
+            pk=payload.get('action_id'), action_type__slug__in=self.TEMPLATES.keys(),
+        ).first()
+        if action is None or action.token_hash != hash_token(token):
+            return None, 'invalid'
+
+        try:
+            load_signed_token(token, max_age=action.action_type.default_ttl_hours * 3600)
+        except PendingActionTokenExpired:
+            action.mark_expired()
+            return action, 'expired'
+
+        if action.status in (PendingAction.Status.EXPIRED, PendingAction.Status.CANCELLED):
+            return action, 'expired'
+        if action.expires_at <= timezone.now():
+            action.mark_expired()
+            return action, 'expired'
+        return action, 'ok'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.action, status = self._load_action(kwargs.get('token'))
+        if status == 'invalid':
+            raise Http404('Invalid link.')
+        if status == 'expired':
+            return render(request, 'pending_actions/expired.html', {'action': self.action}, status=410)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _context(self, registrations):
+        from django.conf import settings
+        from species.services.cares_update_service import LIAISON_SLUG, club_for_action, review_anchor
+
+        today = timezone.localdate()
+        rows = []
+        for reg in registrations:
+            anchor = review_anchor(reg)
+            rows.append({
+                'registration': reg,
+                'is_expired': reg.status == reg.CaresRegistrationStatus.EXPIRED,
+                'months_since_review': ((today - anchor).days // 30) if anchor else None,
+            })
+        context = {
+            'action': self.action,
+            'payload': self.action.payload,
+            'rows': rows,
+            'admin_email': settings.ADMIN_EMAIL,
+        }
+        if self.action.action_type.slug == LIAISON_SLUG:
+            members = {}
+            for row in rows:
+                reg = row['registration']
+                key = (reg.aquarist_email or '').strip().lower()
+                member = members.setdefault(key, {'aquarist_name': reg.aquarist_name, 'aquarist_email': reg.aquarist_email, 'rows': []})
+                member['rows'].append(row)
+            member_list = sorted(members.values(), key=lambda m: m['aquarist_name'].lower())
+            for member in member_list:
+                member['oldest_months'] = max((r['months_since_review'] or 0) for r in member['rows'])
+            context.update({
+                'club': club_for_action(self.action),
+                'members': member_list,
+                'start_expanded': len(member_list) <= 10,
+            })
+        return context
+
+    def get(self, request, *args, **kwargs):
+        from species.services.cares_update_service import allowed_registrations
+        context = self._context(allowed_registrations(self.action))
+        return render(request, self.TEMPLATES[self.action.action_type.slug], context)
+
+    def post(self, request, *args, **kwargs):
+        from django.conf import settings
+        from species.services.cares_update_service import allowed_registrations, apply_registration_updates
+        results = apply_registration_updates(self.action, allowed_registrations(self.action), request.POST)
+        context = {
+            'action': self.action,
+            'results': results,
+            'admin_email': settings.ADMIN_EMAIL,
+            'update_again_url': request.path,
+        }
+        return render(request, self.done_template_name, context)
