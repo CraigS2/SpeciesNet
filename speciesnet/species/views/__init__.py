@@ -89,7 +89,7 @@ from .views_ux import (
 
 # Page View Counts
 from .views_pageviews import (
-    pageviewsTopRanking
+    pageviewsTopRanking, pageviewsExportCsv, pageviewsCloseOut, pageviewsClear
 )
 
 # CARES Raffle Admin Tools

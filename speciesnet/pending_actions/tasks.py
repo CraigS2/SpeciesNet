@@ -260,3 +260,26 @@ def expire_cares_registrations_task(self, dry_run=False):
         return {'skipped': 'site'}
     result = expire_and_close(dry_run=dry_run)
     return {'expired': len(result['expired']), 'closed': len(result['closed']), 'dry_run': dry_run}
+
+
+# ---------------------------------------------------------------------------
+# Page view quarterly close-out ("Page View Tracking — Spec.md")
+#
+# Not seeded: add the PeriodicTask by hand in Django admin on each site
+# (crontab 10 0 1 1,4,7,10 *), AFTER the one-off Clear on 2027-01-01.
+# No auto-retry, and a period that already has a snapshot is skipped, so a
+# duplicate Beat run can't add the same counts twice.
+# ---------------------------------------------------------------------------
+
+@shared_task(bind=True, queue='default')
+def snapshot_page_views_task(self, dry_run=False):
+    """Archive the live page view counters as the quarter that just ended, then reset them."""
+    from species.services import pageview_service as service
+
+    year, month = service.previous_quarter()
+    label = service.period_label(year, month)
+    if service.snapshot_exists(year, month):
+        logger.info('snapshot_page_views_task skipped: %s already has a snapshot', label)
+        return {'skipped': f'{label} already has a snapshot'}
+    result = service.close_out_period(year, month, dry_run=dry_run)
+    return {'period': label, 'rows': result['rows'], 'views': result['views'], 'dry_run': dry_run}

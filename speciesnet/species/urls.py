@@ -243,6 +243,9 @@ urlpatterns = [
     path('tools/cares-update-liaisons/', views.caresUpdateCampaignLiaison, name="caresUpdateCampaignLiaison"),           # staff-only, Site 2
     path('tools/cares-registration-updates/', views.caresRegistrationUpdates, name="caresRegistrationUpdates"),          # staff-only, Site 2
     path('pageviews/top_ranking/', views.pageviewsTopRanking, name='pageviewsTopRanking'),
+    path('pageviews/export/', views.pageviewsExportCsv, name='pageviewsExportCsv'),                 # staff-only
+    path('pageviews/close_out/', views.pageviewsCloseOut, name='pageviewsCloseOut'),                # staff-only POST
+    path('pageviews/clear/', views.pageviewsClear, name='pageviewsClear'),                          # staff-only POST
 
     ### Species Import Workflow ###
 

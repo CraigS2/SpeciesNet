@@ -1,9 +1,9 @@
 {% extends 'main.html' %}
 {% block content %}
 <div class="container mt-4">
-    <h3>Top 50 Page Views</h3>
+    <h3>Page Views</h3>
 
-    <form method="get" class="row g-2 align-items-end mb-4">
+    <form method="get" class="row g-2 align-items-end mb-3">
         <div class="col-auto">
             <label class="form-label mb-0"><b>Page Type</b></label>
             <select name="page_type" class="form-select" onchange="this.form.submit()">
@@ -16,59 +16,126 @@
         <div class="col-auto">
             <label class="form-label mb-0"><b>Source</b></label>
             <select name="source" class="form-select" onchange="this.form.submit()">
-                <option value="current" {% if source == 'current' %}selected{% endif %}>Current Month (in progress)</option>
-                <option value="monthly" {% if source == 'monthly' %}selected{% endif %}>Completed Month Snapshot</option>
+                <option value="current" {% if source == 'current' %}selected{% endif %}>Current period (in progress)</option>
+                <option value="snapshot" {% if source == 'snapshot' %}selected{% endif %}>Archived period</option>
             </select>
         </div>
 
-        {% if source == 'monthly' %}
+        {% if source == 'snapshot' and available_periods %}
             <div class="col-auto">
                 <label class="form-label mb-0"><b>Period</b></label>
                 <select name="_period" class="form-select"
                         onchange="var v=this.value.split('-'); this.form.year.value=v[0]; this.form.month.value=v[1]; this.form.submit();">
-                    {% for py, pm in available_periods %}
-                        <option value="{{ py }}-{{ pm }}" {% if py == year and pm == month %}selected{% endif %}>
-                            {{ py }}-{{ pm|stringformat:"02d" }}
-                        </option>
+                    {% for py, pm, plabel in available_periods %}
+                        <option value="{{ py }}-{{ pm }}" {% if py == year and pm == month %}selected{% endif %}>{{ plabel }}</option>
                     {% endfor %}
                 </select>
                 <input type="hidden" name="year" value="{{ year|default:'' }}">
                 <input type="hidden" name="month" value="{{ month|default:'' }}">
             </div>
         {% endif %}
+
+        <div class="col-auto">
+            <label class="form-label mb-0"><b>Show</b></label>
+            <select name="limit" class="form-select" onchange="this.form.submit()">
+                {% for value, label in limit_choices %}
+                    <option value="{{ value }}" {% if value == limit %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </form>
 
-    {% if source == 'monthly' and year and month %}
-        <p class="text-muted">Showing snapshot for {{ year }}-{{ month|stringformat:"02d" }}</p>
-    {% elif source == 'current' %}
-        <p class="text-muted">Showing running totals for the current (not-yet-snapshotted) period.</p>
-    {% endif %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        {% if source == 'snapshot' and period_label %}
+            <span class="text-muted me-auto">Showing archived period {{ period_label }}.</span>
+        {% elif source == 'snapshot' %}
+            <span class="text-muted me-auto">No periods have been archived yet.</span>
+        {% else %}
+            <span class="text-muted me-auto">Showing counts {{ current_period_label }}.</span>
+        {% endif %}
+        {% if source == 'current' or period_label %}
+            <a class="btn btn-outline-secondary btn-sm"
+               href="{% url 'pageviewsExportCsv' %}?page_type={{ selected_page_type }}&amp;source={{ source }}{% if year %}&amp;year={{ year }}&amp;month={{ month }}{% endif %}">Export this page type to CSV</a>
+            <a class="btn btn-outline-secondary btn-sm"
+               href="{% url 'pageviewsExportCsv' %}?page_type=all&amp;source={{ source }}{% if year %}&amp;year={{ year }}&amp;month={{ month }}{% endif %}">Export all page types to CSV</a>
+        {% endif %}
+    </div>
 
-    <table class="table table-striped table-sm">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Item</th>
-                <th class="text-end">Views</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in results %}
-            <tr>
-                <td>{{ row.rank }}</td>
-                <td>
-                    {% if row.url %}
-                        <a href="{{ row.url }}">{{ row.display }}</a>
-                    {% else %}
-                        {{ row.display }}
-                    {% endif %}
-                </td>
-                <td class="text-end">{{ row.total }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" class="text-muted">No page view data yet for this selection.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th class="text-end">Anonymous</th>
+                    <th class="text-end">Signed in</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results %}
+                <tr>
+                    <td>{{ row.rank }}</td>
+                    <td>
+                        {% if row.url %}
+                            <a href="{{ row.url }}">{{ row.display }}</a>
+                        {% else %}
+                            {{ row.display }}
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ row.anonymous }}</td>
+                    <td class="text-end">{{ row.authenticated }}</td>
+                    <td class="text-end">{{ row.total }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-muted">No page view data yet for this selection.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <details class="card mt-4 mb-4">
+        <summary class="card-header">Archive and reset</summary>
+        <div class="card-body">
+            <p class="mb-3">The current period holds <strong>{{ current_views }}</strong> views across {{ current_rows }} counters.
+                Quarterly close-outs normally run automatically at 00:10 UTC on the 1st of January, April, July and October
+                (once the schedule is enabled in Django admin).</p>
+
+            <form method="post" action="{% url 'pageviewsCloseOut' %}" class="mb-4">
+                {% csrf_token %}
+                <h5>Close out now</h5>
+                <p class="text-muted small mb-2">Archives the current counts as the chosen quarter, then resets them to 0. Nothing is lost.</p>
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <select name="period" class="form-select" aria-label="Period to archive as">
+                            {% for choice in close_out_choices %}
+                            <option value="{{ choice.year }}-{{ choice.month }}">
+                                Archive as {{ choice.label }}{% if choice.exists %} (already archived: counts will be added){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto form-check ms-2">
+                        <input class="form-check-input" type="checkbox" id="confirm-close-out" name="confirm" required>
+                        <label class="form-check-label" for="confirm-close-out">Archive and reset the current counts</label>
+                    </div>
+                    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Close out</button></div>
+                </div>
+            </form>
+
+            <form method="post" action="{% url 'pageviewsClear' %}">
+                {% csrf_token %}
+                <h5 class="text-danger">Clear current counts</h5>
+                <p class="text-muted small mb-2">Deletes the current counts with <strong>no archive</strong>. Archived periods are not touched.
+                    Export to CSV first. Intended for the one-off reset of the pre-2027 backlog.</p>
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <input type="text" name="confirm_text" class="form-control" placeholder="Type CLEAR" aria-label="Type CLEAR to confirm" autocomplete="off" required>
+                    </div>
+                    <div class="col-auto"><button type="submit" class="btn btn-outline-danger btn-sm">Clear current counts</button></div>
+                </div>
+            </form>
+        </div>
+    </details>
 </div>
 {% endblock content %}

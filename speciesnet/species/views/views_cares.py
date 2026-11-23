@@ -450,8 +450,8 @@ def editCaresRegistration(request, pk):
         if form.is_valid():
             try:
                 registration = form.save(commit=False)
-                if registration.verification_photo:
-                    processUploadedImageFile(registration.verification_photo, registration.name, request)
+                # No photo processing here: the approval form has no photo field, so there is never a new upload
+                # (re-processing the stored photo rewrote it on every save, and failed if the file was missing).
                 # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
                 # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
                 registration.last_updated_by = request.user
@@ -506,13 +506,15 @@ def editCaresRegistrationAdmin(request, pk):        # admin only for full editin
         if form.is_valid():
             try:
                 registration = form.save(commit=False)
-                if registration.verification_photo:
-                    processUploadedImageFile(registration.verification_photo, registration.name, request)
                 # manage hidden fields 'name', 'last_updated_by - fields set by app: 'aquarist', 'species'
                 # set by submitter: 'species_source', 'collection_location', 'year_acquired', 'verification_photo', 'species_has_spawned', 'offspring_shared'
                 registration.last_updated_by = request.user
                 stamp_review_on_approval(registration, old_status)   # approval counts as a CARES review
                 registration.save()
+                # Resize only a newly uploaded photo, and only after save() has stored it under
+                # images/%Y/%m/%d - before that its path points at the bare MEDIA_ROOT filename.
+                if 'verification_photo' in request.FILES and registration.verification_photo:
+                    processUploadedImageFile(registration.verification_photo, registration.name, request)
                 logger.info('User %s edited cares registration: %s (%s)', request.user.username, registration.name, str(registration.id))
                 if _is_status_change_notification_transition(old_status, registration.status):
                     return HttpResponseRedirect(reverse("caresRegistrationNotifyAquarist", args=[registration.id]))

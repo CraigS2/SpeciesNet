@@ -4,6 +4,7 @@ Tests for the CARES Registration periodic update feature
 due rule, individual and liaison campaigns, the login-free update pages,
 expire/close lifecycle, real-time Reopen, and the status sync changes.
 """
+import io
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch, MagicMock
@@ -864,3 +865,61 @@ class ToolsPagesSiteSectionsTests(CaresUpdateTestCase):
             response = self.client.get(reverse(page))
             self.assertNotContains(response, reverse('caresRegistrationUpdates'))
             self.assertContains(response, 'Raffle Tools')
+
+
+class EditCaresRegistrationAdminPageTests(CaresUpdateTestCase):
+    """The admin edit page has a Save button inside a single form, and saving works."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user(username='staff', email='staff@example.com', password='pw', is_staff=True))
+        self.reg = _reg(self.fish_a, 'a@example.com')
+        CaresRegistration.objects.filter(pk=self.reg.pk).update(verification_photo='')   # skip image processing
+        self.reg.refresh_from_db()
+        self.url = reverse('editCaresRegistrationAdmin', args=[self.reg.id])
+
+    def test_page_has_save_button_and_one_form(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'value="Save Changes"')
+        self.assertContains(response, 'enctype="multipart/form-data"', count=1)
+
+    def form_data(self):
+        from species.forms import CaresRegistrationAdminForm
+        form = CaresRegistrationAdminForm(instance=self.reg)
+        data = {}
+        for name in form.fields:
+            value = form[name].value()
+            if value is None or value is False or name == 'verification_photo':
+                continue
+            data[name] = 'on' if value is True else value
+        return data
+
+    def test_replacement_photo_is_resized_into_dated_folder(self):
+        import shutil
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        media_root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media_root, ignore_errors=True)
+        buffer = io.BytesIO()
+        Image.new('RGB', (1200, 900), 'blue').save(buffer, 'PNG')
+        upload = SimpleUploadedFile('NECA_logo_sm.png', buffer.getvalue(), content_type='image/png')
+        with self.settings(MEDIA_ROOT=media_root):
+            response = self.client.post(self.url, {**self.form_data(), 'verification_photo': upload})
+            self.assertEqual(response.status_code, 302)
+            self.reg.refresh_from_db()
+            self.assertTrue(self.reg.verification_photo.name.startswith(timezone.now().strftime('images/%Y/%m/%d/')))
+            self.assertTrue(self.reg.verification_photo.name.endswith('.jpg'))
+            with Image.open(self.reg.verification_photo.path) as stored:
+                self.assertLessEqual(stored.width, 480)
+                self.assertLessEqual(stored.height, 320)
+
+    def test_save_updates_registration(self):
+        data = self.form_data()
+        data['approver_notes'] = 'Edited by admin'
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+        self.reg.refresh_from_db()
+        self.assertEqual(self.reg.approver_notes, 'Edited by admin')
+        self.assertEqual(self.reg.last_updated_by.username, 'staff')   # had none before (synced/imported rows)

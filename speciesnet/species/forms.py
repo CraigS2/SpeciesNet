@@ -706,7 +706,9 @@ class CaresRegistrationAdminForm (ModelForm):
     class Meta:
         model = CaresRegistration
         fields = '__all__'
-        exclude = ['name', 'species', 'collection_location']
+        # last_updated_by is set by the view; as a form field it was required (null=True, no blank=True),
+        # which blocked saving synced/imported registrations that have none.
+        exclude = ['name', 'species', 'collection_location', 'last_updated_by']
         widgets = { 'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'species_source': forms.Textarea(attrs={'rows':1,'cols':50}),
                     'approver_notes': forms.Textarea(attrs={'rows':1,'cols':50}),}
@@ -722,6 +724,12 @@ class CaresRegistrationAdminForm (ModelForm):
             self.fields['cares_approver'].queryset = CaresApprover.objects.filter(
                 Q(specialty=species.cares_family) | Q(specialty='UDF')
             )
+
+        # The template supplies the <form> tag (multipart, for verification_photo),
+        # so crispy renders only the fields plus the Save button.
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.add_input(Submit('submit', 'Save Changes', css_class='btn btn-success'))
 
 # registration submition by Cares Admin
 class CaresRegistrationSubmitionAdminForm (ModelForm):

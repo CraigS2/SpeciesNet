@@ -2,7 +2,7 @@
 Helpers for resolving PageViewCount / PageViewMonthlySnapshot object_id values
 back into human-readable display names and detail-page URLs.
 
-Kept isolated here so the Top 50 views (and any future reporting) can share
+Kept isolated here so the Page Views page, its CSV export (and any future reporting) can share
 one lookup implementation instead of re-deriving page_type -> model mappings.
 """
 
@@ -20,7 +20,7 @@ from ..models import (
 # Maps each PageType choice to:
 #   model      - the Django model whose pk == PageViewCount.object_id
 #   url_name   - the named url pattern used to link to the object's detail page
-#   display_fn - callable(obj) -> str label to show in the Top 50 table
+#   display_fn - callable(obj) -> str label to show in the Page Views table and CSV
 _PAGE_TYPE_CONFIG = {
     PageViewCount.PageType.USER: {
         'model': User,
