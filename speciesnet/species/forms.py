@@ -862,7 +862,7 @@ class SpeciesInstanceForm (ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from', 'cares_registered']
+        exclude = ['user', 'species', 'cares_registered']
         widgets = {'name':                       forms.Textarea(attrs={'rows':1,'cols':50}),
                    'unique_traits':              forms.Textarea(attrs={'rows':1,'cols':50}),
                    'aquarist_species_video_url': forms.Textarea(attrs={'rows':1,'cols':50}),
@@ -878,7 +878,7 @@ class SpeciesInstanceForm2(ModelForm):
     class Meta:
         model = SpeciesInstance
         fields = '__all__'
-        exclude = ['user', 'species', 'acquired_from', 'young_available_image']
+        exclude = ['user', 'species', 'young_available_image']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1914,7 +1914,7 @@ class UserProfileForm2(ModelForm):
                   'is_private_name', 'is_private_email', 'is_private_location',
                   'prefer_tile_view',
                   'instagram_url', 'facebook_url', 'youtube_url' ]
-        #exclude = ['user', 'species', 'acquired_from', 'young_available_image']
+        #exclude = ['user', 'species', 'young_available_image']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

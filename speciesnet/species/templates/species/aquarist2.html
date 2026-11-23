@@ -178,17 +178,10 @@
                                                                 {% endif %}
                                                                 
                                                                 <div class="d-flex gap-3 flex-wrap">
-                                                                    {% if speciesInstance.acquired_from %}
-                                                                        <span>
-                                                                            <i class="bi bi-box-arrow-in-down me-1"></i>
-                                                                            <strong>From:</strong> {{ speciesInstance.acquired_from }}
-                                                                        </span>
-                                                                    {% endif %}
-                                                                    
-                                                                    {% if speciesInstance.date_acquired %}
+                                                                    {% if speciesInstance.year_acquired %}
                                                                         <span>
                                                                             <i class="bi bi-calendar-event me-1"></i>
-                                                                            <strong>Since:</strong> {{ speciesInstance.date_acquired|date:"M Y" }}
+                                                                            <strong>Since:</strong> {{ speciesInstance.year_acquired }}
                                                                         </span>
                                                                     {% endif %}
                                                                 </div>
@@ -296,17 +289,10 @@
                                                                 {% endif %}
                                                                 
                                                                 <div class="d-flex gap-3 flex-wrap">
-                                                                    {% if speciesInstance.acquired_from %}
-                                                                        <span>
-                                                                            <i class="bi bi-box-arrow-in-down me-1"></i>
-                                                                            <strong>From:</strong> {{ speciesInstance.acquired_from }}
-                                                                        </span>
-                                                                    {% endif %}
-                                                                    
-                                                                    {% if speciesInstance.date_acquired %}
+                                                                    {% if speciesInstance.year_acquired %}
                                                                         <span>
                                                                             <i class="bi bi-calendar-event me-1"></i>
-                                                                            <strong>Since:</strong> {{ speciesInstance.date_acquired|date:"M Y" }}
+                                                                            <strong>Since:</strong> {{ speciesInstance.year_acquired }}
                                                                         </span>
                                                                     {% endif %}
                                                                 </div>

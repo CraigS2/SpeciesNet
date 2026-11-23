@@ -372,3 +372,20 @@ class SpeciesInstanceReadViewTest(TestCase):
         """Test viewing nonexistent species instance returns 404"""
         response = self.client.get(reverse('speciesInstance', args=[9999]))
         self.assertEqual(response.status_code, 404)
+
+class AquaristListViewTest(TestCase):
+    """Tests for the aquarist page list view (aquarist2.html)"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='keeper', email='keeper@test.com', password='testpass123')
+        species = Species.objects.create(name='Melanochromis auratus', category='CIC', global_region='AFR')
+        SpeciesInstance.objects.create(name='Kept Auratus', user=self.user, species=species,
+                                       currently_keep=True, year_acquired=2019)
+        SpeciesInstance.objects.create(name='Old Auratus', user=self.user, species=species,
+                                       currently_keep=False, year_acquired=2011)
+
+    def test_list_view_shows_year_acquired(self):
+        response = self.client.get(reverse('aquarist', args=[self.user.id]), {'view': 'list'})
+        self.assertTemplateUsed(response, 'species/aquarist2.html')
+        self.assertContains(response, '<strong>Since:</strong> 2019', html=False)
+        self.assertContains(response, '<strong>Since:</strong> 2011', html=False)

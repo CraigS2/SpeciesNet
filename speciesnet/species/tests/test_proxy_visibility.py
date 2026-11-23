@@ -227,7 +227,13 @@ class ExportPermissionTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_export_species_instances_staff_allowed(self):
+        # needs at least one row so every exported field is actually read
+        SpeciesInstance.objects.create(name='Export Fish', user=self.regular_user,
+                                       species=_make_species('Betta macrostoma'))
         self.client.login(email='staff5@test.com', password='testpass123')
         response = self.client.get(reverse('exportSpeciesInstances'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/csv')
+        content = response.content.decode()
+        self.assertIn('Export Fish', content)
+        self.assertNotIn('acquired_from', content)

@@ -733,8 +733,8 @@ def export_csv_speciesInstances():
     writer.writerow([
        # id    user    name    species    unique_traits    genetic_traits    collection_point
         'id' ,'user', 'name', 'species', 'unique_traits', 'genetic_traits', 'collection_point', 
-       # acquired_from    year_acquired    aquarist_species_image aquarist_species_video_url 
-        'acquired_from', 'year_acquired', 'aquarist_species_image', 'aquarist_species_video_url', 
+       # year_acquired    aquarist_species_image aquarist_species_video_url 
+        'year_acquired', 'aquarist_species_image', 'aquarist_species_video_url', 
        # aquarist_notes    have_spawned    spawning_notes    have_reared_fry    fry_rearing_notes    young_available    young_available_image 
         'aquarist_notes', 'have_spawned', 'spawning_notes', 'have_reared_fry', 'fry_rearing_notes', 'young_available', 'young_available_image', 
        # currently_keep    enable_species_log    log_is_private    cares_registered    created    lastUpdated           
@@ -744,8 +744,8 @@ def export_csv_speciesInstances():
         writer.writerow([
             #  id     user              name     species     unique_traits     genetic_traits     collection_point
             si.id, si.user.username, si.name, si.species, si.unique_traits, si.genetic_traits, si.collection_point, 
-            #  acquired_from     year_acquired     aquarist_species_image     aquarist_species_video_url 
-            si.acquired_from, si.year_acquired, si.aquarist_species_image, si.aquarist_species_video_url, 
+            #  year_acquired     aquarist_species_image     aquarist_species_video_url 
+            si.year_acquired, si.aquarist_species_image, si.aquarist_species_video_url, 
             #  aquarist_notes     have_spawned     spawning_notes     have_reared_fry     fry_rearing_notes     young_available     young_available_image 
             si.aquarist_notes, si.have_spawned, si.spawning_notes, si.have_reared_fry, si.fry_rearing_notes, si.young_available, si.young_available_image,
             # currently_keep      enable_species_log     log_is_private     cares_registered     created     lastUpdated           
