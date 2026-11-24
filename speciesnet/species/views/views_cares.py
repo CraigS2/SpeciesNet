@@ -8,9 +8,11 @@ Species-related views: CRUD operations, search, comments, reference links
 from .base import *
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.core.files.storage import default_storage
 from species.services.email_services import send_new_registration_notification, send_status_change_email, send_registration_summary_email
 from species.services.bap_service import reassign_bap_genus_example_species
 from species.services.cares_update_service import stamp_review_on_approval
+from species.services import cares_duplicate_service
 from species.asn_tools.asn_csv_cares_tools import import_legacy_cares_registrations, import_csv_species_external_ids
 
 
@@ -321,6 +323,25 @@ def registerCaresSelectSpecies(request):
 
 ### Register CARES Species (Annonymous User)
 
+# When the form is shown again (duplicate question, other errors) the uploaded photo is kept so it
+# need not be chosen again. The session, not the page, says which file, so a page can't name another photo.
+# A kept photo that is never used is left in media, like a replaced photo elsewhere.
+HELD_PHOTO_SESSION_KEY = 'cares_held_photo'
+
+def _held_photo_name(request, species):
+    held = request.session.get(HELD_PHOTO_SESSION_KEY) or {}
+    if request.POST.get('held_photo') and held.get('species_id') == species.id and held.get('name'):
+        return held['name']
+    return None
+
+def _hold_photo(request, species, upload):
+    """Resize and store the upload now (no registration saved yet); returns the stored file."""
+    holder = CaresRegistration()
+    holder.verification_photo.save(upload.name, upload, save=False)
+    processUploadedImageFile(holder.verification_photo, species.name, request, save_instance=False)
+    request.session[HELD_PHOTO_SESSION_KEY] = {'species_id': species.id, 'name': holder.verification_photo.name}
+    return holder.verification_photo
+
 def registerCaresSpecies(request, pk):
     register_heif_opener()
     cares_species = get_object_or_404(Species, pk=pk)
@@ -329,7 +350,10 @@ def registerCaresSpecies(request, pk):
     print ('Begin annoymous CARES Registration on Site 2: ' + cares_species.name)
 
     if request.method == 'POST':
-        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species)
+        held_photo_name = _held_photo_name(request, cares_species)
+        new_photo = 'verification_photo' in request.FILES
+        form = CaresRegistrationAnonymousForm2(request.POST, request.FILES, species=cares_species,
+                                               held_photo=default_storage.url(held_photo_name) if held_photo_name else None)
 
         if form.is_valid():
             try:
@@ -358,30 +382,58 @@ def registerCaresSpecies(request, pk):
                 cares_reg.last_updated_by = None
                 cares_reg.affiliated_club = None
                 cares_reg.cares_approver = get_matching_cares_approver(cares_species)
+                if not new_photo and held_photo_name:
+                    cares_reg.verification_photo.name = held_photo_name     # already resized when kept
+                if form.additional_registration_confirmed:
+                    cares_reg.submitter_notes = '\n'.join(filter(None, [cares_reg.submitter_notes,
+                                                                        cares_duplicate_service.ADDITIONAL_REGISTRATION_NOTE]))
                 cares_reg.save()
 
                 print ('New Cares Registration Saved: ' + cares_reg.name)
 
-                if cares_reg.verification_photo:
+                if new_photo:
                     processUploadedImageFile(cares_reg.verification_photo, cares_species.name, request)
+                request.session.pop(HELD_PHOTO_SESSION_KEY, None)
                 if getattr(settings, 'SITE_ID', 1) == 2:
                     #send_new_registration_notification(cares_reg, request)
                     print ('New Cares Registration - DB updated queuing email notification: send_new_registration_notification')
                     send_new_registration_notification(cares_reg)                    
                 logger.info('Cares Registration Added: %s (%s)', cares_species.name, str(cares_reg.id))
-                messages.success(request, f'CARES "{cares_species.name}" registration submitted!')
-                return HttpResponseRedirect(reverse("caresSpecies", args=[cares_species.id]))
+                # confirmation page reads the id from the session so registrations can't be browsed by id
+                request.session['cares_registration_submitted'] = cares_reg.id
+                return HttpResponseRedirect(reverse("registerCaresSpeciesSubmitted"))
             except Exception as e:
                 logger.error(f"Unexpected error registering cares species: {str(e)}", exc_info=True)
                 messages.error(request, f'An unexpected error occurred: {str(e)}')
+        elif form.duplicate_verdict == cares_duplicate_service.EXACT:
+            logger.info('Duplicate Cares Registration rejected for species_id=%s', pk)
+            messages.warning(request, 'This registration has already been received. There is no need to submit it again.')
+        elif form.duplicate_verdict == cares_duplicate_service.ASK and not form.additional_registration_confirmed:
+            logger.info('Possible duplicate Cares Registration, asking submitter to confirm for species_id=%s', pk)
+            messages.warning(request, 'You already have an active registration for this species. Please confirm below.')
         else:
             logger.warning(f"Cares Registration form validation failed for species_id={pk}: {form.errors.as_text()}")
             messages.error(request, 'Please correct the errors highlighted below.')
+
+        if (not form.is_valid() and new_photo and form.duplicate_verdict != cares_duplicate_service.EXACT
+                and 'verification_photo' not in form.errors):
+            form.hold_photo(_hold_photo(request, cares_species, form.cleaned_data['verification_photo']).url)
     else:
         form = CaresRegistrationAnonymousForm2(species=cares_species)
 
     context = {'form': form, 'cares_species': cares_species}
     return render(request, 'species/cares/registerCaresSpecies.html', context)    
+
+
+### Register CARES Species - Submitted confirmation (Annonymous User)
+
+def registerCaresSpeciesSubmitted(request):
+    """Confirmation after registerCaresSpecies, so submitters know it was received and don't resubmit."""
+    registration = CaresRegistration.objects.select_related('species', 'affiliate_club', 'collection_location').filter(
+        pk=request.session.get('cares_registration_submitted')).first()
+    if registration is None:
+        return redirect('registerCaresSelectSpecies')
+    return render(request, 'species/cares/registerCaresSpeciesSubmitted.html', {'registration': registration})
 
 
 ### reg submitter email notifications for certain reg status changes
@@ -597,7 +649,7 @@ def deleteCaresRegistration(request, pk):
     if request.method == 'POST':
         logger.info('User %s deleted caresRegistration: %s', request.user.username, registration.name)
         registration.delete()
-        return redirect('caresSpeciesSearch')
+        return redirect('caresRegistrations')
     object_type = 'CARES Registration'
     object_name = registration.name
     context = {'object_type': object_type, 'object_name': object_name}

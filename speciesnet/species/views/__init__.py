@@ -28,7 +28,7 @@ from .views_species import (
 from .views_cares import (
     caresSpecies, createCaresSpecies, editCaresSpecies, deleteCaresSpecies, CaresSpeciesListView,
     caresRegistration, createCaresRegistration, editCaresRegistration, deleteCaresRegistration, 
-    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, caresPriorityList,
+    CaresRegistrationListView, registerCaresSelectSpecies, registerCaresSpecies, registerCaresSpeciesSubmitted, caresPriorityList,
     editCaresSpecies2, editCaresRegistrationAdmin, caresRegistrationNotifyAquarist, registrationLookup,
     caresApprover, createCaresApprover, editCaresApprover, deleteCaresApprover, caresApprovers,
     exportCaresRegistrations, importCaresRegistrations, caresRegistrationsFromAsn, importCaresLegacyRegistrations,
@@ -169,7 +169,7 @@ __all__ = [
     'caresRegistration', 'createCaresRegistration', 'editCaresRegistration', 'deleteCaresRegistration', 
     'caresRegistrationNotifyAquarist',
     'caresApprover', 'createCaresApprover', 'editCaresApprover', 'deleteCaresApprover',
-    'registerCaresSelectSpecies', 'registerCaresSpecies', 'registrationLookup',
+    'registerCaresSelectSpecies', 'registerCaresSpecies', 'registerCaresSpeciesSubmitted', 'registrationLookup',
     
     # BAP
     'bapSubmission', 'createBapSubmission', 'editBapSubmission', 'deleteBapSubmission',

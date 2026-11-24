@@ -5,7 +5,7 @@ Tests for views_cares.caresSpecies: the show_iucn_assessment display logic.
 from django.test import TestCase
 from django.urls import reverse
 
-from species.models import Species, User
+from species.models import CaresRegistration, Species, User
 
 
 def _make_user(email='creator@example.com', username='creator'):
@@ -95,3 +95,20 @@ class ImportCaresLegacyRegistrationsViewTests(TestCase):
         upload = SimpleUploadedFile('legacy.csv', b'a,b\n1,2\n', content_type='text/csv')
         response = self.client.post(reverse('importCaresLegacyRegistrations'), {'import_csv_file': upload})
         self.assertTemplateUsed(response, 'species/cares/importCaresLegacyRegistrationResults.html')
+
+
+class DeleteCaresRegistrationTests(TestCase):
+
+    def setUp(self):
+        self.staff = User.objects.create_user(email='staff@example.com', username='staff', password='pass', is_staff=True)
+        species = Species.objects.create(name='Julidochromis marksmithi', category='CIC', cares_family='CIC')
+        self.registration = CaresRegistration.objects.create(
+            name='reg-delete', aquarist_name='Aquarist', aquarist_email='aquarist@example.com',
+            species=species, species_source='src',
+        )
+        self.client.force_login(self.staff)
+
+    def test_delete_returns_to_registrations_list(self):
+        response = self.client.post(reverse('deleteCaresRegistration', args=[self.registration.id]))
+        self.assertRedirects(response, reverse('caresRegistrations'), fetch_redirect_response=False)
+        self.assertFalse(CaresRegistration.objects.filter(pk=self.registration.id).exists())

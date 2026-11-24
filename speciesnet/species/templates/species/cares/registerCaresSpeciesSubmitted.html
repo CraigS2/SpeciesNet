@@ -1,0 +1,51 @@
+{% extends "main.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0">✅ Registration Received: <i>{{ registration.species.name }}</i></h4>
+                </div>
+                <div class="card-body px-4 py-3" style="background-color: rgb(189, 219, 241);">
+                    <div class="alert alert-success mb-3">
+                        <strong>Thank you! Your CARES registration was received on {{ registration.date_requested|date:"M d, Y" }}.</strong><br>
+                        There is no need to submit it again.
+                    </div>
+
+                    <h5 class="fw-bold">What happens next</h5>
+                    <p>
+                        A CARES approver has been notified and will review your registration.
+                        Its status is currently <strong>{{ registration.get_status_display }}</strong>.
+                        The approver will contact you at <strong>{{ registration.aquarist_email }}</strong> if they need more information.
+                    </p>
+                    <p>
+                        To check on your registrations later, use the <a href="{% url 'registrationLookup' %}">Registration Lookup</a> page.
+                    </p>
+
+                    <h5 class="fw-bold mt-4">What you submitted</h5>
+                    <table class="table table-sm bg-white mb-3" style="max-width: 700px;">
+                        <tbody>
+                            <tr><th style="width: 40%;">Species</th><td><i>{{ registration.species.name }}</i></td></tr>
+                            <tr><th>Aquarist</th><td>{{ registration.aquarist_name }}</td></tr>
+                            <tr><th>Email</th><td>{{ registration.aquarist_email }}</td></tr>
+                            <tr><th>Affiliate club</th><td>{{ registration.affiliate_club.name|default:"None" }}</td></tr>
+                            {% if registration.collection_location %}
+                            <tr><th>Collection location</th><td>{{ registration.collection_location }}</td></tr>
+                            {% endif %}
+                            <tr><th>Source</th><td>{{ registration.species_source|linebreaksbr }}</td></tr>
+                            <tr><th>Year acquired</th><td>{{ registration.year_acquired|default:"" }}</td></tr>
+                            <tr><th>Spawned</th><td>{{ registration.species_has_spawned|yesno:"Yes,No" }}</td></tr>
+                        </tbody>
+                    </table>
+
+                    <a href="{% url 'caresSpecies' registration.species.id %}" class="btn btn-secondary">Back to <i>{{ registration.species.name }}</i></a>
+                    <a href="{% url 'registerCaresSelectSpecies' %}" class="btn btn-success ms-2">Register a different species</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

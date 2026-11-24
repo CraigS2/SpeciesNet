@@ -149,6 +149,7 @@ urlpatterns = [
     path('cares/caresRegistrationsFromAsn/', views.caresRegistrationsFromAsn, name="caresRegistrationsFromAsn"),
     path('cares/importCaresLegacyRegistrations/', views.importCaresLegacyRegistrations, name="importCaresLegacyRegistrations"),
 
+    path('registerCaresSpeciesSubmitted/', views.registerCaresSpeciesSubmitted, name="registerCaresSpeciesSubmitted"),   # annonymous user reg confirmation
     path('registerCaresSpecies/<str:pk>/', views.registerCaresSpecies, name="registerCaresSpecies"),             # annonymous user registration
     path('registerCaresSelectSpecies/', views.registerCaresSelectSpecies, name="registerCaresSelectSpecies"),    # annonymous user registration
     path('registrationLookup/', views.registrationLookup, name="registrationLookup"),                            # annonymous user reg check

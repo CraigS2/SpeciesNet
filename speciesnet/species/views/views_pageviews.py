@@ -22,6 +22,7 @@ from django.views.decorators.http import require_POST
 
 from ..models import PageViewCount
 from ..asn_tools.asn_pageview_tools import resolve_objects_for_page_type
+from ..asn_tools.asn_utils import export_content_disposition
 from ..services import pageview_service as service
 
 LIMIT_CHOICES = [('50', '50'), ('100', '100'), ('250', '250'), ('all', 'All')]
@@ -102,6 +103,12 @@ def pageviewsTopRanking(request):
     return render(request, 'species/pageviewsTopRanking.html', context)
 
 
+# Readable page type names for export filenames; other types keep their code.
+EXPORT_TYPE_SLUGS = {
+    PageViewCount.PageType.SPECIES: 'species',
+    PageViewCount.PageType.SPECIES_INSTANCE: 'aquarist_species',
+}
+
 @staff_member_required
 def pageviewsExportCsv(request):
     """CSV of the page's current selection: one page type, or every type with page_type=all."""
@@ -113,10 +120,11 @@ def pageviewsExportCsv(request):
 
     period = service.period_label(year, month) if year else 'current'
     page_types = PageViewCount.PageType.values if export_all else [page_type]
-    filename = f"pageviews_{service.period_slug(year, month) if year else 'current'}_{'all' if export_all else page_type}.csv"
+    type_slug = 'all' if export_all else EXPORT_TYPE_SLUGS.get(page_type, page_type)
+    base_name = f"pageviews_{service.period_slug(year, month) if year else 'current'}_{type_slug}_export"
 
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = export_content_disposition(base_name)
     writer = csv.writer(response)
     writer.writerow(['period', 'page_type', 'page_type_label', 'object_id', 'name', 'url', 'anonymous', 'authenticated', 'total'])
     labels = dict(PageViewCount.PageType.choices)

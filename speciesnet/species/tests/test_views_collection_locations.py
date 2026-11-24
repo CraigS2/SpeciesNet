@@ -94,3 +94,19 @@ class SpeciesCollectionLocationViewsTests(TestCase):
 
         response = self.client.get(reverse('importSpeciesInstanceCollectionLocations'))
         self.assertEqual(response.status_code, 403)
+
+    def test_collection_locations_page_sorted_by_species_then_location(self):
+        aulonocara = Species.objects.create(name='Aulonocara stuartgranti', category='CIC', global_region='AFR')
+        SpeciesCollectionLocation.objects.create(species=self.species, name='Kapampa')
+        SpeciesCollectionLocation.objects.create(species=aulonocara, name='Ngara')
+        SpeciesCollectionLocation.objects.create(species=aulonocara, name='Chilumba')
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse('collectionLocations'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [(loc.species.name, loc.name) for loc in response.context['locations']],
+            [('Aulonocara stuartgranti', 'Chilumba'), ('Aulonocara stuartgranti', 'Ngara'),
+             ('Julidochromis marlieri', 'Kapampa')],
+        )

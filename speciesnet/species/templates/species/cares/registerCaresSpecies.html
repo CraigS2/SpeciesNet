@@ -17,4 +17,24 @@
     </div>
 </div>
 
+<script>
+    // Disable Submit once clicked: the photo upload can take a few seconds, and a second click made a duplicate registration
+    document.querySelectorAll('form.registration-form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            form.querySelectorAll('input[type="submit"]').forEach(function (button) {
+                button.disabled = true;
+                button.value = 'Submitting…';
+            });
+        });
+    });
+    // Re-enable if the page is shown again from the browser's back/forward cache
+    window.addEventListener('pageshow', function (event) {
+        if (!event.persisted) { return; }
+        document.querySelectorAll('form.registration-form input[type="submit"]').forEach(function (button) {
+            button.disabled = false;
+            button.value = 'Submit Registration';
+        });
+    });
+</script>
+
 {% endblock %}

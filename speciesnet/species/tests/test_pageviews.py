@@ -5,10 +5,11 @@ period labels, close-out, clear, the Page Views page, CSV export, the command an
 import csv
 import io
 from datetime import date
+from unittest import mock
 from io import StringIO
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from pending_actions.tasks import snapshot_page_views_task
@@ -140,23 +141,31 @@ class PageViewsPageTests(TestCase):
         self.assertEqual(self.client.get(self.url, {'source': 'monthly'}).context['source'], 'snapshot')
         self.assertContains(self.client.get(self.url), 'since the last close-out (2027 Q1)')
 
-    def test_csv_export_current_single_and_all_types(self):
+    @override_settings(SITE_ID=1)
+    @mock.patch('species.asn_tools.asn_utils.timezone.localdate', return_value=date(2026, 11, 23))
+    def test_csv_export_current_single_and_all_types(self, _):
         response = self.client.get(reverse('pageviewsExportCsv'), {'page_type': SPEC})
         self.assertEqual(response['Content-Type'], 'text/csv')
-        self.assertIn('pageviews_current_SPEC.csv', response['Content-Disposition'])
+        self.assertEqual(response['Content-Disposition'],
+                         'attachment; filename="20261123_asn_pageviews_current_species_export.csv"')
         rows = list(csv.reader(io.StringIO(response.content.decode())))
         self.assertEqual(rows[0], ['period', 'page_type', 'page_type_label', 'object_id', 'name', 'url',
                                    'anonymous', 'authenticated', 'total'])
         self.assertEqual(rows[1][:5], ['current', 'SPEC', 'Species', str(self.species.id), 'Betta macrostoma'])
         self.assertTrue(rows[1][5].startswith('http://testserver/'))
         self.assertEqual(rows[1][6:], ['5', '2', '7'])
+        response = self.client.get(reverse('pageviewsExportCsv'), {'page_type': PageViewCount.PageType.SPECIES_INSTANCE})
+        self.assertIn('_pageviews_current_aquarist_species_export.csv', response['Content-Disposition'])
         everything = list(csv.reader(io.StringIO(self.client.get(reverse('pageviewsExportCsv'), {'page_type': 'all'}).content.decode())))
         self.assertEqual({row[1] for row in everything[1:]}, {'SPEC', 'AQCL'})
 
-    def test_csv_export_snapshot(self):
+    @override_settings(SITE_ID=2)
+    @mock.patch('species.asn_tools.asn_utils.timezone.localdate', return_value=date(2027, 4, 1))
+    def test_csv_export_snapshot(self, _):
         service.close_out_period(2027, 3)
         response = self.client.get(reverse('pageviewsExportCsv'), {'page_type': 'all', 'source': 'snapshot', 'year': 2027, 'month': 3})
-        self.assertIn('pageviews_2027-Q1_all.csv', response['Content-Disposition'])
+        self.assertEqual(response['Content-Disposition'],
+                         'attachment; filename="20270401_cso_pageviews_2027-Q1_all_export.csv"')
         self.assertIn('2027 Q1', response.content.decode())
 
     def test_close_out_needs_confirm_and_allowed_period(self):

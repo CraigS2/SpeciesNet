@@ -16,6 +16,9 @@ from .models import BapSubmission, BapGenus, BapSpecies, BapTier, SmpSubmission,
 from .models import SpeciesFeedback
 from .asn_tools.text_normalize import normalize_species_text
 from .asn_tools.asn_utils import find_species_by_name
+from .services import cares_duplicate_service
+from django.urls import reverse
+from django.utils.html import format_html
 from allauth.account.forms import SignupForm, ResetPasswordForm
 #from django_recaptcha.fields import ReCaptchaField
 #from django_recaptcha.widgets import ReCaptchaV2Invisible
@@ -533,9 +536,11 @@ class CaresRegistrationAnonymousForm2(ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.species = kwargs.pop('species', None)
+        held_photo = kwargs.pop('held_photo', None)
         super().__init__(*args, **kwargs)
 
         manage_cl = bool(self.species and getattr(self.species, 'manage_collection_locations', False))
+        self._held_photo_slot = Div(css_class='mb-1')     # filled by hold_photo()
 
         self.helper = FormHelper()
         self.helper.form_method = 'post'
@@ -609,6 +614,7 @@ class CaresRegistrationAnonymousForm2(ModelForm):
                 Field('species_source', css_class='mb-1'),
                 Field('year_acquired', css_class='mb-1'),
                 Field('verification_photo', css_class='mb-1'),
+                self._held_photo_slot,
                 Field('species_has_spawned', css_class='mb-1'),
                 Div(
                     HTML("""
@@ -625,6 +631,64 @@ class CaresRegistrationAnonymousForm2(ModelForm):
                 css_class='mt-2'
             )
         )
+
+        # duplicate check (cares_duplicate_service): set by clean(); the confirm box stays once it has been shown
+        self.duplicate_verdict = None
+        self.additional_registration_confirmed = False
+        if self.data.get('duplicate_prompted'):
+            self._add_duplicate_confirm()
+        if held_photo:
+            self.hold_photo(held_photo)
+
+    def hold_photo(self, photo_url):
+        """Show the photo already uploaded (and kept by the view) so the form can be resubmitted without it."""
+        self.fields['verification_photo'].required = False
+        self._held_photo_slot.fields = [HTML(format_html(
+            '<input type="hidden" name="held_photo" value="1">'
+            '<div class="col-md-10 offset-md-2 mb-2"><img src="{}" alt="Your photo" style="max-height: 120px;" class="me-2 border">'
+            '<small>Your photo is saved. Choose a new file above only if you want to replace it.</small></div>',
+            photo_url))]
+
+    def _add_duplicate_confirm(self):
+        if 'confirm_additional' in self.fields:
+            return
+        self.fields['confirm_additional'] = forms.BooleanField(
+            required=False,
+            label='Yes, submit another registration',
+            help_text='For example, a different strain of this species.',
+        )
+        self.helper.layout.fields.insert(1, Div(
+            HTML('<input type="hidden" name="duplicate_prompted" value="1">'),
+            HTML("""
+                <div class="alert alert-warning mb-2">
+                    <strong>You already have an active registration for this species.</strong>
+                    Did you mean to submit another one? If so, tick the box below and submit again.
+                </div>
+            """),
+            Field('confirm_additional', css_class='mb-1'),
+            css_class='mb-2'
+        ))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self._errors:
+            return cleaned_data     # only check an otherwise complete submission
+        verdict, existing = cares_duplicate_service.check_new_registration(self.species, cleaned_data)
+        self.duplicate_verdict = verdict
+        received = existing.date_requested.strftime('%b %d, %Y') if existing else ''
+        if verdict == cares_duplicate_service.EXACT:
+            raise forms.ValidationError(format_html(
+                'This registration was already received on {} (status: {}), so there is no need to submit it again. '
+                'You can check your registrations on the <a href="{}">Registration Lookup</a> page.',
+                received, existing.get_status_display(), reverse('registrationLookup')))
+        if verdict == cares_duplicate_service.ASK:
+            if cleaned_data.get('confirm_additional'):
+                self.additional_registration_confirmed = True
+            else:
+                self._add_duplicate_confirm()
+                self.add_error('confirm_additional', f'Your earlier registration was received on {received} '
+                                                     f'(status: {existing.get_status_display()}).')
+        return cleaned_data
 
 
 # ASN SpeciesInstance easy CARES Reg form

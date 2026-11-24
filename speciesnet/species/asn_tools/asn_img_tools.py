@@ -11,7 +11,8 @@ from django.contrib import messages
 
 
 #def processUploadedImageFile (image_field: ImageField, species_or_instance_name, request):
-def processUploadedImageFile(image_field: ImageField, species_or_instance_name, request, delete_original_file=True):
+def processUploadedImageFile(image_field: ImageField, species_or_instance_name, request, delete_original_file=True, save_instance=True):
+    # save_instance=False only stores the new file, for a model instance not saved yet
     #register_heif_opener() # must be done before form upload or rejects heic files
     img = Image.open(image_field.path)
 
@@ -76,7 +77,7 @@ def processUploadedImageFile(image_field: ImageField, species_or_instance_name, 
         if delete_original_file:
             image_field.delete (save=False) # deletes old file and sets image_field empty
             
-        image_field.save(new_image_name, File(memBlob))
+        image_field.save(new_image_name, File(memBlob), save=save_instance)
         img.close()
 
     except OSError:

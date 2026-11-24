@@ -449,7 +449,7 @@ def collectionLocations(request):
 
     species_filter = request.GET.get('species', '').strip()
 
-    locations = SpeciesCollectionLocation.objects.select_related('species').all()
+    locations = SpeciesCollectionLocation.objects.select_related('species').order_by('species__name', 'name')
     if species_filter:
         locations = locations.filter(species__name__icontains=species_filter)
 
