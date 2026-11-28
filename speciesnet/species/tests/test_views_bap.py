@@ -747,8 +747,15 @@ class ExportClubBapGenusViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
 
-    def test_export_club_admin_can_export(self):
+    def test_export_club_admin_denied(self):
+        # exports are staff only
         self.client.login(email='clubadmin@test.com', password='testpass123')
+        url = reverse('exportClubBapGenus', args=[self.club.id])
+        self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_export_staff_can_export(self):
+        self.client.force_login(User.objects.create_user(email='staff@test.com', username='staff',
+                                                         password='testpass123', is_staff=True))
         url = reverse('exportClubBapGenus', args=[self.club.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)

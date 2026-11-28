@@ -461,6 +461,8 @@ def deleteSpeciesCollectionLocation(request, pk):
 
 @login_required(login_url='login')
 def exportSpecies(request):
+    if not user_can_edit(request.user):     # exports are staff only
+        raise PermissionDenied()
     return export_csv_species()
 
 

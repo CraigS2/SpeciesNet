@@ -705,10 +705,9 @@ def importClubBapGenus(request, pk):
 
 @login_required(login_url='login')
 def exportClubBapGenus(request, pk):
-    club = AquaristClub.objects.get(id=pk)
-    userCanEdit = user_can_edit_club(request.user, club)
-    if not userCanEdit:
-        raise PermissionDenied()    
+    if not user_can_edit(request.user):     # exports are staff only
+        raise PermissionDenied()
+    club = get_object_or_404(AquaristClub, pk=pk)
     return export_csv_bap_genus(club)
 
 

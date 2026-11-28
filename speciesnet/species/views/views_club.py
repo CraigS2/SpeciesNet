@@ -411,10 +411,14 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
 
 @login_required(login_url='login')
 def exportAquaristClubs(request):
+    if not user_can_edit(request.user):     # exports are staff only
+        raise PermissionDenied()
     return export_csv_aquaristClubs()
 
 @login_required(login_url='login')
 def exportAquaristClubMembers(request):
+    if not user_can_edit(request.user):     # exports are staff only
+        raise PermissionDenied()
     return export_csv_aquaristClubMembers()
 
 ### Import Proxy Members

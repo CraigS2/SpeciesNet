@@ -463,7 +463,7 @@ def collectionLocations(request):
 
 @login_required(login_url='login')
 def exportSpeciesCollectionLocations(request):
-    if not (request.user.is_staff or request.user.is_admin):
+    if not request.user.is_staff:           # exports are staff only
         raise PermissionDenied()
 
     response = HttpResponse(

@@ -349,3 +349,54 @@ class ExportContentTests(TestCase):
     def test_tools2_links_bap_submissions_export(self):
         self.client.force_login(self.admin)
         self.assertContains(self.client.get(reverse('tools2')), f'href="{reverse("exportBapSubmissions")}"')
+
+
+class ExportPermissionTests(TestCase):
+    """Every CSV export is staff only."""
+
+    def setUp(self):
+        self.club = AquaristClub.objects.create(name='Club', acronym='CLB', is_bap_club=True)
+        self.member = User.objects.create_user(username='member', email='member@x.com', password='pw', is_admin=True,
+                                               is_species_admin=True)
+        AquaristClubMember.objects.create(name='member', club=self.club, user=self.member, membership_approved=True,
+                                          is_club_admin=True, is_cares_admin=True)
+        self.staff = User.objects.create_user(username='staff', email='staff@x.com', password='pw', is_staff=True)
+
+    def export_urls(self):
+        return [reverse(name) for name in (
+            'exportAquarists', 'exportAquaristClubs', 'exportAquaristClubMembers', 'exportSpecies',
+            'exportSpeciesInstances', 'exportSpeciesCollectionLocations', 'exportCaresRegistrations',
+            'exportSpeciesFeedback', 'exportBapSubmissions', 'raffle_export_entries',
+            'raffle_export_species_results', 'pageviewsExportCsv')] + [reverse('exportClubBapGenus', args=[self.club.id])]
+
+    def test_non_staff_are_refused(self):
+        # a club admin / CARES admin / is_admin member who is not staff
+        self.client.force_login(self.member)
+        for url in self.export_urls():
+            response = self.client.get(url)
+            self.assertIn(response.status_code, (302, 403), url)
+            if response.status_code == 302:
+                self.assertIn('login', response['Location'], url)
+
+    def test_anonymous_are_sent_to_login(self):
+        for url in self.export_urls():
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302, url)
+            self.assertIn('login', response['Location'], url)
+
+    def test_staff_can_export(self):
+        self.client.force_login(self.staff)
+        for url in self.export_urls():
+            if 'raffle' in url or 'pageviews' in url:   # need raffle / page view data set up; covered by their own tests
+                continue
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, url)
+            self.assertEqual(response['Content-Type'], 'text/csv', url)
+
+    def test_club_page_shows_bap_genus_export_to_staff_only(self):
+        url = reverse('aquaristClub', args=[self.club.id])
+        export_url = reverse('exportClubBapGenus', args=[self.club.id])
+        self.client.force_login(self.member)
+        self.assertNotContains(self.client.get(url), export_url)
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(url), export_url)

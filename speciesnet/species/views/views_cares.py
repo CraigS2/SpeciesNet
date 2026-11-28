@@ -835,6 +835,8 @@ def caresApprovers(request):
 
 @login_required(login_url='login')
 def exportCaresRegistrations(request):
+    if not user_can_edit(request.user):     # exports are staff only
+        raise PermissionDenied()
     return export_csv_caresRegistrations()
 
 
