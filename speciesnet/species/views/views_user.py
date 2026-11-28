@@ -152,7 +152,7 @@ class AquaristListView(ListView):
         context['query_text'] = self.request.GET.get('q', '')
         context['recent_speciesInstances'] = SpeciesInstance.objects.filter(
             currently_keep=True, user__is_proxy=False,
-        )[:36]
+        ).select_related('user', 'species')[:36]
         return context
 
 

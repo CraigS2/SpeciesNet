@@ -89,8 +89,8 @@
                                     
                                     {% if userCanEdit %}
                                         <td style='text-align:center'>
-                                            {% if species.species_registrations.all.count > 0 %}
-                                                {{ species.species_registrations.all.count }} 
+                                            {% if species.registration_count %}
+                                                {{ species.registration_count }} 
                                             {% else %}
                                                 &nbsp;
                                             {% endif %}

@@ -266,12 +266,12 @@ class BapSubmissionsView(LoginRequiredMixin, ListView):
         return context
 
 @login_required(login_url='login')
-def exportBapSubmissions(request, pk):
-    club = AquaristClub.objects.get(id=pk)
-    userCanEdit = user_can_edit_club(request.user, club)
-    if not userCanEdit:
-        raise PermissionDenied()     
-    return export_csv_bap_submissions(club.id)
+def exportBapSubmissions(request):
+    # all clubs' submissions, linked from tools2 - staff only
+    if not user_can_edit(request.user):
+        raise PermissionDenied()
+    logger.info('Staff user %s exported BAP submissions to CSV.', request.user.username)
+    return export_csv_bap_submissions()
     
 ### BAP Leaderboard
 
@@ -314,9 +314,9 @@ class BapGenusView(LoginRequiredMixin, ListView):
     paginate_by = 100
 
     def get_bap_club(self):
-        club_id = self.kwargs.get('pk')
-        bap_club = AquaristClub.objects.get(id=club_id)
-        return bap_club
+        if not hasattr(self, '_bap_club'):
+            self._bap_club = AquaristClub.objects.get(id=self.kwargs.get('pk'))
+        return self._bap_club
     
     def post(self, request, pk):
         # update club BapGenus list with new genus names since last config
@@ -421,7 +421,7 @@ class BapGenusView(LoginRequiredMixin, ListView):
         else:
             queryset = BapGenus.objects.filter(club=club)
         
-        return queryset
+        return queryset.select_related('example_species')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -485,9 +485,9 @@ class BapSpeciesView(LoginRequiredMixin, ListView):
     paginate_by = 100
 
     def get_bap_club(self):
-        club_id = self.kwargs.get('pk')
-        bap_club = AquaristClub.objects.get(id=club_id)
-        return bap_club
+        if not hasattr(self, '_bap_club'):
+            self._bap_club = AquaristClub.objects.get(id=self.kwargs.get('pk'))
+        return self._bap_club
 
     def get_queryset(self):
         club = self.get_bap_club()
@@ -500,7 +500,7 @@ class BapSpeciesView(LoginRequiredMixin, ListView):
         else:
             queryset = BapSpecies.objects.filter(club=club)
         
-        return queryset
+        return queryset.select_related('species')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -519,8 +519,9 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
     context_object_name = "genus_bap_species_list"
 
     def get_bgp(self):
-        bgp_id = self.kwargs.get('pk')
-        return BapGenus.objects.get(id=bgp_id)
+        if not hasattr(self, '_bgp'):
+            self._bgp = BapGenus.objects.select_related('club', 'example_species').get(id=self.kwargs.get('pk'))
+        return self._bgp
 
     def get_bap_club(self):
         bgp = self.get_bgp()
@@ -553,12 +554,13 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
 
         species_set = Species.objects.filter(name__regex=r'^' + genus_name + r'\s')
         bsp_set = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
-        bsp_species_ids = [bsp.species.id for bsp in bsp_set]
+        bsp_species_ids = list(bsp_set.values_list('species_id', flat=True))
         results_set = species_set.exclude(id__in=bsp_species_ids)
         
-        print(f'Comparing species count ({species_set.count()}) to bgp count ({bgp.species_count})')
-        if species_set.count() != bgp.species_count:
-            bgp.species_count = int(species_set.count())
+        species_count = species_set.count()
+        print(f'Comparing species count ({species_count}) to bgp count ({bgp.species_count})')
+        if species_count != bgp.species_count:
+            bgp.species_count = species_count
             bgp.save()
             print(f'bgp {bgp.name} updated species count:  {bgp.species_count}')
         
@@ -572,11 +574,12 @@ class BapGenusSpeciesView(LoginRequiredMixin, ListView):
             raise PermissionDenied
         
         genus_name = self.get_genus_name()
-        queryset = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s')
-        print(f'BapGenusSpeciesView query BapSpecies override count: {queryset.count()}')
+        queryset = BapSpecies.objects.filter(club=club, name__regex=r'^' + genus_name + r'\s').select_related('species')
+        override_count = queryset.count()
+        print(f'BapGenusSpeciesView query BapSpecies override count: {override_count}')
         
-        if bgp.species_override_count != queryset.count():
-            bgp.species_override_count = int(queryset.count())
+        if bgp.species_override_count != override_count:
+            bgp.species_override_count = override_count
             bgp.save()  # Cache species_override_count for optimization
             print(f'BapGenus object {bgp.name} species_override_count updated: {bgp.species_override_count}')
         

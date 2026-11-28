@@ -232,7 +232,7 @@ def deleteSpecies(request, pk):
 
 @login_required(login_url='login')
 def speciesComments(request):
-    speciesComments = SpeciesComment.objects.all()
+    speciesComments = SpeciesComment.objects.select_related('user', 'species')
     cur_user = request.user
     if not cur_user.is_staff:
         raise PermissionDenied()
@@ -282,7 +282,7 @@ def deleteSpeciesComment(request, pk):
 
 @login_required(login_url='login')
 def speciesReferenceLinks(request):
-    speciesReferenceLinks = SpeciesReferenceLink.objects.all()
+    speciesReferenceLinks = SpeciesReferenceLink.objects.select_related('user', 'species')
     if not request.user.is_staff:
         raise PermissionDenied()
     context = {'speciesReferenceLinks': speciesReferenceLinks}

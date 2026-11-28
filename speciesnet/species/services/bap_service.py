@@ -418,7 +418,7 @@ def recalculate_bap_leaderboard_for_year(club, bap_year):
         return BapLeaderboard.objects.none()
 
     if BapLeaderboard.objects.filter(club=club, bap_year=bap_year, is_final=True).exists():
-        return BapLeaderboard.objects.filter(club=club, bap_year=bap_year).order_by('-points', '-species_count')
+        return BapLeaderboard.objects.filter(club=club, bap_year=bap_year).select_related('aquarist').order_by('-points', '-species_count')
 
     with transaction.atomic():
         BapLeaderboard.objects.filter(club=club, bap_year=bap_year).delete()
@@ -427,7 +427,7 @@ def recalculate_bap_leaderboard_for_year(club, bap_year):
             club=club,
             bap_year=bap_year,
             status=BapSubmission.BapSubmissionStatus.APPROVED,
-        ).select_related('speciesInstance__species', 'aquarist')
+        ).select_related('species', 'speciesInstance__species', 'aquarist')
 
         per_user = {}
         for sub in submissions:
@@ -456,7 +456,7 @@ def recalculate_bap_leaderboard_for_year(club, bap_year):
         if entries:
             BapLeaderboard.objects.bulk_create(entries)
 
-    return BapLeaderboard.objects.filter(club=club, bap_year=bap_year).order_by('-points', '-species_count')
+    return BapLeaderboard.objects.filter(club=club, bap_year=bap_year).select_related('aquarist').order_by('-points', '-species_count')
 
 
 def _update_bap_lifetime_total(submission):

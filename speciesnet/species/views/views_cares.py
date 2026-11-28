@@ -211,7 +211,7 @@ class CaresSpeciesListView(ListView):
     paginate_by = 200
 
     def get_queryset(self):
-        queryset = Species.objects.filter(render_cares=True)
+        queryset = Species.objects.filter(render_cares=True).annotate(registration_count=Count('species_registrations'))
         cares_family = self.request.GET.get('cares_family', '')
         global_region = self.request.GET.get('global_region', '')
         query_text = self.request.GET.get('q', '')

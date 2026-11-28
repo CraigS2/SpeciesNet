@@ -111,15 +111,13 @@ def user_can_edit_sc (cur_user: User, speciesComment: SpeciesComment):
     return userCanEdit
 
 def user_can_edit_sml (cur_user: User, speciesMaintenanceLog: SpeciesMaintenanceLog):
-    speciesInstances = speciesMaintenanceLog.speciesInstances
     userCanEdit = False
     if cur_user.is_authenticated:
         if cur_user.is_staff:
             userCanEdit = True       
         else:
-            for speciesInstance in speciesInstances.all():
-                if speciesInstance.user == cur_user:
-                    userCanEdit = True;                   # allow all contributors to edit/delete
+            # allow all contributors to edit/delete
+            userCanEdit = speciesMaintenanceLog.speciesInstances.filter(user=cur_user).exists()
     return userCanEdit
 
 def user_can_edit_club (cur_user: User, club: AquaristClub):

@@ -23,7 +23,7 @@ def speciesMaintenanceLogs(request):
 def speciesMaintenanceLog(request, pk):
     speciesMaintenanceLog = SpeciesMaintenanceLog.objects.get(id=pk)
     speciesMaintenanceLogEntries = SpeciesMaintenanceLogEntry.objects.filter(speciesMaintenanceLog=speciesMaintenanceLog)
-    speciesInstances = speciesMaintenanceLog.speciesInstances.all()
+    speciesInstances = speciesMaintenanceLog.speciesInstances.select_related('user')
     collaborators = speciesMaintenanceLog.collaborators.all()
     userCanEdit = user_can_edit_sml(request.user, speciesMaintenanceLog)
     

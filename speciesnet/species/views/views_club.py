@@ -158,7 +158,7 @@ def deleteAquaristClub(request, pk):
 def aquaristClubAdmin(request, pk):
     cur_user = request.user
     club = AquaristClub.objects.get(id=pk)
-    clubMembers = AquaristClubMember.objects.filter(club=club)
+    clubMembers = AquaristClubMember.objects.filter(club=club).select_related('user')
     userCanEdit = user_can_edit_club(cur_user, club)
     
     if not userCanEdit:
@@ -183,12 +183,10 @@ class AquaristClubMemberListView(LoginRequiredMixin, ListView):
         print("AquaristClubMemberListView setup called")
 
     def get_club(self):
-        club_id = self.kwargs.get('pk')
-        club = AquaristClub.objects.get(id=club_id)
-        return club
+        return self.club
 
     def get_queryset(self):
-        queryset = AquaristClubMember.objects.filter(club=self.club)
+        queryset = AquaristClubMember.objects.filter(club=self.club).select_related('user')
         print("AquaristClubMemberListView get_queryset called")
         return queryset
 
@@ -313,9 +311,7 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
         print("AquaristClubCaresLiaisonListView setup called")
 
     def get_club(self):
-        club_id = self.kwargs.get('pk')
-        club = AquaristClub.objects.get(id=club_id)
-        return club
+        return self.club
 
     def get_queryset(self):
         # Base queryset
@@ -376,15 +372,21 @@ class AquaristClubCaresLiaisonListView(LoginRequiredMixin, ListView):
         context['selected_species_kept'] = self.request.GET.get('species_kept', '')
 
         # slick tweaking of the existing context appends objects in memory 'enriching' them for rendering related data
-        page_species_instances = context.get(self.context_object_name) or context.get('object_list') or []
+        # latest registration per (species, keeper email) for the whole page in one query
+        page_species_instances = list(context.get(self.context_object_name) or context.get('object_list') or [])
+        page_emails = {(si.user.email or '').lower() for si in page_species_instances}
+        latest_registrations = {}
+        for registration in CaresRegistration.objects.filter(
+            species_id__in={si.species_id for si in page_species_instances}
+        ).order_by('lastUpdated'):
+            key = (registration.species_id, (registration.aquarist_email or '').lower())
+            if key[1] in page_emails:
+                latest_registrations[key] = registration    # ascending order, so the newest wins
         for species_instance in page_species_instances:
-            registration = CaresRegistration.objects.filter(
-                species=species_instance.species,
-                aquarist_email__iexact=species_instance.user.email
-            ).order_by('-lastUpdated').first()
+            registration = latest_registrations.get((species_instance.species_id, (species_instance.user.email or '').lower()))
             species_instance.cares_registration_status = (
                 registration.get_status_display() if registration else None
-            )        
+            )
         
         logger.info('User %s viewed AquaristClubCaresLiaisonListView for club: %s', 
                    self.request.user.username, self.get_club().name)

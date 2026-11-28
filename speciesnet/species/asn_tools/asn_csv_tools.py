@@ -1,4 +1,4 @@
-from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus
+from species.models import Species, SpeciesInstance, AquaristClub, AquaristClubMember, BapGenus, BapSubmission
 from species.models import ImportArchive, SpeciesImportStaging, SpeciesReferenceLink, User, SpeciesCollectionLocation, SpeciesFeedback
 from species.forms import SpeciesForm, SpeciesInstanceForm, CaresRegistration
 
@@ -590,7 +590,7 @@ def import_csv_species_reference_links(import_archive: ImportArchive, current_us
 #Export Species List, SpeciesInstances, Aquarists, Clubs, BAP
 
 def export_csv_bap_genus(bap_club: AquaristClub):
-    bapGenusSet = BapGenus.objects.filter(club=bap_club)
+    bapGenusSet = BapGenus.objects.filter(club=bap_club).select_related('club', 'example_species')
     response = HttpResponse (
         content_type="text/csv",
         headers={"Content-Disposition": export_content_disposition('bap_genus_points_export')},
@@ -682,7 +682,7 @@ def sync_species_instance_counts() -> dict:
 def export_csv_species():
 
     sync_species_instance_counts() 
-    speciesSet = Species.objects.all()
+    speciesSet = Species.objects.select_related('created_by', 'last_edited_by')
     response = HttpResponse (
         content_type="text/csv",
         headers={"Content-Disposition": export_content_disposition('species_export')},
@@ -723,7 +723,7 @@ def export_csv_species():
     return response
 
 def export_csv_speciesInstances():
-    speciesInstances = SpeciesInstance.objects.all()
+    speciesInstances = SpeciesInstance.objects.select_related('user', 'species')
     response = HttpResponse (
         content_type="text/csv",
         headers={"Content-Disposition": export_content_disposition('aquarist_species_export')},
@@ -811,7 +811,7 @@ def export_csv_speciesFeedback():
     return response
 
 def export_csv_aquaristClubMembers():
-    club_members = AquaristClubMember.objects.all()
+    club_members = AquaristClubMember.objects.select_related('club', 'user')
     response = HttpResponse (
         content_type="text/csv",
         headers={"Content-Disposition": export_content_disposition('aquarist_club_member_export')},
@@ -840,7 +840,8 @@ def export_csv_aquaristClubMembers():
 
 
 def export_csv_bap_submissions(club_id=None):
-    bap_submissions = BapSubmission.objects.all()
+    bap_submissions = BapSubmission.objects.select_related(
+        'aquarist', 'club', 'bap_year', 'species', 'speciesInstance').order_by('club__name', 'year', 'created')
     if club_id is not None:
         bap_submissions = bap_submissions.filter(club_id=club_id)
     response = HttpResponse (
@@ -850,8 +851,8 @@ def export_csv_bap_submissions(club_id=None):
 
     writer = csv.writer(response)
     writer.writerow([
-        # name   club    year   bap_year   species   speciesInstance
-        'name', 'club', 'year', 'bap_year', 'species', 'speciesInstance',
+        # name   aquarist    club    year   bap_year   species   speciesInstance
+        'name', 'aquarist', 'club', 'year', 'bap_year', 'species', 'speciesInstance',
         # status   points    request_points_review    notes
         'status', 'points', 'request_points_review', 'notes',
         # breeder_comments    admin_comments  active  created lastUpdated
@@ -859,8 +860,8 @@ def export_csv_bap_submissions(club_id=None):
         ])
     for bap_s in bap_submissions:
         writer.writerow([
-            # name  aquarist   year  bap_year species speciesInstance
-            bap_s.name, bap_s.aquarist, bap_s.year, getattr(bap_s.bap_year, 'name', ''), getattr(bap_s.species, 'name', ''), bap_s.speciesInstance,
+            # name  aquarist   club   year  bap_year species speciesInstance
+            bap_s.name, bap_s.aquarist or '', bap_s.club or '', bap_s.year, getattr(bap_s.bap_year, 'name', ''), getattr(bap_s.species, 'name', ''), bap_s.speciesInstance or '',
             #     status        points        request_points_review         notes
             bap_s.status, bap_s.points, bap_s.request_points_review, bap_s.notes,
             # breeder_comments    admin_comments  active  created lastUpdated
@@ -913,7 +914,8 @@ def export_csv_caresRegistrations_asn():
     species_asn_id = species' own local id on ASN (Site1).
     species_cso_id = species.external_id when truthy, else blank.
     """
-    registrations = CaresRegistration.objects.all()
+    registrations = CaresRegistration.objects.select_related(
+        'species', 'affiliate_club', 'collection_location', 'cares_approver', 'last_updated_by')
     response = HttpResponse(
         content_type="text/csv",
         headers={"Content-Disposition": export_content_disposition('cares_registration_export')},
@@ -933,14 +935,14 @@ def export_csv_caresRegistrations_asn():
     ])
     for reg in registrations:
         cso_id = reg.external_id if reg.external_id else ''
-        species_cso_id = reg.species.external_id if reg.species.external_id else ''
+        species_cso_id = (reg.species.external_id or '') if reg.species else ''
         writer.writerow([
             #   asn_id    cso_id    name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
-            reg.id, cso_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
+            reg.id, cso_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species or '', _collection_location_name(reg.collection_location),
             #   species_source      year_acquired      verification_photo    verification_photo_url
             reg.species_source, reg.year_acquired, reg.verification_photo, _build_media_url(reg.verification_photo),
             #   species_asn_id    species_cso_id    species_has_spawned      young_available      offspring_shared
-            reg.species.id, species_cso_id, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
+            reg.species_id or '', species_cso_id, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
             #   cares_approver      approver_notes      status
             reg.cares_approver, reg.approver_notes, reg.status,
             #   date_requested      lastUpdated      last_updated_by      last_report_date
@@ -998,7 +1000,8 @@ def export_csv_caresRegistrations_cso():
     Only rows with a populated asn_id are processed by ASN's status-update import;
     all rows are exported and the ASN import will skip those with blank/missing asn_id.
     """
-    registrations = CaresRegistration.objects.all()
+    registrations = CaresRegistration.objects.select_related(
+        'species', 'affiliate_club', 'collection_location', 'cares_approver', 'last_updated_by')
     response = HttpResponse(
         content_type="text/csv",
         headers={"Content-Disposition": export_content_disposition('cares_registration_export')},
@@ -1018,14 +1021,14 @@ def export_csv_caresRegistrations_cso():
     ])
     for reg in registrations:
         asn_id = reg.external_id if reg.external_id else ''
-        species_asn_id = reg.species.external_id if reg.species.external_id else ''
+        species_asn_id = (reg.species.external_id or '') if reg.species else ''
         writer.writerow([
             #   cso_id    asn_id    name      aquarist_name      aquarist_email      affiliate_club      species      collection_location
-            reg.id, asn_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species, _collection_location_name(reg.collection_location),
+            reg.id, asn_id, reg.name, reg.aquarist_name, reg.aquarist_email, reg.affiliate_club, reg.species or '', _collection_location_name(reg.collection_location),
             #   species_source      year_acquired      verification_photo
             reg.species_source, reg.year_acquired, reg.verification_photo,
             #   species_cso_id    species_asn_id    species_has_spawned      young_available      offspring_shared
-            reg.species.id, species_asn_id, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
+            reg.species_id or '', species_asn_id, reg.species_has_spawned, reg.young_available, reg.offspring_shared,
             #   cares_approver      approver_notes      status      asn_imported
             reg.cares_approver, reg.approver_notes, reg.status, reg.asn_imported,
             #   date_requested      lastUpdated      last_updated_by      last_report_date
